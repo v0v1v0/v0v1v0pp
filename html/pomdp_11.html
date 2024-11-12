@@ -1,0 +1,276 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plot_policy_graph</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>POMDP Plot Policy Graphs</h2>
+
+<h3>Description</h3>
+
+<p>The function plots the POMDP policy graph for converged POMDP solution and the
+policy tree for a finite-horizon solution.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">plot_policy_graph(
+  x,
+  belief = NULL,
+  engine = c("igraph", "visNetwork"),
+  show_belief = TRUE,
+  state_col = NULL,
+  legend = TRUE,
+  simplify_observations = TRUE,
+  remove_unreachable_nodes = TRUE,
+  ...
+)
+
+curve_multiple_directed(graph, start = 0.3)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>object of class POMDP containing a solved and converged POMDP problem.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>belief</code></td>
+<td>
+<p>the initial belief is used to mark the initial belief state in the
+graph of a converged solution and to identify the root node in a policy graph for a finite-horizon solution.
+If <code>NULL</code> then the belief is taken from the model definition.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>engine</code></td>
+<td>
+<p>The plotting engine to be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>show_belief</code></td>
+<td>
+<p>logical; show estimated belief proportions as a pie chart or color in each node?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>state_col</code></td>
+<td>
+<p>colors used to represent the belief over states in each node. Only used if <code>show_belief</code> is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>legend</code></td>
+<td>
+<p>logical; display a legend for colors used belief proportions?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simplify_observations</code></td>
+<td>
+<p>combine parallel observation arcs into a single arc.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>remove_unreachable_nodes</code></td>
+<td>
+<p>logical; remove nodes that are not reachable from the start state? Currently only implemented for policy trees for unconverged finite-time horizon POMDPs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>parameters are passed on to <code>policy_graph()</code>, <code>estimate_belief_for_nodes()</code> and the functions
+they use. Also, plotting options are passed on to the plotting engine <code>igraph::plot.igraph()</code>
+or <code>visNetwork::visIgraph()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>graph</code></td>
+<td>
+<p>The input graph.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start</code></td>
+<td>
+<p>The curvature at the two extreme edges.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The policy graph returned by <code>policy_graph()</code> can be directly plotted. <code>plot_policy_graph()</code>
+uses <code>policy_graph()</code> to get the policy graph and produces an
+improved visualization (a legend, tree layout for finite-horizon solutions, better edge curving, etc.).
+It also offers an interactive visualization using <code>visNetwork::visIgraph()</code>.
+</p>
+<p>Each policy graph node is represented by an alpha vector specifying a hyper plane segment. The convex hull of
+the set of hyperplanes represents the the value function.
+The policy specifies for each node an optimal action which is printed together with the node ID inside the node.
+The arcs are labeled with observations.
+Infinite-horizon converged solutions from a single policy graph.
+For finite-horizon solution a policy tree is produced.
+The levels of the tree and the first number in the node label represent the epochs.
+</p>
+<p>For better visualization, we provide a few features:
+</p>
+
+<ul>
+<li>
+<p> Show Belief, belief color and legend: A pie chart (or the color) in each node can be used
+represent an example of the belief that the agent has if it is in this node.
+This can help with interpreting the policy graph. The belief is obtained by calling
+<code>estimate_belief_for_nodes()</code>.
+</p>
+</li>
+<li>
+<p> Simplify observations: In some cases, two observations can lead to the same node resulting in two parallel edges.
+These edges can be collapsed into one labels with the observations.
+</p>
+</li>
+<li>
+<p> Remove unreachable nodes: Many algorithms produce
+unused policy graph nodes which can be filtered to produce a smaller tree structure of actually used nodes.
+Non-converged policies depend on the initial belief and if an initial belief is
+specified, then different nodes will be filtered and the tree will look different.
+</p>
+</li>
+</ul>
+<p>These improvements can be disabled using parameters.
+</p>
+
+
+<h4>Auxiliary function</h4>
+
+<p><code>curve_multiple_directed()</code> is a helper function for plotting igraph graphs similar to <code>igraph::curve_multiple()</code> but
+it also adds curvature to parallel edges that point in opposite directions.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>returns invisibly what the plotting engine returns.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other policy: 
+<code>estimate_belief_for_nodes()</code>,
+<code>optimal_action()</code>,
+<code>plot_belief_space()</code>,
+<code>policy()</code>,
+<code>policy_graph()</code>,
+<code>projection()</code>,
+<code>reward()</code>,
+<code>solve_POMDP()</code>,
+<code>solve_SARSOP()</code>,
+<code>value_function()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data("Tiger")
+
+### Policy graphs for converged solutions
+sol &lt;- solve_POMDP(model = Tiger)
+sol
+
+policy_graph(sol)
+
+## visualization
+plot_policy_graph(sol)
+
+## use a different graph layout (circle and manual; needs igraph)
+library("igraph")
+plot_policy_graph(sol, layout = layout.circle)
+plot_policy_graph(sol, layout = rbind(c(1,1), c(1,-1), c(0,0), c(-1,-1), c(-1,1)), margin = .2)
+plot_policy_graph(sol,
+  layout = rbind(c(1,0), c(.5,0), c(0,0), c(-.5,0), c(-1,0)), rescale = FALSE,
+  vertex.size = 15, edge.curved = 2,
+  main = "Tiger Problem")
+
+## hide labels, beliefs and legend
+plot_policy_graph(sol, show_belief = FALSE, edge.label = NA, vertex.label = NA, legend = FALSE)
+
+## custom larger vertex labels (A, B, ...)
+plot_policy_graph(sol,
+  vertex.label = LETTERS[1:nrow(policy(sol))],
+  vertex.size = 60,
+  vertex.label.cex = 2,
+  edge.label.cex = .7,
+  vertex.label.color = "white")
+
+## plotting the igraph object directly
+pg &lt;- policy_graph(sol, show_belief = TRUE, 
+  simplify_observations = TRUE, remove_unreachable_nodes = TRUE)
+
+## (e.g., using a tree layout)
+plot(pg, layout = layout_as_tree(pg, root = 3, mode = "out"))
+
+## change labels (abbreviate observations and use only actions to label the vertices)
+plot(pg,
+  edge.label = abbreviate(E(pg)$label),
+  vertex.label = V(pg)$action,
+  vertex.size = 20)
+
+## use action to color vertices (requires a graph without a belief pie chart) 
+##    and color edges to represent observations.
+pg &lt;- policy_graph(sol, show_belief = FALSE, 
+  simplify_observations = TRUE, remove_unreachable_nodes = TRUE)
+
+plot(pg,
+  vertex.label = NA,
+  vertex.color = factor(V(pg)$action),
+  vertex.size = 20,
+  edge.color = factor(E(pg)$observation),
+  edge.curved = .1
+  )
+
+acts &lt;- levels(factor(V(pg)$action))
+legend("topright", legend = acts, title = "action",
+  col = igraph::categorical_pal(length(acts)), pch = 15)
+obs &lt;- levels(factor(E(pg)$observation))
+legend("bottomright", legend = obs, title = "observation",
+  col = igraph::categorical_pal(length(obs)), lty = 1) 
+
+## plot interactive graphs using the visNetwork library.
+## Note: the pie chart representation is not available, but colors are used instead.
+plot_policy_graph(sol, engine = "visNetwork")
+
+## add smooth edges and a layout (note, engine can be abbreviated)
+plot_policy_graph(sol, engine = "visNetwork", layout = "layout_in_circle", smooth = TRUE)
+
+
+### Policy trees for finite-horizon solutions
+sol &lt;- solve_POMDP(model = Tiger, horizon = 4, method = "incprune")
+
+policy_graph(sol)
+
+plot_policy_graph(sol)
+# Note: the first number in the node id is the epoch.
+
+# plot the policy tree for an initial belief of 90% that the tiger is to the left
+plot_policy_graph(sol, belief = c(0.9, 0.1))
+
+# Plotting a larger graph (see ? igraph.plotting for plotting options)
+sol &lt;- solve_POMDP(model = Tiger, horizon = 10, method = "incprune")
+
+plot_policy_graph(sol, edge.arrow.size = .1,
+  vertex.label.cex = .5, edge.label.cex = .5)
+
+plot_policy_graph(sol, engine = "visNetwork")
+</code></pre>
+
+
+</div>

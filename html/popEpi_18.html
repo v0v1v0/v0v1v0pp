@@ -1,0 +1,246 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ltable</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Tabulate Counts and Other Functions by Multiple Variables into a 
+Long-Format Table</h2>
+
+<h3>Description</h3>
+
+<p><code>ltable</code> makes use of <code>data.table</code> 
+capabilities to tabulate frequencies or 
+arbitrary functions of given variables into a long format 
+<code>data.table</code>/<code>data.frame</code>. <code>expr.by.cj</code> is the 
+equivalent for more advanced users.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ltable(
+  data,
+  by.vars = NULL,
+  expr = list(obs = .N),
+  subset = NULL,
+  use.levels = TRUE,
+  na.rm = FALSE,
+  robust = TRUE
+)
+
+expr.by.cj(
+  data,
+  by.vars = NULL,
+  expr = list(obs = .N),
+  subset = NULL,
+  use.levels = FALSE,
+  na.rm = FALSE,
+  robust = FALSE,
+  .SDcols = NULL,
+  enclos = parent.frame(1L),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a <code>data.table</code>/<code>data.frame</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>by.vars</code></td>
+<td>
+<p>names of variables that are used for categorization, 
+as a character vector, e.g. <code>c('sex','agegroup')</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expr</code></td>
+<td>
+<p>object or a list of objects where each object is a function 
+of a variable (see: details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+<p>a logical condition; data is limited accordingly before
+evaluating <code>expr</code> - but the result of <code>expr</code> is also
+returned as <code>NA</code> for levels not existing in the subset. See Examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use.levels</code></td>
+<td>
+<p>logical; if <code>TRUE</code>, uses factor levels of given 
+variables if present;  if you want e.g. counts for levels
+that actually have zero observations but are levels in a factor variable, 
+use this</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.rm</code></td>
+<td>
+<p>logical; if <code>TRUE</code>, drops rows in table that have 
+<code>NA</code> as values in any of <code>by.vars</code> columns</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>robust</code></td>
+<td>
+<p>logical; if <code>TRUE</code>, runs the output data's 
+<code>by.vars</code> columns through <code>robust_values</code> before outputting</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.SDcols</code></td>
+<td>
+<p>advanced; a character vector of column names 
+passed to inside the data.table's brackets 
+<code>DT[, , ...]</code>; see <code>data.table</code>; if <code>NULL</code>,
+uses all appropriate columns. See Examples for usage.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>enclos</code></td>
+<td>
+<p>advanced; an environment; the enclosing
+environment of the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>advanced; other arguments passed to inside the 
+data.table's brackets <code>DT[, , ...]</code>; see <code>data.table</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Returns <code>expr</code> for each unique combination of given <code>by.vars</code>.
+</p>
+<p>By default makes use of any and all <code>levels</code> present for 
+each variable in  <code>by.vars</code>. This is useful,
+because even if a subset of the data does not contain observations 
+for e.g. a specific age group, those age groups are 
+nevertheless presented in the resulting table; e.g. with the default 
+<code>expr = list(obs = .N)</code> all age group levels
+are represented by a row and can have  <code>obs = 0</code>.
+</p>
+<p>The function differs from the
+vanilla <code>table</code> by giving a long format table of values
+regardless of the number of <code>by.vars</code> given.
+Make use of e.g. <code>cast_simple</code> if data needs to be 
+presented in a wide format (e.g. a two-way table).
+</p>
+<p>The rows of the long-format table are effectively Cartesian products 
+of the levels of each variable in  <code>by.vars</code>,
+e.g. with  <code>by.vars = c("sex", "area")</code> all levels of  
+<code>area</code> are repeated for both levels of  <code>sex</code>
+in the table.
+</p>
+<p>The <code>expr</code> allows the user to apply any function(s) on all 
+levels defined by  <code>by.vars</code>. Here are some examples:
+</p>
+
+<ul>
+<li>
+<p> .N or list(.N) is a function used inside a <code>data.table</code> to 
+calculate counts in each group
+</p>
+</li>
+<li>
+<p> list(obs = .N), same as above but user assigned variable name
+</p>
+</li>
+<li>
+<p> list(sum(obs), sum(pyrs), mean(dg_age)), multiple objects in a list
+</p>
+</li>
+<li>
+<p> list(obs = sum(obs), pyrs = sum(pyrs)), same as above with user 
+defined variable names
+</p>
+</li>
+</ul>
+<p>If  <code>use.levels = FALSE</code>, no <code>levels</code> information will
+be used. This means that if e.g. the  <code>agegroup</code>
+variable is a factor and has 18 levels defined, but only 15 levels
+are present in the data, no rows for the missing
+levels will be shown in the table.
+</p>
+<p><code>na.rm</code> simply drops any rows from the resulting table where 
+any of the  <code>by.vars</code> values was <code>NA</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A 'data.table' of statistics (e.g. counts) stratified by the columns defined
+in 'by.vars'.
+</p>
+
+
+<h3>Functions</h3>
+
+
+<ul><li> <p><code>expr.by.cj()</code>: Somewhat more streamlined <code>ltable</code> with 
+defaults for speed. Explicit determination of enclosing environment
+of data.
+</p>
+</li></ul>
+<h3>Author(s)</h3>
+
+<p>Joonas Miettinen, Matti Rantanen
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>table</code>, <code>cast_simple</code>, <code>melt</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data("sire", package = "popEpi")
+sr &lt;- sire
+sr$agegroup &lt;- cut(sr$dg_age, breaks=c(0,45,60,75,85,Inf))
+## counts by default
+ltable(sr, "agegroup")
+
+## any expression can be given
+ltable(sr, "agegroup", list(mage = mean(dg_age)))
+ltable(sr, "agegroup", list(mage = mean(dg_age), vage = var(dg_age)))
+
+## also returns levels where there are zero rows (expressions as NA)
+ltable(sr, "agegroup", list(obs = .N, 
+                            minage = min(dg_age), 
+                            maxage = max(dg_age)), 
+       subset = dg_age &lt; 85)
+       
+#### expr.by.cj
+expr.by.cj(sr, "agegroup")
+
+## any arbitrary expression can be given
+expr.by.cj(sr, "agegroup", list(mage = mean(dg_age)))
+expr.by.cj(sr, "agegroup", list(mage = mean(dg_age), vage = var(dg_age)))
+
+## only uses levels of by.vars present in data
+expr.by.cj(sr, "agegroup", list(mage = mean(dg_age), vage = var(dg_age)), 
+           subset = dg_age &lt; 70)
+           
+## .SDcols trick
+expr.by.cj(sr, "agegroup", lapply(.SD, mean), 
+           subset = dg_age &lt; 70, .SDcols = c("dg_age", "status"))
+</code></pre>
+
+
+</div>

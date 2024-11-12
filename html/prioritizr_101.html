@@ -1,0 +1,179 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>add_max_features_objective</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add maximum feature representation objective</h2>
+
+<h3>Description</h3>
+
+<p>Set the objective of a conservation planning problem to
+fulfill as many targets as possible, whilst ensuring that the cost of the
+solution does not exceed a budget.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">add_max_features_objective(x, budget)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>problem()</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>budget</code></td>
+<td>
+<p><code>numeric</code> value specifying the maximum expenditure of
+the prioritization. For problems with multiple zones, the argument
+to <code>budget</code> can be (i) a single <code>numeric</code> value to specify a single budget
+for the entire solution or (ii) a <code>numeric</code> vector to specify
+a separate budget for each management zone.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The maximum feature representation objective is an enhanced version of the
+maximum coverage objective <code>add_max_cover_objective()</code> because
+targets can be used to ensure that a certain amount of each feature is
+required in order for them to be adequately represented (similar to the
+minimum set objective (see <code>add_min_set_objective()</code>). This
+objective finds the set of planning units that meets representation targets
+for as many features as possible while staying within a fixed budget
+(inspired by Cabeza and Moilanen 2001). Additionally, weights can be used
+<code>add_feature_weights()</code>). If multiple solutions can meet the same
+number of weighted targets while staying within budget, the cheapest
+solution is returned.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An updated <code>problem()</code> object with the objective added to it.
+</p>
+
+
+<h3>Mathematical formulation</h3>
+
+<p>This objective can be expressed mathematically for a set of planning units
+(<code class="reqn">I</code> indexed by
+<code class="reqn">i</code>) and a set of features (<code class="reqn">J</code> indexed by <code class="reqn">j</code>) as:
+</p>
+<p style="text-align: center;"><code class="reqn">\mathit{Maximize} \space \sum_{i = 1}^{I} -s \space c_i \space x_i +
+\sum_{j = 1}^{J} y_j w_j \\
+\mathit{subject \space to} \\
+\sum_{i = 1}^{I} x_i r_{ij} \geq y_j t_j \forall j \in J \\
+\sum_{i = 1}^{I} x_i c_i \leq B</code>
+</p>
+
+<p>Here, <code class="reqn">x_i</code> is the decisions variable (e.g.,
+specifying whether planning unit <code class="reqn">i</code> has been selected (1) or not
+(0)), <code class="reqn">r_{ij}</code> is the amount of feature <code class="reqn">j</code> in planning
+unit <code class="reqn">i</code>, <code class="reqn">t_j</code> is the representation target for feature
+<code class="reqn">j</code>, <code class="reqn">y_j</code> indicates if the solution has meet
+the target <code class="reqn">t_j</code> for feature <code class="reqn">j</code>, and <code class="reqn">w_j</code> is the
+weight for feature <code class="reqn">j</code> (defaults to 1 for all features; see
+<code>add_feature_weights()</code> to specify weights). Additionally,
+<code class="reqn">B</code> is the budget allocated for the solution, <code class="reqn">c_i</code> is the
+cost of planning unit <code class="reqn">i</code>, and <code class="reqn">s</code> is a scaling factor used
+to shrink the costs so that the problem will return a cheapest solution
+when there are multiple solutions that represent the same amount of all
+features within the budget.
+</p>
+
+
+<h3>References</h3>
+
+<p>Cabeza M and Moilanen A (2001) Design of reserve networks and the
+persistence of biodiversity. <em>Trends in Ecology &amp; Evolution</em>,
+16: 242–248.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See objectives for an overview of all functions for adding objectives.
+Also, see targets for an overview of all functions for adding targets, and
+<code>add_feature_weights()</code> to specify weights for different features.
+</p>
+<p>Other objectives: 
+<code>add_max_cover_objective()</code>,
+<code>add_max_phylo_div_objective()</code>,
+<code>add_max_phylo_end_objective()</code>,
+<code>add_max_utility_objective()</code>,
+<code>add_min_largest_shortfall_objective()</code>,
+<code>add_min_set_objective()</code>,
+<code>add_min_shortfall_objective()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# load data
+sim_pu_raster &lt;- get_sim_pu_raster()
+sim_features &lt;- get_sim_features()
+sim_zones_pu_raster &lt;- get_sim_zones_pu_raster()
+sim_zones_features &lt;- get_sim_zones_features()
+
+# create problem with maximum features objective
+p1 &lt;-
+  problem(sim_pu_raster, sim_features) %&gt;%
+  add_max_features_objective(1800) %&gt;%
+  add_relative_targets(0.1) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve problem
+s1 &lt;- solve(p1)
+
+# plot solution
+plot(s1, main = "solution", axes = FALSE)
+
+# create multi-zone problem with maximum features objective,
+# with 10% representation targets for each feature, and set
+# a budget such that the total maximum expenditure in all zones
+# cannot exceed 3000
+p2 &lt;-
+  problem(sim_zones_pu_raster, sim_zones_features) %&gt;%
+  add_max_features_objective(3000) %&gt;%
+  add_relative_targets(matrix(0.1, ncol = 3, nrow = 5)) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve problem
+s2 &lt;- solve(p2)
+
+# plot solution
+plot(category_layer(s2), main = "solution", axes = FALSE)
+
+# create multi-zone problem with maximum features objective,
+# with 10% representation targets for each feature, and set
+# separate budgets for each management zone
+p3 &lt;-
+  problem(sim_zones_pu_raster, sim_zones_features) %&gt;%
+  add_max_features_objective(c(3000, 3000, 3000)) %&gt;%
+  add_relative_targets(matrix(0.1, ncol = 3, nrow = 5)) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve problem
+s3 &lt;- solve(p3)
+
+# plot solution
+plot(category_layer(s3), main = "solution", axes = FALSE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,187 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>timeSliceTree</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Time-Slicing a Phylogeny</h2>
+
+<h3>Description</h3>
+
+<p>Removes the portion of a tree after a set point in time, as if the tree
+after that moment had been sliced away.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">timeSliceTree(
+  ttree,
+  sliceTime,
+  drop.extinct = FALSE,
+  tipLabels = "earliestDesc",
+  plot = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ttree</code></td>
+<td>
+<p>A time-scaled phylogeny of class <code>phylo</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sliceTime</code></td>
+<td>
+<p>Time at which to 'slice' the tree. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop.extinct</code></td>
+<td>
+<p>If <code>TRUE</code>, drops tips that go extinct before
+the input <code>timeSlice</code> using function <code>dropExtinct</code>.
+Note that <code>dropExtinct</code> will also automatically adjust the <code>$root.time</code>
+if the removal of extinct branches causes the room to shift to a younger age.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tipLabels</code></td>
+<td>
+<p>What sort of tip labels should be placed on cropped branches
+which had multiple descendants? The default option, <code>"earliestDesc"</code> labels
+a clipped branch with the earliest appearing tip descendant of that branch. 
+Alternatively, if <code>tipLabels = "allDesc"</code>,
+these tips can instead be labeled with a compound label consisting of
+all descendants that were on the cropped branch, separated by semi-colons.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>If <code>TRUE</code>, plots input and output trees for comparison.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function assumes that the input <code>ttree</code> will generally have an element called
+<code>$root.time</code>, which is the time before present that the root divergence
+occurred. If <code>$root.time</code> is not present as an element of <code>ttree</code>, then it is
+assumed the tip furthest from the root is at time zero (present-day) and a new
+<code>$root.time</code> is calculated (a warning will be issued in this case).
+</p>
+<p>The <code>sliceTime</code> is always calculated as on the same scale as <code>ttree$root.time</code>.
+In other words, if <code>root.time = 100</code>, then <code>timeSlice = 80</code> will slice the tree 20
+time units after the root.
+</p>
+<p>If <code>drop.extinct = TRUE</code>, then extinct tips are dropped and (if present) the
+<code>$root.time</code> of <code>ttree</code> is adjusted. This is done using the <code>paleotree</code> function
+<code>dropExtinct</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns the modified phylogeny as an object of class <code>phylo</code>. 
+See argument <code>tipLabels</code> for how the labeling of the tips for 
+cut branches is controlled.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Note that the default behavior of <code>tiplabels = "earliestDesc"</code> labels
+cut branches with the tip label for the earliest tip descendant.
+This is somewhat arbitrary; the actual morphotaxon present at that time might have
+been a different taxon that the earliest appearing tip. For simulated datasets where
+morphotaxon identity is known throughout and not limited to tip observations,
+slice the taxon data in that more detailed form, and then transform that morphotaxon
+data to a tree, perhaps with <code>taxa2phylo</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David W. Bapst, with modification of code by Klaus Schliep to avoid use of
+function <code>dist.nodes</code>, which has difficulty with large trees, and greatly
+benefiting the run time of this function.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>phyloDiv</code>, <code>dropExtinct</code>,
+<code>dropExtant</code>
+</p>
+<p>Also see the function <code>treeSlice</code> in the library <code>phytools</code>, which will slice a
+tree at some point in and return all the subtrees which remain after the
+slicing time. (Effectively the reversed <em>opposite</em> of <code>timeSliceTree</code>.)
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# a neat example of using phyloDiv with timeSliceTree 
+    # to simulate doing extant-only phylogeny studies 
+    # of diversification...in the past!
+set.seed(444)
+record &lt;- simFossilRecord(
+    p = 0.1, q = 0.1, nruns = 1,
+    nTotalTaxa = c(30,40), 
+    nExtant = 0)
+taxa &lt;- fossilRecord2fossilTaxa(record)
+taxicDivCont(taxa)
+
+# that's the whole diversity curve
+   # now let's do it for a particular time-slide
+tree &lt;- taxa2phylo(taxa)
+# use timeSliceTree to make tree of relationships
+    # up until time = 950 
+tree950 &lt;- timeSliceTree(
+    tree,
+    sliceTime = 950,
+    plot = TRUE,
+    drop.extinct = FALSE
+    )
+
+# compare tip labels when we use tipLabels = "allDesc"
+tree950_AD &lt;- timeSliceTree(
+    tree,
+    sliceTime = 950,
+    plot = TRUE,
+    tipLabel = "allDesc",
+    drop.extinct = FALSE
+    )
+    
+# look for the differences!     
+cbind(tree950$tip.label, tree950_AD$tip.label)
+
+# with timeSliceTree we could
+    # look at the lineage accumulation curve 
+    # we would recover from the species extant
+    # at that point in time
+
+# use drop.extinct = T to only get the
+    # tree of lineages extant at time = 950
+tree950 &lt;- timeSliceTree(
+    tree,
+    sliceTime = 950,
+    plot = FALSE,
+    drop.extinct = TRUE
+    )
+# now its an ultrametric tree with many fewer tips...
+    # lets plot the lineage accumulation plot on a log scale
+phyloDiv(tree950,
+    plotLogRich = TRUE
+    )
+
+</code></pre>
+
+
+</div>

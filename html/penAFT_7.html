@@ -1,0 +1,121 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>penAFT.predict</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Obtain linear predictor for new subjects using fitted model from <code>penAFT</code> or <code>penAFT.cv</code>
+</h2>
+
+<h3>Description</h3>
+
+<p>A function for prediction along the solution path of the regularized semiparametric accelerated failure time model estimator.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">penAFT.predict(fit, Xnew, lambda = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>A fitted model from <code>penAFT</code> or <code>penAFT.cv</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xnew</code></td>
+<td>
+<p>A matrix of dimension <code class="reqn">n_{\rm new} \times p</code>. Must be a matrix, even if <code class="reqn">n_{\rm new}= 1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>The value of <code class="reqn">\lambda</code> used to estimate <code class="reqn">\beta</code>. If <code>NULL</code> and <code>fit</code> was obtained using <code>nfolds</code> non-<code>NULL</code>, the function will use the tuning parameter which minimized cross-validation linear predictor scores.  </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>It is important to note that the output of this function should not be treated as an estimate of the log-survival time. Because the Gehan loss function is location invariant, the intercept is absored into the error. If predictors were standardized for model fitting, this function returns <code class="reqn">\tilde{X}_{\rm new}\hat{\beta}</code> where <code class="reqn">\tilde{X}_{\rm new}</code> is the version of input <code>Xnew</code> which has been centered and standardized according to the design matrix used to fit the <code>penAFT</code> or <code>penAFT.cv</code> object. If predictors were not standardized, this function returns <code class="reqn">X_{\rm new}\hat{\beta}</code>. 
+</p>
+<p>We recommend input <code>Xnew</code> as a matrix, although if a <code class="reqn">p</code>-dimensional vector is input, the function will detect this. 
+</p>
+
+
+<h3>Value</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>preds</code></td>
+<td>
+<p>The matrix of linear predictors: rows correspond to rows of <code>Xnew</code>.  </p>
+</td>
+</tr></table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># --------------------------------------
+# Generate data  
+# --------------------------------------
+set.seed(1)
+genData &lt;- genSurvData(n = 50, p = 50, s = 10, mag = 2, cens.quant = 0.6)
+X &lt;- genData$X
+logY &lt;- genData$logY
+delta &lt;- genData$status
+
+# --- generate data for two new subjects
+p &lt;- dim(X)[2]
+Xnew &lt;- rbind(rnorm(p), rnorm(p))
+
+# -----------------------------------------------
+# Fit elastic net penalized estimator without CV
+# -----------------------------------------------
+fit &lt;- penAFT(X = X, logY = logY, delta = delta,
+                   nlambda = 10, lambda.ratio.min = 0.1,
+                   penalty = "EN",
+                   alpha = 1)
+
+# predict at 10th candidate tuning parameter
+linPred.10 &lt;- penAFT.predict(fit, Xnew = Xnew, lambda = fit$lambda[10])
+
+
+  # ------------------------------------------
+  # Fit elastic net penalized estimator with CV
+  # -------------------------------------------
+  fit.cv &lt;- penAFT.cv(X = X, logY = logY, delta = delta,
+                    nlambda = 50,
+                    penalty = "EN",
+                     alpha = 1, nfolds = 5)
+  
+  # --- return linear predictor at lambda minimizing cross-validation error 
+  linPred.cv &lt;- penAFT.predict(fit.cv, Xnew = Xnew) 
+  
+  # --- predict at 10th candidate tuning parameter
+  linPred.cv10 &lt;- penAFT.predict(fit.cv, Xnew = Xnew, lambda = fit.cv$full.fit$lambda[10]) 
+  
+  
+  # ------------------------------------------
+  # Fit penAFT with cross-validation
+  # -------------------------------------------
+  groups &lt;- rep(1:5, each = 10)
+  fit.sg.cv &lt;- penAFT.cv(X = X, logY = logY, delta = delta,
+                    nlambda = 50, groups = groups,
+                    penalty = "SG",
+                    alpha = 0.5, nfolds = 5)
+  
+  # ---- return linear predictor at lambda minimizing cross-validation error 
+  linPred.sg.cv &lt;- penAFT.predict(fit.sg.cv, Xnew = Xnew) 
+  
+  # --- predict at 10th candidate tuning parameter
+  linPred.sg.cv10 &lt;- penAFT.predict(fit.sg.cv, Xnew = Xnew, lambda = fit.sg.cv$full.fit$lambda[10]) 
+
+
+
+</code></pre>
+
+
+</div>

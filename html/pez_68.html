@@ -1,0 +1,810 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pglmm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Phylogenetic Generalised Linear Mixed Model for Community Data</h2>
+
+<h3>Description</h3>
+
+<p>This function performs Generalized Linear Mixed Models for binary
+and continuous phylogenetic data, estimating regression
+coefficients with approximate standard errors. It is modeled after
+<code>lmer</code> but is more general by allowing
+correlation structure within random effects; these correlations can
+be phylogenetic among species, or any other correlation structure,
+such as geographical correlations among sites. It is, however, much
+more specific than <code>lmer</code> in that it can
+only analyze a subset of1 the types of model designed handled by
+<code>lmer</code>. It is also much slower than
+<code>lmer</code> and requires users to specify
+correlation structures as covariance
+matrices. <code>communityPGLMM</code> can analyze models in Ives and
+Helmus (2011). It can also analyze bipartite phylogenetic data,
+such as that analyzed in Rafferty and Ives (2011), by giving sites
+phylogenetic correlations.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">communityPGLMM(
+  formula,
+  data = list(),
+  family = "gaussian",
+  sp = NULL,
+  site = NULL,
+  random.effects = list(),
+  REML = TRUE,
+  s2.init = NULL,
+  B.init = NULL,
+  reltol = 10^-6,
+  maxit = 500,
+  tol.pql = 10^-6,
+  maxit.pql = 200,
+  verbose = FALSE
+)
+
+communityPGLMM.gaussian(
+  formula,
+  data = list(),
+  family = "gaussian",
+  sp = NULL,
+  site = NULL,
+  random.effects = list(),
+  REML = TRUE,
+  s2.init = NULL,
+  B.init = NULL,
+  reltol = 10^-8,
+  maxit = 500,
+  verbose = FALSE
+)
+
+communityPGLMM.binary(
+  formula,
+  data = list(),
+  family = "binomial",
+  sp = NULL,
+  site = NULL,
+  random.effects = list(),
+  REML = TRUE,
+  s2.init = 0.25,
+  B.init = NULL,
+  reltol = 10^-5,
+  maxit = 40,
+  tol.pql = 10^-6,
+  maxit.pql = 200,
+  verbose = FALSE
+)
+
+communityPGLMM.binary.LRT(x, re.number = 0, ...)
+
+communityPGLMM.matrix.structure(
+  formula,
+  data = list(),
+  family = "binomial",
+  sp = NULL,
+  site = NULL,
+  random.effects = list(),
+  ss = 1
+)
+
+## S3 method for class 'communityPGLMM'
+summary(object, digits = max(3, getOption("digits") - 3), ...)
+
+## S3 method for class 'communityPGLMM'
+plot(x, digits = max(3, getOption("digits") - 3), ...)
+
+communityPGLMM.predicted.values(x, show.plot = TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a two-sided linear formula object describing the
+fixed-effects of the model; for example, <code>Y ~ X</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a <code>data.frame</code> containing the variables
+named in formula. The data frame should have long format with
+factors specifying species and sites. <code>communityPGLMM</code> will
+reorder rows of the data frame so that species are nested within
+sites. Please note that calling
+<code>as.data.frame.comparative.comm</code> will return your
+<code>comparative.comm</code> object into this format for you.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>either <code>gaussian</code> for a Linear Mixed Model, or
+<code>binomial</code> for binary dependent data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sp</code></td>
+<td>
+<p>a <code>factor</code> variable that identifies species</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>site</code></td>
+<td>
+<p>a <code>factor</code> variable that identifies sites</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>random.effects</code></td>
+<td>
+<p>a <code>list</code> that contains, for
+non-nested random effects, lists of triplets of the form
+<code>list(X, group = group, covar = V)</code>. This is modeled after the
+<code>lmer</code> formula syntax <code>(X | group)</code>
+where <code>X</code> is a variable and <code>group</code> is a grouping
+factor. Note that <code>group</code> should be either your <code>sp</code> or
+<code>site</code> variable specified in <code>sp</code> and <code>site</code>. The
+additional term <code>V</code> is a covariance matrix of rank equal to
+the number of levels of group that specifies the covariances among
+groups in the random effect <code>X</code>. For nested variable random
+effects, <code>random.effects</code> contains lists of quadruplets of the
+form <code>list(X, group1 = group1, covar = V, group2 = group2)</code>
+where <code>group1</code> is nested within <code>group2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>REML</code></td>
+<td>
+<p>whether REML or ML is used for model fitting. For the
+generalized linear mixed model for binary data, these don't have
+standard interpretations, and there is no log likelihood function
+that can be used in likelihood ratio tests.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2.init</code></td>
+<td>
+<p>an array of initial estimates of s2 for each random
+effect that scales the variance. If s2.init is not provided for
+<code>family="gaussian"</code>, these are estimated using in a clunky way
+using <code>lm</code> assuming no phylogenetic signal.  A better
+approach is to run <code>link[lme4:lmer]{lmer}</code> and use the output
+random effects for <code>s2.init</code>. If <code>s2.init</code> is not
+provided for <code>family="binomial"</code>, these are set to 0.25.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.init</code></td>
+<td>
+<p>initial estimates of <code class="reqn">B</code>, a matrix containing
+regression coefficients in the model for the fixed effects. This
+matrix must have <code>dim(B.init)=c(p+1,1)</code>, where <code>p</code> is the
+number of predictor (independent) variables; the first element of
+<code>B</code> corresponds to the intercept, and the remaining elements
+correspond in order to the predictor (independent) variables in the
+formula.  If <code>B.init</code> is not provided, these are estimated
+using in a clunky way using <code>lm</code> or <code>glm</code>
+assuming no phylogenetic signal.  A better approach is to run
+<code>lmer</code> and use the output fixed effects for
+<code>B.init</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reltol</code></td>
+<td>
+<p>a control parameter dictating the relative tolerance
+for convergence in the optimization; see <code>optim</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit</code></td>
+<td>
+<p>a control parameter dictating the maximum number of
+iterations in the optimization; see <code>optim</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol.pql</code></td>
+<td>
+<p>a control parameter dictating the tolerance for
+convergence in the PQL estimates of the mean components of the
+binomial GLMM.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit.pql</code></td>
+<td>
+<p>a control parameter dictating the maximum number
+of iterations in the PQL estimates of the mean components of the
+binomial GLMM.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>if <code>TRUE</code>, the model deviance and running
+estimates of <code>s2</code> and <code>B</code> are plotted each iteration
+during optimization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>communityPGLMM</code> object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>re.number</code></td>
+<td>
+<p>which <code>random.effect</code> in <code>x</code> to be
+tested</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments to summary and plotting functions
+(currently ignored)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ss</code></td>
+<td>
+<p>which of the <code>random.effects</code> to produce</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>communityPGLMM object to be summarised</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>digits</code></td>
+<td>
+<p>minimal number of significant digits for printing, as
+in <code>print.default</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>show.plot</code></td>
+<td>
+<p>if <code>TRUE</code> (default), display plot</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The vignette 'pez-pglmm-overview' gives a gentle
+introduction to using PGLMMS. For linear mixed models (<code>family
+= 'gaussian'</code>), the function estimates parameters for the model of
+the form, for example,
+</p>
+<p style="text-align: center;"><code class="reqn">Y = \beta_0 + \beta_1x + b_0 + b_1x</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">b_0 ~ Gaussian(0, \sigma_0^2I_{sp})</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">b_1 ~ Gaussian(0, \sigma_0^2V_{sp})</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\eta ~ Gaussian(0,\sigma^2)</code>
+</p>
+
+<p>where <code class="reqn">\beta_0</code> and <code class="reqn">\beta_1</code> are fixed
+effects, and <code class="reqn">V_{sp}</code> is a variance-covariance matrix
+derived from a phylogeny (typically under the assumption of
+Brownian motion evolution). Here, the variation in the mean
+(intercept) for each species is given by the random effect
+<code class="reqn">b_0</code> that is assumed to be independent among
+species. Variation in species' responses to predictor variable
+<code class="reqn">x</code> is given by a random effect <code class="reqn">b_0</code> that is
+assumed to depend on the phylogenetic relatedness among species
+given by <code class="reqn">V_{sp}</code>; if species are closely related,
+their specific responses to <code class="reqn">x</code> will be similar. This
+particular model would be specified as
+</p>
+<p><code>re.1 &lt;- list(1, sp = dat$sp, covar = diag(nspp))</code>
+<code>re.2 &lt;- list(dat$X, sp = dat$sp, covar = Vsp)</code>
+<code>z &lt;- communityPGLMM(Y ~ X, data = data, family = "gaussian", random.effects = list(re.1, re.2))</code>
+</p>
+<p>The covariance matrix covar is standardized to have its determinant
+equal to 1. This in effect standardizes the interpretation of the
+scalar <code class="reqn">\sigma^2</code>. Although mathematically this is
+not required, it is a very good idea to standardize the predictor
+(independent) variables to have mean 0 and variance 1. This will
+make the function more robust and improve the interpretation of the
+regression coefficients. For categorical (factor) predictor
+variables, you will need to construct 0-1 dummy variables, and
+these should not be standardized (for obvious reasons).
+</p>
+<p>For binary generalized linear mixed models (<code>family =
+'binomial'</code>), the function estimates parameters for the model of
+the form, for example,
+</p>
+<p style="text-align: center;"><code class="reqn">y = \beta_0 + \beta_1x + b_0 + b_1x</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">Y = logit^{-1}(y)</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">b_0 ~ Gaussian(0, \sigma_0^2I_{sp})</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">b_1 ~ Gaussian(0, \sigma_0^2V_{sp})</code>
+</p>
+
+<p>where <code class="reqn">\beta_0</code> and <code class="reqn">\beta_1</code> are fixed
+effects, and <code class="reqn">V_{sp}</code> is a variance-covariance matrix
+derived from a phylogeny (typically under the assumption of
+Brownian motion evolution).
+</p>
+<p><code>z &lt;- communityPGLMM(Y ~ X, data = data, family =
+'binomial', random.effects = list(re.1, re.2))</code>
+</p>
+<p>As with the linear mixed model, it is a very good idea to
+standardize the predictor (independent) variables to have mean 0
+and variance 1. This will make the function more robust and improve
+the interpretation of the regression coefficients. For categorical
+(factor) predictor variables, you will need to construct 0-1 dummy
+variables, and these should not be standardized (for obvious
+reasons).
+</p>
+
+
+<h3>Value</h3>
+
+<p>an object of class <code>communityPGLMM</code>
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>the formula for fixed effects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>the dataset</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>either <code>gaussian</code> or <code>binomial</code> depending on the model fit</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>random.effects</code></td>
+<td>
+<p>the list of random effects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>estimates of the regression coefficients</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.se</code></td>
+<td>
+<p>approximate standard errors of the fixed effects regression coefficients</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.cov</code></td>
+<td>
+<p>approximate covariance matrix for the fixed effects regression coefficients</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.zscore</code></td>
+<td>
+<p>approximate Z scores for the fixed effects regression coefficients</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.pvalue</code></td>
+<td>
+<p>approximate tests for the fixed effects regression coefficients being different from zero</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ss</code></td>
+<td>
+<p>random effects' standard deviations for the covariance matrix <code class="reqn">\sigma^2V</code> for each random effect in order. For the linear mixed model, the residual variance is listed last</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2r</code></td>
+<td>
+<p>random effects variances for non-nested random effects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2n</code></td>
+<td>
+<p>random effects variances for nested random effects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2resid</code></td>
+<td>
+<p>for linear mixed models, the residual vairance</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>logLIK</code></td>
+<td>
+<p>for linear mixed models, the log-likelihood for either the restricted likelihood (<code>REML=TRUE</code>) or the overall likelihood (<code>REML=FALSE</code>). This is set to NULL for generalised linear mixed models</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AIC</code></td>
+<td>
+<p>for linear mixed models, the AIC for either the restricted likelihood (<code>REML=TRUE</code>) or the overall likelihood (<code>REML=FALSE</code>). This is set to NULL for generalised linear mixed models</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>BIC</code></td>
+<td>
+<p>for linear mixed models, the BIC for either the restricted likelihood (<code>REML=TRUE</code>) or the overall likelihood (<code>REML=FALSE</code>). This is set to NULL for generalised linear mixed models</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>REML</code></td>
+<td>
+<p>whether or not REML is used (<code>TRUE</code> or <code>FALSE</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2.init</code></td>
+<td>
+<p>the user-provided initial estimates of <code>s2</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.init</code></td>
+<td>
+<p>the user-provided initial estimates of <code>B</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>the response (dependent) variable returned in matrix form</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>the predictor (independent) variables returned in matrix form (including 1s in the first column)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>H</code></td>
+<td>
+<p>the residuals. For the generalized linear mixed model, these are the predicted residuals in the <code class="reqn">logit^{-1}</code> space</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iV</code></td>
+<td>
+<p>the inverse of the covariance matrix for the entire system (of dimension (nsp*nsite) by (nsp*nsite))</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>predicted mean values for the generalized linear mixed model. Set to NULL for linear mixed models</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sp, sp</code></td>
+<td>
+<p>matrices used to construct the nested design matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Zt</code></td>
+<td>
+<p>the design matrix for random effects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>St</code></td>
+<td>
+<p>diagonal matrix that maps the random effects variances onto the design matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convcode</code></td>
+<td>
+<p>the convergence code provided by <code>optim</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>niter</code></td>
+<td>
+<p>number of iterations performed by <code>optim</code></p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>These function <em>do not</em> use a
+<code>comparative.comm</code> object, but you can use
+<code>as.data.frame.comparative.comm</code> to
+create a <code>data.frame</code> for use with these functions. The power
+of this method comes from deciding your own parameters parameters
+to be determined (the data for regression, the random effects,
+etc.), and it is our hope that this interface gives you more
+flexibility in model selection/fitting.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Anthony R. Ives, cosmetic changes by Will Pearse
+</p>
+
+
+<h3>References</h3>
+
+<p>Ives, A. R. and M. R. Helmus. 2011. Generalized linear
+mixed models for phylogenetic analyses of community
+structure. Ecological Monographs 81:511-525.
+</p>
+<p>Rafferty, N. E., and A. R. Ives. 2013. Phylogenetic
+trait-based analyses of ecological networks. Ecology 94:2321-2333.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Structure of examples:
+# First, a (brief) description of model types, and how they are specified
+# - these are *not* to be run 'as-is'; they show how models should be organised
+# Second, a run-through of how to simulate, and then analyse, data
+# - these *are* to be run 'as-is'; they show how to format and work with data
+
+## Not run: 
+#########################################################
+#First section; brief summary of models and their use####
+#########################################################
+## Model structures from Ives &amp; Helmus (2011)
+# dat = data set for regression (note: *not* an comparative.comm object)
+# nspp = number of species
+# nsite = number of sites
+# Vphy = phylogenetic covariance matrix for species
+# Vrepul = inverse of Vphy representing phylogenetic repulsion
+
+# Model 1 (Eq. 1)
+re.site &lt;- list(1, site = dat$site, covar = diag(nsite))
+re.sp.site &lt;- list(1, sp = dat$sp, covar = Vphy, site = dat$site) # note: nested
+z &lt;- communityPGLMM(freq ~ sp, data = dat, family = "binomial", sp
+= dat$sp, site = dat$site, random.effects = list(re.site,
+re.sp.site), REML = TRUE, verbose = TRUE, s2.init=.1)
+
+
+# Model 2 (Eq. 2)
+re.site &lt;- list(1, site = dat$site, covar = diag(nsite))
+re.slope &lt;- list(X, sp = dat$sp, covar = diag(nspp))
+re.slopephy &lt;- list(X, sp = dat$sp, covar = Vphy)
+z &lt;- communityPGLMM(freq ~ sp + X, data = dat, family = "binomial",
+sp = dat$sp, site = dat$site, random.effects = list(re.site,
+re.slope, re.slopephy), REML = TRUE, verbose = TRUE, s2.init=.1)
+
+# Model 3 (Eq. 3)
+re.site &lt;- list(1, site = dat$site, covar = diag(nsite))
+re.sp.site &lt;- list(1, sp = dat$sp, covar = Vrepul, site = dat$site) # note: nested
+z &lt;- communityPGLMM(freq ~ sp*X, data = dat, family = "binomial",
+sp = dat$sp, site = dat$site, random.effects = list(re.site,
+re.sp.site), REML = TRUE, verbose = TRUE, s2.init=.1)
+
+## Model structure from Rafferty &amp; Ives (2013) (Eq. 3)
+# dat = data set
+# npp = number of pollinators (sp)
+# nsite = number of plants (site)
+# VphyPol = phylogenetic covariance matrix for pollinators
+# VphyPlt = phylogenetic covariance matrix for plants
+
+re.a &lt;- list(1, sp = dat$sp, covar = diag(nspp))
+re.b &lt;- list(1, sp = dat$sp, covar = VphyPol)
+re.c &lt;- list(1, sp = dat$sp, covar = VphyPol, dat$site)
+re.d &lt;- list(1, site = dat$site, covar = diag(nsite))
+re.f &lt;- list(1, site = dat$site, covar = VphyPlt)
+re.g &lt;- list(1, site = dat$site, covar = VphyPlt, dat$sp)
+#term h isn't possible in this implementation, but can be done with
+available matlab code
+
+z &lt;- communityPGLMM(freq ~ sp*X, data = dat, family = "binomial",
+sp = dat$sp, site = dat$site, random.effects = list(re.a, re.b,
+re.c, re.d, re.f, re.g), REML = TRUE, verbose = TRUE, s2.init=.1)
+
+## End(Not run)
+
+#########################################################
+#Second section; detailed simulation and analysis #######
+#NOTE: this section is explained and annotated in #######
+#      detail in the vignette 'pez-pglmm-overview'#######
+#      run 'vignette('pez-pglmm-overview') to read#######
+#########################################################
+# Generate simulated data for nspp species and nsite sites
+nspp &lt;- 15
+nsite &lt;- 10
+
+# residual variance (set to zero for binary data)
+sd.resid &lt;- 0
+
+# fixed effects
+beta0 &lt;- 0
+beta1 &lt;- 0
+
+# magnitude of random effects
+sd.B0 &lt;- 1
+sd.B1 &lt;- 1
+
+# whether or not to include phylogenetic signal in B0 and B1
+signal.B0 &lt;- TRUE
+signal.B1 &lt;- TRUE
+
+# simulate a phylogenetic tree
+phy &lt;- rtree(n = nspp)
+phy &lt;- compute.brlen(phy, method = "Grafen", power = 0.5)
+
+# standardize the phylogenetic covariance matrix to have determinant 1
+Vphy &lt;- vcv(phy)
+Vphy &lt;- Vphy/(det(Vphy)^(1/nspp))
+
+# Generate environmental site variable
+X &lt;- matrix(1:nsite, nrow = 1, ncol = nsite)
+X &lt;- (X - mean(X))/sd(X)
+
+# Perform a Cholesky decomposition of Vphy. This is used to
+# generate phylogenetic signal: a vector of independent normal random
+# variables, when multiplied by the transpose of the Cholesky
+# deposition of Vphy will have covariance matrix equal to Vphy.
+
+iD &lt;- t(chol(Vphy))
+
+# Set up species-specific regression coefficients as random effects
+if (signal.B0 == TRUE) {
+		b0 &lt;- beta0 + iD %*% rnorm(nspp, sd = sd.B0)
+} else {
+		b0 &lt;- beta0 + rnorm(nspp, sd = sd.B0)
+}
+if (signal.B1 == TRUE) {
+		b1 &lt;- beta1 + iD %*% rnorm(nspp, sd = sd.B1)
+} else {
+		b1 &lt;- beta1 + rnorm(nspp, sd = sd.B1)
+}
+
+# Simulate species abundances among sites to give matrix Y that
+# contains species in rows and sites in columns
+y &lt;- rep(b0, each=nsite)
+y &lt;- y + rep(b1, each=nsite) * rep(X, nspp)
+y &lt;- y + rnorm(nspp*nsite) #add some random 'error'
+Y &lt;- rbinom(length(y), size=1, prob=exp(y)/(1+exp(y)))
+y &lt;- matrix(outer(b0, array(1, dim = c(1, nsite))), nrow = nspp,
+ncol = nsite) + matrix(outer(b1, X), nrow = nspp, ncol = nsite)
+e &lt;- rnorm(nspp * nsite, sd = sd.resid)
+y &lt;- y + matrix(e, nrow = nspp, ncol = nsite)
+y &lt;- matrix(y, nrow = nspp * nsite, ncol = 1)
+
+Y &lt;- rbinom(n = length(y), size = 1, prob = exp(y)/(1 + exp(y)))
+Y &lt;- matrix(Y, nrow = nspp, ncol = nsite)
+
+# name the simulated species 1:nspp and sites 1:nsites
+rownames(Y) &lt;- 1:nspp
+colnames(Y) &lt;- 1:nsite
+
+par(mfrow = c(3, 1), las = 1, mar = c(2, 4, 2, 2) - 0.1)
+matplot(t(X), type = "l", ylab = "X", main = "X among sites")
+hist(b0, xlab = "b0", main = "b0 among species")
+hist(b1, xlab = "b1", main = "b1 among species")
+
+#Plot out; you get essentially this from plot(your.pglmm.model)
+image(t(Y), ylab = "species", xlab = "sites", main = "abundance",
+col=c("black","white"))
+
+# Transform data matrices into "long" form, and generate a data frame
+YY &lt;- matrix(Y, nrow = nspp * nsite, ncol = 1)
+
+XX &lt;- matrix(kronecker(X, matrix(1, nrow = nspp, ncol = 1)), nrow =
+nspp * nsite, ncol = 1)
+
+site &lt;- matrix(kronecker(1:nsite, matrix(1, nrow = nspp, ncol =
+1)), nrow = nspp * nsite, ncol = 1)
+sp &lt;- matrix(kronecker(matrix(1, nrow = nsite, ncol = 1), 1:nspp),
+nrow = nspp * nsite, ncol = 1)
+
+dat &lt;- data.frame(Y = YY, X = XX, site = as.factor(site), sp = as.factor(sp))
+
+# Format input and perform communityPGLMM()
+# set up random effects
+
+# random intercept with species independent
+re.1 &lt;- list(1, sp = dat$sp, covar = diag(nspp))
+
+# random intercept with species showing phylogenetic covariances
+re.2 &lt;- list(1, sp = dat$sp, covar = Vphy)
+
+# random slope with species independent
+re.3 &lt;- list(dat$X, sp = dat$sp, covar = diag(nspp))
+
+# random slope with species showing phylogenetic covariances
+re.4 &lt;- list(dat$X, sp = dat$sp, covar = Vphy)
+
+# random effect for site
+re.site &lt;- list(1, site = dat$site, covar = diag(nsite))
+
+simple &lt;- communityPGLMM(Y ~ X, data = dat, family = "binomial", sp
+= dat$sp, site = dat$site, random.effects = list(re.site),
+REML=TRUE, verbose=FALSE)
+
+# The rest of these tests are not run to save CRAN server time;
+# - please take a look at them because they're *very* useful!
+## Not run:  
+z.binary &lt;- communityPGLMM(Y ~ X, data = dat, family = "binomial",
+sp = dat$sp, site = dat$site, random.effects = list(re.1, re.2,
+re.3, re.4), REML = TRUE, verbose = FALSE)
+
+# output results
+z.binary
+plot(z.binary)
+
+# test statistical significance of the phylogenetic random effect
+# on species slopes using a likelihood ratio test
+communityPGLMM.binary.LRT(z.binary, re.number = 4)$Pr
+
+# extract the predicted values of Y
+communityPGLMM.predicted.values(z.binary, show.plot = TRUE)
+
+# examine the structure of the overall covariance matrix
+communityPGLMM.matrix.structure(Y ~ X, data = dat, family =
+"binomial", sp = dat$sp, site = dat$site, random.effects =
+list(re.1, re.2, re.3, re.4))
+
+# look at the structure of re.1
+communityPGLMM.matrix.structure(Y ~ X, data = dat, family =
+"binomial", sp = dat$sp, site = dat$site, random.effects =
+list(re.1))
+
+# compare results to glmer() when the model contains no
+# phylogenetic covariance among species; the results should be
+# similar.
+communityPGLMM(Y ~ X, data = dat, family = "binomial", sp = dat$sp,
+site = dat$site, random.effects = list(re.1, re.3), REML = FALSE,
+verbose = FALSE)
+
+# lmer
+if(require(lme4)){
+summary(glmer(Y ~ X + (1 | sp) + (0 + X | sp), data=dat, family =
+"binomial"))
+
+# compare results to lmer() when the model contains no phylogenetic
+# covariance among species; the results should be similar.
+communityPGLMM(Y ~ X, data = dat, family = "gaussian", sp = dat$sp,
+site = dat$site, random.effects = list(re.1, re.3), REML = FALSE,
+verbose = FALSE)
+
+# lmer
+summary(lmer(Y ~ X + (1 | sp) + (0 + X | sp), data=dat, REML = FALSE))
+}
+
+## End(Not run)
+</code></pre>
+
+
+</div>

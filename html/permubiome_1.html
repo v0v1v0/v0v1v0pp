@@ -1,0 +1,105 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>get.data</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Parsing the data file.
+</h2>
+
+<h3>Description</h3>
+
+<p>This function prompts for the file contained all the data needed to process. You only have to 
+execute this function in the working directory where your file is stored properly formatted as requested.
+</p>
+<p>The input file is a tab-delimited text matrix as follows:
+</p>
+<pre>
+Sample     Class      feature(1)      feature(2)      feature(n)      ...
+sampleA    classX     counts(A1)      counts(A2)      counts(An)      ...
+sampleB    classY     counts(B1)      counts(B2)      counts(Bn)      ...
+sampleC    classX     counts(C1)      counts(C2)      counts(Cn)      ...
+sampleD    classY     counts(D1)      counts(D2)      counts(Dn)      ...
+</pre>
+<p>From the version 1.1 on you will be able to load your data as COLUMN format, 
+just adding the "Class" information in the second row as follows:
+</p>
+<pre>
+Sample        sampleA        sampleB        sampleC        sampleD        ...
+Class         classX         classY         classX         classY         ...
+feature(1)    counts(A1)     counts(B1)     counts(C1)     counts(D1)     ...
+feature(2)    counts(A2)     counts(B2)     counts(C2)     counts(D2)     ...
+feature(3)    counts(A3)     counts(B3)     counts(C3)     counts(D3)     ...
+feature(4)    counts(A4)     counts(B4)     counts(C4)     counts(D4)     ...
+feature(n)    counts(An)     counts(Bn)     counts(Cn)     counts(Dn)     ...
+</pre>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">get.data()
+</code></pre>
+
+
+<h3>Author(s)</h3>
+
+<p>Alfonso Benitez-Paez
+</p>
+
+
+<h3>References</h3>
+
+<p>Benitez-Paez A. 2023. Permubiome: an R package to perform permutation based test for biomarker discovery in microbiome analyses. [https://cran.r-project.org].
+Benitez-Paez A, et al. mSystems. 2020;5:e00857-19. doi: 10.1128/mSystems.00857-19.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## The function is currently defined as
+function () 
+{
+    DATA &lt;- readline("Type the name of your data set : ")
+    if (substr(DATA, 1, 1) == ""){
+        tb &lt;- read.table(system.file("extdat", "DATA_2", package = "permubiome"), 
+            header = T, sep = "\t")
+        print(paste("As you declare no input file, the permubiome test data was loaded"))
+        save(tb, DATA, file = "permubiome.RData")
+    }
+    else {
+        FORMAT &lt;- readline("Type the format of your data set (PERMUBIOME or COLUMN): ")
+        if (FORMAT == "PERMUBIOME") {
+            tb &lt;- read.table(DATA, header = T, sep = "\t")
+            save(tb, FORMAT, file = "permubiome.RData")
+        }
+        else {
+            biom &lt;- read.table(DATA, sep = "\t")
+            tb &lt;- t(biom)
+            colnames(tb) &lt;- tb[1, ]
+            rownames(tb) &lt;- NULL
+            tb = tb[-1, ]
+            labels &lt;- colnames(tb)
+            tb &lt;- as.data.frame(tb)
+            for (i in 3:length(labels)) {
+                tb[, i] &lt;- as.numeric(as.character(tb[, i]))
+            }
+            save(tb, file = "permubiome.RData")
+        }
+    }
+    print("opening DATA")
+    (load("permubiome.RData"))
+    df &lt;- as.data.frame(tb)
+    classes &lt;- levels(as.factor(df$Class))
+    samples &lt;- nrow(df)
+    print(paste("Your data file contains:", samples, "samples"))
+    print(paste("The classes in your data file are:", classes[1], 
+        "and", classes[2]))
+    print(paste("The number of different categories to compare are:", 
+        (ncol(tb) - 2)))
+    save(tb, FORMAT, DATA, df, REFERENCE, classes, file = "permubiome.RData")
+  }
+</code></pre>
+
+
+</div>

@@ -1,0 +1,97 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>calcDIs</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate Decline Indexes</h2>
+
+<h3>Description</h3>
+
+<p>Calculate Phenotypic Decline Index (PDI) and Decline Acuteness Index (DAI).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">calcDIs(rfModels, PDI = TRUE, DAI = TRUE, invertPDI = TRUE, invertDAI = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>rfModels</code></td>
+<td>
+<p>list containing random forest models as returned by <code>rf()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>PDI</code></td>
+<td>
+<p>TRUE/FALSE, calculate PDI?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>DAI</code></td>
+<td>
+<p>TRUE/FALSE, calculate DAI?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>invertPDI</code></td>
+<td>
+<p>invert the PDI scale? TRUE/FALSE. Ignored if argument PDI is FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>invertDAI</code></td>
+<td>
+<p>invert the DAI scale? TRUE/FALSE. Ignored if argument DAI is FALSE</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(dplyr)
+
+## Retrieve file paths for example data
+files &lt;- list.files(system.file('phenotypeDataCollectionSheets',
+  package = 'pdi'),full.names = TRUE)
+
+## Prepare data
+d &lt;- map(files,readPhenotypeSheet) %&gt;%
+  map(preparePhenotypeData) %&gt;%
+  bind_rows() %&gt;%
+  siteAdjustment() %&gt;%
+   mutate(`Live crown ratio (%)` = liveCrownRatio(`Total height (m)`,
+     `Lower crown height (m)`),
+     `Crown condition (%)` = crownCondition(`Missing crown (%)`,
+                               `Crown transparency (%)`),
+     `Crown volume (m^3)` = crownVolume(`Crown radius (m)`,
+                               `Total height (m)`,
+                               `Lower crown height (m)`,
+                               `Crown condition (%)`),
+     `Bleed prevalence (%)` = bleedPrevalence(`Active bleed length (mm)`,
+                               `Active bleeds`,
+                               `Black staining length (mm)`,
+                               `Black staining`,
+                               `Diameter at breast height (m)`),
+     `Agrilus exit hole density (m^-2)` = agrilusExitHoleDensity(`Agrilus exit holes`,
+                               `Diameter at breast height (m)`)
+)
+
+t &lt;- makeAnalysisTable(d)
+
+## Generate random forest models
+m &lt;- rf(t,cls = NULL,nreps = 10)
+
+## Calculate decline indexese
+DIs &lt;- calcDIs(m,DAI = FALSE,invertPDI = FALSE) %&gt;%
+  bind_cols(d %&gt;%
+    select(Location,ID,Status))
+</code></pre>
+
+
+</div>

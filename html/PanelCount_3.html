@@ -1,0 +1,248 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PoissonRE</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>A Poisson Model with Random Effects</h2>
+
+<h3>Description</h3>
+
+<p>Estimate a Poisson model with random effects at the individual level.
+</p>
+<p style="text-align: center;"><code class="reqn">E[y_{it}|x_{it},v_i] = exp(\boldsymbol{\beta}\mathbf{x_{it}}' + \sigma v_i)</code>
+</p>
+
+<p>Notations:
+</p>
+
+<ul>
+<li> <p><code class="reqn">x_{it}</code>: variables influencing the outcome <code class="reqn">y_{it}</code>, which could be a mixture of time-variant variables, time-invariant variables, and time dummies
+</p>
+</li>
+<li> <p><code class="reqn">v_i</code>: individual level random effect
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">PoissonRE(
+  formula,
+  data,
+  id.name,
+  par = NULL,
+  sigma = NULL,
+  method = "BFGS",
+  stopUpdate = FALSE,
+  se_type = c("Hessian", "BHHH")[1],
+  H = 20,
+  reltol = sqrt(.Machine$double.eps),
+  verbose = 0
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>Formula of the model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Input data, a data.frame object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id.name</code></td>
+<td>
+<p>The name of the column representing id. Data will be sorted by id to improve estimation speed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>par</code></td>
+<td>
+<p>Starting values for estimates. Default to estimates of Poisson Model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma</code></td>
+<td>
+<p>Starting value for sigma. Defaults to 1 and will be ignored if par is provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Optimization method used by optim. Defaults to 'BFGS'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stopUpdate</code></td>
+<td>
+<p>Whether to disable update of Adaptive Gaussian Quadrature parameters. Defaults to FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se_type</code></td>
+<td>
+<p>Report Hessian or BHHH standard errors. Defaults to Hessian.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>H</code></td>
+<td>
+<p>Number of Quadrature points used for numerical integration using the Gaussian-Hermite Quadrature method. Defaults to 20.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reltol</code></td>
+<td>
+<p>Relative convergence tolerance. The algorithm stops if it is unable to reduce the value by a factor of reltol * (abs(val) + reltol) at a step. Defaults to sqrt(.Machine$double.eps), typically about 1e-8.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A integer indicating how much output to display during the estimation process.
+</p>
+
+<ul>
+<li>
+<p> &lt;0 - No ouput
+</p>
+</li>
+<li>
+<p> 0 - Basic output (model estimates)
+</p>
+</li>
+<li>
+<p> 1 - Moderate output, basic ouput + parameter and likelihood in each iteration
+</p>
+</li>
+<li>
+<p> 2 - Extensive output, moderate output + gradient values on each call
+</p>
+</li>
+</ul>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing the results of the estimated model, some of which are inherited from the return of optim
+</p>
+
+<ul>
+<li>
+<p> estimates: Model estimates with 95% confidence intervals
+</p>
+</li>
+<li>
+<p> par: Point estimates
+</p>
+</li>
+<li>
+<p> var_bhhh: BHHH covariance matrix, inverse of the outer product of gradient at the maximum
+</p>
+</li>
+<li>
+<p> var_hessian: Inverse of negative Hessian matrix (the second order derivative of likelihood at the maximum)
+</p>
+</li>
+<li>
+<p> se_bhhh: BHHH standard errors
+</p>
+</li>
+<li>
+<p> g: Gradient function at maximum
+</p>
+</li>
+<li>
+<p> gtHg: <code class="reqn">g'H^-1g</code>, where H^-1 is approximated by var_bhhh. A value close to zero (e.g., &lt;1e-3 or 1e-6) indicates good convergence.
+</p>
+</li>
+<li>
+<p> LL: Likelihood
+</p>
+</li>
+<li>
+<p> AIC: AIC
+</p>
+</li>
+<li>
+<p> BIC: BIC
+</p>
+</li>
+<li>
+<p> n_obs: Number of observations
+</p>
+</li>
+<li>
+<p> time: Time takes to estimate the model
+</p>
+</li>
+<li>
+<p> partial: Average partial effect at the population level
+</p>
+</li>
+<li>
+<p> paritalAvgObs: Partial effect for an individual with average characteristics
+</p>
+</li>
+<li>
+<p> predict: A list with predicted participation probability (prob), predicted potential outcome (outcome), and predicted actual outcome (actual_outcome).
+</p>
+</li>
+<li>
+<p> counts: From optim. A two-element integer vector giving the number of calls to fn and gr respectively. This excludes those calls needed to compute the Hessian, if requested, and any calls to fn to compute a finite-difference approximation to the gradient.
+</p>
+</li>
+<li>
+<p> message: From optim. A character string giving any additional information returned by the optimizer, or NULL.
+</p>
+</li>
+<li>
+<p> convergence: From optim. An integer code. 0 indicates successful completion.
+Note that the list inherits all the complements in the output of optim. See the documentation of optim for more details.
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+
+<ol>
+<li>
+<p> Peng, J., &amp; Van den Bulte, C. (2023). Participation vs. Effectiveness in Sponsored Tweet Campaigns: A Quality-Quantity Conundrum. Management Science (forthcoming). Available at SSRN: <a href="https://www.ssrn.com/abstract=2702053">https://www.ssrn.com/abstract=2702053</a>
+</p>
+</li>
+<li>
+<p> Peng, J., &amp; Van den Bulte, C. (2015). How to Better Target and Incent Paid Endorsers in Social Advertising Campaigns: A Field Experiment. 2015 International Conference on Information Systems. <a href="https://aisel.aisnet.org/icis2015/proceedings/SocialMedia/24/">https://aisel.aisnet.org/icis2015/proceedings/SocialMedia/24/</a>
+</p>
+</li>
+</ol>
+<h3>See Also</h3>
+
+<p>Other PanelCount: 
+<code>PLN_RE()</code>,
+<code>ProbitRE_PLNRE()</code>,
+<code>ProbitRE_PoissonRE()</code>,
+<code>ProbitRE()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Use the simulated dataset, in which the true coefficient of x is 1.
+# Estimated coefficient is biased primarily due to omission of self-selection
+data(sim)
+res = PoissonRE(y~x, data=sim[!is.na(sim$y), ], id.name='id', verbose=-1)
+res$estimates
+</code></pre>
+
+
+</div>

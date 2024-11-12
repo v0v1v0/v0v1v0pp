@@ -1,0 +1,133 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rmeasure_spec</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>rmeasure specification</h2>
+
+<h3>Description</h3>
+
+<p>Specification of the measurement-model simulator, rmeasure.
+</p>
+
+
+<h3>Details</h3>
+
+<p>The measurement model is the link between the data and the unobserved state process.
+It can be specified either by using one or both of the <code>rmeasure</code> and <code>dmeasure</code> arguments.
+</p>
+<p>Suppose you have a procedure to simulate observations given the value of the latent state variables.
+Then you can furnish </p>
+<pre>
+  rmeasure = f</pre>
+<p>to <span class="pkg">pomp</span> algorithms,
+where <code>f</code> is a C snippet or <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function that implements your procedure.
+</p>
+<p>Using a C snippet is much preferred, due to its much greater computational efficiency.
+See <code>Csnippet</code> for general rules on writing C snippets.
+</p>
+<p>In writing an <code>rmeasure</code> C snippet, bear in mind that:
+</p>
+
+<ol>
+<li>
+<p> The goal of such a snippet is to fill the observables with random values drawn from the measurement model distribution.
+Accordingly, each observable should be assigned a new value.
+</p>
+</li>
+<li>
+<p> In addition to the states, parameters, and covariates (if any), the variable <code>t</code>, containing the time of the observation, will be defined in the context in which the snippet is executed.
+</p>
+</li>
+</ol>
+<p>The demos and the tutorials on the <a href="https://kingaa.github.io/pomp/">package website</a> give examples.
+</p>
+<p>It is also possible, though far less efficient, to specify <code>rmeasure</code> using an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function.
+In this case, specify the measurement model simulator by furnishing </p>
+<pre>
+  rmeasure = f</pre>
+<p>to <code>pomp</code>, where <code>f</code> is an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function.
+The arguments of <code>f</code> should be chosen from among the state variables, parameters, covariates, and time.
+It must also have the argument <code>...</code>.
+<code>f</code> must return a named numeric vector of length equal to the number of observable variables.
+</p>
+
+
+<h3>Default behavior</h3>
+
+<p>The default <code>rmeasure</code> is undefined.
+It will yield missing values (<code>NA</code>).
+</p>
+
+
+<h3>Note for Windows users</h3>
+
+<p>Some Windows users report problems when using C snippets in parallel computations.
+These appear to arise when the temporary files created during the C snippet compilation process are not handled properly by the operating system.
+To circumvent this problem, use the <code>cdir</code> and <code>cfile</code> options to cause the C snippets to be written to a file of your choice, thus avoiding the use of temporary files altogether.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rmeasure</code>
+</p>
+<p>More on implementing POMP models: 
+<code>Csnippet</code>,
+<code>accumvars</code>,
+<code>basic_components</code>,
+<code>betabinomial</code>,
+<code>covariates</code>,
+<code>dinit_spec</code>,
+<code>dmeasure_spec</code>,
+<code>dprocess_spec</code>,
+<code>emeasure_spec</code>,
+<code>eulermultinom</code>,
+<code>parameter_trans()</code>,
+<code>pomp-package</code>,
+<code>pomp_constructor</code>,
+<code>prior_spec</code>,
+<code>rinit_spec</code>,
+<code>rprocess_spec</code>,
+<code>skeleton_spec</code>,
+<code>transformations</code>,
+<code>userdata</code>,
+<code>vmeasure_spec</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+  ## We start with the pre-built Ricker example:
+  
+  ricker() -&gt; po
+
+  ## To change the measurement model simulator, rmeasure,
+  ## we use the 'rmeasure' argument in any 'pomp'
+  ## elementary or estimation function.
+  ## Here, we pass the rmeasure specification to 'simulate'
+  ## as an R function.
+
+  po |&gt;
+    simulate(
+      rmeasure=function (N, phi, ...) {
+        c(y=rpois(n=1,lambda=phi*N))
+      }
+    ) -&gt; sim
+
+  ## We can also pass it as a C snippet:
+
+  po |&gt;
+    simulate(
+      rmeasure=Csnippet("y = rpois(phi*N);"),
+      paramnames="phi",
+      statenames="N"
+    ) -&gt; sim
+
+
+</code></pre>
+
+
+</div>

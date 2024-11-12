@@ -1,0 +1,125 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>int_conformal_split</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Prediction intervals via split conformal inference</h2>
+
+<h3>Description</h3>
+
+<p>Nonparametric prediction intervals can be computed for fitted regression
+workflow objects using the split conformal inference method described by
+Lei <em>et al</em> (2018).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">int_conformal_split(object, ...)
+
+## Default S3 method:
+int_conformal_split(object, ...)
+
+## S3 method for class 'workflow'
+int_conformal_split(object, cal_data, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A fitted <code>workflows::workflow()</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Not currently used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cal_data</code></td>
+<td>
+<p>A data frame with the <em>original predictor and outcome data</em>
+used to produce predictions (and residuals). If the workflow used a recipe,
+this should be the data that were inputs to the recipe (and not the product
+of a recipe).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function implements what is usually called "split conformal inference"
+(see Algorithm 1 in Lei <em>et al</em> (2018)).
+</p>
+<p>This function prepares the statistics for the interval computations. The
+<code>predict()</code> method computes the intervals for new data and the signficance
+level is specified there.
+</p>
+<p><code>cal_data</code> should be large enough to get a good estimates of a extreme
+quantile (e.g., the 95th for 95% interval) and should not include rows that
+were in the original training set.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"int_conformal_split"</code> containing the
+information to create intervals (which includes <code>object</code>).
+The <code>predict()</code> method is used to produce the intervals.
+</p>
+
+
+<h3>References</h3>
+
+<p>Lei, Jing, et al. "Distribution-free predictive inference for regression."
+<em>Journal of the American Statistical Association</em> 113.523 (2018): 1094-1111.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>predict.int_conformal_split()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(workflows)
+library(dplyr)
+library(parsnip)
+library(rsample)
+library(tune)
+library(modeldata)
+
+set.seed(2)
+sim_train &lt;- sim_regression(500)
+sim_cal &lt;- sim_regression(200)
+sim_new &lt;- sim_regression(5) %&gt;% select(-outcome)
+
+# We'll use a neural network model
+mlp_spec &lt;-
+  mlp(hidden_units = 5, penalty = 0.01) %&gt;%
+  set_mode("regression")
+
+mlp_wflow &lt;-
+  workflow() %&gt;%
+  add_model(mlp_spec) %&gt;%
+  add_formula(outcome ~ .)
+
+mlp_fit &lt;- fit(mlp_wflow, data = sim_train)
+
+mlp_int &lt;- int_conformal_split(mlp_fit, sim_cal)
+mlp_int
+
+predict(mlp_int, sim_new, level = 0.90)
+
+</code></pre>
+
+
+</div>

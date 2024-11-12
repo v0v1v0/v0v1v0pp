@@ -1,0 +1,111 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PeakSegFPOP_file</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>PeakSegFPOP using disk storage</h2>
+
+<h3>Description</h3>
+
+<p>Run the PeakSeg Functional Pruning Optimal Partitioning algorithm,
+using a file on disk to store the O(N) function piece lists,
+each of size O(log N).
+This is a low-level function that just runs the algo
+and produces the result files (without reading them into R),
+so normal users are recommended to instead use <code>PeakSegFPOP_dir</code>,
+which calls this function then reads the result files into R.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PeakSegFPOP_file(bedGraph.file, 
+    pen.str, db.file = NULL)</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>bedGraph.file</code></td>
+<td>
+<p>character scalar: tab-delimited tabular text file with four
+columns: chrom, chromStart, chromEnd, coverage. The algorithm
+creates a large temporary file in the same directory, so make sure
+that there is disk space available on that device.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pen.str</code></td>
+<td>
+<p>character scalar that can be converted to a numeric scalar via
+as.numeric: non-negative penalty. More penalty means fewer
+peaks. "0" and "Inf" are OK. Character is required rather than
+numeric, so that the user can reliably find the results in the
+output files, which are in the same directory as <code>bedGraph.file</code>,
+and named using the penalty value,
+e.g. coverage.bedGraph_penalty=136500650856.439_loss.tsv</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>db.file</code></td>
+<td>
+<p>character scalar: file for writing temporary cost function
+database – there will be a lot of disk writing to this
+file. Default NULL means to write the same disk where the input
+bedGraph file is stored; another option is tempfile() which may
+result in speedups if the input bedGraph file is on a slow network
+disk and the temporary storage is a fast local disk.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A named list of input parameters, and the temporary cost function
+database file size in megabytes.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Toby Dylan Hocking &lt;toby.hocking@r-project.org&gt; [aut, cre]</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+r &lt;- function(chrom, chromStart, chromEnd, coverage){
+  data.frame(chrom, chromStart, chromEnd, coverage)
+}
+four &lt;- rbind(
+  r("chr1", 0, 10,  2),
+  r("chr1", 10, 20, 10),
+  r("chr1", 20, 30, 14),
+  r("chr1", 30, 40, 13))
+dir.create(prob.dir &lt;- tempfile())
+coverage.bedGraph &lt;- file.path(prob.dir, "coverage.bedGraph")
+write.table(
+  four, coverage.bedGraph,
+  sep="\t", row.names=FALSE, col.names=FALSE)
+pstr &lt;- "10.5"
+result.list &lt;- PeakSegDisk::PeakSegFPOP_file(coverage.bedGraph, pstr)
+dir(prob.dir)
+
+## segments file can be read to see optimal segment means.
+outf &lt;- function(suffix){
+  paste0(coverage.bedGraph, "_penalty=", pstr, suffix)
+}
+segments.bed &lt;- outf("_segments.bed")
+seg.df &lt;- read.table(segments.bed)
+names(seg.df) &lt;- col.name.list$segments
+seg.df
+
+## loss file can be read to see optimal Poisson loss, etc.
+loss.tsv &lt;- outf("_loss.tsv")
+loss.df &lt;- read.table(loss.tsv)
+names(loss.df) &lt;- col.name.list$loss
+loss.df
+
+</code></pre>
+
+
+</div>

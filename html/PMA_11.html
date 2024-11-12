@@ -1,0 +1,335 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PMD</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Get a penalized matrix decomposition for a data matrix.</h2>
+
+<h3>Description</h3>
+
+<p>Performs a penalized matrix decomposition for a data matrix. Finds factors u
+and v that summarize the data matrix well. u and v will both be sparse, and
+v can optionally also be smooth.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PMD(
+  x,
+  type = c("standard", "ordered"),
+  sumabs = 0.4,
+  sumabsu = 5,
+  sumabsv = NULL,
+  lambda = NULL,
+  niter = 20,
+  K = 1,
+  v = NULL,
+  trace = TRUE,
+  center = TRUE,
+  chrom = NULL,
+  rnames = NULL,
+  cnames = NULL,
+  upos = FALSE,
+  uneg = FALSE,
+  vpos = FALSE,
+  vneg = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Data matrix of dimension $n x p$, which can contain NA for missing
+values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>"standard" or "ordered": Do we want v to simply be sparse, or
+should it also be smooth? If the columns of x are ordered (e.g. CGH spots
+along a chromosome) then choose "ordered". Default is "standard". If
+"standard", then the PMD function will make use of sumabs OR
+sumabsu&amp;sumabsv. If "ordered", then the function will make use of sumabsu
+and lambda.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sumabs</code></td>
+<td>
+<p>Used only if type is "standard". A measure of sparsity for u
+and v vectors, between 0 and 1. When sumabs is specified, and sumabsu and
+sumabsv are NULL, then sumabsu is set to $sqrt(n)*sumabs$ and sumabsv is set
+to $sqrt(p)*sumabs$. If sumabs is specified, then sumabsu and sumabsv should
+be NULL. Or if sumabsu and sumabsv are specified, then sumabs should be
+NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sumabsu</code></td>
+<td>
+<p>Used for types "ordered" AND "standard". How sparse do you
+want u to be? This is the sum of absolute values of elements of u. It must
+be between 1 and the square root of the number of rows in data matrix. The
+smaller it is, the sparser u will be.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sumabsv</code></td>
+<td>
+<p>Used only if type is "standard". How sparse do you want v to
+be? This is the sum of absolute values of elements of v. It must be between
+1 and square root of number of columns of data. The smaller it is, the
+sparser v will be.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>Used only if type is "ordered". This is the tuning parameter
+for the fused lasso penalty on v, which takes the form $lambda ||v||<em>1 +
+lambda |v_j - v</em>(j-1)|$. $lambda$ must be non-negative. If NULL, then it is
+chosen adaptively from the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>niter</code></td>
+<td>
+<p>How many iterations should be performed. It is best to run at
+least 20 of so. Default is 20.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>The number of factors in the PMD to be returned; default is 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p>The first right singular vector(s) of the data. (If missing data is
+present, then the missing values are imputed before the singular vectors are
+calculated.) v is used as the initial value for the iterative PMD algorithm.
+If x is large, then this step can be time-consuming; therefore, if PMD is to
+be run multiple times, then v should be computed once and saved.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace</code></td>
+<td>
+<p>Print out progress as iterations are performed? Default is
+TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>Subtract out mean of x? Default is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chrom</code></td>
+<td>
+<p>If type is "ordered", then this gives the option to specify
+that some columns of x (corresponding to CGH spots) are on different
+chromosomes. Then v will be sparse, and smooth <em>within</em> each chromosome but
+not <em>between</em> chromosomes. Length of chrom should equal number of columns of
+x, and each entry in chrom should be a number corresponding to which
+chromosome the CGH spot is on.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rnames</code></td>
+<td>
+<p>An optional vector containing a name for each row of x.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cnames</code></td>
+<td>
+<p>An optional vector containing a name for each column of x.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upos</code></td>
+<td>
+<p>Constrain the elements of u to be positive? TRUE or FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>uneg</code></td>
+<td>
+<p>Constrain the elements of u to be negative? TRUE or FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vpos</code></td>
+<td>
+<p>Constrain the elements of v to be positive? TRUE or FALSE.
+Cannot be used if type is "ordered".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vneg</code></td>
+<td>
+<p>Constrain the elements of v to be negative? TRUE or FALSE.
+Cannot be used if type is "ordered."</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The criterion for the PMD is as follows: we seek vectors $u$ and $v$ such
+that $u'Xv$ is large, subject to $||u||_2=1, ||v||_2=1$ and additional
+penalties on $u$ and $v$. These additional penalties are as follows: If type
+is "standard", then lasso ($L_1$) penalties (promoting sparsity) are placed
+on u and v. If type is "ordered", then lasso penalty is placed on u and a
+fused lasso penalty (promoting sparsity and smoothness) is placed on v.
+</p>
+<p>If type is "standard", then arguments sumabs OR sumabsu&amp;sumabsv are used. If
+type is "ordered", then sumabsu AND lambda are used. Sumabsu is the bound of
+absolute value of elements of u. Sumabsv is bound of absolute value of
+elements of v. If sumabs is given, then sumabsu is set to
+sqrt(nrow(x))*sumabs and sumabsv is set to sqrt(ncol(x))*sumabs. $lambda$ is
+the parameter for the fused lasso penalty on v when type is "ordered":
+$lambda(||v||<em>1 + sum_j |v_j - v</em>(j-1))$.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>u</code></td>
+<td>
+<p>u is output. If you asked for multiple factors then each
+column of u is a factor. u has dimension nxK if you asked for K factors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p>v is output. If you asked for multiple factors then each column of
+v is a factor. v has dimension pxK if you asked for K factors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>d
+is output. Computationally, $d=u'Xv$ where $u$ and $v$ are the sparse
+factors output by the PMD function and $X$ is the data matrix input to the
+PMD function. When K=1, the residuals of the rank-1 PMD are given by $X -
+duv'$.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v.init</code></td>
+<td>
+<p>The first right singular vector(s) of the data; these
+are returned to save on computation time if PMD will be run again.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>meanx</code></td>
+<td>
+<p>Mean of x that was subtracted out before PMD was performed.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Witten D. M., Tibshirani R.,  and Hastie, T. (2009)
+<em>A penalized matrix decomposition, with applications to sparse principal components and canonical correlation analysis</em>, <em>Biostatistics, Gol 10 (3), 515-534, Jul 2009</em><br></p>
+
+
+<h3>See Also</h3>
+
+<p>PMD.cv, SPC
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+# Try PMD with L1 penalty on rows and columns: type="standard"
+# A simple simulated example
+set.seed(1)
+# Our data is a rank-one matrix, plus noise. The underlying components
+# contain 50 and 75 non-zero elements, respectively.
+u &lt;- matrix(c(rnorm(50), rep(0,150)),
+ncol=1)
+v &lt;- matrix(c(rnorm(75),rep(0,225)), ncol=1)
+x &lt;- u%*%t(v)+
+matrix(rnorm(200*300),ncol=300)
+# We can use cross-validation to try to find optimal value of sumabs
+cv.out &lt;- PMD.cv(x, type="standard", sumabss=seq(0.1, 0.6, len=20))
+print(cv.out)
+plot(cv.out)
+# The optimal value of sumabs is 0.4157, but we can get within one
+# standard error of that CV error using sumabs=0.337, which corresponds to
+# an average of 45.8 and 71.8 non-zero elements in each component - pretty
+# close to the true model.
+# We can fit the model corresponding to the lowest cross-validation error:
+out &lt;- PMD(x, type="standard", sumabs=cv.out$bestsumabs, K=1, v=cv.out$v.init)
+print(out)
+par(mfrow=c(2,2))
+par(mar=c(2,2,2,2))
+plot(out$u[,1], main="Est. u")
+plot(out$v[,1], main="Est. v")
+plot(u, main="True u")
+plot(v, main="True v")
+# And if we want to control sumabsu and sumabsv separately, we can do
+# that too. Let's get 2 components while we're at it:
+out2 &lt;- PMD(x, type="standard",  K=2, sumabsu=6, sumabsv=8, v=out$v.init,
+cnames=paste("v", sep=" ", 1:ncol(x)), rnames=paste("u", sep=" ", 1:nrow(x)))
+print(out2)
+
+# Now check out PMD with L1 penalty on rows and fused lasso penalty on
+# columns: type="ordered". We'll use the Chin et al (2006) Cancer Cell
+# data set; try "?breastdata" for more info.
+## Not run: 
+breastdata &lt;- download_breast_data()
+with(breastdata, {
+# dna contains CGH data and chrom contains chromosome of each CGH spot;
+# nuc contains position of each CGH spot.
+dna &lt;- t(dna) # Need samples on rows and CGH spots on columns
+# First, look for shared regions of gain/loss on chromosome 1.
+# Use cross-validation to choose tuning parameter value
+par(mar=c(2,2,2,2))
+ch1 = which(chrom == 1)
+cv.out &lt;- PMD.cv(dna[, ch1],type="ordered",chrom=chrom[ch1],
+nuc=nuc[ch1],
+sumabsus=seq(1, sqrt(nrow(dna)), len=15))
+print(cv.out)
+plot(cv.out)
+out &lt;- PMD(dna[,chrom==1],type="ordered",
+sumabsu=cv.out$bestsumabsu,chrom=chrom[chrom==1],K=1,v=cv.out$v.init,
+cnames=paste("Pos",sep="",
+nuc[chrom==1]), rnames=paste("Sample", sep=" ", 1:nrow(dna)))
+print(out, verbose=TRUE)
+# Which samples actually have that region of gain/loss?
+par(mfrow=c(3,1))
+par(mar=c(2,2,2,2))
+PlotCGH(dna[which.min(out$u[,1]),chrom==1],chrom=chrom[chrom==1],
+main=paste(paste(paste("Sample ", sep="", which.min(out$u[,1])),
+sep="; u=", round(min(out$u[,1]),3))),nuc=nuc[chrom==1])
+PlotCGH(dna[88,chrom==1], chrom=chrom[chrom==1],
+main=paste("Sample 88; u=", sep="", round(out$u[88,1],3)),
+nuc=nuc[chrom==1])
+PlotCGH(out$v[,1],chrom=chrom[chrom==1], main="V",nuc=nuc[chrom==1])
+} )
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,393 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>prob_sup</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Probabilities of superior performance and stability</h2>
+
+<h3>Description</h3>
+
+<p>This function estimates the probabilities of superior performance and stability
+across environments (<code>marginal</code> output). It also computes the probabilities
+of superior performance within environments (<code>conditional</code> output).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">prob_sup(
+  data,
+  trait,
+  gen,
+  loc,
+  reg = NULL,
+  year = NULL,
+  mod.output,
+  int,
+  increase = TRUE,
+  save.df = FALSE,
+  interactive = FALSE,
+  verbose = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame containing the phenotypic data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trait, gen, loc</code></td>
+<td>
+<p>A string. The name of the columns that correspond to
+the trait, genotype and location information, respectively. If
+the environment is a combination of other factors (for instance, location-year),
+the name of the column that contains this information must be attributed to <code>loc</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reg</code></td>
+<td>
+<p>A string or NULL. If the dataset has information about regions,
+<code>reg</code> will be a string with the name of the column that corresponds to the
+region information. Otherwise, <code>reg = NULL</code> (default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>year</code></td>
+<td>
+<p>A string or NULL. If the data set has information about time-related
+environmental factors (years, seasons...), <code>year</code> will be a string with the
+name of the column that corresponds to the time information. Otherwise, <code>year = NULL</code> (default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mod.output</code></td>
+<td>
+<p>An object from the <code>extr_outs()</code> function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>int</code></td>
+<td>
+<p>A number representing the selection intensity
+(between 0 and 1)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>increase</code></td>
+<td>
+<p>Logical. Indicates the direction of the selection.
+<code>TRUE</code> (default) for increasing the trait value, <code>FALSE</code> otherwise.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save.df</code></td>
+<td>
+<p>Logical. Should the data frames be saved in the work directory?
+<code>TRUE</code> for saving, <code>FALSE</code> (default) otherwise.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interactive</code></td>
+<td>
+<p>Logical. Should ggplots be converted into interactive plots?
+If <code>TRUE</code>, the function loads the <code>plotly</code> package and uses the <code>plotly::ggplotly()</code>
+command.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A logical value. If <code>TRUE</code>, the function will indicate the
+completed steps. Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Probabilities provide the risk of recommending a selection candidate for a target
+population of environments or for a specific environment. The function <code>prob_sup()</code>
+computes the probabilities of superior performance and the probabilities of superior stability:
+</p>
+<ul><li>
+<p> Probability of superior performance</p>
+</li></ul>
+<p>Let <code class="reqn">\Omega</code> represent the subset of selected genotypes based on their
+performance across environments. A given genotype <code class="reqn">j</code> will belong to <code class="reqn">\Omega</code>
+if its genotypic marginal value (<code class="reqn">\hat{g}_j</code>) is high or low enough compared to
+its peers. <code>prob_sup()</code> leverages the Monte Carlo discretized sampling
+from the posterior distribution to emulate the occurrence of <code class="reqn">S</code> trials. Then,
+the probability of the <code class="reqn">j^{th}</code> genotype belonging to <code class="reqn">\Omega</code> is the
+ratio of success (<code class="reqn">\hat{g}_j \in \Omega</code>) events and the total number of sampled events,
+as follows:
+</p>
+<p style="text-align: center;"><code class="reqn">Pr(\hat{g}_j \in \Omega \vert y) = \frac{1}{S}\sum_{s=1}^S{I(\hat{g}_j^{(s)} \in \Omega \vert y)}</code>
+</p>
+
+<p>where <code class="reqn">S</code> is the total number of samples (<code class="reqn">s = 1, 2, ..., S</code>),
+and <code class="reqn">I(g_j^{(s)} \in \Omega \vert y)</code> is an indicator variable that can assume
+two values: (1) if <code class="reqn">\hat{g}_j^{(s)} \in \Omega</code> in the <code class="reqn">s^{th}</code> sample,
+and (0) otherwise. <code class="reqn">S</code> is conditioned to the number of iterations and chains
+previously set at <code>bayes_met()</code>.
+</p>
+<p>Similarly, the conditional probability of superior performance can be applied to
+individual environments. Let <code class="reqn">\Omega_k</code> represent the subset of superior
+genotypes in the <code class="reqn">k^{th}</code> environment, so that the probability of the
+<code class="reqn">j^{th} \in \Omega_k</code> can calculated as follows:
+</p>
+<p style="text-align: center;"><code class="reqn">Pr(\hat{g}_{jk} \in \Omega_k \vert y) = \frac{1}{S} \sum_{s=1}^S I(\hat{g}_{jk}^{(s)} \in \Omega_k \vert y)</code>
+</p>
+
+<p>where <code class="reqn">I(\hat{g}_{jk}^{(s)} \in \Omega_k \vert y)</code> is an indicator variable
+mapping success (1) if <code class="reqn">\hat{g}_{jk}^{(s)}</code> exists in <code class="reqn">\Omega_k</code>, and
+failure (0) otherwise, and <code class="reqn">\hat{g}_{jk}^{(s)} = \hat{g}_j^{(s)} + \widehat{ge}_{jk}^{(s)}</code>.
+Note that when computing conditional probabilities (i.e., conditional to the
+<code class="reqn">k^{th}</code> environment or mega-environment), we are accounting for
+the interaction of the <code class="reqn">j^{th}</code> genotype with the <code class="reqn">k^{th}</code>
+environment.
+</p>
+<p>The pairwise probabilities of superior performance can also be calculated across
+or within environments. This metric assesses the probability of the <code class="reqn">j^{th}</code>
+genotype being superior to another experimental genotype or a commercial check.
+The calculations are as follows, across and within environments, respectively:
+</p>
+<p style="text-align: center;"><code class="reqn">Pr(\hat{g}_{j} &gt; \hat{g}_{j^\prime} \vert y) = \frac{1}{S} \sum_{s=1}^S I(\hat{g}_{j}^{(s)} &gt; \hat{g}_{j^\prime}^{(s)} \vert y)</code>
+</p>
+
+<p>or
+</p>
+<p style="text-align: center;"><code class="reqn">Pr(\hat{g}_{jk} &gt; \hat{g}_{j^\prime k} \vert y) = \frac{1}{S} \sum_{s=1}^S I(\hat{g}_{jk}^{(s)} &gt; \hat{g}_{j^\prime k}^{(s)} \vert y)</code>
+</p>
+
+<p>These equations are set for when the selection direction is positive. If
+<code>increase = FALSE</code>, <code class="reqn">&gt;</code> is simply switched by <code class="reqn">&lt;</code>.
+</p>
+<ul><li>
+<p> Probability of superior stability</p>
+</li></ul>
+<p>Probabilities of superior performance highlight experimental genotypes with
+high agronomic stability. For ecological stability (invariance), the probability
+of superior stability is the more adequate. Making a direct analogy with the
+method of Shukla (1972), a stable genotype is the one that has a low variance
+of the GEI (genotype-by-environment interaction) effects <code class="reqn">[var(\widehat{ge})]</code>.
+Using the same probability principles previously described, the probability
+of superior stability is given as follows:
+</p>
+<p style="text-align: center;"><code class="reqn">Pr[var(\widehat{ge}_{jk}) \in \Omega \vert y] = \frac{1}{S} \sum_{s=1}^S I[var(\widehat{ge}_{jk}^{(s)}) \in \Omega \vert y]</code>
+</p>
+
+<p>where <code class="reqn">I[var(\widehat{ge}_{jk}^{(s)}) \in \Omega \vert y]</code> indicates if
+<code class="reqn">var(\widehat{ge}_{jk}^{(s)})</code> exists in <code class="reqn">\Omega</code> (1) or not (0).
+Pairwise probabilities of superior stability are also possible in this context:
+</p>
+<p style="text-align: center;"><code class="reqn">Pr[var(\widehat{ge}_{jk}) &lt; var(\widehat{ge}_{j^\prime k}) \vert y] = \frac{1}{S} \sum_{s=1}^S I[var(\widehat{ge}_{jk})^{(s)} &lt; var(\widehat{ge}_{j^\prime k})^{(s)} \vert y]</code>
+</p>
+
+<p>Note that <code class="reqn">j</code> will be superior to <code class="reqn">j^\prime</code> if it has a <strong>lower</strong>
+variance of the genotype-by-environment interaction effect. This is true regardless
+if <code>increase</code> is set to <code>TRUE</code> or <code>FALSE</code>.
+</p>
+<p>The joint probability independent events is the product of the individual probabilities.
+The estimated genotypic main effects and the variances of GEI effects are independent
+by design, thus the joint probability of superior performance and stability as follows:
+</p>
+<p style="text-align: center;"><code class="reqn">Pr[\hat{g}_j \in \Omega \cap var(\widehat{ge}_{jk}) \in \Omega] = Pr(\hat{g}_j \in \Omega) \times Pr[var(\widehat{ge}_{jk}) \in \Omega]</code>
+</p>
+
+<p>The estimation of these probabilities are strictly related to some key questions that
+constantly arises in plant breeding:
+</p>
+
+<ul>
+<li> <p><strong>What is the risk of recommending a selection candidate for a target population of environments?</strong>
+</p>
+</li>
+<li> <p><strong>What is the probability of a given selection candidate having good performance if
+recommended to a target population of environments? And for a specific environment?</strong>
+</p>
+</li>
+<li> <p><strong>What is the probability of a given selection candidate having better performance
+than a cultivar check in the target population of environments? And in specific environments?</strong>
+</p>
+</li>
+<li> <p><strong>How probable is it that a given selection candidate performs similarly across environments?</strong>
+</p>
+</li>
+<li> <p><strong>What are the chances that a given selection candidate is more stable
+than a cultivar check in the target population of environments?</strong>
+</p>
+</li>
+<li> <p><strong>What is the probability that a given selection candidate having a
+superior and invariable performance across environments?</strong>
+</p>
+</li>
+</ul>
+<p>More details about the usage of <code>prob_sup</code>, as well as the other function of
+the <code>ProbBreed</code> package can be found at <a href="https://saulo-chaves.github.io/ProbBreed_site/">https://saulo-chaves.github.io/ProbBreed_site/</a>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function returns two lists, one with the <code>marginal</code> probabilities, and
+another with the <code>conditional</code> probabilities.
+</p>
+<p>The <code>marginal</code> list has:
+</p>
+
+<ul>
+<li> <p><code>df</code> : A list of data frames containing the calculated probabilities:
+</p>
+
+<ul>
+<li> <p><code>perfo</code>: the probabilities of superior performance.
+</p>
+</li>
+<li> <p><code>pair_perfo</code>: the pairwise probabilities of superior performance.
+</p>
+</li>
+<li> <p><code>stabi</code>: the probabilities of superior stability. Can be <code>stabi_gl</code>,
+<code>stabi_gm</code> (when <code>reg</code> is not <code>NULL</code>) or <code>stabi_gt</code> (when <code>year</code> is not <code>NULL</code>).
+</p>
+</li>
+<li> <p><code>pair_stabi</code>: the pairwise probabilities of superior stability.
+Can be <code>pair_stabi_gl</code>, <code>pair_stabi_gm</code> (when <code>reg</code> is not <code>NULL</code>) or
+<code>pair_stabi_gt</code> (when <code>year</code> is not <code>NULL</code>).
+</p>
+</li>
+<li> <p><code>joint_prob</code>: the joint probabilities of superior performance and stability.
+</p>
+</li>
+</ul>
+</li>
+<li> <p><code>plot</code> : A list of ggplots illustrating the outputs:
+</p>
+
+<ul>
+<li> <p><code>g_hpd</code>: a caterpillar plot representing the marginal genotypic value of
+each genotype, and their respective highest posterior density interval (95% represented by the
+thick line, and 97.5% represented by the thin line).
+</p>
+</li>
+<li> <p><code>perfo</code>: a bar plot illustrating the probabilities of superior performance
+</p>
+</li>
+<li> <p><code>pair_perfo</code>: a heatmap representing the pairwise probability of superior
+performance (the probability of genotypes at the <em>x</em>-axis being superior
+to those on the <em>y</em>-axis).
+</p>
+</li>
+<li> <p><code>stabi</code>: a bar plot with the probabilities of superior stability.
+Different plots are generated for <code>stabi_gl</code>, <code>stabi_gm</code> and <code>stabi_gt</code> if <code>reg</code>
+or/and <code>year</code> are not <code>NULL</code>.
+</p>
+</li>
+<li> <p><code>pair_stabi</code>: a heatmap with the pairwise probabilities of superior stability.
+Different plots are generated for <code>stabi_gl</code>, <code>stabi_gm</code> and <code>stabi_gt</code> if <code>reg</code>
+or/and <code>year</code> are not <code>NULL</code>. This plot represents
+the probability of genotypes at the <em>x</em>-axis being superior
+to those on <em>y</em>-axis.
+</p>
+</li>
+<li> <p><code>joint_prob</code>: a plot with the probabilities of superior performance,
+probabilities of superior stability and the joint probabilities of superior
+performance and stability.
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>The <code>conditional</code> list has:
+</p>
+
+<ul>
+<li> <p><code>df</code> : A list with:
+</p>
+
+<ul>
+<li> <p><code>prob</code>: data frames containing the probabilities of superior performance
+within environments. Can be <code>prob_loc</code>, <code>prob_reg</code> (if <code>reg</code> is not <code>NULL</code>), and
+<code>prob_year</code> (if <code>year</code> is not <code>NULL</code>).
+</p>
+</li>
+<li> <p><code>pwprob</code>: lists with the pairwise probabilities of superior performance
+within environments. Can be <code>pwprob_loc</code>, <code>pwprob_reg</code> (if <code>reg</code> is not <code>NULL</code>), and
+<code>pwprob_year</code> (if <code>year</code> is not <code>NULL</code>).
+</p>
+</li>
+</ul>
+</li>
+<li> <p><code>plot</code> : A list with:
+</p>
+
+<ul>
+<li> <p><code>prob</code>: heatmaps with the probabilities of superior performance within
+environments. Can be <code>prob_loc</code>, <code>prob_reg</code> (if <code>reg</code> is not <code>NULL</code>), and
+<code>prob_year</code> (if <code>year</code> is not <code>NULL</code>).
+</p>
+</li>
+<li> <p><code>pwprob</code>: a list of heatmaps representing the pairwise probability of superior
+performance within environments. Can be <code>pwprob_loc</code>, <code>pwprob_reg</code> (if <code>reg</code> is not <code>NULL</code>), and
+<code>pwprob_year</code> (if <code>year</code> is not <code>NULL</code>). The interpretation is the same as in the
+<code>pair_perfo</code> in the <code>marginal</code> list: the probability of genotypes at the <em>x</em>-axis being superior
+to those on <em>y</em>-axis.
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Dias, K. O. G, Santos J. P. R., Krause, M. D., Piepho H. -P., Guimarães, L. J. M.,
+Pastina, M. M., and Garcia, A. A. F. (2022). Leveraging probability concepts
+for cultivar recommendation in multi-environment trials. <em>Theoretical and
+Applied Genetics</em>, 133(2):443-455. <a href="https://doi.org/10.1007/s00122-022-04041-y">doi:10.1007/s00122-022-04041-y</a>
+</p>
+<p>Shukla, G. K. (1972) Some statistical aspects of partioning genotype environmental
+componentes of variability. <em>Heredity</em>, 29:237-245. <a href="https://doi.org/10.1038/hdy.1972.87">doi:10.1038/hdy.1972.87</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+mod = bayes_met(data = maize,
+                gen = "Hybrid",
+                loc = "Location",
+                repl = c("Rep", "Block"),
+                year = NULL,
+                reg = 'Region',
+                res.het = FALSE,
+                trait = 'GY',
+                iter = 6000, cores = 4, chains = 4)
+
+outs = extr_outs(data = maize, trait = "GY", model = mod,
+                 probs = c(0.05, 0.95),
+                 check.stan.diag = TRUE,
+                 verbose = TRUE)
+
+results = prob_sup(data = maize,
+                   trait = "GY",
+                   gen = "Hybrid",
+                   loc = "Location",
+                   reg = 'Region',
+                   year = NULL,
+                   mod.output = outs,
+                   int = .2,
+                   increase = TRUE,
+                   save.df = FALSE,
+                   interactive = FALSE,
+                   verbose = FALSE)
+
+
+</code></pre>
+
+
+</div>

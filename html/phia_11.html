@@ -1,0 +1,275 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>testFactors</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Evaluate and Test Combinations of Factor Levels
+</h2>
+
+<h3>Description</h3>
+
+<p>Calculates and tests the adjusted mean value of the response and other terms of a fitted model, for specific linear combinations of factor levels and specific values of the covariates.  This function is specially indicated for post-hoc analyses of models with factors, to test pairwise comparisons of factor levels, simple main effects, and interaction contrasts.  In multivariate models, it is possible to define and test contrasts of intra-subjects factors, as in a repeated-measures analysis.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## Default S3 method:
+testFactors(model, levels, covariates, offset, terms.formula=~1,
+  inherit.contrasts=FALSE,  default.contrasts=c("contr.sum","contr.poly"),
+  lht=TRUE, ...)
+## S3 method for class 'lm'
+testFactors(model, ...)
+## S3 method for class 'glm'
+testFactors(model, ..., link=FALSE)
+## S3 method for class 'mlm'
+testFactors(model, levels, covariates, offset, terms.formula=~1,
+  inherit.contrasts=FALSE, default.contrasts=c("contr.sum","contr.poly"),
+  idata, icontrasts=default.contrasts, lht=TRUE, ...)
+## S3 method for class 'lme'
+testFactors(model, ...)
+## S3 method for class 'mer'
+testFactors(model, ..., link=FALSE)
+## S3 method for class 'merMod'
+testFactors(model, ..., link=FALSE)
+## S3 method for class 'testFactors'
+summary(object, predictors=TRUE, matrices=TRUE, covmat=FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>fitted model. Currently supported classes include <code>"lm"</code>, <code>"glm"</code>, <code>"mlm"</code>, <code>"lme"</code>, and <code>"mer"</code> or <code>"merMod"</code> (excluding models fitted by <code>nlmer</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>levels</code></td>
+<td>
+<p>list that defines the factor levels that will be contrasted; see the <em>Details</em> for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covariates</code></td>
+<td>
+<p>optional numeric vector with specific values of the covariates (see <em>Details</em>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offset</code></td>
+<td>
+<p>optional numeric value with a specific value of the offset (if any).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>terms.formula</code></td>
+<td>
+<p>formula that defines the terms of the model that will be calculated and tested.  The default value is ~1, and stands for the adjusted mean value.  See the <em>Details</em> for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inherit.contrasts</code></td>
+<td>
+<p>logical value:  should the default contrasts of model factors be inherited from the model data frame?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>default.contrasts</code></td>
+<td>
+<p>names of contrast-generating functions to be applied by default to factors and ordered factors, respectively, if <code>inherit.contrasts</code> is <code>FALSE</code> (the default); the contrasts must produce an intra-subjects model matrix in which different terms are orthogonal.  The default is <code>c("contr.sum", "contr.poly")</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lht</code></td>
+<td>
+<p>logical indicating if the adjusted values are tested (via <code>linearHypothesis).</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>link</code></td>
+<td>
+<p>for models fitted with <code>glm</code> or <code>glmer</code>, logical indicating if the adjusted mean values should represent the link function (<code>FALSE</code> by default, i.e. represent the adjusted means of the response variable).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>idata</code></td>
+<td>
+<p>an optional data frame giving a factor or factors defining the intra-subjects model for multivariate repeated-measures data, as defined in <code>Anova</code> or <code>linearHypothesis</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>icontrasts</code></td>
+<td>
+<p>names of contrast-generating functions to be applied in the within-subject “data”.  The default is the same as <code>default.contrasts</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>object returned by <code>testFactors</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predictors</code></td>
+<td>
+<p>logical value: should <code>summary</code> return the values of the predictor values used in the calculations?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>matrices</code></td>
+<td>
+<p>logical value: should <code>summary</code> return the matrices used for testing by <code>linearHypothesis</code>?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covmat</code></td>
+<td>
+<p>logical value: should <code>summary</code> return the covariance matrix of the adjusted values?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>other arguments passed down to <code>linearHypothesis</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The only mandatory argument is <code>model</code>, which may include any number of factor or numeric predictors, and one offset.  The simplest usage of this method, where no other argument is defined, calculates the adjusted mean of the model response variable, pooling over all the levels of factor predictors, and setting the numeric predictors (covariates and offset, ifany) to their average values in the model data frame.
+</p>
+<p>The calculations will be done for the linear combinations of factor levels defined by <code>levels</code>.  This argument must be a list, with one element for each factor of the model that has to be manipulated (including factors of the intra-subjects design, if suitable).  The factors that are not represented in this list will be pooled over, and elements that do not correspond to any factor of the model will be ignored with a warning.  <code>levels</code> may be a named list, where the name of each element identifies the represented factor, and its contents may be one of the following:
+</p>
+
+<ol>
+<li>
+<p>A character string of length 1 or 2, with the name of one or two factor levels.  In the former case, the calculations will be restricted to this level of the factor, as in a simple main effects analysis; in the latter, a pairwise contrast will be calculated between both factor levels.
+</p>
+</li>
+<li>
+<p>A numeric vector without names, as long as the number of levels in the factor.  This will create a linear combination of factor levels, with the elements of the vector as coefficients.  For instance, if the factor <code>f</code> has three levels, an element <code>f=c(0.5, 0.5, 0)</code> will average the two first levels, and <code>f=c(0.5, 0.5, -1)</code> will contrast the average of the two first levels against the third one.
+</p>
+</li>
+<li>
+<p>A numeric vector with names equal to some or all the levels of the factor.  This is a simplification of the previous option, where some levels can be omitted, and the coefficient of each level is determined by the names of the vector, which do not have to follow a specific order.  Omitted levels will automatically be set to zero.
+</p>
+</li>
+<li>
+<p>A numeric matrix, as an extension of the two previous options for calculating several combinations at a time.  Combinations are defined in columns, so if the matrix does not have row names, the number of rows must be equal to the number of levels in the factor, or if the matrix does have row names, they must coincide with the levels of the factor.
+</p>
+</li>
+</ol>
+<p>Alternatively, <code>levels</code> may be a single formula or an unnamed list of formulas, of the type <code>factorname ~ K1*level1 + K2*level2 ...</code> (see <code>contrastCoefficients</code> for further details).  Both types of lists (named list of string or numeric vectors and matrices, and unnamed lists of formulas) may be mixed.
+</p>
+<p>The argument <code>covariates</code> may be used for setting specific values of the model numeric predictors (covariates).  It must be a vector of numeric values.  If the elements of this vector have names, their values will be assigned to the covariates that match them; covariates of the model with names not represented in this vector will be set to their default value (the average in the model data frame), and elements with names that do not match with covariates will be ignored.  On the other hand, if <code>covariates</code> has no names, and its length is equal to the number of covariates of the model, the values will be assigned to those covariates in the same order as they occur in the model.  If it has a different length, the vector will be trimmed or reclycled as needed to fit the number of covariates in the model; this feature may be used, for instance, to set all covariates to the same value, e.g. <code>covariates = 0</code>.  The argument <code>offset</code> can likewise be used to define a specific value for the offset of the model.
+</p>
+<p>To analyse terms other than the adjusted mean value of the response, use the argument <code>terms.formula</code>.  For instance, if the model has the covariates <code>var1</code>, <code>var2</code>, ..., the slopes of the response with respect to them may be added to the analysis by defining <code>terms.formula</code> as <code>~var1 + var2 ...</code>.  This formula may be used more generally, for analysing interactions, omitting the mean response, adding the main effects of factors, etc.  A different analysis is done for each term of this formula, that must also be contained in the formula of <code>model</code>.  For instance, if <code>terms.formula</code> is equal to <code>~ var1*var2</code>, the function will analyse the adjusted intercept, plus the terms <code>var1</code>, <code>var2</code>, and <code>var1:var2</code>.  The intercept stands for the mean value of the response, and terms formed by one or more covariates stand por the slope of the response with respect to the product of those covariates.
+</p>
+<p>If any of the variables in the term is a factor, the function analyses a full set of contrasts for that factor of the remaining part of the term; for instance if <code>var1</code> were a factor, the term <code>var1</code> would stand for the contrasts of the intercept, and <code>var1:var2</code> would stand for the contrasts of the slope <code>var2</code>, across the levels of <code>var1</code>.  The set of contrasts used in the analysis is normally defined by the argument <code>default.contrasts</code>: by default, if the factor is ordered it will be a set of “polynomial contrasts”, and otherwise “sum contrasts”; however, if <code>inherit.contrasts</code> is <code>TRUE</code> the contrasts will directly be copied from the ones used to define the model.  Factors that have explicit contrasts defined in the model data frame will use those contrasts, regardless of the values defined for <code>default.contrasts</code> and <code>inherit.contrasts</code>.  The analysis assumes that the contrasts are orthogonal to the intercept, which is the usual case if the default arguments are provided, and a warning will be issued if non-orthogonal contrasts are used; take special care of not using “treatment contrats” if <code>inherit.contrasts</code> is set to <code>TRUE</code> or <code>default.contrasts</code> is changed. 
+</p>
+<p>In generalized linear models, the adjusted means represent the expected values of the response by default, but the expected value of the link function may be shown by setting the argument <code>link=FALSE</code>.  On the other hand, slope values and standard errors always refer to the link function.
+</p>
+<p>For multivariate models, the arguments <code>idata</code>, and <code>icontrasts</code> may be used to define an intra-subjects model for multivariate repeated-measures data, as described for <code>Anova</code> or <code>linearHypothesis</code> in package <span class="pkg">car</span>.  Note, however, that the combinations of intra-subjects factor levels are defined in <code>levels</code>, and other arguments defined in those functions like <code>idesign</code>, <code>imatrix</code> or <code>iterms</code> will have no effect in <code>testFactors</code>.
+</p>
+<p>The significance of adjusted values is tested by a call to <code>linearHypothesis</code> for each term, unless <code>lht</code> is set to <code>FALSE</code>.  Extra arguments may be passed down to that function, for instance to specify the test statistic that will be evaluated.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"testFactors"</code>, that contains the adjusted values and their standard errors for each term, and the otuput of the test, plus other variables used in the calculations.  The <code>summary</code> method for this object will display those variables, unless they be omitted by setting the optional arguments <code>predictors</code>, <code>matrices</code> or <code>covmat</code> to <code>FALSE</code>.  The argument <code>predictors</code> refers to the coefficients of specified combinations of factor levels, the values of covariates, and the contrast matrices used for terms that include factors; <code>matrices</code> refers to the “linear hypothesis matrix” used by <code>linearHypothesis</code>, and in multivariate linear models, to the “response transformation matrix” as well — if it exists; <code>covmat</code> refers to the variance-covariance matrix of the adjusted values.
+</p>
+<p>Moreover, <code>summary</code> groups the results of the tests for all terms in one table.  By default this table shows the test statistics, their degrees of freedom, and the <em>p</em>-values.  If the model is of class <code>"lm"</code>, it also shows the sums of squares; and if it is of class <code>"mlm"</code>, only the first type of test statistic returned by <code>linearHypothesis</code> (by default “Pillai”) is shown.  This variable shape of the ANOVA table is controlled by additional classes assigned to the object (either <code>"testFactors.lm"</code> or <code>"testFactors.mlm"</code>, as suitable).
+</p>
+
+
+<h3>Note</h3>
+
+<p>The tests of mixed models are done under the assumption that the estimation of the random part of the model is exact.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Helios De Rosario-Martinez, <a href="mailto:helios.derosario@gmail.com">helios.derosario@gmail.com</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>linearHypothesis</code> in package <span class="pkg">car</span>.
+<code>interactionMeans</code>, and <code>testInteractions</code> as useful wrappers of <code>testFactors</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Example with factors and covariates
+# Analyse prestige of Canadian occupations depending on
+# education, income and type of occupation
+# See ?Prestige for a description of the data set
+
+prestige.mod &lt;- lm(prestige ~ (education+log2(income))*type, data=Prestige)
+
+# Pairwise comparisons for factor "type", to see how it influences
+# the mean value of  prestige and interacts with log.income
+
+# 1: "white collar" vs "blue collar"
+wc.vs.bc &lt;- list(type=c("wc", "bc"))
+testFactors(prestige.mod, wc.vs.bc, terms.formula=~log2(income))
+# 2: "professional" vs. "blue collar"
+prof.vs.bc &lt;- list(type=c("prof", "bc"))
+testFactors(prestige.mod, prof.vs.bc, terms.formula=~log2(income))
+# 3: "professional" vs. "white collar"
+prof.vs.wc &lt;- list(type=c("prof", "wc"))
+testFactors(prestige.mod, prof.vs.wc, terms.formula=~log2(income))
+
+
+# Interaction contrasts in a repeated-measures experiment
+# See ?OBrienKaiser for a description of the data set
+
+mod.ok &lt;- lm(cbind(pre.1, pre.2, pre.3, pre.4, pre.5, 
+  post.1, post.2, post.3, post.4, post.5, 
+  fup.1, fup.2, fup.3, fup.4, fup.5) ~  treatment*gender, 
+  data=OBrienKaiser)
+
+# intra-subjects data:
+phase &lt;- factor(rep(c("pretest", "posttest", "followup"), each=5))
+hour &lt;- ordered(rep(1:5, 3))
+idata &lt;- data.frame(phase, hour)
+Anova(mod.ok, idata=idata, idesign=~phase*hour)
+
+# Contrasts across "phase", for different contrasts of "treatment"
+# Using different definitions of the argument "levels"
+
+# 1: Treatment "A" vs. treatment "B".
+A.vs.B &lt;- list(treatment=c("A", "B"))
+# The following are equivalent:
+# A.vs.B &lt;- list(treatment=c(A=1, B=-1, control=0))
+# A.vs.B &lt;- list(treatment=c(A=1, B=-1))
+# A.vs.B &lt;- list(treatment ~ A - B)
+# A.vs.B &lt;- treatment ~ A - B
+testFactors(mod.ok, A.vs.B, idata=idata, terms.formula=~0+phase)
+
+# 2: Controls vs. treatments
+control.vs.AB &lt;- list(treatment=c(A=0.5, B=0.5, control=-1))
+# The following is equivalent:
+# control.vs.AB &lt;- treatment ~ (A+B)/2 - control
+testFactors(mod.ok, control.vs.AB, idata=idata, terms.formula=~0+phase)
+
+# Shortcut to get only the adjusted values and simplified ANOVA tables
+contr &lt;- list(A.vs.B=A.vs.B, control.vs.AB=control.vs.AB)
+anovaTables &lt;- function(contrast) summary(testFactors(mod.ok, contrast,
+  idata=idata, terms.formula=~0+phase),
+  predictors=FALSE, matrices=FALSE)
+  
+lapply(contr,anovaTables)
+</code></pre>
+
+
+</div>

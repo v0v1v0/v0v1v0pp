@@ -1,0 +1,142 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>orth_procrustes</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Orthogonal Procrustes rotation for matrix alignment.</h2>
+
+<h3>Description</h3>
+
+<p>In order to compare word embeddings from different time periods,
+we must ensure that the embedding matrices are aligned to
+the same semantic space (coordinate axes).
+The Orthogonal Procrustes solution (Schönemann, 1966) is
+commonly used to align historical embeddings over time
+(Hamilton et al., 2016; Li et al., 2020).
+</p>
+<p>Note that this kind of rotation <em>does not</em> change the
+relative relationships between vectors in the space,
+and thus <em>does not</em> affect semantic similarities or distances
+within each embedding matrix.
+But it does influence the semantic relationships between
+different embedding matrices, and thus would be necessary
+for some purposes such as the "semantic drift analysis"
+(e.g., Hamilton et al., 2016; Li et al., 2020).
+</p>
+<p>This function produces the same results as by
+<code>cds::orthprocr()</code>,
+<code>psych::Procrustes()</code>, and
+<code>pracma::procrustes()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">orth_procrustes(M, X)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>M, X</code></td>
+<td>
+<p>Two embedding matrices of the same size (rows and columns),
+can be <code>embed</code>
+or <code>wordvec</code> objects.
+</p>
+
+<ul>
+<li>
+<p><code>M</code> is the reference (anchor/baseline/target) matrix,
+e.g., the embedding matrix learned at
+the later year (<code class="reqn">t + 1</code>).
+</p>
+</li>
+<li>
+<p><code>X</code> is the matrix to be transformed/rotated.
+</p>
+</li>
+</ul>
+<p><em>Note</em>: The function automatically extracts only
+the intersection (overlapped part) of words in <code>M</code> and <code>X</code>
+and sorts them in the same order (according to <code>M</code>).</p>
+</td>
+</tr></table>
+<h3>Value</h3>
+
+<p>A <code>matrix</code> or <code>wordvec</code> object of
+<code>X</code> after rotation, depending on the class of
+<code>M</code> and <code>X</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Hamilton, W. L., Leskovec, J., &amp; Jurafsky, D. (2016).
+Diachronic word embeddings reveal statistical laws of semantic change.
+In <em>Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics</em>
+(Vol. 1, pp. 1489–1501). Association for Computational Linguistics.
+</p>
+<p>Li, Y., Hills, T., &amp; Hertwig, R. (2020).
+A brief history of risk. <em>Cognition, 203</em>, 104344.
+</p>
+<p>Schönemann, P. H. (1966).
+A generalized solution of the orthogonal Procrustes problem.
+<em>Psychometrika, 31</em>(1), 1–10.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>as_wordvec</code> / <code>as_embed</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">M = matrix(c(0,0,  1,2,  2,0,  3,2,  4,0), ncol=2, byrow=TRUE)
+X = matrix(c(0,0, -2,1,  0,2, -2,3,  0,4), ncol=2, byrow=TRUE)
+rownames(M) = rownames(X) = cc("A, B, C, D, E")  # words
+colnames(M) = colnames(X) = cc("dim1, dim2")  # dimensions
+
+ggplot() +
+  geom_path(data=as.data.frame(M), aes(x=dim1, y=dim2),
+            color="red") +
+  geom_path(data=as.data.frame(X), aes(x=dim1, y=dim2),
+            color="blue") +
+  coord_equal()
+
+# Usage 1: input two matrices (can be `embed` objects)
+XR = orth_procrustes(M, X)
+XR  # aligned with M
+
+ggplot() +
+  geom_path(data=as.data.frame(XR), aes(x=dim1, y=dim2)) +
+  coord_equal()
+
+# Usage 2: input two `wordvec` objects
+M.wv = as_wordvec(M)
+X.wv = as_wordvec(X)
+XR.wv = orth_procrustes(M.wv, X.wv)
+XR.wv  # aligned with M.wv
+
+# M and X must have the same set and order of words
+# and the same number of word vector dimensions.
+# The function extracts only the intersection of words
+# and sorts them in the same order according to M.
+
+Y = rbind(X, X[rev(rownames(X)),])
+rownames(Y)[1:5] = cc("F, G, H, I, J")
+M.wv = as_wordvec(M)
+Y.wv = as_wordvec(Y)
+M.wv  # words: A, B, C, D, E
+Y.wv  # words: F, G, H, I, J, E, D, C, B, A
+YR.wv = orth_procrustes(M.wv, Y.wv)
+YR.wv  # aligned with M.wv, with the same order of words
+
+</code></pre>
+
+
+</div>

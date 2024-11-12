@@ -1,0 +1,150 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>bootstrap_and_CI</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Bootstrap and Confidence Interval</h2>
+
+<h3>Description</h3>
+
+<p>Not for sparse models and only for histograms
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">bootstrap_and_CI(sol, Time, R, alpha = 0.05, nbcores = 1, d_part = 5,
+  n_perturb = 10, perc_perturb = 0.2, directed, filename = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>sol</code></td>
+<td>
+<p>sol</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Time</code></td>
+<td>
+<p>time</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+<p>Number of bootstrap samples</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Level of confidence : <code class="reqn">1- \alpha</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nbcores</code></td>
+<td>
+<p>Number of cores for parallel execution
+</p>
+<p>If set to 1 it does sequential execution
+</p>
+<p>Beware: parallelization with fork (multicore) : doesn't work on Windows!</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d_part</code></td>
+<td>
+<p>Maximal level for finest partitions of time interval [0,T], used for kmeans initializations.
+</p>
+
+<ul>
+<li>
+<p> Algorithm takes partition up to depth <code class="reqn">2^d</code> with <code class="reqn">d=1,...,d_{part}</code>
+</p>
+</li>
+<li>
+<p> Explore partitions <code class="reqn">[0,T], [0,T/2], [T/2,T], ... [0,T/2^d], ...[(2^d-1)T/2^d,T]</code>
+</p>
+</li>
+<li>
+<p> Total number of partitions <code class="reqn">npart= 2^{(d_{part} +1)} - 1</code>
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_perturb</code></td>
+<td>
+<p>Number of different perturbations on k-means result</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>perc_perturb</code></td>
+<td>
+<p>Percentage of labels that are to be perturbed (= randomly switched)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>directed</code></td>
+<td>
+<p>Boolean for directed (TRUE) or undirected (FALSE) case</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filename</code></td>
+<td>
+<p>filename</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# data of a synthetic graph with 50 individuals and 3 clusters
+
+n &lt;- 50
+Q &lt;- 3
+
+Time &lt;- generated_Q3$data$Time
+data &lt;- generated_Q3$data
+z &lt;- generated_Q3$z
+
+Dmax &lt;- 2^3
+
+# VEM-algo hist
+sol.hist &lt;- mainVEM(list(Nijk=statistics(data,n,Dmax,directed=FALSE),Time=Time),
+     n,Qmin=3,directed=FALSE,method='hist',d_part=1,n_perturb=0)[[1]]
+
+# compute bootstrap confidence bands
+boot &lt;- bootstrap_and_CI(sol.hist,Time,R=10,alpha=0.1,nbcores=1,d_part=1,n_perturb=0,
+     directed=FALSE)
+
+# plot confidence bands
+alpha.hat &lt;- exp(sol.hist$logintensities.ql)
+vec.x &lt;- (0:Dmax)*Time/Dmax
+ind.ql &lt;- 0
+par(mfrow=c(2,3))
+for (q in 1:Q){
+  for (l in q:Q){
+    ind.ql &lt;- ind.ql+1
+    ymax &lt;- max(c(boot$CI.limits[ind.ql,2,],alpha.hat[ind.ql,]))
+    plot(vec.x,c(alpha.hat[ind.ql,],alpha.hat[ind.ql,Dmax]),type='s',col='black',
+        ylab='Intensity',xaxt='n',xlab= paste('(',q,',',l,')',sep=""),
+        cex.axis=1.5,cex.lab=1.5,ylim=c(0,ymax),main='Confidence bands')
+    lines(vec.x,c(boot$CI.limits[ind.ql,1,],boot$CI.limits[ind.ql,1,Dmax]),col='blue',
+        type='s',lty=3)
+    lines(vec.x,c(boot$CI.limits[ind.ql,2,],boot$CI.limits[ind.ql,2,Dmax]),col='blue',
+        type='s',lty=3)
+  }
+}
+
+</code></pre>
+
+
+</div>

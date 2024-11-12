@@ -1,0 +1,150 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>LinearCorrectedVariance</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimates variance of a transformation of latent Poisson means
+
+</h2>
+
+<h3>Description</h3>
+
+<p>Given a data matrix X[i,j] which follows a Poisson distribution with
+mean Lambda[i,j], this function estimates the covariance matrix of a
+transformation f of the latent Lambda.
+
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">LinearCorrectedVariance(X)
+LinearCorrectedVarianceSeqDepth(X)
+TransformedVariance(X,g,CVar)
+TransformedVarianceECV(X,g,ECVar)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>the data matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g</code></td>
+<td>
+<p>an estimator of the transformation function f(Lambda). That
+is, if X~Poisson(Lambda), g(X) should be an estimator of f(Lambda).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CVar</code></td>
+<td>
+<p>an estimator of the conditional variance of g(X)
+conditional on Lambda.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ECVar</code></td>
+<td>
+<p>an estimator of the conditional variance of g(X)
+conditional on Lambda.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>LinearCorrectedVariance</code> merely estimates the covariance matrix of
+the latent Poisson means without
+transformation. <code>LinearCorrectedVarianceSeqDepth</code> deals with
+the common case in microbiome and other analysis, where the Poisson
+means are subject to large multiplicative noise not associated with
+the parameters of interest. In these cases, we would like to
+estimate the covariance of the compositional form of Lambda. That
+is, we want to scale the rows of Lambda to all have sum 1, and
+estimate the covariance matrix of the resultant matrix. This method
+uses the actual row sums of X as estimates of the scaling to be
+performed. <code>TransformedVariance</code> estimates the variance of
+a function of Lambda. It takes two additional parameters: <code>g</code>
+and <code>CVar</code> which are functions of X. <code>g</code> should be an
+estimator for the desired transformation f(Lambda) from an
+observation X. For example, if f(Lambda)=Lambda^2, then the
+unbiassed estimator is X*(X-1). <code>CVar</code> is an estimator for the
+conditional variance of g(X) given Lambda. For example, if
+f(Lambda)=Lambda^2, and we use the unbiassed g(X)=X*(X-1), then the
+variance of g(X) is 4*Lambda^3+3*Lambda^2, so an unbiassed estimator
+for this is
+<code>CVar(X)</code>=4*X*(X-1)*(X-2)+3*X*(X-1)=X*(X-1)*(4*X-5). The
+function <code>polynomial_transformation</code> will compute the unbiassed
+estimators for a given polynomial. The
+function <code>makelogtransformation</code> compute estimators for the log
+function. <code>TransformedVarianceECV</code> is the same as
+<code>TransformedVariance</code>, except that the third parameter
+estimates the average conditional variance from a sample of values
+of X, rather than a single value. 
+</p>
+
+
+<h3>Value</h3>
+
+<p>An estimated covariance matrix for the transformed latent means.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Toby Kenney <a href="mailto:tkenney@mathstat.dal.ca">tkenney@mathstat.dal.ca</a> and Tianshu Huang </p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+n&lt;-20  #20 observations
+p&lt;-5   #5 dimensions
+r&lt;-2   #rank 2
+
+mean&lt;-10*c(1,3,2,1,1)
+
+Z&lt;-rnorm(n*r)
+dim(Z)&lt;-c(n,r)
+U&lt;-rnorm(p*r)
+dim(U)&lt;-c(r,p)
+
+Latent&lt;-Z%*%U+rep(1,n)%*%t(mean)
+
+X&lt;-rpois(n*p,as.vector(Latent))
+dim(X)&lt;-c(n,p)
+
+LinearCorrectedVariance(X)
+
+seqdepth&lt;-exp(rnorm(n)+2)
+Xseqdep&lt;-rpois(n*p,as.vector(diag(seqdepth)%*%Latent))
+dim(Xseqdep)&lt;-c(n,p)
+
+LinearCorrectedVarianceSeqDepth(Xseqdep)
+
+
+squaretransform&lt;-polynomial_transformation(c(1,0))
+
+Xsq&lt;-rpois(n*p,as.vector(diag(seqdepth)%*%Latent)^2)
+
+dim(Xsq)&lt;-c(n,p)
+
+TransformedVariance(Xsq,squaretransform$g,squaretransform$CVar)
+
+Xexp&lt;-rpois(n*p,as.vector(diag(seqdepth)%*%exp(Latent)))
+
+logtrans&lt;-makelogtransformation(3,4)
+
+TransformedVarianceECV(X,logtrans$g,logtrans$ECVar)
+
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,185 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>SeatBelt</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Seat Belt Usage and Traffic Fatalities</h2>
+
+<h3>Description</h3>
+
+<p>yearly observations of 51 states from 1983 to 1997
+</p>
+<p><em>number of observations</em> : 765
+</p>
+<p><em>number of  time-series </em> :  15 
+</p>
+<p><em>country</em> :  United States 
+</p>
+<p><em>package</em> : panel
+</p>
+<p><em>JEL codes: </em>R41, K42
+</p>
+<p><em>Chapter</em> : 06
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">data(SeatBelt)</code></pre>
+
+
+<h3>Format</h3>
+
+<p>A dataframe containing:
+</p>
+
+<dl>
+<dt>state</dt>
+<dd>
+<p>the state code</p>
+</dd>
+<dt>year</dt>
+<dd>
+<p>the year</p>
+</dd>
+<dt>farsocc</dt>
+<dd>
+<p>the number of  traffic fatalities of drivers and passengers (of any seating position) of a motor vehicule in transport</p>
+</dd>
+<dt>farsnocc</dt>
+<dd>
+<p>the number of traffic fatalities of pedestrians and bicyclists</p>
+</dd>
+<dt>usage</dt>
+<dd>
+<p>rate of seat belt usage</p>
+</dd>
+<dt>percapin</dt>
+<dd>
+<p>median income in current US dollars</p>
+</dd>
+<dt>unemp</dt>
+<dd>
+<p>unemployment rate</p>
+</dd>
+<dt>meanage</dt>
+<dd>
+<p>mean age</p>
+</dd>
+<dt>precentb</dt>
+<dd>
+<p>the percentage of african-americans in the state population</p>
+</dd>
+<dt>precenth</dt>
+<dd>
+<p>the percentage of people of hispanic origin in the state population</p>
+</dd>
+<dt>densurb</dt>
+<dd>
+<p>traffic density urban ; registered vehicules per unit length of urban roads in miles</p>
+</dd>
+<dt>densrur</dt>
+<dd>
+<p>traffic density rural ; registered vehicules per unit length of urban roads in miles</p>
+</dd>
+<dt>viopcap</dt>
+<dd>
+<p>number of violent crimes (homicide, rape and robbery) per capita</p>
+</dd>
+<dt>proppcap</dt>
+<dd>
+<p>number of preperty rimes (burglary, larceny and auto theft) per capita</p>
+</dd>
+<dt>vmtrural</dt>
+<dd>
+<p>vehicule miles traveled on rural roads</p>
+</dd>
+<dt>vmturban</dt>
+<dd>
+<p>vehicule miles traveled on urban roads</p>
+</dd>
+<dt>fueltax</dt>
+<dd>
+<p>fuel tax (in curent cents)</p>
+</dd>
+<dt>lim65</dt>
+<dd>
+<p>65 miles per hour speed limit (55 mph is the base category)</p>
+</dd>
+<dt>lim70p</dt>
+<dd>
+<p>70 miles per hour or above speed limit (55 mph is the base caegory)</p>
+</dd>
+<dt>mlda21</dt>
+<dd>
+<p>a dummy variable that is equal to 1 for a minimum for a minimum legal drinking age of 21 years (18 years is the base category)</p>
+</dd>
+<dt>bac08</dt>
+<dd>
+<p>a dummy variable that is equal to 1 foe a maximum of 0.08 blood alcohol content (0.1 is the base category)</p>
+</dd>
+<dt>ds</dt>
+<dd>
+<p>a dummy equal to 1 for the periods in which the state had a secondary-enforcement mandatory seat belt law, or a primary-enforcement law that preceded by a secondary-enforcement law (no seat belt law is the base category)</p>
+</dd>
+<dt>dp</dt>
+<dd>
+<p>a dummy variable eqal to 1 for the periods in which the state had a primary-enforcement mandatory seat belt law that was not preceded by a secondary-enforcement law (no seat belt is the base category)</p>
+</dd>
+<dt>dsp</dt>
+<dd>
+<p>a dummy variable equal to 1 for the periods in which the state had a primary-enforcement mandatory seat belt law that was preceded by a secondary enforcement law (no seat belt law is the base category</p>
+</dd>
+</dl>
+<h3>Source</h3>
+
+<p>author's website <a href="https://leinav.people.stanford.edu">https://leinav.people.stanford.edu</a></p>
+
+
+<h3>References</h3>
+
+<p>Cohen, Alma and Liran Einav (2003) “The Effects of Mandatory Seat Belt Laws on Driving Behavior and Traffic Fatalities”, <em>The Review of Economics and Statistics</em>, <b>85(4)</b>, 828-843, doi: <a href="https://doi.org/10.2139/ssrn.293582">10.2139/ssrn.293582</a>
+.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#### Example 6-1
+
+## ------------------------------------------------------------------------
+## Not run: 
+library("plm")
+
+## ------------------------------------------------------------------------
+y ~ x1 + x2 + x3 | x1 + x3 + z
+y ~ x1 + x2 + x3 | . - x2 + z
+
+## ------------------------------------------------------------------------
+
+data("SeatBelt", package = "pder")
+SeatBelt$occfat &lt;- with(SeatBelt, log(farsocc / (vmtrural + vmturban)))
+ols &lt;- plm(occfat ~ log(usage) + log(percapin) + log(unemp) + log(meanage) + 
+           log(precentb) + log(precenth)+ log(densrur) + 
+           log(densurb) + log(viopcap) + log(proppcap) +
+           log(vmtrural) + log(vmturban) + log(fueltax) +
+           lim65 + lim70p + mlda21 + bac08, SeatBelt, 
+           effect = "time")
+fe &lt;- update(ols, effect = "twoways")
+ivfe &lt;- update(fe, . ~ . |  . - log(usage) + ds + dp +dsp)
+
+rbind(ols = coef(summary(ols))[1,],
+      fe = coef(summary(fe))[1, ],
+      w2sls = coef(summary(ivfe))[1, ])
+
+## ------------------------------------------------------------------------
+SeatBelt$noccfat &lt;- with(SeatBelt, log(farsnocc / (vmtrural + vmturban)))
+nivfe &lt;- update(ivfe, noccfat ~ . | .)
+coef(summary(nivfe))[1, ]
+
+## End(Not run)
+</code></pre>
+
+
+</div>

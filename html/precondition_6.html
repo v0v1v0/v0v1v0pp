@@ -1,0 +1,131 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>precondition</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Pre- and postcondition checking (assertions)</h2>
+
+<h3>Description</h3>
+
+<p>The assertions described here are similar in functionality to the base R
+function <code>base::stopifnot()</code>, but focusing on better diagnostics, safer
+behavior, and customizability.
+</p>
+
+<ul>
+<li> <p><code>precondition()</code> fails with diagnosis if its arguments do not evaluate as
+<code>TRUE</code>. Use this assertion function to check function arguments or data
+inputs against code invariants.
+</p>
+</li>
+<li> <p><code>postcondition()</code> is as above, but the assertion is performed when the
+calling function successfully returns. Use this assertion to check that
+the function has produced a well-formed result (via base::returnValue ()) or behavior.
+</p>
+</li>
+<li> <p><code>sanity_check()</code> is as above, but the program execution will immediately
+terminate via <code>fatal_error()</code>, bypassing R's error-checking mechanisms.
+Use this predicate to validate critical internal assumptions your code
+relies upon. Failing a sanity check means that your program contains an
+unrecoverable logical error and cannot reasonably continue execution.
+</p>
+</li>
+</ul>
+<p>To facilitate debugging, the assertions used with these functions can be
+enhanced with debug markers. This enables informative error messages and
+makes it easier to understand why the assertion has failed. First,
+assertions can include custom informative messages, supplied via literal
+string arguments to the assertion function. Second, key parts of the
+assertion expression can be wrapped in curly braces(e.g. <code>{x} &gt; 0</code>). If the
+assertion fails, the values marked in such way will be diagnosed and
+displayed as a separate entry in the error message. See the examples on how
+to use these features and the details section how to implement even more
+custom functionality.
+</p>
+<p>Under certain circumstances these predicates might evaluate the assertion expression
+multiple times. Beware of combining them with side effects.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">precondition(...)
+
+postcondition(...)
+
+sanity_check(...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>one or more expressions to check (with optional assertion messages)</p>
+</td>
+</tr></table>
+<h3>Details</h3>
+
+<p>A precondition is an assertion that specifies a set of conditions that must
+be true in order for the execution to proceed in a meaningful way. This is
+usually conditioned on the user input or environment in some way. A
+postcondition is an assertion that must be true if a function has executed
+in a meaningful way. Pre- and postconditions explicitly state the contract
+of a function and make it easier to debug correct function usage. Note:
+<code>postcondition(check)</code> is similar to <code>on.exit(stopifnot(check))</code>, except
+that the postcondition will not be checked if an error occurred during
+function execution.
+</p>
+<p>A sanity check is an assertion that specifies a set of conditions that the
+program implicitly assumes to be true. A sanity check failure means that the
+core logic of the program is broken and error recovery is either impossible
+or not meaningful. Sanity checks are used to test the internal logic of your
+code and will result in an immediate program termination if failed (via
+fatal_error).
+</p>
+<p>The arguments to these assertion functions are either expressions that should
+evaluate to <code>TRUE</code> or literal string constants containing informative
+messages (e.g. <code>sanity_check("x is not NULL", !is.null(x))</code>). Should the
+assertion fail, the provided message will be displayed. Note that this
+message <em>must</em> be a string literal, you cannot compute it or use a variable.
+The following will not work correctly: 'sanity_check(paste0("x is
+not", "NULL"), !is.null(x)).
+</p>
+<p>Assertion expression support debug-markers. See <code>diagnose_assertion_failure()</code>
+on how to implement custom assertion helpers.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>TRUE</code> on assertion success, raises an error of class
+<code>precondition/assertion_error</code> on assertion failure
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># These examples are guarded to avoid throwing errors
+if (FALSE) {
+
+# function contract is accepting a positive value and returning up to 20
+fun &lt;- function(x) { 
+  precondition("`x` should be positive", {x} &gt; 0)
+  postcondition(returnValue() &lt;= 20)
+
+  out &lt;- x*2
+  sanity_check("twice `x` is larger than `x`", {out} &gt; {x})
+
+  out
+}
+
+fun(5)
+fun(0)
+fun(10)
+}
+</code></pre>
+
+
+</div>

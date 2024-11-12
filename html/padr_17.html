@@ -1,0 +1,155 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>thicken</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add a variable of a higher interval to a data frame</h2>
+
+<h3>Description</h3>
+
+<p>Take the datetime variable in a data frame and map this
+to a variable of a higher interval. The mapping is added to the data frame
+in a new variable.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">thicken(
+  x,
+  interval,
+  colname = NULL,
+  rounding = c("down", "up"),
+  by = NULL,
+  start_val = NULL,
+  drop = FALSE,
+  ties_to_earlier = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A data frame containing at least one datetime variable of
+class <code>Date</code>, <code>POSIXct</code> or <code>POSIXlt</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interval</code></td>
+<td>
+<p>The interval of the added datetime variable.
+Any character string that would be accepted by <code>seq.Date</code> or
+<code>seq.POSIXt</code>. It can only be higher than the interval and step size of
+the input data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colname</code></td>
+<td>
+<p>The column name of the added variable. If <code>NULL</code> it will
+be the name of the original datetime variable with the interval name added to
+it (including the unit), separated by underscores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rounding</code></td>
+<td>
+<p>Should a value in the input datetime variable be mapped to
+the closest value that is lower (<code>down</code>) or that is higher (<code>up</code>)
+than itself.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>by</code></td>
+<td>
+<p>Only needs to be specified when <code>x</code> contains multiple
+variables of class <code>Date</code>, <code>POSIXct</code> or <code>POSIXlt</code>.
+Indicates which to use for thickening.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start_val</code></td>
+<td>
+<p>By default the first instance of <code>interval</code> that is lower
+than the lowest value of the input datetime variable, with all time units on
+default value. Specify <code>start_val</code> as an offset if you want the range
+to be nonstandard.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop</code></td>
+<td>
+<p>Should the original datetime variable be dropped from the
+returned data frame? Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ties_to_earlier</code></td>
+<td>
+<p>By default when the original datetime observations is
+tied with a value in the added datetime variable, it is assigned to the
+current value when rounding is down or to the next value when rounding
+is up. When <code>TRUE</code> the ties will be assigned to the previous observation
+of the new variable instead.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>When the datetime variable contains missing values, they are left
+in place in the dataframe. The added column with the new datetime variable,
+will have a missing values for these rows as well.
+</p>
+<p>See <code>vignette("padr")</code> for more information on <code>thicken</code>.
+See <code>vignette("padr_implementation")</code> for detailed information on
+daylight savings time, different timezones, and the implementation of
+<code>thicken</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The data frame <code>x</code> with the variable added to it.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">x_hour &lt;- seq(lubridate::ymd_hms('20160302 000000'), by = 'hour',
+              length.out = 200)
+some_df &lt;- data.frame(x_hour = x_hour)
+thicken(some_df, 'week')
+thicken(some_df, 'month')
+thicken(some_df, 'day', start_val = lubridate::ymd_hms('20160301 120000'))
+
+library(dplyr)
+x_df &lt;- data.frame(
+  x = seq(lubridate::ymd(20130101), by = 'day', length.out = 1000) %&gt;%
+    sample(500),
+  y = runif(500, 10, 50) %&gt;% round) %&gt;%
+  arrange(x)
+
+# get the max per month
+x_df %&gt;% thicken('month') %&gt;% group_by(x_month) %&gt;%
+  summarise(y_max = max(y))
+
+# get the average per week, but you want your week to start on Mondays
+# instead of Sundays
+x_df %&gt;% thicken('week',
+                 start_val = closest_weekday(x_df$x, 2)) %&gt;%
+  group_by(x_week) %&gt;% summarise(y_avg = mean(y))
+
+# rounding up instead of down
+x &lt;- data.frame(dt = lubridate::ymd_hms('20171021 160000',
+                                        '20171021 163100'))
+thicken(x, interval = "hour", rounding = "up")
+thicken(x, interval = "hour", rounding = "up", ties_to_earlier = TRUE)
+</code></pre>
+
+
+</div>

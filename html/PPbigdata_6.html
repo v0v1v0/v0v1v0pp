@@ -1,0 +1,139 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>HoleNugg</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Hole Index for projected Big Data based on data nuggets
+</h2>
+
+<h3>Description</h3>
+
+<p>This function calculates the value of Hole index, a Projection Pursuit index, for projected big data based on data nuggets.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">HoleNugg(nuggproj,weight)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>nuggproj</code></td>
+<td>
+<p>Projected data nugget centers. Must be a data matrix (of class matrix, or data.frame) or a vector containing only entries of class numeric.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weight</code></td>
+<td>
+<p>Vector of the weight parameter for each data nugget. Its length should be the same as the number of data nuggets, i.e., nrow(nuggproj) or length(nuggproj). Must be of class numeric or integer.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function calculates the value of Hole index, a Projection Pursuit index for projected Big Data based on data nuggets.
+</p>
+<p>Data nuggets are a representative sample meant to summarize Big Data by reducing a large dataset to a much smaller dataset by eliminating redundant points while also preserving the peripheries of the dataset. Each data nugget is defined by a center (location), weight (importance), and scale (internal variability). Data nuggets for a large dataset could be created and refined by functions <code>create.DN</code> or <code>refine.DN</code> in the package <code>datanugget</code>.
+</p>
+<p>Hole index is a kind of Projection Pursuit (PP) index, and larger index values indicate a hole structure of multivariate data. However, it's computationally hard to calculate the index for big data because of the vector memory limit during calculation. To deal with big data, data nuggets could be used to calculate the index efficiently. In this function, based on the projected data nugget centers with data nugget weights, the Hole index is calculated via a weighted version of the original Hole index formula.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A numeric value indicating Hole index value of the projected big data based on the data nuggets.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Yajie Duan, Javier Cabrera
+</p>
+
+
+<h3>References</h3>
+
+<p>Chen, C. H., Hardle, W. K., &amp; Unwin, A. (Eds.). (2007). Handbook of data visualization. Springer Science &amp; Business Media.
+</p>
+<p>Cook, D., Buja, A., Cabrera, J., &amp; Hurley, C. (1995). Grand tour and projection pursuit. Journal of Computational and Graphical Statistics, 4(3), 155-172.
+</p>
+<p>Beavers, T. E., Cheng, G., Duan, Y., Cabrera, J., Lubomirski, M., Amaratunga, D., &amp; Teigler, J. E. (2024). Data Nuggets: A Method for Reducing Big Data While Preserving Data Structure. Journal of Computational and Graphical Statistics, (just-accepted), 1-21.
+</p>
+<p>Duan, Y., Cabrera, J., &amp; Emir, B. (2023). A New Projection Pursuit Index for Big Data. ArXiv:2312.06465. https://doi.org/10.48550/arXiv.2312.06465
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>CMNugg</code>, <code>NHnugg</code>,<code>create.DN</code>, <code>refine.DN</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+  require(datanugget)
+  require(rstiefel)
+
+  #4-dim small example
+  X = cbind.data.frame(rnorm(5*10^3),
+                       rnorm(5*10^3,2,1),
+                       rnorm(5*10^3,5,2),
+                       rnorm(5*10^3))
+
+  #raw data is recommended to be scaled firstly to generate data nuggets for Projection Pursuit
+  X = as.data.frame(scale(X))
+
+  #create data nuggets
+  my.DN = create.DN(x = X,
+                    R = 500,
+                    delete.percent = .1,
+                    DN.num1 = 500,
+                    DN.num2 = 250,
+                    no.cores = 0,
+                    make.pbs = FALSE)
+
+
+  #refine data nuggets
+  my.DN2 = refine.DN(x = X,
+                     DN = my.DN,
+                     EV.tol = .9,
+                     min.nugget.size = 2,
+                     max.splits = 5,
+                     no.cores = 0,
+                     make.pbs = FALSE)
+
+  #get nugget centers, weights, and scales
+  nugg = my.DN2$`Data Nuggets`[,2:(ncol(X)+1)]
+  weight = my.DN2$`Data Nuggets`$Weight
+  scale = my.DN2$`Data Nuggets`$Scale
+
+  #spherize the data nuggets with weights to calculate the PP index
+  nugg_wsph &lt;- wsph(nugg,weight)$data_wsph
+
+  #generate a random orthonormal matrix as a projection matrix to 2-dim space
+  proj_2d = rustiefel(4, 2)
+
+  #project data nugget centers into 2-dim space by the random projection matrix
+  nuggproj_2d = as.matrix(nugg_wsph)%*%proj_2d
+
+  #plot the projected data nuggets
+  #lighter green represents larger weights
+  plotNugg(nuggproj_2d, weight)
+
+  #calculate the Hole index for the projected 2-dim big data
+  HoleNugg(nuggproj_2d,weight)
+
+</code></pre>
+
+
+</div>

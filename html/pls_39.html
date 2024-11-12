@@ -1,0 +1,445 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mvr</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Partial Least Squares and Principal Component Regression</h2>
+
+<h3>Description</h3>
+
+<p>Functions to perform partial least squares regression (PLSR), canonical
+powered partial least squares (CPPLS) or principal component regression
+(PCR), with a formula interface.  Cross-validation can be used.  Prediction,
+model extraction, plot, print and summary methods exist.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mvr(
+  formula,
+  ncomp,
+  Y.add,
+  data,
+  subset,
+  na.action,
+  method = pls.options()$mvralg,
+  scale = FALSE,
+  center = TRUE,
+  validation = c("none", "CV", "LOO"),
+  model = TRUE,
+  x = FALSE,
+  y = FALSE,
+  ...
+)
+
+plsr(..., method = pls.options()$plsralg)
+
+pcr(..., method = pls.options()$pcralg)
+
+cppls(..., Y.add, weights, method = pls.options()$cpplsalg)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a model formula.  Most of the <code>lm</code> formula
+constructs are supported.  See below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncomp</code></td>
+<td>
+<p>the number of components to include in the model (see below).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y.add</code></td>
+<td>
+<p>a vector or matrix of additional responses containing relevant
+information about the observations.  Only used for <code>cppls</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>an optional data frame with the data to fit the model from.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+<p>an optional vector specifying a subset of observations to be
+used in the fitting process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.action</code></td>
+<td>
+<p>a function which indicates what should happen when the data
+contain missing values.  The default is set by the <code>na.action</code> setting
+of <code>options</code>, and is <code>na.fail</code> if that is unset.
+The ‘factory-fresh’ default is <code>na.omit</code>.  Another
+possible value is <code>NULL</code>, no action.  Value <code>na.exclude</code>
+can be useful.  See <code>na.omit</code> for other alternatives.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>the multivariate regression method to be used.  If
+<code>"model.frame"</code>, the model frame is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>numeric vector, or logical.  If numeric vector, <code class="reqn">X</code> is
+scaled by dividing each variable with the corresponding element of
+<code>scale</code>.  If <code>scale</code> is <code>TRUE</code>, <code class="reqn">X</code> is scaled by dividing
+each variable by its sample standard deviation.  If cross-validation is
+selected, scaling by the standard deviation is done for every segment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>logical, determines if the <code class="reqn">X</code> and <code class="reqn">Y</code> matrices are
+mean centered or not. Default is to perform mean centering.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>validation</code></td>
+<td>
+<p>character.  What kind of (internal) validation to use.
+See below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a logical.  If <code>TRUE</code>, the model frame is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a logical.  If <code>TRUE</code>, the model matrix is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>a logical.  If <code>TRUE</code>, the response is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional optional arguments, passed to the underlying fit
+functions, and <code>mvrCv</code>.
+</p>
+<p>Currently, the fit functions <code>oscorespls.fit</code> and
+<code>widekernelpls.fit</code> implement these extra arguments: </p>
+
+<dl>
+<dt>tol:</dt>
+<dd>
+<p>numeric.  Tolerance used for determining convergence.</p>
+</dd>
+<dt>maxit:</dt>
+<dd>
+<p>positive integer.  The maximal number of iterations used.</p>
+</dd> </dl>
+<p>and <code>cppls.fit</code> implements: </p>
+ <dl>
+<dt>lower:</dt>
+<dd>
+<p>a vector of
+lower limits for power optimisation.</p>
+</dd> <dt>upper:</dt>
+<dd>
+<p>a vector of upper limits
+for power optimisation.</p>
+</dd> <dt>trunc.pow:</dt>
+<dd>
+<p>logical. Whether to use an
+experimental alternative power algorithm.</p>
+</dd> </dl>
+<p><code>mvrCv</code> implements
+several arguments; the following are probably the most useful of them:
+</p>
+ <dl>
+<dt>segments:</dt>
+<dd>
+<p>the number of segments to use, or a list with
+segments.</p>
+</dd> <dt>segment.type:</dt>
+<dd>
+<p>the type of segments to use.</p>
+</dd>
+<dt>length.seg:</dt>
+<dd>
+<p>Positive integer.  The length of the segments to use.</p>
+</dd>
+<dt>jackknife:</dt>
+<dd>
+<p>logical.  Whether to perform jackknifing of regression
+coefficients.</p>
+</dd> </dl>
+<p>See the functions' documentation for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>a vector of individual weights for the observations.  Only
+used for <code>cppls</code>.  (Optional)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The functions fit PLSR, CPPLS or PCR models with 1, <code class="reqn">\ldots</code>,
+<code>ncomp</code> number of components.  Multi-response models are fully
+supported.
+</p>
+<p>The type of model to fit is specified with the <code>method</code> argument. Four
+PLSR algorithms are available: the kernel algorithm (<code>"kernelpls"</code>),
+the wide kernel algorithm (<code>"widekernelpls"</code>), SIMPLS (<code>"simpls"</code>)
+and the classical orthogonal scores algorithm (<code>"oscorespls"</code>). One
+CPPLS algorithm is available (<code>"cppls"</code>) providing several extensions
+to PLS. One PCR algorithm is available: using the singular value
+decomposition (<code>"svdpc"</code>).  If <code>method</code> is <code>"model.frame"</code>,
+the model frame is returned.  The functions <code>pcr</code>, <code>plsr</code> and
+<code>cppls</code> are wrappers for <code>mvr</code>, with different values for
+<code>method</code>.
+</p>
+<p>The <code>formula</code> argument should be a symbolic formula of the form
+<code>response ~ terms</code>, where <code>response</code> is the name of the response
+vector or matrix (for multi-response models) and <code>terms</code> is the name of
+one or more predictor matrices, usually separated by <code>+</code>, e.g.,
+<code>water ~ FTIR</code> or <code>y ~ X + Z</code>.  See <code>lm</code> for a
+detailed description.  The named variables should exist in the supplied
+<code>data</code> data frame or in the global environment.  Note: Do not use
+<code>mvr(mydata$y ~ mydata$X, ...{})</code>, instead use <code>mvr(y ~ X, data
+= mydata, ...{})</code>.  Otherwise, <code>predict.mvr</code> will not work
+properly.  The chapter ‘<span class="samp">⁠Statistical models in R⁠</span>’ of the manual ‘<span class="samp">⁠An
+Introduction to R⁠</span>’ distributed with is a good reference on formulas in .
+</p>
+<p>The number of components to fit is specified with the argument <code>ncomp</code>.
+It this is not supplied, the maximal number of components is used (taking
+account of any cross-validation).
+</p>
+<p>All implemented algorithms mean-center both predictor and response matrices.
+This can be turned off by specifying <code>center = FALSE</code>.  See Seasholtz
+and Kowalski for a discussion about centering in PLS regression.
+</p>
+<p>If <code>validation = "CV"</code>, cross-validation is performed.  The number and
+type of cross-validation segments are specified with the arguments
+<code>segments</code> and <code>segment.type</code>.  See <code>mvrCv</code> for
+details.  If <code>validation = "LOO"</code>, leave-one-out cross-validation is
+performed.  It is an error to specify the segments when <code>validation =
+"LOO"</code> is specified.
+</p>
+<p>By default, the cross-validation will be performed serially.  However, it
+can be done in parallel using functionality in the <code>parallel</code>
+package by setting the option <code>parallel</code> in <code>pls.options</code>.
+See <code>pls.options</code> for the differnt ways to specify the
+parallelism.  See also Examples below.
+</p>
+<p>Note that the cross-validation is optimised for speed, and some generality
+has been sacrificed.  Especially, the model matrix is calculated only once
+for the complete cross-validation, so models like <code>y ~ msc(X)</code> will not
+be properly cross-validated.  However, scaling requested by <code>scale =
+TRUE</code> is properly cross-validated.  For proper cross-validation of models
+where the model matrix must be updated/regenerated for each segment, use the
+separate function <code>crossval</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>method = "model.frame"</code>, the model frame is returned.
+Otherwise, an object of class <code>mvr</code> is returned.  The object contains
+all components returned by the underlying fit function.  In addition, it
+contains the following components: </p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>validation</code></td>
+<td>
+<p>if validation was
+requested, the results of the cross-validation.  See <code>mvrCv</code> for
+details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit.time</code></td>
+<td>
+<p>the elapsed time for the fit.  This is used by
+<code>crossval</code> to decide whether to turn on tracing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.action</code></td>
+<td>
+<p>if observations with missing values were removed,
+<code>na.action</code> contains a vector with their indices.  The class of this
+vector is used by functions like <code>fitted</code> to decide how to treat the
+observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncomp</code></td>
+<td>
+<p>the number of components of the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>the method used to fit the model.  See the argument
+<code>method</code> for possible values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>use of centering in the model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>if scaling was requested
+(with <code>scale</code>), the scaling used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>the function call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>terms</code></td>
+<td>
+<p>the model terms.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>if <code>model = TRUE</code>, the
+model frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>if <code>x = TRUE</code>, the model matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>if
+<code>y = TRUE</code>, the model response.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Ron Wehrens and Bjørn-Helge Mevik
+</p>
+
+
+<h3>References</h3>
+
+<p>Martens, H., Næs, T. (1989) <em>Multivariate calibration.</em>
+Chichester: Wiley.
+</p>
+<p>Seasholtz, M. B. and Kowalski, B. R. (1992) The effect of mean centering on
+prediction in multivariate calibration.  <em>Journal of Chemometrics</em>,
+<b>6</b>(2), 103–111.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>kernelpls.fit</code>, <code>widekernelpls.fit</code>,
+<code>simpls.fit</code>, <code>oscorespls.fit</code>,
+<code>cppls.fit</code>, <code>svdpc.fit</code>, <code>mvrCv</code>,
+<code>crossval</code>, <code>loadings</code>, <code>scores</code>,
+<code>loading.weights</code>, <code>coef.mvr</code>,
+<code>predict.mvr</code>, <code>R2</code>, <code>MSEP</code>,
+<code>RMSEP</code>, <code>plot.mvr</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(yarn)
+## Default methods:
+yarn.pcr &lt;- pcr(density ~ NIR, 6, data = yarn, validation = "CV")
+yarn.pls &lt;- plsr(density ~ NIR, 6, data = yarn, validation = "CV")
+yarn.cppls &lt;- cppls(density ~ NIR, 6, data = yarn, validation = "CV")
+
+## Alternative methods:
+yarn.oscorespls &lt;- mvr(density ~ NIR, 6, data = yarn, validation = "CV",
+                      method = "oscorespls")
+yarn.simpls &lt;- mvr(density ~ NIR, 6, data = yarn, validation = "CV",
+                  method = "simpls")
+
+## Not run: 
+## Parallelised cross-validation, using transient cluster:
+pls.options(parallel = 4) # use mclapply
+pls.options(parallel = quote(makeCluster(4, type = "PSOCK"))) # use parLapply
+## A new cluster is created and stopped for each cross-validation:
+yarn.pls &lt;- plsr(density ~ NIR, 6, data = yarn, validation = "CV")
+yarn.pcr &lt;- pcr(density ~ NIR, 6, data = yarn, validation = "CV")
+
+## Parallelised cross-validation, using persistent cluster:
+library(parallel)
+## This creates the cluster:
+pls.options(parallel = makeCluster(4, type = "PSOCK"))
+## The cluster can be used several times:
+yarn.pls &lt;- plsr(density ~ NIR, 6, data = yarn, validation = "CV")
+yarn.pcr &lt;- pcr(density ~ NIR, 6, data = yarn, validation = "CV")
+## The cluster should be stopped manually afterwards:
+stopCluster(pls.options()$parallel)
+
+## Parallelised cross-validation, using persistent MPI cluster:
+## This requires the packages snow and Rmpi to be installed
+library(parallel)
+## This creates the cluster:
+pls.options(parallel = makeCluster(4, type = "MPI"))
+## The cluster can be used several times:
+yarn.pls &lt;- plsr(density ~ NIR, 6, data = yarn, validation = "CV")
+yarn.pcr &lt;- pcr(density ~ NIR, 6, data = yarn, validation = "CV")
+## The cluster should be stopped manually afterwards:
+stopCluster(pls.options()$parallel)
+## It is good practice to call mpi.exit() or mpi.quit() afterwards:
+mpi.exit()
+
+## End(Not run)
+
+## Multi-response models:
+data(oliveoil)
+sens.pcr &lt;- pcr(sensory ~ chemical, ncomp = 4, scale = TRUE, data = oliveoil)
+sens.pls &lt;- plsr(sensory ~ chemical, ncomp = 4, scale = TRUE, data = oliveoil)
+
+## Classification
+# A classification example utilizing additional response information
+# (Y.add) is found in the cppls.fit manual ('See also' above).
+
+</code></pre>
+
+
+</div>

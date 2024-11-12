@@ -1,0 +1,168 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>actual_expected_bucketed</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>actual_expected_bucketed</h2>
+
+<h3>Description</h3>
+
+<p>Provides a rank plot of the actual and predicted.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">actual_expected_bucketed(
+  target_variable,
+  model_object,
+  data_set = NULL,
+  number_of_buckets = 25,
+  ylab = "Target",
+  width = 800,
+  height = 500,
+  first_colour = "black",
+  second_colour = "#cc4678",
+  facetby = NULL,
+  prediction_type = "response",
+  predict_function = NULL,
+  return_data = F
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>target_variable</code></td>
+<td>
+<p>String of target variable name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model_object</code></td>
+<td>
+<p>GLM model object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data_set</code></td>
+<td>
+<p>Data to score the model on. This can be training or test data, as long as the data is in a form where the model object can make predictions. Currently developing ability to provide custom prediction functions, currently implementation defaults to 'stats::predict'</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>number_of_buckets</code></td>
+<td>
+<p>number of buckets for percentile</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ylab</code></td>
+<td>
+<p>Y-axis label.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>width</code></td>
+<td>
+<p>plotly plot width in pixels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>height</code></td>
+<td>
+<p>plotly plot height in pixels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>first_colour</code></td>
+<td>
+<p>First colour to plot, usually the colour of actual.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>second_colour</code></td>
+<td>
+<p>Second colour to plot, usually the colour of predicted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>facetby</code></td>
+<td>
+<p>variable user wants to facet by.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prediction_type</code></td>
+<td>
+<p>Prediction type to be pasted to predict.glm if predict_function is NULL. Defaults to "response".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predict_function</code></td>
+<td>
+<p>prediction function to use. Still in development.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_data</code></td>
+<td>
+<p>Logical to return cleaned data set instead of plot.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>plot
+Plotly plot by defualt.
+ggplot if plotlyplot = F.
+Tibble if return_data = T.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(dplyr)
+library(prettyglm)
+
+data('titanic')
+
+columns_to_factor &lt;- c('Pclass',
+                       'Sex',
+                       'Cabin',
+                       'Embarked',
+                       'Cabintype',
+                       'Survived')
+meanage &lt;- base::mean(titanic$Age, na.rm=TRUE)
+
+titanic  &lt;- titanic  %&gt;%
+  dplyr::mutate_at(columns_to_factor, list(~factor(.))) %&gt;%
+  dplyr::mutate(Age =base::ifelse(is.na(Age)==TRUE,meanage,Age)) %&gt;%
+  dplyr::mutate(Age_0_25 = prettyglm::splineit(Age,0,25),
+                Age_25_50 = prettyglm::splineit(Age,25,50),
+                Age_50_120 = prettyglm::splineit(Age,50,120)) %&gt;%
+  dplyr::mutate(Fare_0_250 = prettyglm::splineit(Fare,0,250),
+                Fare_250_600 = prettyglm::splineit(Fare,250,600))
+
+survival_model &lt;- stats::glm(Survived ~
+                               Sex:Age +
+                               Fare +
+                               Embarked +
+                               SibSp +
+                               Parch +
+                               Cabintype,
+                             data = titanic,
+                             family = binomial(link = 'logit'))
+
+prettyglm::actual_expected_bucketed(target_variable = 'Survived',
+                                    model_object = survival_model,
+                                    data_set = titanic)
+
+</code></pre>
+
+
+</div>

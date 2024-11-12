@@ -1,0 +1,195 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>find_exam</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Find exam data within a given timeframe using parallel CPU computing.</h2>
+
+<h3>Description</h3>
+
+<p>Finds all, earliest or closest examination to a given timepoints using parallel computing. A progress bar is also reported in the terminal to show the progress of the computation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">find_exam(
+  d_from,
+  d_to,
+  d_from_ID = "ID_MERGE",
+  d_to_ID = "ID_MERGE",
+  d_from_time = "time_rad_exam",
+  d_to_time = "time_enc_admit",
+  time_diff_name = "timediff_exam_to_db",
+  before = TRUE,
+  after = TRUE,
+  time = 1,
+  time_unit = "days",
+  multiple = "closest",
+  add_column = NULL,
+  keep_data = FALSE,
+  nThread = parallel::detectCores() - 1,
+  shared_RAM = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>d_from</code></td>
+<td>
+<p>data table, the database which is searched to find examinations within the timeframe.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d_to</code></td>
+<td>
+<p>data table, the database to which we wish to find examinations within the timeframe.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d_from_ID</code></td>
+<td>
+<p>string, column name of the patient ID column in d_from. Defaults to <em>ID_MERGE</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d_to_ID</code></td>
+<td>
+<p>string, column name of the patient ID column in d_to. Defaults to <em>ID_MERGE</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d_from_time</code></td>
+<td>
+<p>string, column name of the time variable column in d_from. Defaults to <em>time_rad_exam</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d_to_time</code></td>
+<td>
+<p>string, column name of the time variable column in d_to. Defaults to <em>time_enc_admit</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time_diff_name</code></td>
+<td>
+<p>string, column name of the new column created which holds the time difference between the exam and the time provided by d_to. Defaults to <em>timediff_exam_to_db</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>before</code></td>
+<td>
+<p>boolean, should times before the given time be considered. Defaults to <em>TRUE</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>after</code></td>
+<td>
+<p>boolean, should times after the given time be considered. Defaults to <em>TRUE</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>integer, the timeframe considered between the exam and the d_to timepoints. Defaults to <em>1</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time_unit</code></td>
+<td>
+<p>string, the unit of time used. Time variables are in d_to and d_from are truncated to the supplied time unit.
+For example: "2005-09-18 08:15:01 PDT" would be truncated to "2005-09-18 PDT" if <em>time_unit</em> is set to days.
+Then the time differences is calculated using <em>difftime</em> passing the argument to <em>units</em>.
+The following time units are supported: "secs", "mins", "hours", "days", "months"  and "years" are supported. Defautls to <em>days</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multiple</code></td>
+<td>
+<p>string, which exams to give back. <em>closest</em> gives back the exam closest to the time provided by d_to.
+<em>all</em> gives back all occurrences within the timeframe. <em>earliest</em> the earliest exam within the timeframe.
+In case of ties for <em>closest</em> or <em>earliest</em>, all are returned. Defaults to <em>closest</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add_column</code></td>
+<td>
+<p>string, a column name in d_to to add to the output. Defaults to <em>NULL</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_data</code></td>
+<td>
+<p>boolean, whether to include empty rows with only the <em>d_from_ID</em> column filed out for cases that have data in the <em>d_from</em>, but not within the time range. Defaults to <em>FALSE</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nThread</code></td>
+<td>
+<p>integer, number of threads to use for parallelization. If it is set to 1, then no parallel backends are created and the function is executed sequentially.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shared_RAM</code></td>
+<td>
+<p>boolean, depreciated from version 1.1.0 onwards, only kept for compatibility, as Bigmemory package has issues on running on different operating systems.
+Now all computations are run using the memory usage specifications of the paralellization strategy.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>data table, with <em>d_from</em> filtered to ones only within the timeframe. The columns of <em>d_from</em> are returned with the corresponding time column in <em>data_to</em>
+where the rows are instances which comply with the time constraints specified by the function. An additional column specified in <em>time_diff_name</em> is also returned,
+which shows the time difference between the time column in <em>d_from</em> and <em>d_to</em> for that given case.
+Also the time column from <em>d_to</em> specified by <em>d_to_time</em> is returned under the name of <em>time_to_db</em>.
+An additional column specified in <em>add_column</em> may be added from <em>data_to</em> to the data table.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+#Filter encounters for first emergency visits at one of MGH's ED departments
+data_enc_ED &lt;- data_enc[enc_clinic == "MGH EMERGENCY 10020010608"]
+data_enc_ED &lt;- data_enc_ED[!duplicated(data_enc_ED$ID_MERGE)]
+
+#Find all radiological examinations within 3 day of the ED registration
+rdt_ED &lt;- find_exam(d_from = data_rdt, d_to = data_enc_ED,
+d_from_ID = "ID_MERGE", d_to_ID = "ID_MERGE",
+d_from_time = "time_rdt_exam", d_to_time = "time_enc_admit", time_diff_name = "time_diff_ED_rdt",
+before = TRUE, after = TRUE, time = 3, time_unit = "days", multiple = "all",
+nThread = 2)
+
+#Find earliest radiological examinations within 3 day of the ED registration
+rdt_ED &lt;- find_exam(d_from = data_rdt, d_to = data_enc_ED,
+d_from_ID = "ID_MERGE", d_to_ID = "ID_MERGE",
+d_from_time = "time_rdt_exam", d_to_time = "time_enc_admit", time_diff_name = "time_diff_ED_rdt",
+before = TRUE, after = TRUE, time = 3, time_unit = "days", multiple = "earliest",
+nThread = 2)
+
+#Find closest radiological examinations on or after 1 day of the ED registration
+#and add primary diagnosis column from encounters
+rdt_ED &lt;- find_exam(d_from = data_rdt, d_to = data_enc_ED,
+d_from_ID = "ID_MERGE", d_to_ID = "ID_MERGE",
+d_from_time = "time_rdt_exam", d_to_time = "time_enc_admit", time_diff_name = "time_diff_ED_rdt",
+before = FALSE, after = TRUE, time = 1, time_unit = "days", multiple = "earliest",
+add_column = "enc_diag_princ", nThread = 2)
+
+#Find closest radiological examinations on or after 1 day of the ED registration
+#but also provide empty rows for patients with exam data but not within the timeframe
+rdt_ED &lt;- find_exam(d_from = data_rdt, d_to = data_enc_ED,
+d_from_ID = "ID_MERGE", d_to_ID = "ID_MERGE",
+d_from_time = "time_rdt_exam", d_to_time = "time_enc_admit", time_diff_name = "time_diff_ED_rdt",
+before = FALSE, after = TRUE, time = 1, time_unit = "days", multiple = "earliest",
+add_column = "enc_diag_princ", keep_data = TRUE nThread = 2)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

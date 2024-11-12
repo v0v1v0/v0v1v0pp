@@ -1,0 +1,168 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>read.GeneMapper</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Read GeneMapper Genotypes Tables
+</h2>
+
+<h3>Description</h3>
+
+<p>Given a vector of filepaths to tab-delimited text files containing
+genotype data in the ABI GeneMapper Genotypes Table format,
+<code>read.GeneMapper</code> produces a <code>genambig</code> object containing
+the genotype data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">read.GeneMapper(infiles, forceInteger=TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>infiles</code></td>
+<td>
+
+<p>A character vector of paths to the files to be read.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>forceInteger</code></td>
+<td>
+
+<p>Boolean.  If <code>TRUE</code>, alleles will be coerced to integers.  This is
+particularly useful for stripping any white space from allels and
+preventing alleles from being imported as character strings.  If
+<code>FALSE</code>, alleles will be imported as numeric or character values,
+depending on the content of the input file(s).
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>read.GeneMapper</code> can read the genotypes tables that are exported
+by the Applied Biosystems GeneMapper software.  The only alterations
+to the files that the user may have to make are 1) delete
+any rows with missing data or fill in <code>-9</code> in the first allele slot for
+that row, 2) make sure that all allele names are numeric
+representations of fragment length (no question marks or dashes), and
+3) put sample names into the Sample Name column, if the names that you
+wish to use in analysis are not already there.  Each file should have
+the standard header row produced by the software.  If any sample has
+more than one genotype listed for a given locus, only the last
+genotype listed will be used.
+</p>
+<p>The file format is simple enough that the user can easily create files
+manually if GeneMapper is not the software used in allele calling.
+The files are tab-delimited text files.  There should be a header row
+with column names.  The column labeled “Sample Name” should contain
+the names of the samples, and the column labeled “Marker” should
+contain the names of the loci.  You can have as many or as few columns as
+needed to contain the alleles, and each of these columns should be
+labeled “Allele X” where X is a number unique to each column.  Row
+labels and any other columns are ignored.  For any given sample, each
+allele is listed only once and is given as an integer that is the
+length of the fragment in nucleotides.  Duplicate alleles in the same
+row are ignored by <code>read.GeneMapper</code>.  Alleles are separated by
+tabs.  If you have more allele columns than alleles for any given
+sample, leave the extra cells blank so that <code>read.table</code> will
+read them as <code>NA</code>.  Example data files in this format are
+included in the package.
+</p>
+<p><code>read.GeneMapper</code> will read all of your data at once.  It takes
+as its first argument a character vector containing paths to all of
+the files to be read.  How the data are distributed over these files
+does not matter.  The function finds all unique sample names and all
+unique markers across all the files, and automatically puts a missing
+data symbol into the list if a particular sample and locus combination
+is not found.  Rows in which all allele cells are blank should NOT be
+included in the input files; either delete these rows or put the
+missing data symbol into the first allele cell.
+</p>
+<p>Sample and locus names must be consistent within and across the
+files.  The object that is produced is indexed by these names.
+</p>
+<p>If <code>forceInteger=FALSE</code>, alleles can be non-numeric values.  Some
+functionality of <span class="pkg">polysat</span> will be lost in this case, but it could
+allow for the import of SNP data, for example.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>genambig</code> object containing genotypes from the files, stored as
+vectors of unique alleles in its <code>Genotypes</code> slot.  Other slots are
+left at the default values.
+</p>
+
+
+<h3>Note</h3>
+
+<p>A ‘subscript out of bounds’ error may mean that a sample name
+or marker was left blank in one of the input files.  A ‘NAs
+introduced by coercion’ warning when <code>forceInteger=TRUE</code> means that a
+non-numeric, non-whitespace character was included in one of the
+allele fields of the file(s), in which case the file(s) should be
+carefully checked and re-imported.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>References</h3>
+
+
+
+
+<p>GeneMapper website: <a href="https://www.thermofisher.com/order/catalog/product/4475073">https://www.thermofisher.com/order/catalog/product/4475073</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>genambig</code>, <code>read.Structure</code>,
+<code>read.GenoDive</code>, <code>read.SPAGeDi</code>,
+<code>read.Tetrasat</code>, <code>read.ATetra</code>,
+<code>write.GeneMapper</code>, <code>read.POPDIST</code>,
+<code>read.STRand</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># create a table of data
+gentable &lt;- data.frame(Sample.Name=rep(c("ind1","ind2","ind3"),2),
+                       Marker=rep(c("loc1","loc2"), each=3),
+                       Allele.1=c(202,200,204,133,133,130),
+                       Allele.2=c(206,202,208,136,142,136),
+                       Allele.3=c(NA,208,212,145,148,NA),
+                       Allele.4=c(NA,216,NA,151,157,NA)
+                       )
+# create a file (inspect this file in a text editor or spreadsheet
+# software to see the required format)
+myfile &lt;- tempfile()
+write.table(gentable, file=myfile, quote=FALSE, sep="\t",
+            na="", row.names=FALSE, col.names=TRUE)
+
+# read the file
+mygenotypes &lt;- read.GeneMapper(myfile)
+
+# inspect the results
+viewGenotypes(mygenotypes)
+</code></pre>
+
+
+</div>

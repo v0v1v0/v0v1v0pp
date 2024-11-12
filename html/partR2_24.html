@@ -1,0 +1,306 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>partR2</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Partitioning R2 (R-square) in mixed models</h2>
+
+<h3>Description</h3>
+
+<p>R2, semi-partial (part) R2 for predictors and their combinations as well as inclusive R2,
+structure coefficients and beta weights for Gaussian, Poisson and binomial
+mixed models.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">partR2(
+  mod,
+  partvars = NULL,
+  data = NULL,
+  R2_type = "marginal",
+  max_level = NULL,
+  nboot = NULL,
+  CI = 0.95,
+  parallel = FALSE,
+  expct = "meanobs",
+  olre = TRUE,
+  partbatch = NULL,
+  allow_neg_r2 = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>mod</code></td>
+<td>
+<p>Fitted lme4 model (a merMod object).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>partvars</code></td>
+<td>
+<p>Character vector specifying the predictors (fixed effects) for which to partition the R2.
+Can be main effects like c("Var1", "Var2") and interactions ("Var1:Var2"). Predictors
+specified in partvars have to be named precisely like the terms in the formula to
+fit the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>The data.frame used to fit the lme4 model. If not provided,
+partR2 will try to fetch it.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R2_type</code></td>
+<td>
+<p>"marginal" or "conditional" R2. With "marginal", the variance explained
+by fixed effects is calculated. With "conditional", the variance explained by
+both fixed and random effects is calculated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_level</code></td>
+<td>
+<p>Level up to which shared semi-partial R2s are calculated.
+The number of sets for which to calculate R2 increases exponentially,
+i.e. for 10 variables 2^10 - 1 R2s  can be calculated. If you are
+only interested in the unique but not the shared effects, use max_level = 1.
+If interested in unique effects and combinations of two terms,
+use max_level = 2 etc.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nboot</code></td>
+<td>
+<p>Number of parametric bootstrap iterations for confidence interval estimation
+(defaults to NULL, i.e. no bootstrapping). Larger numbers of bootstraps give a better
+asymptotic CI, but may be time-consuming. Bootstrapping can be switched on by setting
+<code>nboot = 1000</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CI</code></td>
+<td>
+<p>Width of the required confidence interval between 0 and 1 (defaults to
+0.95).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>If TRUE, computation uses <code>future</code> within <code>furrr::map</code> which allows
+parallelisation. However, it is necessary to specify a plan before running
+<code>partR2()</code>. To see which options you have, check <code>?future::plan</code> and have
+a look at our vignette for details. When running RStudio,
+usually <code>plan(multisession, workers = 4)</code> is a good choice,
+when you want to use 4 cores. To detect how many cores you have, use
+<code>parallel::detectCores()</code>. If no plan is specified, <code>partR2</code> will simply run
+sequentially.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expct</code></td>
+<td>
+<p>A string specifying the method for estimating the expectation in Poisson models
+with log link and in Binomial models with logit link (in all other cases the argument is ignored).
+The only valid terms are 'meanobs', 'latent', 'none' (and 'liability for binary and proportion data).
+With the default 'meanobs', the expectation is estimated as the mean of the observations in the sample.
+With 'latent', the expectation is estimated from estimates of the intercept and variances on the link scale.
+While this is a preferred solution, it is susceptible to the distribution of fixed effect covariates and gives
+appropriate results typically only when all covariances are centered to zero. With 'liability'
+estimates follow formulae as presented in Nakagawa &amp; Schielzeth (2010). With 'none', R2 is calculated
+without distribution specific variance in the denominator.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>olre</code></td>
+<td>
+<p>Logical, defaults to TRUE. This argument allows the user to prevent the automatic fitting of
+an observation level random effect (by setting it to FALSE) in Poisson and binomial models.
+The OLRE is used to account for overdispersion.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>partbatch</code></td>
+<td>
+<p>List of character vectors with predictors that should be fitted and
+removed together. For example, partbatch = list(batch1 = c("V1", "V2", "V3"),
+batch2 = c("V4", "V5", "V6")) would calculate part R2 only for combinations of
+predictors which contain the variables V1, V2, V3 together or/and V4,V5,V6 together.
+This is useful when the number of potential subsets gets too large to
+be computationally practical, for example when dummy coding is used.
+See our vignette for details. This feature is still experimental and
+should be used with caution.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allow_neg_r2</code></td>
+<td>
+<p>Calculating part R2 involves fitting two models, one with
+and one without the predictor of interest. In cases where the predictor
+has little association with the response, the resulting part R2 value
+can become negative. By default we set negative values to 0, but by
+setting this parameter to TRUE, R2 values can become negative.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Returns an object of class <code>partR2</code> that is a a list with the following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>model call</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R2_type</code></td>
+<td>
+<p>Marginal or conditional R2</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R2</code></td>
+<td>
+<p>R2 and confidence intervals for full model and semi-partial R2 for
+predictors and their combinations</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SC</code></td>
+<td>
+<p>Structure coefficients and confidence intervals. SC are the
+correlation between a predictor and the predicted response.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>IR2</code></td>
+<td>
+<p>Inclusive R2. This is SC^2 * R2_full.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>BW</code></td>
+<td>
+<p>Standardised model estimates (beta weights) for fixed effects. Beta weights for Gaussian models
+are calculated as beta * sd(x)/sd(y), with beta being the estimated
+slope of a fixed effect for predictor x and response y. Beta weight for Non-Gaussian
+models are calculated as beta * sd(x). Beta weights for interactions or polynomial
+terms are not informative at the moment and we recommend users to standardise
+variables themselves before fitting the model and to look at the model estimates (Ests)
+instead of beta weights (BW) in the partR2 output. See vignette for details. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Ests</code></td>
+<td>
+<p>Model estimates and confidence intervals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R2_boot</code></td>
+<td>
+<p>Parametric bootstrap samples for R2 for full model and partitions</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SC_boot</code></td>
+<td>
+<p>Parametric bootstrap samples for structure coefficients</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>IR2_boot</code></td>
+<td>
+<p>Parametric bootstrap samples for inclusive R2 values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>BW_boot</code></td>
+<td>
+<p>Parametric bootstrap samples for beta weights</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Ests_boot</code></td>
+<td>
+<p>Parametric bootstrap samples for model estimates</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>partvars</code></td>
+<td>
+<p>Predictors to partition</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CI</code></td>
+<td>
+<p>Coverage of the confidence interval as specified by the <code>CI</code> argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>boot_warnings</code></td>
+<td>
+<p>Potential warnings from estimating partial R2s during
+parametric bootstrapping</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>boot_message</code></td>
+<td>
+<p>Potential messages from estimating partial R2s
+during parametric bootstrapping. Common are for example singularity messages
+in lme4.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Nakagawa, S., &amp; Schielzeth, H. (2013). <em>A general and simple method for obtaining R2 from
+generalized linear mixed-effects models</em>. Methods in Ecology and Evolution, 4(2), 133-142.
+</p>
+<p>Nakagawa, S., Johnson, P. C., &amp; Schielzeth, H. (2017). <em>The coefficient of
+determination R2 and intra-class correlation coefficient from generalized
+linear mixed-effects models revisited and expanded</em>. Journal of the Royal Society Interface, 14(134), 20170213.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(biomass)
+library(lme4)
+
+# scale data
+biomass[] &lt;- lapply(biomass, function(x) if (is.double(x)) scale(x) else x)
+
+# Gaussian data
+mod &lt;- lmer(Biomass ~ Year + Temperature + Precipitation + SpeciesDiversity + (1 | Population),
+  data = biomass)
+
+# R2
+(R2_1 &lt;- partR2(mod))
+
+# R2 with CI
+(R2_2 &lt;- partR2(mod, R2_type = "marginal", nboot = 15, CI = 0.95))
+
+# Part (semi-partial) R2s with CIs
+(R2_3 &lt;- partR2(mod,
+  partvars = c("SpeciesDiversity", "Temperature", "Precipitation"),
+  R2_type = "marginal", nboot = 10, CI = 0.95
+))
+</code></pre>
+
+
+</div>

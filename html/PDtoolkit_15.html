@@ -1,0 +1,170 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>evrs</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Modelling the Economic Value of Credit Rating System</h2>
+
+<h3>Description</h3>
+
+<p><code>evrs</code> calculates the economic benefits of improved PD model based on increase of portfolio return.
+Implemented algorithm replicates the framework presented in the Reference under assumption that
+bank adopts continuous PD rating scale. Despite this assumption, results are almost identical for scenarios
+of base case portfolio from the Reference.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">evrs(
+  db,
+  pd,
+  benchmark,
+  lgd,
+  target,
+  sigma = NA,
+  r,
+  elasticity,
+  prob.to.leave.threshold,
+  sim.num = 500,
+  seed = 991
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>db</code></td>
+<td>
+<p>Data frame with at least the following columns: default indicator (target), PDs of model in use,
+PDs of benchmark model and LGD values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pd</code></td>
+<td>
+<p>Name of PD of model in use within db argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>benchmark</code></td>
+<td>
+<p>Name of PD of benchmark model within db argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lgd</code></td>
+<td>
+<p>Name of LGD values within db argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>Name of target (default indicator 0/1) within db argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma</code></td>
+<td>
+<p>Measurement error of model in use. If default value (<code>NA</code>) is passed, then measurement error
+is calculated as standard deviation of PD difference of model in use and benchmark model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>Risk-free rate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>elasticity</code></td>
+<td>
+<p>Elasticity parameter used to define customer churn in case of loan overpricing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prob.to.leave.threshold</code></td>
+<td>
+<p>Threshold for customers' probability to leave in case of loan overpricing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sim.num</code></td>
+<td>
+<p>Number of simulations. Default is 500.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Random seed to ensure reproducibility. Default is 991.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The command <code>evrs</code> returns a list of two elements. The first element is data frame
+<code>summary.tbl</code> and it provides simulation summary: number of simulations, number of successful simulations,
+population size (number of observations of supplied <code>db</code> data frame), measurement error,
+average churn value (number of customers that left the portfolio due to the overpricing), average return of simulated
+portfolios, return of benchmark portfolio and return difference (main result of the simulation). The second element is
+numeric vector of return averages of simulated portfolios.
+</p>
+
+
+<h3>References</h3>
+
+<p>Jankowitsch at al. (2007). Modelling the economic value of credit rating systems.
+Journal of Banking &amp; Finance, Volume 31, Issue 1, .
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">suppressMessages(library(PDtoolkit))
+data(loans)
+#simulate model in use
+miu.formula &lt;- Creditability ~ `Age (years)` + `Duration of Credit (month)` +
+   			  `Value Savings/Stocks` + `Purpose`
+miu &lt;- glm(miu.formula, family = "binomial", data = loans)
+miu.pd &lt;- unname(predict(miu, type = "response", newdata = loans))
+#simulate benchmark model with interaction.transformer support
+bnm.pack &lt;- stepFWDr(start.model = Creditability ~ 1, 
+                    p.value = 0.05, 
+                    db = loans,
+                    check.start.model = TRUE, 
+                    offset.vals = NULL)
+bnm &lt;- bnm.pack$model
+bnm.pd &lt;- unname(predict(bnm, type = "response", newdata = bnm.pack$dev.db))
+#prepare data for evrs function
+db &lt;- data.frame("Creditability" = loans$Creditability, 	
+   pd = miu.pd, 
+   pd.benchmark = bnm.pd, 
+   lgd = 0.75)
+#calculate the difference in portfolio return between model in use the benchmark model
+res &lt;- evrs(db = db, 
+pd = "pd", 
+benchmark = "pd.benchmark", 
+lgd = "lgd",
+target = "Creditability",
+sigma = NA, 
+r = 0.03, 
+elasticity = 100, 
+prob.to.leave.threshold = 0.5,
+sim.num = 500, 
+seed = 991)
+names(res)
+#print simulation summary table
+res[["summary.tbl"]]
+#portfolio return increase in case of using benchmark model
+res[["summary.tbl"]][, "return.difference", drop = FALSE]
+#summary of simulated returns
+summary(res[["return.sim"]])
+</code></pre>
+
+
+</div>

@@ -1,0 +1,150 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predict.refmodel</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Predictions or log posterior predictive densities from a reference model</h2>
+
+<h3>Description</h3>
+
+<p>This is the <code>predict()</code> method for <code>refmodel</code> objects (returned by
+<code>get_refmodel()</code> or <code>init_refmodel()</code>). It offers three types of output which
+are all based on the reference model and new (or old) observations: Either
+the linear predictor on link scale, the linear predictor transformed to
+response scale, or the log posterior predictive density.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'refmodel'
+predict(
+  object,
+  newdata = NULL,
+  ynew = NULL,
+  offsetnew = NULL,
+  weightsnew = NULL,
+  type = "response",
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>An object of class <code>refmodel</code> (returned by <code>get_refmodel()</code> or
+<code>init_refmodel()</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>Passed to argument <code>newdata</code> of the reference model's
+<code>extract_model_data</code> function (see <code>init_refmodel()</code>). Provides the
+predictor (and possibly also the response) data for the new (or old)
+observations. May also be <code>NULL</code> for using the original dataset. If not
+<code>NULL</code>, any <code>NA</code>s will trigger an error.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ynew</code></td>
+<td>
+<p>If not <code>NULL</code>, then this needs to be a vector of new (or old)
+response values. See also section "Value" below. In case of (i) the
+augmented-data projection or (ii) the latent projection with <code>type = "response"</code> and <code>object$family$cats</code> being not <code>NULL</code>, <code>ynew</code> is internally
+coerced to a <code>factor</code> (using <code>as.factor()</code>). The levels of this <code>factor</code>
+have to be a subset of <code>object$family$cats</code> (see <code>extend_family()</code>'s
+arguments <code>augdat_y_unqs</code> and <code>latent_y_unqs</code>, respectively).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offsetnew</code></td>
+<td>
+<p>Passed to argument <code>orhs</code> of the reference model's
+<code>extract_model_data</code> function (see <code>init_refmodel()</code>). Used to get the
+offsets for the new (or old) observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weightsnew</code></td>
+<td>
+<p>Passed to argument <code>wrhs</code> of the reference model's
+<code>extract_model_data</code> function (see <code>init_refmodel()</code>). Used to get the
+weights for the new (or old) observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>Usually only relevant if <code>is.null(ynew)</code>, but for the latent
+projection, this also affects the <code>!is.null(ynew)</code> case (see below). The
+scale on which the predictions are returned, either <code>"link"</code> or
+<code>"response"</code> (see <code>predict.glm()</code> but note that <code>predict.refmodel()</code> does
+not adhere to the typical <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> convention of a default prediction on link
+scale). For both scales, the predictions are averaged across the posterior
+draws. In case of the latent projection, argument <code>type</code> is similar in
+spirit to argument <code>resp_oscale</code> from other functions: If (i)
+<code>is.null(ynew)</code>, then argument <code>type</code> affects the predictions as described
+above. In that case, note that <code>type = "link"</code> yields the linear predictors
+without any modifications that may be due to the original response
+distribution (e.g., for a <code>brms::cumulative()</code> model, the ordered
+thresholds are not taken into account). If (ii) <code>!is.null(ynew)</code>, then
+argument <code>type</code> also affects the scale of the log posterior predictive
+densities (<code>type = "response"</code> for the original response scale, <code>type = "link"</code> for the latent Gaussian scale).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Currently ignored.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Argument <code>weightsnew</code> is only relevant if <code>!is.null(ynew)</code>.
+</p>
+<p>In case of a multilevel reference model, group-level effects for new group
+levels are drawn randomly from a (multivariate) Gaussian distribution. When
+setting <code>projpred.mlvl_pred_new</code> to <code>TRUE</code>, all group levels from <code>newdata</code>
+(even those that already exist in the original dataset) are treated as new
+group levels (if <code>is.null(newdata)</code>, all group levels from the original
+dataset are considered as new group levels in that case).
+</p>
+
+
+<h3>Value</h3>
+
+<p>In the following, <code class="reqn">N</code>, <code class="reqn">C_{\mathrm{cat}}</code>, and
+<code class="reqn">C_{\mathrm{lat}}</code> from help topic refmodel-init-get are used.
+Furthermore, let <code class="reqn">C</code> denote either <code class="reqn">C_{\mathrm{cat}}</code> (if
+<code>type = "response"</code>) or <code class="reqn">C_{\mathrm{lat}}</code> (if <code>type = "link"</code>).
+Then, if <code>is.null(ynew)</code>, the returned object contains the reference
+model's predictions (with the scale depending on argument <code>type</code>) as:
+</p>
+
+<ul>
+<li>
+<p> a length-<code class="reqn">N</code> vector in case of (i) the traditional projection, (ii)
+the latent projection with <code>type = "link"</code>, or (iii) the latent projection
+with <code>type = "response"</code> and <code>object$family$cats</code> being <code>NULL</code>;
+</p>
+</li>
+<li>
+<p> an <code class="reqn">N \times C</code> matrix in case of (i) the augmented-data
+projection or (ii) the latent projection with <code>type = "response"</code> and
+<code>object$family$cats</code> being not <code>NULL</code>.
+</p>
+</li>
+</ul>
+<p>If <code>!is.null(ynew)</code>, the returned object is a length-<code class="reqn">N</code> vector of log
+posterior predictive densities evaluated at <code>ynew</code>.
+</p>
+
+
+</div>

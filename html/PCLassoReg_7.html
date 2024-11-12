@@ -1,0 +1,182 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PCLasso2</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Protein complex-based group Lasso-logistic model</h2>
+
+<h3>Description</h3>
+
+<p>Protein complex-based group Lasso-logistic model
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PCLasso2(
+  x,
+  y,
+  group,
+  penalty = c("grLasso", "grMCP", "grSCAD"),
+  family = c("binomial", "gaussian", "poisson"),
+  gamma = 8,
+  standardize = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A n x p matrix of gene/protein expression measurements with n samples
+and p genes/proteins.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>The response vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group</code></td>
+<td>
+<p>A list of groups. The feature (gene/protein) names in <code>group</code>
+should be consistent with the feature (gene/protein) names in <code>x</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalty</code></td>
+<td>
+<p>The penalty to be applied to the model. For group selection,
+one of grLasso, grMCP, or grSCAD. See <code>grpreg</code> in the R package
+<code>grpreg</code> for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>Either "binomial" or "gaussian", depending on the response.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>Tuning parameter of the <code>grSCAD</code>/<code>grMCP</code> penalty.
+Default is 8.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardize</code></td>
+<td>
+<p>Logical flag for <code>x</code> standardization, prior to
+fitting the model. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments to be passed to <code>grpreg</code> in the R package
+<code>grpreg</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The PCLasso2 model is a classification model that selects important
+predictors at the protein complex level to achieve accurate classification
+and identify risk protein complexes. The PCLasso2 model has three inputs: a
+protein expression matrix, a vector of binary response variables, and a
+number of known protein complexes. It estimates the correlation between
+protein expression and response variable at the level of protein complexes.
+Similar to traditional Lasso-logistic model, PCLasso2 is based on the
+logistic regression model and estimates the logistic regression coefficients
+by maximizing likelihood function with regularization penalty. The
+difference is that PCLasso2 selects features at the level of protein
+complexes rather than individual proteins. Considering that proteins usually
+function by forming protein complexes, PCLasso2 regards proteins belonging
+to the same protein complex as a group and constructs a group Lasso penalty
+(l1/l2 penalty) based on the sum (i.e. l1 norm) of the l2 norms of the
+regression coefficients of the group members to perform the selection of
+features at the group level. With the group Lasso penalty, PCLasso2 trains
+the logistic regression model and obtains a sparse solution at the protein
+complex level, that is, the proteins belonging to a protein complex are
+either wholly included or wholly excluded from the model. PCLasso2 outputs a
+prediction model and a small set of protein complexes included in the model,
+which are referred to as risk protein complexes. The PCSCAD and PCMCP are
+performed by setting the penalty parameter <code>penalty</code> as <code>grSCAD</code>
+and <code>grMCP</code>, respectively.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object with S3 class <code>PCLasso2</code> containing:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>An object of class <code>grpreg</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Complexes.dt</code></td>
+<td>
+<p>Complexes with  features (genes/proteins) not included
+in <code>x</code> being filtered out. </p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>PCLasso2: a protein complex-based, group Lasso-logistic model for risk
+protein complex discovery. To be published.
+</p>
+<p>PCLasso: a protein complex-based, group lasso-Cox model for accurate
+prognosis and risk protein complex discovery. Brief Bioinform, 2021.
+</p>
+<p>Park, H., Niida, A., Miyano, S. and Imoto, S. (2015) Sparse overlapping group
+lasso for integrative multi-omics analysis. Journal of computational biology:
+a journal of computational molecular cell biology, 22, 73-84.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>predict.PCLasso2</code>, <code>cv.PCLasso2</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load data
+data(classData)
+data(PCGroups)
+
+x = classData$Exp
+y = classData$Label
+
+PC.Human &lt;- getPCGroups(Groups = PCGroups, Organism = "Human",
+Type = "GeneSymbol")
+
+# fit PCLasso2 model
+fit.PCLasso2 &lt;- PCLasso2(x, y, group = PC.Human, penalty = "grLasso",
+family = "binomial")
+
+# fit PCSCAD model
+fit.PCSCAD &lt;- PCLasso2(x, y, group = PC.Human, penalty = "grSCAD",
+family = "binomial", gamma = 10)
+
+# fit PCMCP model
+fit.PCMCP &lt;- PCLasso2(x, y, group = PC.Human, penalty = "grMCP",
+family = "binomial", gamma = 9)
+</code></pre>
+
+
+</div>

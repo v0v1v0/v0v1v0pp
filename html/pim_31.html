@@ -1,0 +1,197 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>estimators</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimator functions for probabilistic index models</h2>
+
+<h3>Description</h3>
+
+<p>This page documents different possibilities for solving the score function
+of a probabilistic index model or <code>pim</code>. All functions mentioned on this page, are essentially wrappers around different solver functions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">estimator.nleqslv(
+  x,
+  y,
+  start = rep(0, ncol(x)),
+  link = "logit",
+  construct = NULL,
+  ...
+)
+
+estimator.glm(x, y, start = rep(0, ncol(x)), link = "logit", ...)
+
+estimator.BB(
+  x,
+  y,
+  start = rep(0, ncol(x)),
+  link = "logit",
+  construct = NULL,
+  method = c(1, 2, 3),
+  control = list(NM = c(FALSE, TRUE)),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a model matrix for the respective pim model. See also
+<code>model.matrix</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>a vector with the response for the respective pim model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start</code></td>
+<td>
+<p>a vector as long as there are columns in <code>x</code>, containing
+the starting values for the algorithm</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>link</code></td>
+<td>
+<p>a character vector describing the link function. This
+link function is used to adapt the calculation depending on the
+link used in the fitting process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>construct</code></td>
+<td>
+<p>a function that creates the score function
+used by either <code>nleqslv</code> or
+<code>BBsolve</code> for numerical optimization. See Details.
+The estimator <code>estimator.glm</code> doesn't allow
+for specification of your own score function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>extra arguments passed down to the actual solver function. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>A vector of integers specifying which
+Barzilai-Borwein steplengths should be used in a consecutive
+manner. The methods will be used in the order specified.
+More information on the help page of <code>BBsolve</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>a list with extra controlling parameters for
+<code>BBsolve</code>. See the help page of <code>BBsolve</code> for
+more information.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>All functions share the same three arguments, being the design matrix <code>x</code>,
+the response vector <code>y</code> and the start values for the estimating function.
+If you follow the same principles, you can write your own wrapper function
+for any solver function of your choice.
+</p>
+<p>The solvers <code>estimator.nleqslv</code> and <code>estimator.BBsolve</code>
+allow for specification of your own score function as well. For
+this, you have the possibility to provide a constructor function
+that takes three arguments
+</p>
+
+<dl>
+<dt>x</dt>
+<dd>
+<p>The model matrix</p>
+</dd>
+<dt>y</dt>
+<dd>
+<p>the vector with pseudo-observations</p>
+</dd>
+<dt>link</dt>
+<dd>
+<p>a character vector specifying the link</p>
+</dd>
+</dl>
+<p>The function should return a function that can be used in
+either <code>nleqslv</code> or
+<code>BBsolve</code>. If you don't specify this constructor function,
+the package will use the constructor function <code>CreateScoreFun</code>
+to provide the score function.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a list with following elements:
+</p>
+<table><tr style="vertical-align: top;">
+<td><code>coef</code></td>
+<td>
+<p>the estimated coefficients</p>
+</td>
+</tr></table>
+<h3>WARNING</h3>
+
+<p>If you specify your own score function
+without changing the estimators for the variance-covariance
+matrix, this vcov matrix will be blatantly wrong!!!!!
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>nleqslv</code>, <code>glm.fit</code>,
+<code>BBsolve</code> for more information on the fitting
+algorithms.
+</p>
+<p><code>vcov.estimators</code>, <code>pim.fit</code> and
+<code>pim</code> for more information on the fitting process
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># This is a reimplementation of the identity link
+myconstruct &lt;- function(x,y,link){
+  # this function is returned
+ function(beta){
+   xb &lt;- as.vector(x %*% beta)
+   colSums(x * (y - xb))
+  }
+}
+
+data(ChickWeight)
+themodel &lt;- pim(weight ~ Diet, data = ChickWeight,
+construct = myconstruct)
+
+# compare coefficients to
+themodel2 &lt;- pim(weight ~ Diet, data = ChickWeight,
+                link = "identity")
+coef(themodel)
+coef(themodel2)
+
+# Note that this example uses a wrong estimate for the variance-covariance matrix
+# You have to specify the correct vcov estimator as well
+</code></pre>
+
+
+</div>

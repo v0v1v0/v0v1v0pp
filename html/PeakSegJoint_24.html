@@ -1,0 +1,145 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PeakSegJointSeveral</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>PeakSegJointSeveral</h2>
+
+<h3>Description</h3>
+
+<p>Run the PeakSegJoint heuristic segmentation algorithm with several
+different bin.factor values, keeping only the models with lowest
+Poisson loss for each peak size. This algorithm gives an
+approximate solution to the following multi-sample constrained
+maximum likelihood segmentation problem. If there are S samples
+total, we look for the most likely common peak in <code class="reqn">s\in{0, ..., S}</code>
+samples. We solve the equivalent minimization problem using the
+Poisson loss seg.mean - count.data * log(seg.mean), from the first
+base to the last base of <code>profiles</code>. The optimization variables are
+the segment means, of which there can be either 1 value (no peak)
+or 3 values (peak) in each sample. If there are 3 segments then
+two constraints are applied: (1) the changes in mean must occur at
+the same position in each sample, and (2) the changes must be up
+and then down (mean1 &lt; mean2 &gt; mean3).</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PeakSegJointSeveral(profiles, 
+    bin.factors = 2:7)</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>profiles</code></td>
+<td>
+<p>data.frame or list of them from <code>ProfileList</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bin.factors</code></td>
+<td>
+<p>integer vector of optimization parameters &gt;= 2. Larger values are
+slower. Using more values is slower since it tells the algorithm
+to search more of the model space, yielding solution which is
+closer to the global optimum.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>List of model fit results, which can be passed to <code>ConvertModelList</code>
+for easier interpretation.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Toby Dylan Hocking &lt;toby.hocking@r-project.org&gt; [aut, cre]</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(PeakSegJoint)
+data(H3K4me3.TDH.other.chunk8, envir=environment())
+bf.vec &lt;- c(2, 3, 5)
+fit.list &lt;-
+  list(several=PeakSegJointSeveral(H3K4me3.TDH.other.chunk8, bf.vec))
+for(bf in bf.vec){
+  fit.list[[paste(bf)]] &lt;-
+    PeakSegJointHeuristicStep2(H3K4me3.TDH.other.chunk8, bf)
+}
+loss.list &lt;- list()
+segs.by.peaks.fit &lt;- list()
+for(fit.name in names(fit.list)){
+  fit &lt;- fit.list[[fit.name]]
+  loss.list[[fit.name]] &lt;- sapply(fit$models, "[[", "loss")
+  converted &lt;- ConvertModelList(fit)
+  segs.by.peaks &lt;- with(converted, split(segments, segments$peaks))
+  for(peaks in names(segs.by.peaks)){
+    model.segs &lt;- segs.by.peaks[[peaks]]
+    if(is.data.frame(model.segs)){
+      segs.by.peaks.fit[[peaks]][[fit.name]] &lt;-
+        data.frame(fit.name, model.segs)
+    }
+  }
+}
+do.call(rbind, loss.list)
+
+segs1 &lt;- do.call(rbind, segs.by.peaks.fit[["10"]])
+breaks1 &lt;- subset(segs1, min(chromStart) &lt; chromStart)
+if(interactive() &amp;&amp; require(ggplot2)){
+  ggplot()+
+    ggtitle(paste("PeakSegJointSeveral runs PeakSegJointHeuristic",
+                  "and keeps only the most likely model"))+
+    geom_step(aes(chromStart/1e3, count),
+              color="grey50",
+              data=H3K4me3.TDH.other.chunk8)+
+    geom_vline(aes(xintercept=chromStart/1e3),
+               data=breaks1,
+               color="green",
+               linetype="dashed")+
+    geom_segment(aes(chromStart/1e3, mean,
+                     xend=chromEnd/1e3, yend=mean),
+                 size=1,
+                 color="green",
+                 data=segs1)+
+    theme_bw()+
+    theme(panel.margin=grid::unit(0, "cm"))+
+    facet_grid(sample.id ~ fit.name, scales="free")
+}
+
+segs.by.peaks &lt;- list()
+for(peaks in 8:10){
+  segs.by.peaks[[paste(peaks)]] &lt;-
+    data.frame(peaks, segs.by.peaks.fit[[paste(peaks)]][["several"]])
+}
+segs &lt;- do.call(rbind, segs.by.peaks)
+breaks &lt;- subset(segs, min(chromStart) &lt; chromStart)
+if(interactive() &amp;&amp; require(ggplot2)){
+  ggplot()+
+    ggtitle("PeakSegJoint models with 8-10 peaks")+
+    geom_step(aes(chromStart/1e3, count),
+              color="grey50",
+              data=H3K4me3.TDH.other.chunk8)+
+    geom_vline(aes(xintercept=chromStart/1e3),
+               data=breaks,
+               color="green",
+               linetype="dashed")+
+    geom_segment(aes(chromStart/1e3, mean,
+                     xend=chromEnd/1e3, yend=mean),
+                 size=1,
+                 color="green",
+                 data=segs)+
+    theme_bw()+
+    theme(panel.margin=grid::unit(0, "cm"))+
+    facet_grid(sample.id ~ peaks, scales="free")
+}
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,193 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PStrim</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Trim the input data and propensity estimate</h2>
+
+<h3>Description</h3>
+
+<p>Trim the original data and propensity estimate according to symmetric propensity score trimming rules.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PStrim(
+  data,
+  ps.formula = NULL,
+  zname = NULL,
+  ps.estimate = NULL,
+  delta = 0,
+  optimal = FALSE,
+  out.estimate = NULL,
+  method = "glm",
+  ps.control = list()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>an optional data frame containing the variables required by <code>ps.formula</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ps.formula</code></td>
+<td>
+<p>an object of class <code>formula</code> (or one that can be coerced to that class): a symbolic description of the propensity score model to be fitted. Additional details of model specification are given under "Details". This argument is optional if <code>ps.estimate</code> is not <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zname</code></td>
+<td>
+<p>an optional character specifying the name of the treatment variable in <code>data</code>. Unless <code>ps.formula</code> is specified, <code>zname</code> is required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ps.estimate</code></td>
+<td>
+<p>an optional matrix or data frame containing estimated (generalized) propensity scores for each observation. Typically, this is an N by J matrix, where N is the number of observations and J is the total number of treatment levels. Preferably, the column name of this matrix should match the name of treatment level, if column name is missing or there is a mismatch, the column names would be assigned according to alphabatic order of the treatment levels. A vector of propensity score estimates is also allowed in <code>ps.estimate</code>, in which case a binary treatment is implied and the input is regarded as the propensity to receive the last category of treatment by alphabatic order, unless otherwise stated by <code>trtgrp</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>delta</code></td>
+<td>
+<p>trimming threshold for estimated (generalized) propensity scores. Should be no larger than 1 / number of treatment groups. Default is 0, corresponding to no trimming.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimal</code></td>
+<td>
+<p>an logical argument indicating if optimal trimming should be used. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>out.estimate</code></td>
+<td>
+<p>an optional matrix or data frame containing estimated potential outcomes
+for each observation. Typically, this is an N by J matrix, where N is the number of observations
+and J is the total number of treatment levels. Preferably, the column name of this matrix should
+match the name of treatment level, if column name is missing or there is a mismatch,
+the column names would be assigned according to alphabatic order of the treatment levels, with a
+similar mechanism as in <code>ps.estimate</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>a character to specify the method for estimating propensity scores. <code>"glm"</code> is default, and <code>"gbm"</code> and <code>"SuperLearner"</code> are also allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ps.control</code></td>
+<td>
+<p>a list to specify additional options when <code>method</code> is set to <code>"gbm"</code> or <code>"SuperLearner"</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>A typical form for <code>ps.formula</code> is <code>treatment ~ terms</code> where <code>treatment</code> is the treatment
+variable (identical to the variable name used to specify <code>zname</code>) and <code>terms</code> is a series of terms
+which specifies a linear predictor for <code>treatment</code>. <code>ps.formula</code> specifies a
+model for estimating the propensity scores, when <code>ps.estimate</code> is <code>NULL</code>.
+<code>"glm"</code> is the default method for propensity score estimation. Logistic regression will be used for binary outcomes,
+and multinomial logistic regression will be used for outcomes with more than two categories. The alternative method option of <code>"gbm"</code> serves as an API to call the <code>gbm()</code> function from the
+<code>gbm</code> package. Additional argument in the <code>gbm()</code> function can be supplied through the <code>ps.control=list()</code> argument in <code>SumStat()</code>. Please refer to the user manual of the <code>"gbm"</code> package for all the
+allowed arguments. Currently, models for binary or multinomial treatment will be automatically chosen based on the number of treatment categories.
+<code>"SuperLearner"</code> is also allowed in the <code>method</code> argument to call the <code>SuperLearner()</code> function in <code>SuperLearner</code> package.
+Currently, the SuperLearner method only support binary treatment with the default method set to <code>"SL.glm"</code>. The estimation approach is default to <code>"method.NNLS"</code>.
+Prediction algorithm and other tuning parameters can also be passed through <code>ps.control=list()</code>. Please refer to the user manual of the <code>SuperLearner</code> package for all the allowed specifications.
+</p>
+<p>When comparing two treatments, <code>ps.estimate</code> can either be a vector or a two-column matrix of estimated
+propensity scores. If a vector is supplied, it is assumed to be the propensity scores to receive the treatment, and
+the treatment group corresponds to the last group in the alphebatic order, unless otherwise specified by <code>trtgrp</code>.
+When comparing multiple (J&gt;=3) treatments, <code>ps.estimate</code> needs to be specified as an N by J matrix,
+where N indicates the number of observations, and J indicates the total number of treatments.
+This matrix specifies the estimated generalized propensity scores to receive each of the J treatments.
+The same mechanism applies to <code>out.estimate</code>, except that the input for <code>out.estimate</code>
+must be an N by J matrix, where each row corresponds to the estimated potential outcomes (corresponding to each treatment)
+for each observation.
+</p>
+<p>With binary treatments, <code>delta</code> defines the symmetric propensity score trimming rule following Crump et al. (2009).
+With multiple treatments, <code>delta</code> defines the symmetric multinomial trimming rule introduced in Yoshida et al. (2019).
+With binary treatments and when <code>optimal</code> equals <code>TRUE</code>, the trimming function implements the optimal
+symmetric trimming rule in Crump et al. (2009). The optimal trimming threshold <code>delta</code> is then returned.
+With multiple treatments and <code>optimal</code> equals <code>TRUE</code>, the trimming function implements the optimal trimming rule in Yang et al. (2016).
+The optimal cutoff <code>lambda</code>, which defines the acceptable upper bound for the sum of inverse generalized propensity scores, is
+returned. See Yang et al. (2016) and Li and Li (2019) for details.
+</p>
+<p>The argument <code>zname</code> is required when <code>ps.estimate</code> is not <code>NULL</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>PStrim returns a list of the following values:
+</p>
+
+<dl>
+<dt><code> data</code></dt>
+<dd>
+<p>a data frame of trimmed data. </p>
+</dd>
+<dt><code> trim_sum</code></dt>
+<dd>
+<p>a table summrizing the number of cases by treatment groups before and after trimming. </p>
+</dd>
+<dt><code> ps.estimate</code></dt>
+<dd>
+<p> a data frame of propensity estimate after trimming. </p>
+</dd>
+<dt><code> delta</code></dt>
+<dd>
+<p> an optional output of trimming threshold for symmetric trimming. </p>
+</dd>
+<dt><code> lambda</code></dt>
+<dd>
+<p> an optional output trimming threshold for optimal trimming with multiple treatment groups. </p>
+</dd>
+<dt><code> out.estimate</code></dt>
+<dd>
+<p> a data frame of estimated potential outcomes after trimming. </p>
+</dd>
+</dl>
+<h3>References</h3>
+
+<p>Crump, R. K., Hotz, V. J., Imbens, G. W., Mitnik, O. A. (2009).
+Dealing with limited overlap in estimation of average treatment effects. Biometrika, 96(1), 187-199.
+</p>
+<p>Yoshida, K., Solomon, D.H., Haneuse, S., Kim, S.C., Patorno, E., Tedeschi, S.K., Lyu, H.,
+Franklin, J.M., Stürmer, T., Hernández-Díaz, S. and Glynn, R.J. (2019).
+Multinomial extension of propensity score trimming methods: A simulation study.
+American Journal of Epidemiology, 188(3), 609-616.
+</p>
+<p>Yang, S., Imbens, G. W., Cui, Z., Faries, D. E., Kadziola, Z. (2016). Propensity score matching
+and subclassification in observational studies with multi-level treatments. Biometrics, 72(4), 1055-1065.
+</p>
+<p>Li, F., Li, F. (2019). Propensity score weighting for causal inference with multiple treatments.
+The Annals of Applied Statistics, 13(4), 2389-2415.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data("psdata")
+
+# the propensity model
+ps.formula&lt;-trt~cov1+cov2+cov3+cov4+cov5+cov6
+
+# trim the original data by setting the threshold of propensity as 0.05
+PStrim(data=psdata, ps.formula=ps.formula, delta=0.05)
+PStrim(data=psdata, ps.formula=ps.formula, optimal=TRUE)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,165 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sim_binomial_probit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulate the dependent variable of a SAR/SEM/SARAR model.</h2>
+
+<h3>Description</h3>
+
+<p>The function <code>sim_binomial_probit</code> is used to generate the dependent 
+variable of a spatial binomial probit model, where all the data and 
+parameters of the model can be modified by the user.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sim_binomial_probit(W,X,beta,rho,model="SAR",M=NULL,lambda=NULL,
+sigma2=1,ord_iW=6,seed=123)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>W</code></td>
+<td>
+<p>the spatial weight matrix (works for <code>"SAR"</code> and 
+<code>"SEM"</code> models).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>the matrix of covariates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>the value of the covariates parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+<p>the value of the spatial dependence parameter (works for 
+<code>"SAR"</code> and <code>"SEM"</code> models).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>the type of model, between <code>"SAR"</code>, <code>"SEM"</code>, 
+<code>"SARAR"</code> (Default is <code>"SAR"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M</code></td>
+<td>
+<p>the second spatial weight matrix (only if <code>model</code> is 
+<code>"SARAR"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>the value of the spatial dependence parameter (only if 
+<code>model</code> is <code>"SARAR"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma2</code></td>
+<td>
+<p>the variance of the error term (Defaul is 1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ord_iW</code></td>
+<td>
+<p>the order of approximation of the matrix 
+<code class="reqn">(I_n-\rho W)^{-1}</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>to set the random generator seed of the error term.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>sim_binomial_probit</code> generates a vector of dependent 
+variables for a spatial probit model. It allows to simulate the following 
+DGPs (Data Generating Process):
+SAR
+</p>
+<p style="text-align: center;"><code class="reqn">z = (I_n-\rho W)^{-1}(X\beta+\epsilon)	</code>
+</p>
+
+<p>SEM
+</p>
+<p style="text-align: center;"><code class="reqn">z = X\beta+(I_n-\rho W)^{-1}\epsilon	</code>
+</p>
+
+<p>SARAR
+</p>
+<p style="text-align: center;"><code class="reqn">z = (I_n-\rho W)^{-1}(X\beta+(I_n-\lambda M)^{-1}\epsilon)	</code>
+</p>
+
+<p>where <code class="reqn">\epsilon</code> are independent and normally distributed with mean zero 
+and variance <code>sigma2</code> (default is 1).
+</p>
+<p>The matrix <code>X</code> of covariates, the corresponding parameters <code>beta</code>, 
+the spatial weight matrix <code>W</code> and the corresponding spatial dependence 
+parameter <code>rho</code> need to be passed by the user. Eventually, the same 
+applies for <code>lambda</code> and <code>M</code> for the SARAR model.
+</p>
+<p>The matrix <code class="reqn">(I_n-\rho W)^{-1}</code> is computed using the 
+<code>ApproxiW</code> function, that can either invert <code class="reqn">(I_n-\rho W)</code> 
+exactely, if <code>order_iW=0</code> (not suitable for <code>n</code> bigger than 1000),  
+or using the Taylor approximation 
+</p>
+<p style="text-align: center;"><code class="reqn">(I_n-\rho W)^{-1}= I_n+\rho W+\rho^2 W^2+\ldots 	</code>
+</p>
+
+<p>of order <code>order_iW</code> (default is approximation of order 6).
+</p>
+
+
+<h3>Value</h3>
+
+<p>a vector of zeros and ones
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>generate_W</code>, <code>ProbitSpatialFit</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">n &lt;- 500
+nneigh &lt;- 3
+rho &lt;- 0.5
+beta &lt;- c(4,-2,1)
+W &lt;- generate_W(n,nneigh)
+X &lt;- cbind(1,rnorm(n,2,2),rnorm(n,0,1))
+#SAR
+y &lt;- sim_binomial_probit(W,X,beta,rho,model="SAR") #SAR model
+#SEM
+y &lt;- sim_binomial_probit(W,X,beta,rho,model="SEM") #SEM model
+#SARAR
+M &lt;- generate_W(n,nneigh,seed=1)
+lambda &lt;- -0.5
+y &lt;- sim_binomial_probit(W,X,beta,rho,model="SARAR",M=M,lambda=lambda) 
+</code></pre>
+
+
+</div>

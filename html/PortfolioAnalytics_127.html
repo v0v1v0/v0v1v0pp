@@ -1,0 +1,459 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>optimize.portfolio</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Constrained optimization of portfolios</h2>
+
+<h3>Description</h3>
+
+<p>This function aims to provide a wrapper for constrained optimization of 
+portfolios that specify constraints and objectives.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">optimize.portfolio_v1(
+  R,
+  constraints,
+  optimize_method = c("DEoptim", "random", "ROI", "ROI_old", "pso", "GenSA"),
+  search_size = 20000,
+  trace = FALSE,
+  ...,
+  rp = NULL,
+  momentFUN = "set.portfolio.moments_v1"
+)
+
+optimize.portfolio(
+  R,
+  portfolio = NULL,
+  constraints = NULL,
+  objectives = NULL,
+  optimize_method = c("DEoptim", "random", "ROI", "pso", "GenSA", "Rglpk", "osqp", "mco",
+    "CVXR", ...),
+  search_size = 20000,
+  trace = FALSE,
+  ...,
+  rp = NULL,
+  momentFUN = "set.portfolio.moments",
+  message = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+<p>an xts, vector, matrix, data frame, timeSeries or zoo object of asset returns</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>constraints</code></td>
+<td>
+<p>default=NULL, a list of constraint objects. An object of class 'v1_constraint' can be passed in here.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimize_method</code></td>
+<td>
+<p>one of "DEoptim", "random", "ROI", "pso", "GenSA", "osqp", "Rglpk", "mco", "CVXR", or a vector to specify CVXR solver.
+A solver of ROI or CVXR can also be specified and will be solved via ROI or CVXR. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>search_size</code></td>
+<td>
+<p>integer, how many portfolios to test, default 20,000</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace</code></td>
+<td>
+<p>TRUE/FALSE if TRUE will attempt to return additional information on the path or portfolios searched</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>any other passthru parameters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rp</code></td>
+<td>
+<p>matrix of random portfolio weights, default NULL, mostly for automated use by rebalancing optimization or repeated tests on same portfolios</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>momentFUN</code></td>
+<td>
+<p>the name of a function to call to set portfolio moments, default <code>set.portfolio.moments_v2</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>portfolio</code></td>
+<td>
+<p>an object of type "portfolio" specifying the constraints and objectives for the optimization</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>objectives</code></td>
+<td>
+<p>default=NULL, a list of objective objects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>message</code></td>
+<td>
+<p>TRUE/FALSE. The default is message=FALSE. Display messages if TRUE.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function currently supports DEoptim, random portfolios, pso, GenSA, ROI, osqp, Rglpk, mco, and CVXR solvers as back ends.
+Additional back end contributions for Rmetrics, ghyp, etc. would be welcome.
+</p>
+<p>When using random portfolios, search_size is precisely that, how many 
+portfolios to test.  You need to make sure to set your feasible weights 
+in generatesequence to make sure you have search_size unique 
+portfolios to test, typically by manipulating the 'by' parameter 
+to select something smaller than .01 
+(I often use .002, as .001 seems like overkill)
+</p>
+<p>When using DE, search_size is decomposed into two other parameters 
+which it interacts with, NP and itermax.
+</p>
+<p>NP, the number of members in each population, is set to cap at 2000 in 
+DEoptim, and by default is the number of parameters (assets/weights) * 10.
+</p>
+<p>itermax, if not passed in dots, defaults to the number of parameters (assets/weights) * 50.
+</p>
+<p>When using GenSA and want to set <code>verbose=TRUE</code>, instead use <code>trace</code>. 
+</p>
+<p>If <code>optimize_method="ROI"</code> is specified, a default solver will be 
+selected based on the optimization problem. The <code>glpk</code> solver is the
+default solver for LP and MILP optimization problems. The <code>quadprog</code> 
+solver is the default solver for QP optimization problems. For example,
+<code>optimize_method = "quadprog"</code> can be specified and the optimization
+problem will be solved via ROI using the quadprog solver.
+</p>
+<p>The extension to ROI solves a limited type of convex optimization problems:
+</p>
+
+<ul>
+<li>
+<p> Maxmimize portfolio return subject leverage, box, group, position limit, target mean return, and/or factor exposure constraints on weights.
+</p>
+</li>
+<li>
+<p> Minimize portfolio variance subject to leverage, box, group, turnover, and/or factor exposure constraints (otherwise known as global minimum variance portfolio).
+</p>
+</li>
+<li>
+<p> Minimize portfolio variance subject to leverage, box, group, and/or factor exposure constraints and a desired portfolio return.
+</p>
+</li>
+<li>
+<p> Maximize quadratic utility subject to leverage, box, group, target mean return, turnover, and/or factor exposure constraints and risk aversion parameter.
+(The risk aversion parameter is passed into <code>optimize.portfolio</code> as an added argument to the <code>portfolio</code> object).
+</p>
+</li>
+<li>
+<p> Maximize portfolio mean return per unit standard deviation (i.e. the Sharpe Ratio) can be done by specifying <code>maxSR=TRUE</code> in <code>optimize.portfolio</code>. 
+If both mean and StdDev are specified as objective names, the default action is to maximize quadratic utility, therefore <code>maxSR=TRUE</code> must be specified to maximize Sharpe Ratio.
+</p>
+</li>
+<li>
+<p> Minimize portfolio ES/ETL/CVaR optimization subject to leverage, box, group, position limit, target mean return, and/or factor exposure constraints and target portfolio return.
+</p>
+</li>
+<li>
+<p> Maximize portfolio mean return per unit ES/ETL/CVaR (i.e. the STARR Ratio) can be done by specifying <code>maxSTARR=TRUE</code> in <code>optimize.portfolio</code>. 
+If both mean and ES/ETL/CVaR are specified as objective names, the default action is to maximize mean return per unit ES/ETL/CVaR.
+</p>
+</li>
+</ul>
+<p>These problems also support a weight_concentration objective where concentration
+of weights as measured by HHI is added as a penalty term to the quadratic objective.
+</p>
+<p>Because these convex optimization problem are standardized, there is no need for a penalty term. 
+The <code>multiplier</code> argument in <code>add.objective</code> passed into the complete constraint object are ignored by the ROI solver.
+</p>
+<p>If <code>optimize_method="CVXR"</code> is specified, a default solver will be selected based on the optimization problem.
+The default solver for Linear Problem and Quadratic Programming will be <code>OSQP</code>, 
+and the default solver for Second-Order Cone Programming will be <code>SCS</code>.
+Specified CVXR solver can be given by using <code>optimize_method=c("CVXR", "CVXRsolver")</code>.
+CVXR supports some commercial solvers, including CBC, CPLEX, GUROBI and MOSEK, and some open source solvers, including GLPK, GLPK_MI, OSQP, SCS and ECOS.
+For example, <code>optimize_method = c("CVXR", "ECOS")</code> can be specified and the optimization problem will be solved via CVXR using the ECOS solver.
+</p>
+<p>The extension to CVXR solves a limited type of convex optimization problems:
+</p>
+
+<ul>
+<li>
+<p> Maxmimize portfolio mean return subject leverage, box, group, and/or target mean return constraints
+</p>
+</li>
+<li>
+<p> Minimize portfolio variance subject to leverage, box, group, and/or target mean return constraints (otherwise known as global minimum variance portfolio).
+</p>
+</li>
+<li>
+<p> Maximize quadratic utility subject to leverage, box, group, and/or target mean return constraints and risk aversion parameter.
+(The default risk aversion is 1, and specified risk aversion could be given by <code>risk_aversion = 1</code>.
+The risk aversion parameter is passed into <code>optimize.portfolio</code> as an added argument to the <code>portfolio</code> object.)
+</p>
+</li>
+<li>
+<p> Minimize portfolio ES/ETL/CVaR optimization subject to leverage, box, group, and/or target mean return constraints and tail probability parameter.
+(The default tail probability is 0.05, and specified tail probability could be given by <code>arguments = list(p=0.95)</code>.
+The tail probability parameter is passed into <code>optimize.portfolio</code> as an added argument to the <code>portfolio</code> object.)
+</p>
+</li>
+<li>
+<p> Minimize portfolio EQS optimization subject to leverage, box, group, and/or target mean return constraints and tail probability parameter.
+(The default tail probability is 0.05, and specified tail probability could be given by <code>arguments = list(p=0.95)</code>.
+The tail probability parameter is passed into <code>optimize.portfolio</code> as an added argument to the <code>portfolio</code> object.)
+</p>
+</li>
+<li>
+<p> Maximize portfolio mean return per unit standard deviation (i.e. the Sharpe Ratio) subject to leverage, box, group, and/or target mean return constraints.
+It should be specified by <code>maxSR=TRUE</code> in <code>optimize.portfolio</code> with both mean and var/StdDev objectives.
+Otherwise, the default action is to maximize quadratic utility.
+</p>
+</li>
+<li>
+<p> Maximize portfolio mean return per unit ES (i.e. the ES ratio/STARR) subject to leverage, box, group, and/or target mean return constraints.
+It could be specified by <code>maxSTARR=TRUE</code> or <code>ESratio=TRUE</code> in <code>optimize.portfolio</code> with both mean and ES objectives.
+The default action is to maximize ES ratio. If <code>maxSTARR=FALSE</code> or <code>ESratio=FALSE</code> is given, the action will be minimizing ES.
+</p>
+</li>
+<li>
+<p> Maximize portfolio mean return per unit EQS (i.e. the EQS ratio) subject to leverage, box, group, and/or target mean return constraints.
+It could be specified by <code>EQSratio=TRUE</code> in <code>optimize.portfolio</code> with both mean and EQS objectives.
+The default action is to maximize EQS ratio. If <code>EQSratio=FALSE</code> is given, the action will be minimizing EQS.
+</p>
+</li>
+</ul>
+<p>Because these convex optimization problem are standardized, there is no need for a penalty term. 
+The <code>multiplier</code> argument in <code>add.objective</code> passed into the complete constraint object are ignored by the CVXR solver.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a list containing the following elements
+</p>
+
+<dl>
+<dt>
+<code>weights</code>:</dt>
+<dd>
+<p> The optimal set weights.</p>
+</dd>
+<dt>
+<code>objective_measures</code>:</dt>
+<dd>
+<p> A list containing the value of each objective corresponding to the optimal weights.</p>
+</dd>
+<dt>
+<code>opt_values</code>:</dt>
+<dd>
+<p> A list containing the value of each objective corresponding to the optimal weights.</p>
+</dd>
+<dt>
+<code>out</code>:</dt>
+<dd>
+<p> The output of the solver.</p>
+</dd>
+<dt>
+<code>call</code>:</dt>
+<dd>
+<p> The function call.</p>
+</dd>
+<dt>
+<code>portfolio</code>:</dt>
+<dd>
+<p> The portfolio object.</p>
+</dd>
+<dt>
+<code>R</code>:</dt>
+<dd>
+<p> The asset returns.</p>
+</dd>
+<dt><code>data summary:</code></dt>
+<dd>
+<p> The first row and last row of <code>R</code>.</p>
+</dd>
+<dt><code>elapsed_time:</code></dt>
+<dd>
+<p> The amount of time that elapses while the optimization is run.</p>
+</dd>
+<dt><code>end_t:</code></dt>
+<dd>
+<p> The date and time the optimization completed.</p>
+</dd>
+</dl>
+<p>When Trace=TRUE is specified, the following elements will be returned in 
+addition to the elements above. The output depends on the optimization 
+method and is specific to each solver. Refer to the documentation of the
+desired solver for more information.
+</p>
+<p><code>optimize_method="random"</code>
+</p>
+
+<dl>
+<dt>
+<code>random_portfolios</code>:</dt>
+<dd>
+<p> A matrix of the random portfolios.</p>
+</dd>
+<dt>
+<code>random_portfolio_objective_results</code>:</dt>
+<dd>
+<p> A list of the following elements for each random portfolio.</p>
+</dd>
+</dl>
+<dl>
+<dt>
+<code>out</code>:</dt>
+<dd>
+<p> The output value of the solver corresponding to the random portfolio weights.</p>
+</dd>
+<dt>
+<code>weights</code>:</dt>
+<dd>
+<p> The weights of the random portfolio.</p>
+</dd>
+<dt>
+<code>objective_measures</code>:</dt>
+<dd>
+<p> A list of each objective measure corresponding to the random portfolio weights.</p>
+</dd>
+</dl>
+<p><code>optimize_method="DEoptim"</code>
+</p>
+
+<dl>
+<dt><code>DEoutput:</code></dt>
+<dd>
+<p> A list (of length 2) containing the following elements:</p>
+</dd>
+</dl>
+<ul>
+<li> <p><code>optim</code>
+</p>
+</li>
+<li> <p><code>member</code>
+</p>
+</li>
+</ul>
+<dl>
+<dt>
+<code>DEoptim_objective_results</code>:</dt>
+<dd>
+<p> A list containing the following elements for each intermediate population.</p>
+</dd>
+</dl>
+<ul>
+<li> <p><code>out</code>: The output of the solver.
+</p>
+</li>
+<li> <p><code>weights</code>: Population weights.
+</p>
+</li>
+<li> <p><code>init_weights</code>: Initial population weights.
+</p>
+</li>
+<li> <p><code>objective_measures</code>: A list of each objective measure corresponding to the weights
+</p>
+</li>
+</ul>
+<p><code>optimize_method="pso"</code>
+</p>
+
+<ul><li> <p><code>PSOoutput</code>: A list containing the following elements:
+</p>
+
+<ul>
+<li>
+<p> par
+</p>
+</li>
+<li>
+<p> value 
+</p>
+</li>
+<li>
+<p> counts 
+</p>
+</li>
+<li>
+<p> convergence
+</p>
+</li>
+<li>
+<p> message
+</p>
+</li>
+<li>
+<p> stats
+</p>
+</li>
+</ul>
+</li></ul>
+<p><code>optimize_method="GenSA"</code>
+</p>
+
+<ul><li> <p><code>GenSAoutput</code>: A list containing the following elements:
+</p>
+
+<ul>
+<li>
+<p> value
+</p>
+</li>
+<li>
+<p> par
+</p>
+</li>
+<li>
+<p> trace.mat
+</p>
+</li>
+<li>
+<p> counts
+</p>
+</li>
+</ul>
+</li></ul>
+<h3>Note</h3>
+
+<p>An object of class <code>v1_constraint</code> can be passed in for the <code>constraints</code> argument.
+The <code>v1_constraint</code> object was used in the previous 'v1' specification to specify the 
+constraints and objectives for the optimization problem, see <code>constraint</code>. 
+We will attempt to detect if the object passed into the constraints argument 
+is a <code>v1_constraint</code> object and update to the 'v2' specification by adding the 
+constraints and objectives to the <code>portfolio</code> object.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Kris Boudt, Peter Carl, Brian G. Peterson, Ross Bennett, Xiaokang Feng, Xinran Zhao
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>portfolio.spec</code>
+</p>
+
+
+</div>

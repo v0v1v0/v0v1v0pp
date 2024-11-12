@@ -1,0 +1,311 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ages</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Estimate an APDAG within the Markov equivalence class of a DAG using AGES
+</h2>
+
+<h3>Description</h3>
+
+<p>Estimate an APDAG (a particular PDAG) using the aggregative greedy equivalence search (AGES) algorithm, which uses the solution path of the greedy equivalence search (GES) algorithm of Chickering (2002).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ages(data, lambda_min = 0.5 * log(nrow(data)), labels = NULL,
+     fixedGaps = NULL, adaptive = c("none", "vstructures", "triples"),
+     maxDegree = integer(0), verbose = FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+
+<p>A <code class="reqn">n*p</code> matrix (or data frame) containing the observational data.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda_min</code></td>
+<td>
+
+<p>The smallest penalty parameter value used when computing the solution path of GES.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>labels</code></td>
+<td>
+
+<p>Node labels; if NULL the names of the columns of the data matrix (or the names in the data frame) are used. If these are not specified the sequence 1 to p is used.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixedGaps</code></td>
+<td>
+
+<p>logical <em>symmetric</em> matrix of dimension p*p.  If entry
+<code>[i, j]</code> is <code>TRUE</code>, the result is guaranteed to have no edge
+between nodes <code class="reqn">i</code> and <code class="reqn">j</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adaptive</code></td>
+<td>
+
+<p>indicating whether constraints should be adapted to
+newly detected v-structures or unshielded triples (cf. details).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxDegree</code></td>
+<td>
+
+<p>Parameter used to limit the vertex degree of the estimated
+graph.  Valid arguments:
+</p>
+
+<ol>
+<li>
+<p> Vector of length 0 (default): vertex degree is not limited.
+</p>
+</li>
+<li>
+<p> Real number <code class="reqn">r</code>, <code class="reqn">0 &lt; r &lt; 1</code>: degree of vertex <code class="reqn">v</code> is
+limited to <code class="reqn">r \cdot n_v</code>, where <code class="reqn">n_v</code> denotes the number of
+data points where <code class="reqn">v</code> was not intervened.
+</p>
+</li>
+<li>
+<p> Single integer: uniform bound of vertex degree for all vertices
+of the graph.
+</p>
+</li>
+<li>
+<p> Integer vector of length <code>p</code>: vector of individual bounds
+for the vertex degrees.
+</p>
+</li>
+</ol>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+
+<p>If <code>TRUE</code>, detailed output is provided.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Additional arguments for debugging purposes and fine tuning.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function tries to add orientations to the essential graph (CPDAG) found by <code>ges</code> (ran with lambda=lambda_min). It does it aggregating several CPDAGs present in the solution path of GES. Conceptually, AGES starts with the essential graph found by GES ran with <code>lambda = lambda_min</code>. Then, it checks for further (compatible) orientation information in other essential graphs present in the solution path of GES, i.e., in essential graphs outputted by GES for larger penalty parameters. With compatible we mean that the aggregation process is done such that the final APDAG is still within the Markov equivalence graph represented by the essential graph found by GES in the following sense: an APDAG can always be extended to a DAG without creating new v-structures. This DAG lies in the Markov equivalence class represented by the essential graph found by GES. The algorithm is explained in detail in Eigenmann, Nandy, and Maathuis (2017).
+</p>
+<p>The arguments <code>fixedgaps</code> and <code>adaptive</code> work also with AGES. However, they have not been studied in Eigenmann, Nandy, and Maathuis (2017).
+Using the argument <code>fixedGaps</code>, one can make sure that certain edges
+will <em>not</em> be present in the resulting essential graph: if the entry
+<code>[i, j]</code> of the matrix passed to <code>fixedGaps</code> is <code>TRUE</code>, there
+will be no edge between nodes <code class="reqn">i</code> and <code class="reqn">j</code>. The argument <code>adaptive</code> can be
+used to relax the constraints encoded by <code>fixedGaps</code> according to a 
+modification of GES called ARGES (adaptively restricted greedy 
+equivalence search) which has been presented in Nandy, Hauser and Maathuis
+(2018):
+</p>
+
+<ul>
+<li>
+<p> When <code>adaptive = "vstructures"</code> and the algorithm introduces a 
+new v-structure <code class="reqn">a \longrightarrow b \longleftarrow c</code> in the 
+forward phase, then the edge <code class="reqn">a - c</code> is removed from the list of fixed 
+gaps, meaning that the insertion of an edge between <code class="reqn">a</code> and <code class="reqn">c</code> 
+becomes possible even if it was forbidden by the initial matrix passed to 
+<code>fixedGaps</code>.
+</p>
+</li>
+<li>
+<p> When <code>adaptive = "triples"</code> and the algorithm introduces a new
+unshielded triple in the forward phase (i.e., a subgraph of three nodes
+<code class="reqn">a</code>, <code class="reqn">b</code> and <code class="reqn">c</code> where <code class="reqn">a</code> and <code class="reqn">b</code> as well as <code class="reqn">b</code>
+and <code class="reqn">c</code> are adjacent, but <code class="reqn">a</code> and <code class="reqn">c</code> are not), then the edge
+<code class="reqn">a - c</code> is removed from the list of fixed gaps.
+</p>
+</li>
+</ul>
+<p>With one of the adaptive modifications, the successive application of a 
+skeleton estimation method and GES restricted to an estimated skeleton still
+gives a <em>consistent</em> estimator of the DAG, which is not the case without
+the adaptive modification.
+</p>
+<p>For a detailed explanation of the GES function as well as its related object like essential graphs, we refer to the <code>ges</code> function.
+</p>
+<p>Differences in the arguments with respect to GES: AGES uses <code>data</code> to initialize several scores taken as argument by GES. AGES modifies the forward and backward phases of GES performing single steps in either directions. For this reason, <code>phase</code>, <code>iterate</code>, and <code>turning</code> are not available arguments.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>ages</code> returns a list with the following four components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>essgraph</code></td>
+<td>
+<p>An object of class <code>EssGraph</code> containing an
+estimate of the equivalence class of the underlying DAG.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>repr</code></td>
+<td>
+<p>An object of a class derived from <code>ParDAG</code>
+containing a (random) representative of the estimated equivalence class.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CPDAGsList</code></td>
+<td>
+<p>A list of p*p matrices containing all CPDAGs considered by AGES in the aggregation processes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>A vector containing the penalty parameter used to obtain the list of CPDAGs mentioned above. GES returns the list of CPDAGs when used with this vector of penalty parameters if used with phases = c("forward", "backward") and iterate = FALSE.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Marco Eigenmann (<a href="mailto:eigenmann@stat.math.ethz.ch">eigenmann@stat.math.ethz.ch</a>)
+</p>
+
+
+<h3>References</h3>
+
+<p>D.M. Chickering (2002).  Optimal structure identification with greedy search.
+<em>Journal of Machine Learning Research</em> <b>3</b>, 507–554
+</p>
+<p>M.F. Eigenmann, P. Nandy, and M.H. Maathuis (2017). Structure learning of linear Gaussian structural equation models with weak edges. In <em>Proceedings of UAI 2017</em>
+</p>
+<p>P. Nandy, A. Hauser and M.H. Maathuis (2018). High-dimensional consistency in score-based and hybrid structure learning. <em>Annals of Statistics</em>, to appear.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ges</code>, <code>EssGraph</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Example 1: ages adds correct orientations: Bar --&gt; V6 and Bar --&gt; V8
+
+set.seed(77)
+
+p &lt;- 8
+n &lt;- 5000
+## true DAG:
+vars &lt;- c("Author", "Bar", "Ctrl", "Goal", paste0("V",5:8))
+gGtrue &lt;- randomDAG(p, prob = 0.3, V = vars)
+data = rmvDAG(n, gGtrue)
+
+
+## Estimate the aggregated PDAG with ages
+ages.fit &lt;- ages(data = data)
+
+
+## Estimate the essential graph with ges
+## We specify the phases in order to have a fair comparison of the algorithms
+## Without the phases specified it would be easy to find examples
+## where each algorithm outperforms the other
+score &lt;- new("GaussL0penObsScore", data)
+ges.fit &lt;- ges(score, phase = c("forward","backward"), iterate = FALSE)
+
+## Plots
+if (require(Rgraphviz)) {
+par(mfrow=c(1,3))
+plot(ges.fit$essgraph, main="Estimated CPDAG with GES")
+plot(ages.fit$essgraph, main="Estimated APDAG with AGES")
+plot(gGtrue, main="TrueDAG")
+}
+
+
+## Example 2: ages adds correct orientations: Author --&gt; Goal and Author --&gt; V5
+
+set.seed(50)
+
+p &lt;- 9
+n &lt;- 5000
+## true DAG:
+vars &lt;- c("Author", "Bar", "Ctrl", "Goal", paste0("V",5:9))
+gGtrue &lt;- randomDAG(p, prob = 0.5, V = vars)
+data = rmvDAG(n, gGtrue)
+
+
+## Estimate the aggregated PDAG with ages
+ages.fit &lt;- ages(data = data)
+
+
+## Estimate the essential graph with ges
+## We specify the phases in order to have a fair comparison of the algorithms
+## Without the phases specified it would be easy to find examples
+## where each algorithm outperforms the other
+score &lt;- new("GaussL0penObsScore", data)
+ges.fit &lt;- ges(score, phase = c("forward","backward"), iterate = FALSE)
+
+## Plots
+if (require(Rgraphviz)) {
+par(mfrow=c(1,3))
+plot(ges.fit$essgraph, main="Estimated CPDAG with GES")
+plot(ages.fit$essgraph, main="Estimated APDAG with AGES")
+plot(gGtrue, main="TrueDAG")
+}
+
+## Example 3: ges and ages return the same graph
+
+data(gmG)
+
+data &lt;- gmG8$x
+
+## Estimate the aggregated PDAG with ages
+ages.fit &lt;- ages(data = data)
+
+
+## Estimate the essential graph with ges
+score &lt;- new("GaussL0penObsScore", data)
+ges.fit &lt;- ges(score)
+
+
+## Plots
+if (require(Rgraphviz)) {
+par(mfrow=c(1,3))
+plot(ges.fit$essgraph, main="Estimated CPDAG with GES")
+plot(ages.fit$essgraph, main="Estimated APDAG with AGES")
+plot(gmG8$g, main="TrueDAG")
+}
+</code></pre>
+
+
+</div>

@@ -1,0 +1,132 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>across</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Apply a function (or functions) across multiple columns</h2>
+
+<h3>Description</h3>
+
+<p><code>across()</code> makes it easy to apply the same transformation to multiple columns, allowing you to use <code>select()</code>
+semantics inside in "data-masking" functions like <code>summarise()</code> and <code>mutate()</code>.
+</p>
+<p><code>if_any()</code> and <code>if_all()</code> are used to apply the same predicate function to a selection of columns and combine the
+results into a single logical vector.
+</p>
+<p><code>across()</code> supersedes the family of <code>dplyr</code> "scoped variants" like <code>summarise_at()</code>, <code>summarise_if()</code>, and
+<code>summarise_all()</code> and therefore these functions will not be implemented in <code>poorman</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">across(.cols = everything(), .fns = NULL, ..., .names = NULL)
+
+if_any(.cols, .fns = NULL, ..., .names = NULL)
+
+if_all(.cols, .fns = NULL, ..., .names = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>.fns</code></td>
+<td>
+<p>Functions to apply to each of the selected columns.
+Possible values are:
+</p>
+
+<ul>
+<li> <p><code>NULL</code>, to returns the columns untransformed.
+</p>
+</li>
+<li>
+<p> A function, e.g. <code>mean</code>.
+</p>
+</li>
+<li>
+<p> A lambda, e.g. <code>~ mean(.x, na.rm = TRUE)</code>
+</p>
+</li>
+<li>
+<p> A list of functions/lambdas, e.g. <code style="white-space: pre;">⁠list(mean = mean, n_miss = ~ sum(is.na(.x))⁠</code>
+</p>
+</li>
+</ul>
+<p>Within these functions you can use <code>cur_column()</code> and <code>cur_group()</code> to access the current column and grouping keys
+respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments for the function calls in <code>.fns</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.names</code></td>
+<td>
+<p>A glue specification that describes how to name the output
+columns. This can use <code>{.col}</code> to stand for the selected column name, and <code>{.fn}</code>
+to stand for the name of the function being applied. The default (<code>NULL</code>) is
+equivalent to "<code>{.col}</code>" for the single function case and "<code style="white-space: pre;">⁠{.col}_{.fn}⁠</code>" for
+the case where a list is used for <code>.fns</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cols, .cols</code></td>
+<td>
+<p>&lt;<code>poor-select</code>&gt; Columns to transform. Because <code>across()</code> is used within functions
+like <code>summarise()</code> and <code>mutate()</code>, you can't select or compute upon grouping variables.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>across()</code> returns a <code>data.frame</code> with one column for each column in <code>.cols</code> and each function in <code>.fns</code>.
+</p>
+<p><code>if_any()</code> and <code>if_all()</code> return a logical vector.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># across() -----------------------------------------------------------------
+iris %&gt;%
+  group_by(Species) %&gt;%
+  summarise(across(starts_with("Sepal"), mean))
+iris %&gt;%
+  mutate(across(where(is.factor), as.character))
+
+# Additional parameters can be passed to functions
+iris %&gt;%
+  group_by(Species) %&gt;%
+  summarise(across(starts_with("Sepal"), mean, na.rm = TRUE))
+
+# A named list of functions
+iris %&gt;%
+  group_by(Species) %&gt;%
+  summarise(across(starts_with("Sepal"), list(mean = mean, sd = sd)))
+
+# Use the .names argument to control the output names
+iris %&gt;%
+  group_by(Species) %&gt;%
+  summarise(
+    across(starts_with("Sepal"),
+    mean,
+    .names = c("mean_sepal_length", "mean_sepal_width"))
+  )
+
+# if_any() and if_all() ----------------------------------------------------
+iris %&gt;%
+  filter(if_any(ends_with("Width"), ~ . &gt; 4))
+iris %&gt;%
+  filter(if_all(ends_with("Width"), ~ . &gt; 2))
+
+</code></pre>
+
+
+</div>

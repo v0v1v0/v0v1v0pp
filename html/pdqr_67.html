@@ -1,0 +1,247 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>summ_classmetric</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Summarize pair of distributions with classification metric</h2>
+
+<h3>Description</h3>
+
+<p>Compute metric of the following one-dimensional binary classification setup:
+any <code>x</code> value not more than <code>threshold</code> value is classified as "negative"; if
+strictly greater - "positive". Classification metrics are computed based on
+two pdqr-functions: <code>f</code>, which represents the distribution of values which
+<em>should be</em> classified as "negative" ("true negative"), and <code>g</code> - the same
+for "positive" ("true positive").
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">summ_classmetric(f, g, threshold, method = "F1")
+
+summ_classmetric_df(f, g, threshold, method = "F1")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>A pdqr-function of any type and
+class. Represents distribution of "true negative" values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g</code></td>
+<td>
+<p>A pdqr-function of any type and class. Represents distribution of
+"true positive" values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>A numeric vector of classification threshold(s).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Method of classification metric (might be a vector for
+<code>summ_classmetric_df()</code>). Should be one of "TPR", "TNR", "FPR", "FNR",
+"PPV", "NPV", "FDR", "FOR", "LR+", "LR-", "Acc", "ER", "GM", "F1", "OP",
+"MCC", "YI", "MK", "Jaccard", "DOR" (with possible aliases, see Details).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Binary classification setup used here to compute metrics is a
+simplified version of the most common one, when there is a finite set of
+already classified objects. Usually, there are <code>N</code> objects which are truly
+"negative" and <code>P</code> truly "positive" ones. Values <code>N</code> and <code>P</code> can vary, which
+often results in class imbalance. However, in current setup both <code>N</code> and
+<code>P</code> are equal to 1 (total probability of <code>f</code> and <code>g</code>).
+</p>
+<p>In common setup, classification of all <code>N + P</code> objects results into the
+following values: "TP" (number of truly "positive" values classified as
+"positive"), "TN" (number of negatives classified as "negative"), "FP"
+(number of negatives falsely classified as "positive"), and "FN" (number of
+positives falsely classified as "negative"). In current setup all those
+values are equal to respective "rates" (because <code>N</code> and <code>P</code> are both equal to
+1).
+</p>
+<p>Both <code>summ_classmetric()</code> and <code>summ_classmetric_df()</code> allow aliases to some
+classification metrics (for readability purposes).
+</p>
+<p>Following classification metrics are available:
+</p>
+
+<ul>
+<li>
+<p> Simple metrics:
+</p>
+
+<ul>
+<li> <p><em>True positive rate</em>, <code>method</code> "TPR" (aliases: "TP", "sensitivity",
+"recall"): proportion of actual positives correctly classified as such.
+Computed as <code>1 - as_p(g)(threshold)</code>.
+</p>
+</li>
+<li> <p><em>True negative rate</em>, <code>method</code> "TNR" (aliases: "TN", "specificity"):
+proportion of actual negatives correctly classified as such. Computed as
+<code>as_p(f)(threshold)</code>.
+</p>
+</li>
+<li> <p><em>False positive rate</em>, <code>method</code> "FPR" (aliases: "FP", "fall-out"):
+proportion of actual negatives falsely classified as "positive". Computed
+as <code>1 - as_p(f)(threshold)</code>.
+</p>
+</li>
+<li> <p><em>False negative rate</em>, <code>method</code> "FNR" (aliases: "FN", "miss_rate"):
+proportion of actual positives falsely classified as "negative". Computed
+as <code>as_p(g)(threshold)</code>.
+</p>
+</li>
+<li> <p><em>Positive predictive value</em>, <code>method</code> "PPV" (alias: "precision"):
+proportion of output positives that are actually "positive". Computed as
+<code>TP / (TP + FP)</code>.
+</p>
+</li>
+<li> <p><em>Negative predictive value</em>, <code>method</code> "NPV": proportion of output
+negatives that are actually "negative". Computed as <code>TN / (TN + FN)</code>.
+</p>
+</li>
+<li> <p><em>False discovery rate</em>, <code>method</code> "FDR": proportion of output positives
+that are actually "negative". Computed as <code>FP / (TP + FP)</code>.
+</p>
+</li>
+<li> <p><em>False omission rate</em>, <code>method</code> "FOR": proportion of output negatives
+that are actually "positive". Computed as <code>FN / (TN + FN)</code>.
+</p>
+</li>
+<li> <p><em>Positive likelihood</em>, <code>method</code> "LR+": measures how much the odds of
+being "positive" increase when value is classified as "positive".
+Computed as <code>TPR / (1 - TNR)</code>.
+</p>
+</li>
+<li> <p><em>Negative likelihood</em>, <code>method</code> "LR-": measures how much the odds of
+being "positive" decrease when value is classified as "negative".
+Computed as <code>(1 - TPR) / TNR</code>.
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p> Combined metrics (for all, except "error rate", bigger value represents
+better classification performance):
+</p>
+
+<ul>
+<li> <p><em>Accuracy</em>, <code>method</code> "Acc" (alias: "accuracy"): proportion of total
+number of input values that were correctly classified. Computed as <code>(TP +   TN) / 2</code> (here 2 is used because of special classification setup,
+<code>TP + TN + FP + FN = 2</code>).
+</p>
+</li>
+<li> <p><em>Error rate</em>, <code>method</code> "ER" (alias: "error_rate"): proportion of
+total number of input values that were incorrectly classified. Computed
+as <code>(FP + FN) / 2</code>.
+</p>
+</li>
+<li> <p><em>Geometric mean</em>, <code>method</code> "GM": geometric mean of TPR and TNR.
+Computed as <code>sqrt(TPR * TNR)</code>.
+</p>
+</li>
+<li> <p><em>F1 score</em>, <code>method</code> "F1": harmonic mean of PPV and TPR. Computed as
+<code>2*TP / (2*TP + FP + FN)</code>.
+</p>
+</li>
+<li> <p><em>Optimized precision</em>, <code>method</code> "OP": accuracy, penalized for
+imbalanced class performance. Computed as <code>Acc - abs(TPR - TNR) / (TPR +   TNR)</code>.
+</p>
+</li>
+<li> <p><em>Matthews correlation coefficient</em>, <code>method</code> "MCC" (alias: "corr"):
+correlation between the observed and predicted classifications. Computed
+as <code>(TP*TN - FP*FN) / sqrt((TP+FP) * (TN+FN))</code> (here equalities <code>TP+FN =   1</code> and <code>TN+FP = 1</code> are used to simplify formula).
+</p>
+</li>
+<li> <p><em>Youden’s index</em>, <code>method</code> "YI" (aliases: "youden", "informedness"):
+evaluates the discriminative power of the classification setup. Computed
+as <code>TPR + TNR - 1</code>.
+</p>
+</li>
+<li> <p><em>Markedness</em>, <code>method</code> "MK" (alias: "markedness"): evaluates the
+predictive power of the classification setup. Computed as <code>PPV + NPV -   1</code>.
+</p>
+</li>
+<li> <p><em>Jaccard</em>, <code>method</code> "Jaccard": accuracy ignoring correct classification
+of negatives. Computed as <code>TP / (TP + FP + FN)</code>.
+</p>
+</li>
+<li> <p><em>Diagnostic odds ratio</em>, <code>method</code> "DOR" (alias: "odds_ratio"): ratio
+between positive and negative likelihoods. Computed as <code>"LR+" / "LR-"</code>.
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p><code>summ_classmetric()</code> returns a numeric vector, of the same length as
+<code>threshold</code>, representing classification metrics for different threshold
+values.
+</p>
+<p><code>summ_classmetric_df()</code> returns a data frame with rows corresponding to
+<code>threshold</code> values. First column is "threshold" (with <code>threshold</code> values),
+and all other represent classification metric for every input method (see
+Examples).
+</p>
+
+
+<h3>See Also</h3>
+
+<p>summ_separation for computing optimal separation threshold (which
+is symmetrical with respect to <code>f</code> and <code>g</code>).
+</p>
+<p>Other summary functions: 
+<code>summ_center()</code>,
+<code>summ_distance()</code>,
+<code>summ_entropy()</code>,
+<code>summ_hdr()</code>,
+<code>summ_interval()</code>,
+<code>summ_moment()</code>,
+<code>summ_order()</code>,
+<code>summ_prob_true()</code>,
+<code>summ_pval()</code>,
+<code>summ_quantile()</code>,
+<code>summ_roc()</code>,
+<code>summ_separation()</code>,
+<code>summ_spread()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">d_unif &lt;- as_d(dunif)
+d_norm &lt;- as_d(dnorm)
+t_vec &lt;- c(0, 0.5, 0.75, 1.5)
+
+summ_classmetric(d_unif, d_norm, threshold = t_vec, method = "F1")
+summ_classmetric(d_unif, d_norm, threshold = t_vec, method = "Acc")
+
+summ_classmetric_df(
+  d_unif, d_norm, threshold = t_vec, method = c("F1", "Acc")
+)
+
+# Using method aliases
+summ_classmetric_df(
+  d_unif, d_norm, threshold = t_vec, method = c("TPR", "sensitivity")
+)
+</code></pre>
+
+
+</div>

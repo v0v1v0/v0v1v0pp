@@ -1,0 +1,312 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>seqm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fitting sequence models</h2>
+
+<h3>Description</h3>
+
+<p><code>seqm</code> is used to fit a neural network model relating a response process
+with a variable.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">seqm(seqs, response, covariates = NULL, response_type,
+  actions = unique(unlist(seqs$action_seqs)), rnn_type = "lstm",
+  include_time = FALSE, time_interval = TRUE, log_time = TRUE,
+  K_emb = 20, K_rnn = 20, n_hidden = 0, K_hidden = NULL,
+  index_valid = 0.2, verbose = FALSE, max_len = NULL, n_epoch = 20,
+  batch_size = 16, optimizer_name = "rmsprop", step_size = 0.001)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>seqs</code></td>
+<td>
+<p>an object of class <code>"proc"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>response</code></td>
+<td>
+<p>response variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covariates</code></td>
+<td>
+<p>covariate matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>response_type</code></td>
+<td>
+<p>"binary" or "scale".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>actions</code></td>
+<td>
+<p>a character vector gives all possible actions. It is will be
+expanded to include all actions appear in <code>seqs</code> if necessary.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rnn_type</code></td>
+<td>
+<p>the type of recurrent unit to be used for modeling
+response processes. <code>"lstm"</code> for the long-short term memory unit. 
+<code>"gru"</code> for the gated recurrent unit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>include_time</code></td>
+<td>
+<p>logical. If the timestamp sequence should be included in the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time_interval</code></td>
+<td>
+<p>logical. If the timestamp sequence is included as a sequence of 
+inter-arrival time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>log_time</code></td>
+<td>
+<p>logical. If take the logarithm of the time sequence.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K_emb</code></td>
+<td>
+<p>the latent dimension of the embedding layer.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K_rnn</code></td>
+<td>
+<p>the latent dimension of the recurrent neural network.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_hidden</code></td>
+<td>
+<p>the number of hidden fully-connected layers.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K_hidden</code></td>
+<td>
+<p>a vector of length <code>n_hidden</code> specifying the number of
+nodes in each hidden layer.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index_valid</code></td>
+<td>
+<p>proportion of sequences used as the validation set or a vector 
+of indices specifying the validation set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical. If TRUE, training progress is printed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_len</code></td>
+<td>
+<p>the maximum length of response processes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_epoch</code></td>
+<td>
+<p>the number of training epochs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>batch_size</code></td>
+<td>
+<p>the batch size used in training.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimizer_name</code></td>
+<td>
+<p>a character string specifying the optimizer to be used
+for training. Availabel options are <code>"sgd"</code>, <code>"rmsprop"</code>, 
+<code>"adadelta"</code>, and <code>"adam"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>step_size</code></td>
+<td>
+<p>the learning rate of optimizer.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The model consists of an embedding layer, a recurrent layer and one or more
+fully connected layers. The embedding layer takes an action sequence and
+output a sequences of <code>K</code> dimensional numeric vectors to the recurrent
+layer. If <code>include_time = TRUE</code>, the embedding sequence is combined with
+the timestamp sequence in the response process as the input the recurrent
+layer. The last output of the recurrent layer and the covariates specified in 
+<code>covariates</code> are used as the input of the subsequent fully connected layer.
+If <code>response_type="binary"</code>, the last layer uses the sigmoid activation
+to produce the probability of the response being one. If
+<code>response_type="scale"</code>, the last layer uses the linear activation. The
+dimension of the output of other fully connected layers (if any) is specified
+by <code>K_hidden</code>.
+</p>
+<p>The action sequences are re-coded into integer sequences and are padded with
+zeros to length <code>max_len</code> before feeding into the model. If the provided
+<code>max_len</code> is smaller than the length of the longest sequence in
+<code>seqs</code>, it will be overridden.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>seqm</code> returns an object of class <code>"seqm"</code>, which is a list containing
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>structure</code></td>
+<td>
+<p>a string describing the neural network structure.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coefficients</code></td>
+<td>
+<p>a list of fitted coefficients. The length of the list is 
+6 + 2 * <code>n_hidden</code>. The first element gives the action embedding. 
+Elements 2-4 are parameters in the recurrent unit. The rest of the elements are 
+for the fully connected layers. Elements 4 + (2 * i - 1) and 4 + 2 * i give the parameters
+for the i-th fully connected layer.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model_fit</code></td>
+<td>
+<p>a vector of class <code>"raw"</code>. It is the serialized version of 
+the trained keras model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>feature_model</code></td>
+<td>
+<p>a vector of class <code>"raw"</code>. It is the serialized version of the
+keras model for obtaining the rnn outputs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>include_time</code></td>
+<td>
+<p>if the timestamp sequence is included in the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time_interval</code></td>
+<td>
+<p>if inter-arrival time is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>log_time</code></td>
+<td>
+<p>if the logarithm time is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>actions</code></td>
+<td>
+<p>all possible actions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_len</code></td>
+<td>
+<p>the maximum length of action sequences.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>history</code></td>
+<td>
+<p>a <code>n_epoch</code> by 2 matrix giving the training and
+validation losses at the end of each epoch.</p>
+</td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+<p><code>predict.seqm</code> for the <code>predict</code> method for <code>seqm</code> objects.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+if (!system("python -c 'import tensorflow as tf'", ignore.stdout = TRUE, ignore.stderr= TRUE)) {
+  n &lt;- 100
+  data(cc_data)
+  samples &lt;- sample(1:length(cc_data$responses), n)
+  seqs &lt;- sub_seqs(cc_data$seqs, samples)
+
+  y &lt;- cc_data$responses[samples]
+  x &lt;- matrix(rnorm(n*2), ncol=2)
+
+  index_test &lt;- 91:100
+  index_train &lt;- 1:90
+  seqs_train &lt;- sub_seqs(seqs, index_train)
+  seqs_test &lt;- sub_seqs(seqs, index_test)
+
+  actions &lt;- unique(unlist(seqs$action_seqs))
+
+  ## no covariate is used
+  res1 &lt;- seqm(seqs = seqs_train, response = y[index_train], 
+               response_type = "binary", actions=actions, K_emb = 5, K_rnn = 5, 
+               n_epoch = 5)
+  pred_res1 &lt;- predict(res1, new_seqs = seqs_test)
+
+  mean(as.numeric(pred_res1 &gt; 0.5) == y[index_test])
+
+  ## add more fully connected layers after the recurrent layer.
+  res2 &lt;- seqm(seqs = seqs_train, response = y[index_train],
+               response_type = "binary", actions=actions, K_emb = 5, K_rnn = 5, 
+               n_hidden=2, K_hidden=c(10,5), n_epoch = 5)
+  pred_res2 &lt;- predict(res2, new_seqs = seqs_test)
+  mean(as.numeric(pred_res2 &gt; 0.5) == y[index_test])
+
+  ## add covariates
+  res3 &lt;- seqm(seqs = seqs_train, response = y[index_train], 
+               covariates = x[index_train, ],
+               response_type = "binary", actions=actions, 
+               K_emb = 5, K_rnn = 5, n_epoch = 5)
+  pred_res3 &lt;- predict(res3, new_seqs = seqs_test, 
+                       new_covariates=x[index_test, ])
+                     
+  ## include time sequences
+  res4 &lt;- seqm(seqs = seqs_train, response = y[index_train], 
+               response_type = "binary", actions=actions,
+               include_time=TRUE, K_emb=5, K_rnn=5, n_epoch=5)
+  pred_res4 &lt;- predict(res4, new_seqs = seqs_test)
+}
+
+</code></pre>
+
+
+</div>

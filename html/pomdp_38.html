@@ -1,0 +1,323 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>accessors</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Access to Parts of the Model Description</h2>
+
+<h3>Description</h3>
+
+<p>Functions to provide uniform access to different parts of the POMDP/MDP
+problem description.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">start_vector(x)
+
+normalize_POMDP(
+  x,
+  sparse = TRUE,
+  trans_start = FALSE,
+  trans_function = TRUE,
+  trans_keyword = FALSE
+)
+
+normalize_MDP(
+  x,
+  sparse = TRUE,
+  trans_start = FALSE,
+  trans_function = TRUE,
+  trans_keyword = FALSE
+)
+
+reward_matrix(
+  x,
+  action = NULL,
+  start.state = NULL,
+  end.state = NULL,
+  observation = NULL,
+  episode = NULL,
+  epoch = NULL,
+  sparse = FALSE
+)
+
+reward_val(
+  x,
+  action,
+  start.state,
+  end.state = NULL,
+  observation = NULL,
+  episode = NULL,
+  epoch = NULL
+)
+
+transition_matrix(
+  x,
+  action = NULL,
+  start.state = NULL,
+  end.state = NULL,
+  episode = NULL,
+  epoch = NULL,
+  sparse = FALSE,
+  trans_keyword = TRUE
+)
+
+transition_val(x, action, start.state, end.state, episode = NULL, epoch = NULL)
+
+observation_matrix(
+  x,
+  action = NULL,
+  end.state = NULL,
+  observation = NULL,
+  episode = NULL,
+  epoch = NULL,
+  sparse = FALSE,
+  trans_keyword = TRUE
+)
+
+observation_val(
+  x,
+  action,
+  end.state,
+  observation,
+  episode = NULL,
+  epoch = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A POMDP or MDP object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sparse</code></td>
+<td>
+<p>logical; use sparse matrices when the density is below 50% and keeps data.frame representation
+for the reward field. <code>NULL</code> returns the
+representation stored in the problem description which saves the time for conversion.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trans_start</code></td>
+<td>
+<p>logical; expand the start to a probability vector?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trans_function</code></td>
+<td>
+<p>logical; convert functions into matrices?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trans_keyword</code></td>
+<td>
+<p>logical; convert distribution keywords (uniform and identity)
+in <code>transition_prob</code> or <code>observation_prob</code> to matrices?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>action</code></td>
+<td>
+<p>name or index of an action.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start.state, end.state</code></td>
+<td>
+<p>name or index of the state.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>observation</code></td>
+<td>
+<p>name or index of observation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>episode, epoch</code></td>
+<td>
+<p>Episode or epoch used for time-dependent POMDPs. Epochs are internally converted
+to the episode using the model horizon.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Several parts of the POMDP/MDP description can be defined in different ways. In particular,
+the fields <code>transition_prob</code>, <code>observation_prob</code>, <code>reward</code>, and <code>start</code> can be defined using matrices, data frames,
+keywords, or functions. See POMDP for details. The functions provided here, provide unified access to the data in these fields
+to make writing code easier.
+</p>
+
+
+<h4>Transition Probabilities <code class="reqn">T(s'|s,a)</code>
+</h4>
+
+<p><code>transition_matrix()</code> accesses the transition model. The complete model
+is a list with one element for each action. Each element contains a states x states matrix
+with <code class="reqn">s</code> (<code>start.state</code>) as rows and <code class="reqn">s'</code> (<code>end.state</code>) as columns.
+Matrices with a density below 50% can be requested in sparse format
+(as a Matrix::dgCMatrix).
+</p>
+
+
+
+<h4>Observation Probabilities <code class="reqn">O(o|s',a)</code>
+</h4>
+
+<p><code>observation_matrix()</code> accesses the observation model. The complete model is a
+list with one element for each action. Each element contains a states x observations matrix
+with <code class="reqn">s</code> (<code>start.state</code>) as rows and <code class="reqn">o</code> (<code>observation</code>) as columns.
+Matrices with a density below 50% can be requested in sparse format
+(as a Matrix::dgCMatrix)
+</p>
+
+
+
+<h4>Reward <code class="reqn">R(s,s',o,a)</code>
+</h4>
+
+<p><code>reward_matrix()</code> accesses the reward model.
+The preferred representation is a data.frame with the
+columns <code>action</code>, <code>start.state</code>, <code>end.state</code>,
+<code>observation</code>, and <code>value</code>. This is a sparse representation.
+The dense representation is a list of lists of matrices.
+The list levels are <code class="reqn">a</code> (<code>action</code>)  and <code class="reqn">s</code> (<code>start.state</code>).
+The matrices have rows representing <code class="reqn">s'</code> (<code>end.state</code>)
+and columns representing <code class="reqn">o</code> (<code>observations</code>).
+The reward structure cannot be efficiently stored using a standard sparse matrix
+since there might be a fixed cost for each action
+resulting in no entries with 0.
+</p>
+
+
+
+<h4>Initial Belief</h4>
+
+<p><code>start_vector()</code> translates the initial probability vector description into a numeric vector.
+</p>
+
+
+
+<h4>Convert the Complete POMDP Description into a consistent form</h4>
+
+<p><code>normalize_POMDP()</code> returns a new POMDP definition where <code>transition_prob</code>,
+<code>observations_prob</code>, <code>reward</code>, and <code>start</code> are normalized.
+</p>
+<p>Also, <code>states</code>, <code>actions</code>, and <code>observations</code> are ordered as given in the problem
+definition to make safe access using numerical indices possible. Normalized POMDP descriptions can be
+used in custom code that expects consistently a certain format.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>A list or a list of lists of matrices.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Michael Hahsler
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other POMDP: 
+<code>MDP2POMDP</code>,
+<code>POMDP()</code>,
+<code>actions()</code>,
+<code>add_policy()</code>,
+<code>plot_belief_space()</code>,
+<code>projection()</code>,
+<code>reachable_and_absorbing</code>,
+<code>regret()</code>,
+<code>sample_belief_space()</code>,
+<code>simulate_POMDP()</code>,
+<code>solve_POMDP()</code>,
+<code>solve_SARSOP()</code>,
+<code>transition_graph()</code>,
+<code>update_belief()</code>,
+<code>value_function()</code>,
+<code>write_POMDP()</code>
+</p>
+<p>Other MDP: 
+<code>MDP()</code>,
+<code>MDP2POMDP</code>,
+<code>MDP_policy_functions</code>,
+<code>actions()</code>,
+<code>add_policy()</code>,
+<code>gridworld</code>,
+<code>reachable_and_absorbing</code>,
+<code>regret()</code>,
+<code>simulate_MDP()</code>,
+<code>solve_MDP()</code>,
+<code>transition_graph()</code>,
+<code>value_function()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data("Tiger")
+
+# List of |A| transition matrices. One per action in the from start.states x end.states
+Tiger$transition_prob
+transition_matrix(Tiger)
+transition_val(Tiger, action = "listen", start.state = "tiger-left", end.state = "tiger-left")
+
+# List of |A| observation matrices. One per action in the from states x observations
+Tiger$observation_prob
+observation_matrix(Tiger)
+observation_val(Tiger, action = "listen", end.state = "tiger-left", observation = "tiger-left")
+
+# List of list of reward matrices. 1st level is action and second level is the
+#  start state in the form end state x observation
+Tiger$reward
+reward_matrix(Tiger)
+reward_matrix(Tiger, sparse = TRUE)
+reward_matrix(Tiger, action = "open-right", start.state = "tiger-left", end.state = "tiger-left",
+  observation = "tiger-left")
+
+# Translate the initial belief vector
+Tiger$start
+start_vector(Tiger)
+
+# Normalize the whole model
+Tiger_norm &lt;- normalize_POMDP(Tiger)
+Tiger_norm$transition_prob
+
+## Visualize transition matrix for action 'open-left'
+plot_transition_graph(Tiger)
+
+## Use a function for the Tiger transition model
+trans &lt;- function(action, end.state, start.state) {
+  ## listen has an identity matrix
+  if (action == 'listen')
+    if (end.state == start.state) return(1)
+    else return(0)
+
+  # other actions have a uniform distribution
+  return(1/2)
+}
+
+Tiger$transition_prob &lt;- trans
+
+# transition_matrix evaluates the function
+transition_matrix(Tiger)
+</code></pre>
+
+
+</div>

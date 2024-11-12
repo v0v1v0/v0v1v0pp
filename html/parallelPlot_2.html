@@ -1,0 +1,109 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>getPlotConfig</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Retrieve plot configuration</h2>
+
+<h3>Description</h3>
+
+<p>Result will be sent through a reactive input (see example below).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">getPlotConfig(id, configInputId)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>Output variable to read from (id which references the requested plot).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>configInputId</code></td>
+<td>
+<p>Reactive input to write to.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>No return value, called from shiny applications for side effects.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+   if(interactive() &amp;&amp; require(shiny)) {
+     library(shiny)
+     library(shinyjs)
+     library(parallelPlot)
+
+     ui &lt;- fluidPage(
+       useShinyjs(),
+       p("Use button to save widget as an html file, reproducing its configuration"),
+       actionButton("downloadButton", "Download Widget"),
+       downloadButton("associatedDownloadButton", "Download Widget",
+         style = "visibility: hidden;"
+       ),
+       parallelPlotOutput("parPlot")
+     )
+
+     server &lt;- function(input, output, session) {
+       output$parPlot &lt;- renderParallelPlot({
+         parallelPlot(iris)
+       })
+       observeEvent(input$downloadButton, {
+         parallelPlot::getPlotConfig("parPlot", "ConfigForDownload")
+       })
+       observeEvent(input$ConfigForDownload, {
+         ppForDownload &lt;&lt;- parallelPlot(
+           data = iris,
+           categorical = input$ConfigForDownload$categorical,
+           categoriesRep = input$ConfigForDownload$categoriesRep,
+           arrangeMethod = input$ConfigForDownload$arrangeMethod,
+           inputColumns = input$ConfigForDownload$inputColumns,
+           keptColumns = input$ConfigForDownload$keptColumns,
+           histoVisibility = input$ConfigForDownload$histoVisibility,
+           invertedAxes = input$ConfigForDownload$invertedAxes,
+           cutoffs = input$ConfigForDownload$cutoffs,
+           refRowIndex = input$ConfigForDownload$refRowIndex,
+           refColumnDim = input$ConfigForDownload$refColumnDim,
+           rotateTitle = input$ConfigForDownload$rotateTitle,
+           columnLabels = input$ConfigForDownload$columnLabels,
+           continuousCS = input$ConfigForDownload$continuousCS,
+           categoricalCS = input$ConfigForDownload$categoricalCS,
+           controlWidgets = NULL,
+           cssRules = input$ConfigForDownload$cssRules,
+           sliderPosition = input$ConfigForDownload$sliderPosition
+         )
+         shinyjs::runjs("document.getElementById('associatedDownloadButton').click();")
+       })
+       output$associatedDownloadButton &lt;- downloadHandler(
+         filename = function() {
+           paste("parallelPlot-", Sys.Date(), ".html", sep = "")
+         },
+         content = function(tmpContentFile) {
+           htmlwidgets::saveWidget(ppForDownload, tmpContentFile)
+         }
+       )
+     }
+
+     shinyApp(ui, server)
+   }
+ 
+## End(Not run)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,548 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>createMrBayesTipDatingNexus</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Construct a Fully Formatted NEXUS Script for Performing Tip-Dating Analyses With MrBayes</h2>
+
+<h3>Description</h3>
+
+<p>This function is meant to expedite the creation of NEXUS files formatted
+for performing tip-dating analyses in the popular phylogenetics software <em>MrBayes</em>,
+particularly clock-less tip-dating analyses executed with 'empty' morphological matrices
+(i.e. where all taxa are coded for a single missing character), although a pre-existing
+morphological matrix can also be input by the user (see argument <code>origNexusFile</code>).
+Under some options, this pre-existing matrix may be edited by this function.
+The resulting full NEXUS script is output as a set of character strings either
+printed to the R console, or output to file which is then overwritten.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">createMrBayesTipDatingNexus(
+  tipTimes,
+  outgroupTaxa = NULL,
+  treeConstraints = NULL,
+  ageCalibrationType,
+  whichAppearance = "first",
+  treeAgeOffset,
+  minTreeAge = NULL,
+  collapseUniform = TRUE,
+  anchorTaxon = TRUE,
+  newFile = NULL,
+  origNexusFile = NULL,
+  parseOriginalNexus = TRUE,
+  createEmptyMorphMat = TRUE,
+  orderedChars = NULL,
+  morphModel = "strong",
+  morphFiltered = "parsInf",
+  runName = NULL,
+  ngen = "100000000",
+  doNotRun = FALSE,
+  autoCloseMrB = FALSE,
+  cleanNames = TRUE,
+  printExecute = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tipTimes</code></td>
+<td>
+<p>This input may be either: (a) a <code>timeList</code> object, 
+consisting of a <code>list</code> of <code>length = 2</code>, composed of a table of interval 
+upper and lower time boundaries (i.e., the earlier and latter bounds of the intervals) and 
+a table of first and last intervals for taxa, or (b) a matrix with row names
+corresponding to taxon names, matching those names listed in the MrBayes block,
+with either one, two or four columns containing ages (respectively) for point occurrences with
+precise dates (for a single column), uncertainty bounds on a point occurrence
+(for two columns), or uncertainty bounds on the first and
+last occurrence (for four columns). Note that precise first and last occurrence
+dates should not be entered as a two column matrix, as this will instead be interpreted
+as uncertainty bounds on a single occurrence. Instead, either select which you want to
+use for tip-dates and give a one-column matrix, or repeat (and collate) the columns, so that
+the first and last appearances has uncertainty bounds of zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outgroupTaxa</code></td>
+<td>
+<p>A vector of type 'character', containing taxon names designating the outgroup.
+All taxa not listed in the outgroup will be constrained to be a monophyletic ingroup, for sake of rooting
+the resulting dated tree.
+Either <code>treeConstraints</code> or <code>outgroupTaxa</code> must be defined, but <em>not both</em>. 
+If the outgroup-ingroup split is not present on the supplied
+<code>treeConstraints</code>, add that split to <code>treeConstraints</code> manually.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>treeConstraints</code></td>
+<td>
+<p>An object of class <code>phylo</code>, 
+from which (if <code>treeConstraints</code> is supplied) the set topological constraints are derived, as
+as described for argument <code>tree</code> for function <code>createMrBayesConstraints</code>. 
+Either <code>treeConstraints</code> or <code>outgroupTaxa</code> must be defined, but <em>not both</em>.
+If the outgroup-ingroup split is not present on the supplied <code>treeConstraints</code>, add that split to <code>treeConstraints</code> manually.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ageCalibrationType</code></td>
+<td>
+<p>This argument decides how age calibrations are defined, 
+and currently allows for four options: <code>"fixedDateEarlier"</code> which fixes tip
+ages at the earlier (lower) bound for the selected age of appearance (see argument
+<code>whichAppearance</code> for how that selection is made), <code>"fixedDateLatter"</code>
+which fixes the date to the latter (upper) bound of the selected age of appearance,
+<code>"fixedDateRandom"</code> which fixes tips to a date that is randomly drawn from a
+uniform distribution bounded by the upper and lower bounds on the selected age of
+appearance, or (the recommended option) <code>"uniformRange"</code> which places a uniform
+prior on the age of the tip, bounded by the latest and earliest (upper and lower)
+bounds on the the selected age.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>whichAppearance</code></td>
+<td>
+<p>Which appearance date of the taxa should be used:
+their <code>'first'</code> or their <code>'last'</code> appearance date? The default
+option is to use the 'first' appearance date. Note that use of the last
+appearance date means that tips will be constrained to occur before their
+last occurrence, and thus could occur long after their first occurrence (!).
+In addition, <code>createMrBayesTipDatingNexus</code> allows for two
+options for this argument that are in addition to those offered by
+<code>createMrBayesTipCalibrations</code>. Both of these options will duplicate 
+the taxa in the inputs multiple times, modifying their OTU labels, thus allowing
+multiple occurrences of long-lived morphotaxa to be listed as multiple OTUs
+arrayed across their stratigraphic duration. If 
+<code>whichAppearance = "firstLast"</code>, taxa will be duplicated so each taxon is
+listed as occurring twice: once at their first appearance, and a second time at
+their last appearance. Note that if a taxon first and last appears in the same interval,
+and <code>ageCalibrationType = "uniformRange"</code>, then
+the resulting posterior trees may place the OTU assigned to the last occurrence before the
+first occurrence in temporal order (but the assignment, in that case, was entirely
+arbitrary). When <code>whichAppearance = "rangeThrough"</code>, each taxon will be
+duplicated into as many OTUs as each
+interval that a taxon ranges through (in a <code>timeList</code> format, see other
+<code>paleotree</code> functions), with the corresponding age uncertainties for those intervals.
+If the input <code>tipTimes</code> is not a list of 
+<code>length = 2</code>, however, the function will 
+return an error under this option.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>treeAgeOffset</code></td>
+<td>
+<p>A parameter given by the user controlling the offset 
+between the minimum and expected tree age prior. mean tree age for the
+offset exponential prior on tree age will be set to the minimum tree age, 
+plus this offset value. Thus, an offset of 10 million years would equate to a prior
+assuming that the expected tree age is around 10 million years before the minimum age.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minTreeAge</code></td>
+<td>
+<p>if <code>NULL</code> (the default), then <code>minTreeAge</code> will
+be set as the oldest date among the tip age used (those used being
+determine by user choices (or oldest bound on a tip age). Otherwise,
+the user can supply their own minimum tree, which must be greater than
+whatever the oldest tip age used is.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>collapseUniform</code></td>
+<td>
+<p>MrBayes won't accept uniform age priors where the maximum and
+minimum age are identical (i.e. its actually a fixed age). Thus, if this argument
+is <code>TRUE</code> (the default), this function
+will treat any taxon ages where the maximum and minimum are identical as a fixed age, and
+will override setting <code>ageCalibrationType = "uniformRange"</code> for those dates.
+All taxa with their ages set to fixed by the behavior of <code>anchorTaxon</code> or <code>collapseUniform</code>
+are returned as a list within a commented line of the returned MrBayes block.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>anchorTaxon</code></td>
+<td>
+<p>This argument may be a logical (default is <code>TRUE</code>,
+or a character string of length = 1.
+This argument has no effect if <code>ageCalibrationType</code> is not set to
+<code>"uniformRange"</code>, but the argument may still be evaluated.
+If <code>ageCalibrationType = "uniformRange"</code>, 
+MrBayes will do a tip-dating analysis with uniform age uncertainties on 
+all taxa (if such uncertainties exist; see <code>collapseUniform</code>). 
+However, MrBayes does not record how each tree sits on an absolute time-scale,
+so if the placement of <em>every</em> tip is uncertain, lining up multiple dated trees
+sampled from the posterior (where each tip's true age might
+differ) could be a nightmare to back-calculate, if not impossible. 
+Thus, if <code>ageCalibrationType = "uniformRange"</code>, and there are no tip taxa given
+fixed dates due to <code>collapseUniform</code> (i.e. all of the tip ages have a range of uncertainty on them), 
+then a particular taxon will be selected and given a fixed date equal to its
+earliest appearance time for its respective <code>whichAppearance</code>.
+This taxon can either be indicated by the user or instead the first taxon listed
+in <code>tipTimes</code> will be arbitrary selected. All taxa with their ages set
+to fixed by the behavior of <code>anchorTaxon</code> or <code>collapseUniform</code>
+are returned as a list within a commented line of the returned MrBayes block.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newFile</code></td>
+<td>
+<p>Filename (possibly with path) as a character string
+leading to a file which will be overwritten with the output tip age calibrations.
+If <code>NULL</code>, tip calibration commands are output to the console.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>origNexusFile</code></td>
+<td>
+<p>Filename (possibly with path) as a character
+string leading to a NEXUS text file, presumably containing a matrix
+of character date formated for <em>MrBayes</em>. If supplied
+(it does not need to be supplied), the listed file is read as a text file, and
+concatenated with the <em>MrBayes</em> script produced by this function, so as to
+reproduce the original NEXUS matrix for executing in MrBayes. 
+Note that the taxa in this NEXUS file are <em>NOT</em> checked against the user
+input <code>tipTimes</code> and <code>treeConstraints</code>, so it is up to the user to
+ensure the taxa are the same across the three data sources.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parseOriginalNexus</code></td>
+<td>
+<p>If <code>TRUE</code> (the default), the original NEXUS file is parsed and 
+the taxon names listed within in the matrix are compared against the other inputs
+for matching (completely, across all inputs that include taxon names). 
+Thus, it is up to the user to ensure the same
+taxa are found in all inputs. However, some NEXUS files may not parse correctly
+(particularly if character data for taxa stretches across more than a single line in the matrix).
+This may necessitate setting this argument to <code>FALSE</code>, which will instead do a straight scan
+of the NEXUS matrix without parsing it, and without checking the taxon names against other outputs.
+Some options for <code>whichAppearance</code> will not be available, however.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>createEmptyMorphMat</code></td>
+<td>
+<p>If <code>origNexusFile</code> is not specified (implying there is no
+pre-existing morphological character matrix for this dataset), then an 'empty' NEXUS-formatted matrix will be
+appended to the set of <em>MrBayes</em> commands if this command is <code>TRUE</code> (the default). This
+'empty' matrix will have each taxon in <code>tipTimes</code> coded for a single missing character
+(i.e., '?'). This allows tip-dating analyses with hard topological constraints, and ages
+determined entirely by the fossilized birth-death prior, with no impact from a
+presupposed morphological clock (thus a 'clock-less analysis').</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>orderedChars</code></td>
+<td>
+<p>Should be a vector of numbers, indicating which characters should have their
+character-type in MrBayes changed to 'ordered'. 
+If <code>NULL</code>, the default, then all characters will be treated as essentially unordered.
+No character ID should be listed that is higher than the number of characters in the matrix provided in
+<code>origNexusFile</code>. If <code>origNexusFile</code> is not provided, while <code>orderedChars</code>
+is defined, then an error will be returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>morphModel</code></td>
+<td>
+<p>This argument can be used to switch between two end-member models of 
+morphological evolution in MrBayes, here named 'strong' and 'relaxed', for the 'strong assumptions'
+and 'relaxed assumptions' models described by Bapst et al. (2018, Syst. Biol.).
+The default is a model which makes very 'strong' assumptions about the process of morphological evolution,
+while the 'relaxed' alternative allows for considerably more heterogeneity in the rate
+of morphological evolution across characters, and in the forward and reverse transition
+rates between states. Also see argument <code>morphFiltered</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>morphFiltered</code></td>
+<td>
+<p>This argument controls what type of filtering the input
+morphological data is assumed to have been collected under. The likelihood of
+the character data will be modified to take into account the apparent filtering
+(Lewis, 2001; Allman et al., 2010). The default value, <code>"parsInf"</code>, forces
+characters to be treated as if they were collected as part of a parsimony-based
+study, with constant characters and autapomorphies (characters that only differ
+in state in a single taxon unit) ignored or otherwise filtered out, and any such
+characters in the presented matrix will be ignored. <code>morphFiltered = "variable"</code>
+assumes that while constant characters are still filtered out (e.g. it is
+difficult or impossible to count the number of morphological characters that
+show no variation across a group), the autapomorphies were intentionally collected
+and included in the presented matrix. Thus, constant characters in the included
+matrix will be ignored, but autapomorphies will be considered.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>runName</code></td>
+<td>
+<p>The name of the run, used for naming the log files and MCMC output files. 
+If not set, the name will be taken from the name given for outputting
+the NEXUS script (<code>newFile</code>). If <code>newFile</code> is not given, and
+<code>runName</code> is not set by the user, the default run name will be  "new_run_paleotree".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ngen</code></td>
+<td>
+<p>Number of generations to set the MCMCMC to run for.
+Default (<code>ngen = 100000000</code>) is very high.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>doNotRun</code></td>
+<td>
+<p>If <code>TRUE</code>, the commands that cause a script to automatically begin running in 
+<em>MrBayes</em> will be left out. Useful for troubleshooting initial runs of scripts for non-fatal errors and
+warnings (such as ignored constraints). Default for this argument is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>autoCloseMrB</code></td>
+<td>
+<p>If <code>TRUE</code>, the MrBayes script created by this function will
+'autoclose', so that when an MCMC run finishes the specified number of generations,
+it does not interactively check whether to continue the MCMC. This is often necessary
+for batch analyses.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cleanNames</code></td>
+<td>
+<p>If <code>TRUE</code> (the default), then special characters
+(currently, this only contains the forward-slashes: '/') are removed from
+taxon names before construction of the NEXUS file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>printExecute</code></td>
+<td>
+<p>If <code>TRUE</code> (the default) and if output is directed to a <code>newFile</code>
+(i.e. a <code>newFile</code> is specified), a line for pasting into MrBayes for executing the newly created file
+will be messaged to the terminal.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Users must supply a data set of tip ages (in various formats),
+which are used to construct age calibrations commands on the tip taxa 
+(via paleotree function <code>createMrBayesTipCalibrations</code>). 
+The user must also supply some topological constraint: 
+either a set of taxa designated as the outgroup, which
+is then converted into a command constraining
+the monophyly on the ingroup taxa, which is presumed to be
+all taxa <em>not</em> listed in the outgroup. 
+Alternatively, a user may supply a tree which is then
+converted into a series of hard topological constraints 
+(via function <code>createMrBayesConstraints</code>.
+Both types of topological constraints cannot be applied. 
+</p>
+<p>Many of the options available with <code>createMrBayesTipCalibrations</code>
+are available with this function, allowing users to choose between fixed
+calibrations or uniform priors that approximate stratigraphic uncertainty.
+In addition, the user may also supply a path to a text file
+presumed to be a NEXUS file containing character
+data formatted for use with <em>MrBayes</em>.
+</p>
+<p>The taxa listed in <code>tipTimes</code> must match the taxa in 
+<code>treeConstraints</code>, if such is supplied. If supplied, the taxa in <code>outgroupTaxa</code>
+must be contained within this same set of taxa. These all must have matches
+in the set of taxa in <code>origNexusFile</code>, if provided and
+if <code>parseOriginalNexus</code> is <code>TRUE</code>.
+</p>
+<p>Note that because the same set of taxa must be contained in all inputs, 
+relationships are constrained as 'hard' constraints, rather than 'partial' constraints,
+which allows some taxa to float across a partially fixed topology. 
+See the documentation for <code>createMrBayesConstraints</code>,
+for more details.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If argument <code>newFile</code> is <code>NULL</code>, then the text of the 
+generated NEXUS script is output to the console as a series of character strings.
+</p>
+
+
+<h3>Note</h3>
+
+<p>This function allows a user to take an undated phylogenetic tree in R, and a set of age estimates
+for the taxa on that tree, and produce a posterior sample of dated trees using the MCMCMC in <em>MrBayes</em>,
+while treating an 'empty' morphological matrix as an uninformative set of missing characters.
+This 'clock-less tip-dating' approach is essentially an alternative to the <em>cal3</em> method in paleotree, 
+sharing the same fundamental theoretical model (a version of the fossilized birth-death model), but
+with a better algorithm that considers the whole tree simultaneously, rather than evaluating each node
+individually, from the root up to the tips (as <em>cal3</em> does it, and which may cause artifacts). 
+That said, <em>cal3</em> still has a few advantages: tip-dating as of April 2017 still only treats OTUs as
+point observations, contained in a single time-point, while cal3 can consider taxa as having durations with
+first and last occurrences. This means it may be more straightforward to assess the extent of budding cladogenesis
+patterns of ancestor-descendant relationships in <em>cal3</em>, than in tip-dating.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David W. Bapst. This code was produced as part of a project 
+funded by National Science Foundation grant EAR-1147537 to S. J. Carlson.
+</p>
+<p>The basic <em>MrBayes</em> commands utilized in the output script are a collection
+of best practices taken from studying NEXUS files supplied by April Wright,
+William Gearty, Graham Slater, Davey Wright, and
+guided by the recommendations of Matzke and Wright, 2016 in Biology Letters.
+</p>
+
+
+<h3>References</h3>
+
+<p>The basic fundamentals of tip-dating, and tip-dating with the fossilized
+birth-death model are introduced in these two papers: 
+</p>
+<p>Ronquist, F., S. Klopfstein, L. Vilhelmsen, S. Schulmeister, D. L. Murray,
+and A. P. Rasnitsyn. 2012. A Total-Evidence Approach to Dating with Fossils,
+Applied to the Early Radiation of the Hymenoptera. <em>Systematic Biology</em> 61(6):973-999.
+</p>
+<p>Zhang, C., T. Stadler, S. Klopfstein, T. A. Heath, and F. Ronquist. 2016. 
+Total-Evidence Dating under the Fossilized Birth-Death Process.
+<em>Systematic Biology</em> 65(2):228-249. 
+</p>
+<p>For recommended best practices in tip-dating analyses, please see:
+</p>
+<p>Matzke, N. J., and A. Wright. 2016. Inferring node dates from tip dates
+in fossil Canidae: the importance of tree priors. <em>Biology Letters</em> 12(8).
+</p>
+<p>The rationale behind the two alternative morphological models are described in more detail here:
+</p>
+<p>Bapst, D. W., H. A. Schreiber, and S. J. Carlson. 2018.
+Combined Analysis of Extant Rhynchonellida (Brachiopoda) using Morphological
+and Molecular Data. <em>Systematic Biology</em> 67(1):32-48.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>This function wraps various aspects of the functions <code>createMrBayesConstraints</code>
+and the function <code>createMrBayesTipCalibrations</code>. In many ways, this functionality is a
+replacement for the probabilistic dating method represented by the <code>cal3</code> dating functions.
+</p>
+<p>For putting the posterior estimated trees on an absolute time scale, see
+functions <code>obtainDatedPosteriorTreesMrB</code>. Use the argument <code>getFixedTimes = TRUE</code>
+if you used a taxon with a fixed age, and function <code>setRootAges</code> to set the root age.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# load retiolitid dataset
+data(retiolitinae)
+
+# let's try making a NEXUS file!
+
+# Use a uniform prior, with a 10 million year offset for
+	 # the expected tree age from the earliest first appearance
+
+# Also set average tree age to be 10 Ma earlier than first FAD
+
+outgroupRetio &lt;- "Rotaretiolites" 
+# this taxon will now be sister to all other included taxa
+
+# the following will create a NEXUS file 
+  # with an 'empty' morph matrix
+	 # where the only topological constraint is on ingroup monophyly
+	 # Probably shouldn't do this: leaves too much to the FBD prior
+ 
+# with doNotRun set to TRUE for troubleshooting
+
+createMrBayesTipDatingNexus(
+tipTimes = retioRanges,
+		outgroupTaxa = outgroupRetio,
+		treeConstraints = NULL,
+		ageCalibrationType = "uniformRange",
+		whichAppearance = "first",
+		treeAgeOffset = 10,	
+		newFile = NULL,	
+		origNexusFile = NULL,
+		createEmptyMorphMat = TRUE,
+		runName = "retio_dating",
+		doNotRun = TRUE
+		)
+
+# let's try it with a tree for topological constraints
+     # this requires setting outgroupTaxa to NULL
+# let's also set doNotRun to FALSE
+
+createMrBayesTipDatingNexus(
+   tipTimes = retioRanges,
+		outgroupTaxa = NULL,
+		treeConstraints = retioTree,
+		ageCalibrationType = "uniformRange",
+		whichAppearance = "first",
+		treeAgeOffset = 10,	
+		newFile = NULL,	
+		origNexusFile = NULL,
+		createEmptyMorphMat = TRUE,
+		runName = "retio_dating",
+		doNotRun = FALSE
+		)
+
+# the above is essentially cal3 with a better algorithm,
+		# and no need for a priori rate estimates
+# just need a tree and age estimates for the tips!
+
+####################################################
+# some more variations for testing purposes
+
+# no morph matrix supplied or generated
+	# you'll need to manually append to an existing NEXUS file
+	
+createMrBayesTipDatingNexus(
+   tipTimes = retioRanges,
+		outgroupTaxa = NULL,
+		treeConstraints = retioTree,
+		ageCalibrationType = "uniformRange",
+		whichAppearance = "first",
+		treeAgeOffset = 10,
+		newFile = NULL,	
+		origNexusFile = NULL,
+		createEmptyMorphMat = FALSE,
+		runName = "retio_dating",
+		doNotRun = TRUE
+		)
+
+## Not run: 
+
+# let's actually try writing an example with topological constraints
+	# to file and see what happens
+
+# here's my super secret MrBayes directory
+file &lt;- "D:\\dave\\workspace\\mrbayes\\exampleRetio.nex"
+
+createMrBayesTipDatingNexus(
+   tipTimes = retioRanges,
+		outgroupTaxa = NULL,
+		treeConstraints = retioTree,
+		ageCalibrationType = "uniformRange",
+		whichAppearance = "first",
+		treeAgeOffset = 10,	
+		newFile = file,	
+		origNexusFile = NULL,
+		createEmptyMorphMat = TRUE,
+		runName = "retio_dating",
+		doNotRun = FALSE
+		)
+
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

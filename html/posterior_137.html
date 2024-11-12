@@ -1,0 +1,101 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>for_each_draw</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Loop over draws</h2>
+
+<h3>Description</h3>
+
+<p>Executes an expression once for every draw in a <code>draws</code> object. Used
+primarily for its side effects and returns the input <code>x</code> invisibly.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">for_each_draw(x, expr)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>(draws) A <code>draws</code> object or another <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object for which the method
+is defined.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expr</code></td>
+<td>
+<p>(expression) A bare expression that can contain references to
+variables in <code>x</code> by name. This expression will be executed once per draw
+of <code>x</code>, where references to variables in <code>x</code> resolve to the value of that
+variable in that draw. The expression supports
+quasiquotation.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If <code>x</code> is not in the <code>draws_rvars</code> format, it is first converted to that
+format. This allows the variables in <code>x</code> to include their dimensions (i.e,
+to act as R vectors and arrays) when being referred to in <code>expr</code>.
+</p>
+<p>Within <code>expr</code>, use <code>.draw</code> to refer to the draw index, which will be a value
+between 1 and <code>ndraws(x)</code>. <code>expr</code> is executed in the calling environment of
+<code>for_each_draw()</code>, so it can use variables in that environment (however, due
+to the use of data masking, to modify variables in that environment, one
+must use <code style="white-space: pre;">⁠&lt;&lt;-⁠</code>.)
+</p>
+
+
+<h3>Value</h3>
+
+<p>As <code>for_each_draw()</code> is used primarily for its side effects (the expression
+executed for each draw of <code>x</code>), it returns the input <code>x</code> invisibly.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">eight_schools &lt;- as_draws_rvars(example_draws())
+
+
+# 1. A simple example --- looping over draws and printing each draw
+# NOTE: You probably don't want to do this in practice! This example is
+# just intended to show what for_each_draw() is doing. If you just want to
+# print the draws of an rvar, it is probably better to use draws_of()
+for_each_draw(eight_schools, {
+  print(mu)
+})
+
+
+# 2. A more complex example --- building a parallel coordinates plot
+# First, construct the plot bounds
+plot(1, type = "n",
+  xlim = c(1, length(eight_schools$theta)),
+  ylim = range(range(eight_schools$theta)),
+  xlab = "school", ylab = "theta"
+)
+
+# Then, use for_each_draw() to make a parallel coordinates plot of all draws
+# of eight_schools$theta. Use resample_draws(eight_schools, n = ...)
+# in place of eight_schools if a smaller sample is desired for the plot.
+for_each_draw(eight_schools, {
+  lines(seq_along(theta), theta, col = rgb(1, 0, 0, 0.05))
+})
+
+# Finally, add means and 90% intervals
+lines(seq_along(eight_schools$theta), mean(eight_schools$theta))
+with(summarise_draws(eight_schools$theta),
+  segments(seq_along(eight_schools$theta), y0 = q5, y1 = q95)
+)
+</code></pre>
+
+
+</div>

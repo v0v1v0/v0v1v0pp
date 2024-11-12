@@ -1,0 +1,211 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>trelli_rnaseq_boxplot</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Boxplot trelliscope building function for RNA-seq data</h2>
+
+<h3>Description</h3>
+
+<p>Specify a boxplot design and cognostics for the RNA-Seq
+boxplot trelliscope. Each boxplot will have its own groups as specified by
+the first main effect in group_designation. Use "trelli_abundance_boxplot"
+for MS/NMR-based omics.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">trelli_rnaseq_boxplot(
+  trelliData,
+  cognostics = c("count", "mean lcpm"),
+  ggplot_params = NULL,
+  interactive = FALSE,
+  include_points = TRUE,
+  path = .getDownloadsFolder(),
+  name = "Trelliscope",
+  test_mode = FALSE,
+  test_example = 1,
+  single_plot = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>trelliData</code></td>
+<td>
+<p>A trelliscope data object made by as.trelliData or
+as.trelliData.edata, and grouped by trelli_panel_by. Must be built using 
+seqData. Required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cognostics</code></td>
+<td>
+<p>A vector of cognostic options for each plot. Valid entries
+are "count", "mean lcpm", "median lcpm", and "cv lcpm". 
+If data are paneled by a biomolecule, the count will be "sample count".
+If data are paneled by a sample or a biomolecule class, the count will be "biomolecule count". 
+If statRes data is included, "p-value" and "fold change" data per comparisons
+may be added. If grouping information is included, only "sample count" and 
+"mean lcpm" will be calculated, along with "p-value" and "fold change"
+if specified. "p-value" will not be included if paneling a trelliscope
+display by a biomolecule class. Default is "sample count" and "mean lcpm".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ggplot_params</code></td>
+<td>
+<p>An optional vector of strings of ggplot parameters to
+the backend ggplot function. For example, c("ylab(”)", "ylim(c(2,20))").
+Default is NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interactive</code></td>
+<td>
+<p>A logical argument indicating whether the plots should be
+interactive or not. Interactive plots are ggplots piped to ggplotly (for
+now). Default is FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>include_points</code></td>
+<td>
+<p>Add points as a geom_jitter. Default is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path</code></td>
+<td>
+<p>The base directory of the trelliscope application. Default is
+Downloads.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>The name of the display. Default is Trelliscope.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test_mode</code></td>
+<td>
+<p>A logical to return a smaller trelliscope to confirm plot
+and design. Default is FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test_example</code></td>
+<td>
+<p>A vector of plot indices to return for test_mode. Default
+is 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>single_plot</code></td>
+<td>
+<p>A TRUE/FALSE to indicate whether 1 plot (not a
+trelliscope) should be returned. Default is FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments to be passed on to the trelli builder</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>No return value, builds a trelliscope display of boxplots that is stored in 'path'
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David Degnan, Lisa Bramer
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Not run: 
+library(pmartRdata)
+
+trelliData_seq1 &lt;- as.trelliData.edata(e_data = rnaseq_edata,
+                                      edata_cname = "Transcript",
+                                      omics_type = "seqData")
+omicsData_seq &lt;- group_designation(omicsData = rnaseq_object, main_effects = c("Virus"))
+
+# Filter low transcript counts
+omicsData_seq &lt;- applyFilt(filter_object = total_count_filter(omicsData = omicsData_seq), 
+ omicsData = omicsData_seq, min_count = 15)
+
+# Select a normalization and statistics method (options are 'edgeR', 'DESeq2', and 'voom').
+# See ?difexp_seq for more details
+statRes_seq &lt;- diffexp_seq(omicsData = omicsData_seq, method = "voom")
+
+# Generate the trelliData object
+trelliData_seq2 &lt;- as.trelliData(omicsData = omicsData_seq)
+trelliData_seq3 &lt;- as.trelliData(statRes = statRes_seq)
+trelliData_seq4 &lt;- as.trelliData(omicsData = omicsData_seq, statRes = statRes_seq)
+
+## Generate trelliData objects using the as.trelliData.edata example code.
+
+# Build the RNA-seq boxplot with an edata file where each panel is a biomolecule. 
+trelli_panel_by(trelliData = trelliData_seq1, panel = "Transcript") %&gt;% 
+   trelli_rnaseq_boxplot(test_mode = TRUE, test_example = 1:10, path = tempdir())
+   
+# Build the RNA-seq boxplot where each panel is a sample.
+# Include all applicable cognostics. Remove points. 
+trelli_panel_by(trelliData = trelliData_seq1, panel = "Sample") %&gt;% 
+   trelli_rnaseq_boxplot(test_mode = TRUE, test_example = 1:10, 
+                            include_points = FALSE,
+                            cognostics = c("count", 
+                                           "mean lcpm", 
+                                           "median lcpm", 
+                                           "cv lcpm"),
+                            path = tempdir()
+                           )
+
+# Build the RNA-seq boxplot with an omicsData object.
+# Let the panels be biomolecules. Here, grouping information is included.
+trelli_panel_by(trelliData = trelliData_seq2, panel = "Transcript") %&gt;% 
+   trelli_rnaseq_boxplot(test_mode = TRUE, test_example = 1:10, path = tempdir())
+   
+# Build the RNA-seq boxplot with an omicsData object. The panel is a biomolecule class,
+# which is proteins in this case.
+trelli_panel_by(trelliData = trelliData_seq2, panel = "Gene") %&gt;% 
+   trelli_rnaseq_boxplot(test_mode = TRUE, test_example = 1:10, path = tempdir())
+    
+# Build the RNA-seq boxplot with an omicsData and statRes object.
+# Panel by a biomolecule, and add statistics data to the cognostics
+trelli_panel_by(trelliData = trelliData_seq4, panel = "Transcript") %&gt;%
+   trelli_rnaseq_boxplot(test_mode = TRUE, test_example = 1:10,
+     cognostics = c("mean lcpm", "p-value", "fold change"), path = tempdir())
+ 
+# Other options include modifying the ggplot  
+trelli_panel_by(trelliData = trelliData_seq1, panel = "Transcript") %&gt;%
+   trelli_rnaseq_boxplot(test_mode = TRUE, test_example = 1:10,
+     ggplot_params = c("ylab('')", "xlab('')"), path = tempdir())
+
+# Or making the plot interactive 
+trelli_panel_by(trelliData = trelliData_seq4, panel = "Gene") %&gt;%
+    trelli_rnaseq_boxplot(interactive = TRUE, test_mode = TRUE, 
+     test_example = 1:10, path = tempdir())
+
+\dontshow{closeAllConnections()}
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

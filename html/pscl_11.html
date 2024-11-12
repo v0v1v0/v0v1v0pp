@@ -1,0 +1,186 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>constrain.items</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>constrain item parameters in analysis of roll call data</h2>
+
+<h3>Description</h3>
+
+<p>Sets constraints on specified item parameters in Bayesian analysis of
+roll call data by generating appropriate priors and start values for
+Markov chain Monte Carlo iterations.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">constrain.items(obj, dropList = list(codes = "notInLegis", lop = 0),
+                x, d = 1)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>obj</code></td>
+<td>
+<p>an object of class <code>rollcall</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dropList</code></td>
+<td>
+<p>a <code>list</code> (or <code>alist</code>)
+indicating which voting decisions, legislators and/or roll calls are
+to be excluded from the subsequent analysis; see
+<code>dropRollCall</code> for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a <code>list</code> containing elements with names matching
+votes found in <code>dimnames(object$votes)[[2]]</code> (but after any
+subsetting specified by <code>dropList</code>).  Each component of the
+list must be a vector containing <code>d</code> elements, specifying the
+value to which the item discrimination parameters should be
+constrained, in each of the <code>d</code> dimensions.  The intercept or
+item difficultly parameter will not be constrained.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>numeric, positive integer, the number of dimensions for which
+to set up the priors and start values.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>constrain.items</code> and its cousin,
+<code>constrain.legis</code> are usefully thought of as
+“pre-processor” functions, generating priors <em>and</em> start
+values for both the item parameters and the ideal points.  For the
+items specified in <code>x</code>, the prior mean for each dimension is set
+to the value given in <code>x</code>, and the prior precision for each
+dimension is set to <code>1e12</code> (i.e., a near-degenerate
+“spike” prior).  For the other items, the priors are set to a
+mean of 0 and precision 0.01.  All of the ideal points are given
+normal priors with mean 0, precision 1.
+</p>
+<p>Start values are also generated for both ideal points and item
+parameters.  The start values for the items specified in <code>x</code> are
+set to the values specified in <code>x</code>.  The list resulting from
+<code>constrain.items</code> can then be given as the value for the
+parameters <code>priors</code> and <code>startvals</code> when <code>ideal</code>
+is run. The user is responsible for ensuring that a sufficient number
+of items are constrained such that when <code>ideal</code> is run,
+the model parameters are identified.
+</p>
+<p><code>dropRollCall</code> is first called to generate the desired
+roll call matrix.  The entries of the roll call matrix are mapped to
+<code>c(0,1,NA)</code> using the <code>codes</code> component of the
+<code>rollcall</code> <code>object</code>.  See the discussion in the
+documentation of <code>ideal</code> for details on the generation of
+start values.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a list with elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>xp</code></td>
+<td>
+<p>prior means for ideal points.  A matrix of dimensions number
+of legislators in <code>obj</code> by <code>d</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xpv</code></td>
+<td>
+<p>prior meansprecisions for ideal points.  A matrix of dimensions number
+of legislators in <code>obj</code> by <code>d</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bp</code></td>
+<td>
+<p>prior means for item parameters.  A matrix of dimensions number
+of items or votes in <code>obj</code> by <code>d+1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bpv</code></td>
+<td>
+<p>prior meansprecisions for item parameters.  A matrix of dimensions number
+of items or votes in <code>obj</code> by <code>d+1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xstart</code></td>
+<td>
+<p>start values for ideal points.  A matrix of dimensions number
+of legislators in <code>obj</code> by <code>d</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bstart</code></td>
+<td>
+<p>start values for ideal points.  A matrix of dimensions number
+of items or votes in <code>obj</code> by <code>d+1</code>.</p>
+</td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+<p><code>rollcall</code>, <code>ideal</code>,
+<code>constrain.legis</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+data(s109)
+f &lt;- system.file("extdata","id1.rda",package="pscl")
+load(f)
+id1sum &lt;- summary(id1,include.beta=TRUE)
+suspect1 &lt;- id1sum$bSig[[1]]=="95
+close60 &lt;- id1sum$bResults[[1]][,"Yea"] &lt; 60
+close40 &lt;- id1sum$bResults[[1]][,"Yea"] &gt; 40
+suspect &lt;- suspect1 &amp; close60 &amp; close40
+id1sum$bResults[[1]][suspect,]
+suspectVotes &lt;- dimnames(id1sum$bResults[[1]][suspect,])[[1]]
+
+
+## constraints on 2d model,
+## close rollcall poorly fit by 1d model
+## serves as reference item for 2nd dimension
+
+cl &lt;- constrain.items(s109,
+                      x=list("2-150"=c(0,7),
+                        "2-169"=c(7,0)),
+                      d=2)
+
+id1Constrained &lt;- ideal(s109,
+                        d=2,
+                        meanzero=TRUE,
+                        priors=cl,
+                        startvals=cl,
+                        maxiter=1e5,
+                        burnin=1e3,
+                        thin=1e2)
+summary(id1Constrained,include.beta=TRUE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

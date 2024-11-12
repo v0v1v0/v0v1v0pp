@@ -1,0 +1,134 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predict.plm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Model Prediction for plm Objects</h2>
+
+<h3>Description</h3>
+
+<p>Predicted values of response based on plm models.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'plm'
+predict(
+  object,
+  newdata = NULL,
+  na.fill = !inherits(newdata, "pdata.frame"),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>An object of class <code>"plm"</code>,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>An optional pdata.frame in which to look for variables to be
+used for prediction. If <code>NULL</code>, the fitted values are returned.
+For fixed effects models, supplying a pdata.frame is recommended.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.fill</code></td>
+<td>
+<p>A logical, only relevant if <code>object</code> is a pdata.frame, indicating
+whether for any supplied out-of-sample indexes (individual, time,
+combination of both), the missing fixed effect estimate is filled
+with the weighted mean of the model's present fixed effect estimates
+or not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>predict</code>calculates predicted values by evaluating the regression function of
+a plm model for <code>newdata</code> or, if <code>newdata = NULL</code>, it returns the fitted values
+the plm model.
+</p>
+<p>The fixed effects (within) model is somewhat special in prediction as it has
+fixed effects estimated per individual, time period (one-way) or both (two-ways
+model) which should to be respected when predicting values relating to these
+fixed effects in the model: To do so, it is recommended to supply a pdata.frame
+(and not a plain data.frame) in <code>newdata</code> as it describes the relationship
+between the data supplied to the individual. and/or time periods. In case
+the <code>newdata</code>´'s pdata.frame has out-of-sample data (data contains individuals
+and/or time periods not contained in the original model), it is not clear
+how values are to be predicted and the result will contain <code>NA</code>
+values for these out-of-sample data. Argument <code>na.fill</code> can be set to <code>TRUE</code>
+to apply the original model's weighted mean of fixed effects for the
+out-of-sample data to derive a prediction.
+</p>
+<p>If a plain data.frame is given in <code>newdata</code> for a fixed effects model, the
+weighted mean is used for all fixed effects as <code>newdata</code> for prediction as a
+plain data.frame cannot describe any relation to individuals/time periods
+(<code>na.fill</code> is automatically set to <code>TRUE</code> and the function warns).
+</p>
+<p>See also <strong>Examples</strong>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A numeric (or a pseries if <code>newdata</code> is a pdata.frame) carrying the
+predicted values with length equal to the number of rows as the data
+supplied in <code>newdata</code> and with names the row names of <code>newdata</code> or, if
+<code>newdata = NULL</code>, the fitted values the original model given in <code>object</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(plm)
+data("Grunfeld", package = "plm")
+
+# fit a fixed effect model
+fit.fe &lt;- plm(inv ~ value + capital, data = Grunfeld, model = "within")
+
+# generate 55 new observations of three firms used for prediction:
+#  * firm 1 with years 1935:1964 (has out-of-sample years 1955:1964), 
+#  * firm 2 with years 1935:1949 (all in sample),
+#  * firm 11 with years 1935:1944 (firm 11 is out-of-sample)
+set.seed(42L)
+
+new.value2   &lt;- runif(55, min = min(Grunfeld$value),   max = max(Grunfeld$value))
+new.capital2 &lt;- runif(55, min = min(Grunfeld$capital), max = max(Grunfeld$capital))
+
+newdata &lt;- data.frame(firm = c(rep(1, 30), rep(2, 15), rep(11, 10)),
+                      year = c(1935:(1935+29), 1935:(1935+14), 1935:(1935+9)),
+                      value = new.value2, capital = new.capital2)
+# make pdata.frame
+newdata.p &lt;- pdata.frame(newdata, index = c("firm", "year"))
+
+## predict from fixed effect model with new data as pdata.frame
+predict(fit.fe, newdata = newdata.p)
+
+## set na.fill = TRUE to have the weighted mean used to for fixed effects -&gt; no NA values
+predict(fit.fe, newdata = newdata.p, na.fill = TRUE)
+
+## predict with plain data.frame from fixed effect model: uses mean fixed effects 
+## for prediction and, thus, yields different result with a warning
+predict(fit.fe, newdata = newdata)
+
+</code></pre>
+
+
+</div>

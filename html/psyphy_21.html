@@ -1,0 +1,192 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>psyfun.2asym</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit Psychometric Functions and Upper and Lower Asymptotes</h2>
+
+<h3>Description</h3>
+
+<p>Fits psychometric functions allowing for variation of both upper and lower asymptotes.  Uses a procedure that alternates between fitting linear predictor with <code>glm</code> and estimating the asymptotes with <code>optim</code> until a minimum in -log likelihood is obtained within a tolerance. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">psyfun.2asym(formula, data, link = logit.2asym, init.g = 0.01, 
+	init.lam = 0.01, trace = FALSE, tol = 1e-06, 
+	mxNumAlt = 50, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a two sided formula specifying the response and the linear predictor </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p> a data frame within which the formula terms are interpreted </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>link</code></td>
+<td>
+<p> a link function for the binomial family that allows specifying both upper and lower asymptotes </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init.g</code></td>
+<td>
+<p> numeric specifying the initial estimate for the lower asymptote </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init.lam</code></td>
+<td>
+<p> numeric specifying initial estimate for 1 - upper asymptote </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace</code></td>
+<td>
+<p> logical indicating whether to show the trace of the minimization of -log likelihood </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p> numeric indicating change in -log likelihood as a criterion for stopping iteration. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mxNumAlt</code></td>
+<td>
+<p> integer indicating maximum number of alternations between <code>glm</code> and <code>optim</code> steps to perform if minimum not reached.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p> additional arguments passed to <code>glm</code> </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function is a wrapper for <code>glm</code> for fitting psychometric functions with the equation
+</p>
+<p style="text-align: center;"><code class="reqn"> P(x) = \gamma + (1 - \gamma - \lambda) p(x)
+  	</code>
+</p>
+
+<p>where <code class="reqn">\gamma</code> is the lower asymptote and <code class="reqn">lambda</code> is <code class="reqn">1 - </code> the upper asymptote,  and <code class="reqn">p(x)</code> is the base psychometric function, varying between 0 and 1.
+</p>
+
+
+<h3>Value</h3>
+
+<p>list of class ‘lambda’ inheriting from classes ‘glm’ and ‘lm’ and containing additional components
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>lambda </code></td>
+<td>
+<p>numeric indicating 1 - upper asymptote</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gam </code></td>
+<td>
+<p>numeric indicating lower asymptote</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SElambda </code></td>
+<td>
+<p>numeric indicating standard error estimate for lambda based on the Hessian of the last interation of <code>optim</code>.  The optimization is done on the value transformed by the function <code>plogis</code> and the value is stored in on this scale</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SEgam </code></td>
+<td>
+<p>numeric indicating standard error estimate for gam estimated in the same fashion as <code>SElambda</code></p>
+</td>
+</tr>
+</table>
+<p>If a diagonal element of the Hessian is sufficiently close to 0, <code>NA</code> is returned.
+</p>
+
+
+<h3>Note</h3>
+
+<p>The <code>cloglog.2asym</code> and its alias, <code>weib.2asym</code>, don't converge on
+occasion.  This can be observed by using the <code>trace</code> argument.
+One strategy is to modify the initial estimates.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p> Kenneth Knoblauch </p>
+
+
+<h3>References</h3>
+
+<p> Klein S. A. (2001) Measuring, estimating, and understanding the psychometric function: a commentary. <em>Percept Psychophys.</em>, <b>63(8)</b>, 1421–1455.
+</p>
+<p>Wichmann, F. A. and Hill, N. J. (2001) The psychometric function: I.Fitting, sampling, and goodness of fit. <em>Percept Psychophys.</em>, <b>63(8)</b>, 1293–1313. 
+</p>
+
+
+<h3>See Also</h3>
+
+ <p><code>glm</code>, <code>optim</code>, <code>glm.lambda</code>, <code>mafc</code> </p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#A toy example,
+set.seed(12161952)
+b &lt;- 3
+g &lt;- 0.05 # simulated false alarm rate
+d &lt;- 0.03
+a &lt;- 0.04
+p &lt;- c(a, b, g, d)
+num.tr &lt;- 160
+cnt &lt;- 10^seq(-2, -1, length = 6) # contrast levels
+
+#simulated Weibull-Quick observer responses
+truep &lt;- g + (1 - g - d) * pweibull(cnt, b, a)
+ny &lt;- rbinom(length(cnt), num.tr, truep)
+nn &lt;- num.tr - ny
+phat &lt;- ny/(ny + nn)
+resp.mat &lt;- matrix(c(ny, nn), ncol = 2)
+
+ddprob.glm &lt;- psyfun.2asym(resp.mat ~ cnt, link = probit.2asym)
+ddlog.glm &lt;- psyfun.2asym(resp.mat ~ cnt, link = logit.2asym)
+# Can fit a Weibull function, but use log contrast as variable
+ddweib.glm &lt;- psyfun.2asym(resp.mat ~ log(cnt), link = weib.2asym) 
+ddcau.glm &lt;- psyfun.2asym(resp.mat ~ cnt, link = cauchit.2asym)
+
+plot(cnt, phat, log = "x", cex = 1.5, ylim = c(0, 1))
+pcnt &lt;- seq(0.01, 0.1, len = 100)
+lines(pcnt, predict(ddprob.glm, data.frame(cnt = pcnt),
+			type = "response"), lwd = 5)
+lines(pcnt, predict(ddlog.glm, data.frame(cnt = pcnt),
+			type = "response"), lwd = 2, lty = 2, col = "blue")
+lines(pcnt, predict(ddweib.glm, data.frame(cnt = pcnt),
+			type = "response"), lwd = 3, col = "grey")
+lines(pcnt, predict(ddcau.glm, data.frame(cnt = pcnt),
+			type = "response"), lwd = 3, col = "grey", lty = 2)
+summary(ddprob.glm)
+</code></pre>
+
+
+</div>

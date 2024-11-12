@@ -1,0 +1,138 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>idaFast</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Multiset of Possible Total Causal Effects for Several Target Var.s</h2>
+
+<h3>Description</h3>
+
+<p>This function estimates the multiset of possible total causal effects of
+one variable (<code>x</code>) on a <em>several</em> (i.e., a vector of) target
+variables (<code>y</code>) from observational data.
+</p>
+<p><code>idaFast()</code> is more efficient than looping over
+<code>ida</code>.  Only <code>method="local"</code> (see <code>ida</code>)
+is available.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">idaFast(x.pos, y.pos.set, mcov, graphEst)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x.pos</code></td>
+<td>
+<p>(integer) position of variable <code>x</code> in the covariance matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y.pos.set</code></td>
+<td>
+<p>integer vector of positions of the target variables
+<code>y</code> in the covariance matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mcov</code></td>
+<td>
+<p>covariance matrix that was used to estimate <code>graphEst</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>graphEst</code></td>
+<td>
+<p>estimated CPDAG from the function
+<code>pc</code>.  If the output of <code>pc</code> is <code>pc.fit</code>,
+then the estimated CPDAG can be obtained by <code>pc.fit@graph</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function performs
+<code>ida(x.pos, y.pos, mcov, graphEst, method="local",
+    y.notparent=FALSE, verbose=FALSE)</code> for all values of <code>y.pos</code> in
+<code>y.pos.set</code> simultaneously, in an efficient way.
+See (the help about) <code>ida</code> for more details.  Note that the
+option <code>y.notparent = TRUE</code> is not implemented, since it is not
+clear how to do that efficiently without orienting all edges away from
+<code>y.pos.set</code> at the same time, which seems not to be
+desirable.  Suggestions are welcome.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Matrix with <code>length(y.pos.set)</code> rows.  Row <code class="reqn">i</code> contains the multiset
+of estimated possible total causal effects of <code>x</code> on
+<code>y.pos.set[i]</code>.  Note that all multisets in the matrix have the
+same length, since the parents of <code>x</code> are the same for all elements
+of <code>y.pos.set</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Markus Kalisch (<a href="mailto:kalisch@stat.math.ethz.ch">kalisch@stat.math.ethz.ch</a>)</p>
+
+
+<h3>References</h3>
+
+<p>see the list in <code>ida</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pc</code> for estimating a CPDAG, and
+<code>ida</code> for estimating the multiset of possible total causal
+effects from observational data on only one target variable but with many more
+options (than here in <code>idaFast</code>).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Simulate the true DAG
+set.seed(123)
+p &lt;- 7
+myDAG &lt;- randomDAG(p, prob = 0.2) ## true DAG
+myCPDAG &lt;- dag2cpdag(myDAG) ## true CPDAG
+covTrue &lt;- trueCov(myDAG) ## true covariance matrix
+
+## simulate data from the true DAG
+n &lt;- 10000
+dat &lt;- rmvDAG(n, myDAG)
+cov.d &lt;- cov(dat)
+
+## estimate CPDAG (see help on the function "pc")
+suffStat &lt;- list(C = cor(dat), n = n)
+pc.fit &lt;- pc(suffStat, indepTest = gaussCItest, alpha = 0.01, p=p)
+
+if(require(Rgraphviz)) {
+  op &lt;- par(mfrow=c(1,3))
+  plot(myDAG,        main="true DAG")
+  plot(myCPDAG,      main="true CPDAG")
+  plot(pc.fit@graph, main="pc()-estimated CPDAG")
+  par(op)
+}
+
+(eff.est1 &lt;- ida(2,5, cov.d, pc.fit@graph))## method = "local" is default
+(eff.est2 &lt;- ida(2,6, cov.d, pc.fit@graph))
+(eff.est3 &lt;- ida(2,7, cov.d, pc.fit@graph))
+## These three computations can be combinded in an efficient way
+## by using idaFast :
+(eff.estF &lt;- idaFast(2, c(5,6,7), cov.d, pc.fit@graph))
+
+</code></pre>
+
+
+</div>

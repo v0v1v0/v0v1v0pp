@@ -1,0 +1,240 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>export_report</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Export an <em>agent</em>, <em>informant</em>, <em>multiagent</em>, or table scan to HTML</h2>
+
+<h3>Description</h3>
+
+<p>The <em>agent</em>, <em>informant</em>, <em>multiagent</em>, and the table scan object can be
+easily written as HTML with <code>export_report()</code>. Furthermore, any report
+objects from the <em>agent</em>, <em>informant</em>, and <em>multiagent</em> (generated using
+<code>get_agent_report()</code>, <code>get_informant_report()</code>, and
+<code>get_multiagent_report()</code>) can be provided here for HTML export. Each HTML
+document written to disk is self-contained and easily viewable in a web
+browser.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">export_report(x, filename, path = NULL, quiet = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><em>One of several types of objects</em>
+</p>
+<p><code style="white-space: pre;">⁠&lt;object&gt;⁠</code> // <strong>required</strong>
+</p>
+<p>An <em>agent</em> object of class <code>ptblank_agent</code>, an <em>informant</em> of class
+<code>ptblank_informant</code>, a <em>multiagent</em> of class <code>ptblank_multiagent</code>, a table
+scan of class <code>ptblank_tbl_scan</code>, or, customized reporting objects
+(<code>ptblank_agent_report</code>, <code>ptblank_informant_report</code>,
+<code>ptblank_multiagent_report.wide</code>, <code>ptblank_multiagent_report.long</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filename</code></td>
+<td>
+<p><em>File name</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;character&gt;⁠</code> // <strong>required</strong>
+</p>
+<p>The filename to create on disk for the HTML export of the object provided.
+It's recommended that the extension <code>".html"</code> is included.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path</code></td>
+<td>
+<p><em>File path</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;character&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>An optional path to which the file should be saved (this is automatically
+combined with <code>filename</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p><em>Inform (or not) upon file writing</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;logical&gt;⁠</code> // <em>default:</em> <code>FALSE</code>
+</p>
+<p>Should the function <em>not</em> inform when the file is written?</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Invisibly returns <code>TRUE</code> if the file has been written.
+</p>
+
+
+<h3>Examples</h3>
+
+
+
+<h4>A: Writing an agent report as HTML</h4>
+
+<p>Let's go through the process of (1) developing an agent with a validation
+plan (to be used for the data quality analysis of the <code>small_table</code>
+dataset), (2) interrogating the agent with the <code>interrogate()</code> function, and
+(3) writing the agent and all its intel to a file.
+</p>
+<p>Creating an <code>action_levels</code> object is a common workflow step when creating a
+pointblank agent. We designate failure thresholds to the <code>warn</code>, <code>stop</code>, and
+<code>notify</code> states using <code>action_levels()</code>.
+</p>
+<div class="sourceCode r"><pre>al &lt;- 
+  action_levels(
+    warn_at = 0.10,
+    stop_at = 0.25,
+    notify_at = 0.35
+  )
+</pre></div>
+<p>Now create a pointblank <code>agent</code> object and give it the <code>al</code> object (which
+serves as a default for all validation steps which can be overridden). The
+data will be referenced in the <code>tbl</code> argument with a leading <code>~</code>.
+</p>
+<div class="sourceCode r"><pre>agent &lt;- 
+  create_agent(
+    tbl = ~ small_table,
+    tbl_name = "small_table",
+    label = "`export_report()`",
+    actions = al
+  )
+</pre></div>
+<p>As with any agent object, we can add steps to the validation plan by using as
+many validation functions as we want. Then, we <code>interrogate()</code>.
+</p>
+<div class="sourceCode r"><pre>agent &lt;-
+  agent %&gt;% 
+  col_exists(columns = c(date, date_time)) %&gt;%
+  col_vals_regex(
+    columns = b,
+    regex = "[0-9]-[a-z]{3}-[0-9]{3}"
+  ) %&gt;%
+  rows_distinct() %&gt;%
+  col_vals_gt(columns = d, value = 100) %&gt;%
+  col_vals_lte(columns = c, value = 5) %&gt;%
+  interrogate()
+</pre></div>
+<p>The agent report can be written to an HTML file with <code>export_report()</code>.
+</p>
+<div class="sourceCode r"><pre>export_report(
+  agent,
+  filename = "agent-small_table.html"
+)
+</pre></div>
+<p>If you're consistently writing agent reports when periodically checking data,
+we could make use of <code>affix_date()</code> or <code>affix_datetime()</code> depending on the
+granularity you need. Here's an example that writes the file with the format:
+<code>"&lt;filename&gt;-YYYY-mm-dd_HH-MM-SS.html"</code>.
+</p>
+<div class="sourceCode r"><pre>export_report(
+  agent,
+  filename = affix_datetime(
+    "agent-small_table.html"
+  )
+)
+</pre></div>
+
+
+
+<h4>B: Writing an informant report as HTML</h4>
+
+<p>Let's go through the process of (1) creating an informant object that
+minimally describes the <code>small_table</code> dataset, (2) ensuring that data is
+captured from the target table using the <code>incorporate()</code> function, and (3)
+writing the informant report to HTML.
+</p>
+<p>Create a pointblank <code>informant</code> object with <code>create_informant()</code> and the
+<code>small_table</code> dataset. Use <code>incorporate()</code> so that info snippets are
+integrated into the text.
+</p>
+<div class="sourceCode r"><pre>informant &lt;- 
+  create_informant(
+    tbl = ~ small_table,
+    tbl_name = "small_table",
+    label = "`export_report()`"
+  ) %&gt;%
+  info_snippet(
+    snippet_name = "high_a",
+    fn = snip_highest(column = "a")
+  ) %&gt;%
+  info_snippet(
+    snippet_name = "low_a",
+    fn = snip_lowest(column = "a")
+  ) %&gt;%
+  info_columns(
+    columns = a,
+    info = "From {low_a} to {high_a}."
+  ) %&gt;%
+  info_columns(
+    columns = starts_with("date"),
+    info = "Time-based values."
+  ) %&gt;%
+  info_columns(
+    columns = date,
+    info = "The date part of `date_time`."
+  ) %&gt;%
+  incorporate()
+</pre></div>
+<p>The informant report can be written to an HTML file with <code>export_report()</code>.
+Let's do this with <code>affix_date()</code> so the filename has a datestamp.
+</p>
+<div class="sourceCode r"><pre>export_report(
+  informant,
+  filename = affix_date(
+    "informant-small_table.html"
+  )
+)
+</pre></div>
+
+
+
+<h4>C: Writing a table scan as HTML</h4>
+
+<p>We can get a report that describes all of the data in the <code>storms</code> dataset.
+</p>
+<div class="sourceCode r"><pre>tbl_scan &lt;- scan_data(tbl = dplyr::storms)
+</pre></div>
+<p>The table scan object can be written to an HTML file with <code>export_report()</code>.
+</p>
+<div class="sourceCode r"><pre>export_report(
+  tbl_scan,
+  filename = "tbl_scan-storms.html"
+)
+</pre></div>
+
+
+
+<h3>Function ID</h3>
+
+<p>9-3
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Object Ops: 
+<code>activate_steps()</code>,
+<code>deactivate_steps()</code>,
+<code>remove_steps()</code>,
+<code>set_tbl()</code>,
+<code>x_read_disk()</code>,
+<code>x_write_disk()</code>
+</p>
+
+
+</div>

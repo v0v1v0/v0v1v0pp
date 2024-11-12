@@ -1,0 +1,195 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>profvis</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Profile an R expression and visualize profiling data</h2>
+
+<h3>Description</h3>
+
+<p>This function will run an R expression with profiling, and then return an
+htmlwidget for interactively exploring the profiling data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">profvis(
+  expr = NULL,
+  interval = 0.01,
+  prof_output = NULL,
+  prof_input = NULL,
+  timing = NULL,
+  width = NULL,
+  height = NULL,
+  split = c("h", "v"),
+  torture = 0,
+  simplify = TRUE,
+  rerun = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>expr</code></td>
+<td>
+<p>Expression to profile. The expression will be turned into the
+body of a zero-argument anonymous function which is then called repeatedly
+as needed. This means that if you create variables inside of <code>expr</code> they
+will not be available outside of it.
+</p>
+<p>The expression is repeatedly evaluated until <code>Rprof()</code> produces
+an output. It can <em>be</em> a quosure injected with <code>rlang::inject()</code> but
+it cannot <em>contain</em> injected quosures.
+</p>
+<p>Not compatible with <code>prof_input</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interval</code></td>
+<td>
+<p>Interval for profiling samples, in seconds. Values less than
+0.005 (5 ms) will probably not result in accurate timings</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prof_output</code></td>
+<td>
+<p>Name of an Rprof output file or directory in which to save
+profiling data. If <code>NULL</code> (the default), a temporary file will be used
+and automatically removed when the function exits. For a directory, a
+random filename is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prof_input</code></td>
+<td>
+<p>The path to an <code>Rprof()</code> data file.  Not
+compatible with <code>expr</code> or <code>prof_output</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timing</code></td>
+<td>
+<p>The type of timing to use. Either <code>"elapsed"</code> (the
+default) for wall clock time, or <code>"cpu"</code> for CPU time. Wall clock time
+includes time spent waiting for other processes (e.g. waiting for a
+web page to download) so is generally more useful.
+</p>
+<p>If <code>NULL</code>, the default, will use elapsed time where possible, i.e.
+on Windows or on R 4.4.0 or greater.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>width</code></td>
+<td>
+<p>Width of the htmlwidget.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>height</code></td>
+<td>
+<p>Height of the htmlwidget</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>split</code></td>
+<td>
+<p>Orientation of the split bar: either <code>"h"</code> (the default) for
+horizontal or <code>"v"</code> for vertical.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>torture</code></td>
+<td>
+<p>Triggers garbage collection after every <code>torture</code> memory
+allocation call.
+</p>
+<p>Note that memory allocation is only approximate due to the nature of the
+sampling profiler and garbage collection: when garbage collection triggers,
+memory allocations will be attributed to different lines of code. Using
+<code>torture = steps</code> helps prevent this, by making R trigger garbage
+collection after every <code>torture</code> memory allocation step.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simplify</code></td>
+<td>
+<p>Whether to simplify the profiles by removing
+intervening frames caused by lazy evaluation. Equivalent to the
+<code>filter.callframes</code> argument to <code>Rprof()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rerun</code></td>
+<td>
+<p>If <code>TRUE</code>, <code>Rprof()</code> is run again with <code>expr</code> until a
+profile is actually produced. This is useful for the cases where
+<code>expr</code> returns too quickly, before R had time to sample a
+profile. Can also be a string containing a regexp to match
+profiles. In this case, <code>profvis()</code> reruns <code>expr</code> until the
+regexp matches the modal value of the profile stacks.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>An alternate way to use <code>profvis</code> is to separately capture the profiling
+data to a file using <code>Rprof()</code>, and then pass the path to the
+corresponding data file as the <code>prof_input</code> argument to
+<code>profvis()</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>print.profvis()</code> for printing options.
+</p>
+<p><code>Rprof()</code> for more information about how the profiling
+data is collected.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Only run these examples in interactive R sessions
+if (interactive()) {
+
+# Profile some code
+profvis({
+  dat &lt;- data.frame(
+    x = rnorm(5e4),
+    y = rnorm(5e4)
+  )
+
+  plot(x ~ y, data = dat)
+  m &lt;- lm(x ~ y, data = dat)
+  abline(m, col = "red")
+})
+
+
+# Save a profile to an HTML file
+p &lt;- profvis({
+  dat &lt;- data.frame(
+    x = rnorm(5e4),
+    y = rnorm(5e4)
+  )
+
+  plot(x ~ y, data = dat)
+  m &lt;- lm(x ~ y, data = dat)
+  abline(m, col = "red")
+})
+htmlwidgets::saveWidget(p, "profile.html")
+
+# Can open in browser from R
+browseURL("profile.html")
+
+}
+</code></pre>
+
+
+</div>

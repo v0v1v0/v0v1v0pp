@@ -1,0 +1,225 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fitgom</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fits Grade of membership models for biogeographic regionalization</h2>
+
+<h3>Description</h3>
+
+<p>Generates grade of membership, “admixture”, “topic”
+or “Latent Dirichlet Allocation” models, by representing sampling units
+as partial memberships in multiple groups. It can group regions
+based on phylogenetic information or functional traits.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fitgom(
+  x,
+  trait = NULL,
+  cut = NULL,
+  phy = NULL,
+  bin = 10,
+  na.rm = FALSE,
+  K,
+  shape = NULL,
+  initopics = NULL,
+  tol = 0.1,
+  bf = TRUE,
+  kill = 2,
+  ord = TRUE,
+  verb = 1,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A community data in long format with one column representing
+sites labeled “grids” and another column representing species
+labeled “species”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trait</code></td>
+<td>
+<p>A data frame or matrix object with the first column
+labeled “species” containing the taxonomic groups to be
+evaluated whereas the remaining columns have the various functional
+traits. The variables must be a mix of numeric and categorical values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cut</code></td>
+<td>
+<p>The slice time for the phylogenetic tree.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phy</code></td>
+<td>
+<p>is a dated phylogenetic tree with branch lengths stored
+as a phylo object (as in the ape package).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bin</code></td>
+<td>
+<p>The desired number of clusters or bins.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.rm</code></td>
+<td>
+<p>Logical, whether NA values should be removed or not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>The number of latent topics. If length(K)&gt;1,
+topics will find the Bayes factor (vs a null single topic model)
+for each element and return parameter estimates for the highest
+probability K.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shape</code></td>
+<td>
+<p>Optional argument to specify the Dirichlet prior
+concentration parameter as shape for topic-phrase probabilities.
+Defaults to 1/(K*ncol(counts)). For fixed single K, this can also
+be a ncol(counts) by K matrix of unique shapes for each topic element.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initopics</code></td>
+<td>
+<p>Optional start-location for
+<code class="reqn">[\theta_1, \ldots, \theta_K]</code>, the
+topic-phrase probabilities. Dimensions must accord with the smallest
+element of K. If NULL, the initial estimates are built by incrementally
+adding topics.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>An indicator for whether or not to calculate the Bayes factor
+for univariate K. If length(K)&gt;1, this is ignored and Bayes factors are
+always calculated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bf</code></td>
+<td>
+<p>An indicator for whether or not to calculate the Bayes factor
+for univariate K. If length(K)&gt;1, this is ignored and Bayes factors are
+always calculated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kill</code></td>
+<td>
+<p>For choosing from multiple K numbers of topics (evaluated
+in increasing order), the search will stop after kill consecutive drops
+in the corresponding Bayes factor. Specify kill=0 if you want Bayes factors
+for all elements of K.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ord</code></td>
+<td>
+<p>If <code>TRUE</code>, the returned topics (columns of theta) will
+be ordered by decreasing usage (i.e., by decreasing <code>colSums(omega)</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verb</code></td>
+<td>
+<p>A switch for controlling printed output. verb &gt; 0 will
+print something, with the level of detail increasing with verb.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to or from other methods.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Mapping phylogenetic regions (phyloregions) involves successively slicing
+the phylogenetic tree at various time depths (e.g., from 1, 2, 3, 4, to 5
+million years ago (Ma)), collapsing nodes and ranges that originated at
+each time depth, and generating a new community matrix based on the presence
+or absence of each lineage in a grid cell. A grade of membership model is
+then fitted to the reduced community matrix. To map functional trait regions
+(traitregions), the function uses k-means to cluster species based on their
+functional traits, often for mixed-type data including categorical and
+numeric functional traits. The ranges for each species in each resulting
+cluster are collapsed to generate a new community matrix based on the
+presence or absence of cluster representative in a grid cell. A grade of
+membership model is then fitted to the new reduced community matrix. Mapping
+bioregions for taxonomic diversity is based on fitting a grade of
+membership model directly to the original community matrix that is often
+represented with species in the columns and sites as rows.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An topics object list with entries
+</p>
+
+<ul>
+<li> <p><code>K</code> The number of latent topics estimated. If input
+<code>length(K)&gt;1</code>, on output this is a single value corresponding to
+the model with the highest Bayes factor.
+</p>
+</li>
+<li> <p><code>theta</code> The ncolcounts by K matrix of estimated
+topic-phrase probabilities.
+</p>
+</li>
+<li> <p><code>omega</code> The nrowcounts by K matrix of estimated
+document-topic weights.
+</p>
+</li>
+<li> <p><code>BF</code> The log Bayes factor for each number of topics
+in the input K, against a null single topic model.
+</p>
+</li>
+<li> <p><code>D</code> Residual dispersion: for each element of K, estimated
+dispersion parameter (which should be near one for the multinomial),
+degrees of freedom, and p-value for a test of whether the true dispersion
+is &gt;1.
+</p>
+</li>
+<li> <p><code>X</code> The input community matrix as a sparse matrix.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(terra)
+data(africa)
+names(africa)
+p &lt;- vect(system.file("ex/sa.json", package = "phyloregion"))
+m &lt;- fitgom(x=sparse2long(africa$comm), K=3)
+
+COLRS &lt;- phyloregion:::hue(m$K)
+plot_pie(m$omega, pol = p, col=COLRS)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,210 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tt_summary_stats</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Table Transformer: obtain a summary stats table for numeric columns</h2>
+
+<h3>Description</h3>
+
+<p>With any table object, you can produce a summary table that is scoped to the
+numeric column values. The output summary table will have a leading column
+called <code>".param."</code> with labels for each of the nine rows, each corresponding
+to the following summary statistics:
+</p>
+
+<ol>
+<li>
+<p> Minimum (<code>"min"</code>)
+</p>
+</li>
+<li>
+<p> 5th Percentile (<code>"p05"</code>)
+</p>
+</li>
+<li>
+<p> 1st Quartile (<code>"q_1"</code>)
+</p>
+</li>
+<li>
+<p> Median (<code>"med"</code>)
+</p>
+</li>
+<li>
+<p> 3rd Quartile (<code>"q_3"</code>)
+</p>
+</li>
+<li>
+<p> 95th Percentile (<code>"p95"</code>)
+</p>
+</li>
+<li>
+<p> Maximum (<code>"max"</code>)
+</p>
+</li>
+<li>
+<p> Interquartile Range (<code>"iqr"</code>)
+</p>
+</li>
+<li>
+<p> Range (<code>"range"</code>)
+</p>
+</li>
+</ol>
+<p>Only numerical data from the input table will generate columns in the output
+table. Column names from the input will be used in the output, preserving
+order as well.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">tt_summary_stats(tbl)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>tbl</code></td>
+<td>
+<p><em>A data table</em>
+</p>
+<p><code style="white-space: pre;">⁠obj:&lt;tbl_*&gt;⁠</code> // <strong>required</strong>
+</p>
+<p>A table object to be used as input for the transformation. This can be a
+data frame, a tibble, a <code>tbl_dbi</code> object, or a <code>tbl_spark</code> object.</p>
+</td>
+</tr></table>
+<h3>Value</h3>
+
+<p>A <code>tibble</code> object.
+</p>
+
+
+<h3>Examples</h3>
+
+<p>Get summary statistics for the <code>game_revenue</code> dataset that is included in the
+<strong>pointblank</strong> package.
+</p>
+<div class="sourceCode r"><pre>tt_summary_stats(tbl = game_revenue)
+#&gt; # A tibble: 9 x 3
+#&gt;   .param. item_revenue session_duration
+#&gt;   &lt;chr&gt;          &lt;dbl&gt;            &lt;dbl&gt;
+#&gt; 1 min             0                 3.2
+#&gt; 2 p05             0.02              8.2
+#&gt; 3 q_1             0.09             18.5
+#&gt; 4 med             0.38             26.5
+#&gt; 5 q_3             1.25             33.8
+#&gt; 6 p95            22.0              39.5
+#&gt; 7 max           143.               41  
+#&gt; 8 iqr             1.16             15.3
+#&gt; 9 range         143.               37.8
+</pre></div>
+<p>Table transformers work great in conjunction with validation functions. Let's
+ensure that the maximum revenue for individual purchases in the
+<code>game_revenue</code> table is less than $150.
+</p>
+<div class="sourceCode r"><pre>tt_summary_stats(tbl = game_revenue) %&gt;%
+  col_vals_lt(
+    columns = item_revenue,
+    value = 150,
+    segments = .param. ~ "max"
+  )
+#&gt; # A tibble: 9 x 3
+#&gt;   .param. item_revenue session_duration
+#&gt;   &lt;chr&gt;          &lt;dbl&gt;            &lt;dbl&gt;
+#&gt; 1 min             0                 3.2
+#&gt; 2 p05             0.02              8.2
+#&gt; 3 q_1             0.09             18.5
+#&gt; 4 med             0.38             26.5
+#&gt; 5 q_3             1.25             33.8
+#&gt; 6 p95            22.0              39.5
+#&gt; 7 max           143.               41  
+#&gt; 8 iqr             1.16             15.3
+#&gt; 9 range         143.               37.8
+</pre></div>
+<p>We see data, and not an error, so the validation was successful!
+</p>
+<p>Let's do another: for in-app purchases in the <code>game_revenue</code> table, check
+that the median revenue is somewhere between $8 and $12.
+</p>
+<div class="sourceCode r"><pre>game_revenue %&gt;% 
+  dplyr::filter(item_type == "iap") %&gt;%
+  tt_summary_stats() %&gt;%
+  col_vals_between(
+    columns = item_revenue,
+    left = 8, right = 12,
+    segments = .param. ~ "med"
+  )
+#&gt; # A tibble: 9 x 3
+#&gt;   .param. item_revenue session_duration
+#&gt;   &lt;chr&gt;          &lt;dbl&gt;            &lt;dbl&gt;
+#&gt; 1 min             0.4              3.2 
+#&gt; 2 p05             1.39             5.99
+#&gt; 3 q_1             4.49            14.0 
+#&gt; 4 med            10.5             22.6 
+#&gt; 5 q_3            20.3             30.6 
+#&gt; 6 p95            66.0             38.8 
+#&gt; 7 max           143.              41   
+#&gt; 8 iqr            15.8             16.7 
+#&gt; 9 range         143.              37.8
+</pre></div>
+<p>We can get more creative with this transformer. Why not use a transformed
+table in a validation plan? While performing validations of the
+<code>game_revenue</code> table with an agent we can include the same revenue check as
+above by using <code>tt_summary_stats()</code> in the <code>preconditions</code> argument. This
+transforms the target table into a summary table for the validation step. The
+final step of the transformation in <code>preconditions</code> is a <code>dplyr::filter()</code>
+step that isolates the row of the median statistic.
+</p>
+<div class="sourceCode r"><pre>agent &lt;- 
+  create_agent(
+    tbl = game_revenue,
+    tbl_name = "game_revenue",
+    label = "`tt_summary_stats()` example.",
+    actions = action_levels(
+      warn_at = 0.10,
+      stop_at = 0.25,
+      notify_at = 0.35
+    )
+  ) %&gt;%
+  rows_complete() %&gt;%
+  rows_distinct() %&gt;%
+  col_vals_between(
+    columns = item_revenue,
+    left = 8, right = 12,
+    preconditions = ~ . %&gt;%
+      dplyr::filter(item_type == "iap") %&gt;%
+      tt_summary_stats() %&gt;%
+      dplyr::filter(.param. == "med")
+  ) %&gt;%
+  interrogate()
+</pre></div>
+<p>Printing the <code>agent</code> in the console shows the validation report in the
+Viewer. Here is an excerpt of validation report. Take note of the final step
+(<code style="white-space: pre;">⁠STEP 3⁠</code>) as it shows the entry that corresponds to the <code>col_vals_between()</code>
+validation step that uses the summary stats table as its target.
+</p>
+
+
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_tt_summary_stats_1.png" alt="This image was generated from the first code example in the `tt_summary_stats()` help file." style="width:100%;"><h3>Function ID</h3>
+
+<p>12-1
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Table Transformers: 
+<code>get_tt_param()</code>,
+<code>tt_string_info()</code>,
+<code>tt_tbl_colnames()</code>,
+<code>tt_tbl_dims()</code>,
+<code>tt_time_shift()</code>,
+<code>tt_time_slice()</code>
+</p>
+
+
+</div>

@@ -1,0 +1,1537 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ParamSet</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>ParamSet</h2>
+
+<h3>Description</h3>
+
+<p>An object representing the space of possible parametrizations of a function or another object.
+<code>ParamSet</code>s are used on the side of objects being parameterized, where they function as a configuration space determining the set of possible configurations accepted by these objects.
+They can also be used to specify search spaces for optimization, indicating the set of legal configurations to try out.
+It is often convenient to generate search spaces from configuration spaces, which can be done using the <code style="white-space: pre;">⁠$search_space()⁠</code> method in combination with <code>to_tune()</code> / <code>TuneToken</code> objects.
+</p>
+<p>Individual dimensions of a <code>ParamSet</code> are specified by <code>Domain</code> objects, created as <code>p_dbl()</code>, <code>p_lgl()</code> etc.
+The field <code style="white-space: pre;">⁠$values⁠</code> can be used to store an active configuration or to partially fix
+some parameters to constant values – the precise effect can be determined by the object being parameterized.
+</p>
+<p>Constructing a <code>ParamSet</code> can be done using <code>ParamSet$new()</code> in combination with a named list of <code>Domain</code> objects.
+This route is recommended when the set of dimensions (i.e. the members of this named list) is dynamically created, such as when the number of parameters is variable.
+<code>ParamSet</code>s can also be created using the <code>ps()</code> shorthand, which is the recommended way when the set of parameters is fixed.
+In practice, the majority of cases where a <code>ParamSet</code> is created, the <code>ps()</code> should be used.
+</p>
+
+
+<h3>S3 methods and type converters</h3>
+
+
+<ul><li> <p><code>as.data.table()</code><br><code>ParamSet</code> -&gt; <code>data.table::data.table()</code><br>
+Compact representation as datatable. Col types are:<br></p>
+
+<ul>
+<li>
+<p> id: character
+</p>
+</li>
+<li>
+<p> class: character
+</p>
+</li>
+<li>
+<p> lower, upper: numeric
+</p>
+</li>
+<li>
+<p> levels: list col, with NULL elements
+</p>
+</li>
+<li>
+<p> nlevels: integer valued numeric
+</p>
+</li>
+<li>
+<p> is_bounded: logical
+</p>
+</li>
+<li>
+<p> special_vals: list col of list
+</p>
+</li>
+<li>
+<p> default: list col
+</p>
+</li>
+<li>
+<p> storage_type: character
+</p>
+</li>
+<li>
+<p> tags: list col of character vectors
+</p>
+</li>
+</ul>
+</li></ul>
+<h3>Public fields</h3>
+
+<div class="r6-fields">
+
+<dl>
+<dt><code>assert_values</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Should values be checked for validity during assigment to active binding <code style="white-space: pre;">⁠$values⁠</code>?
+Default is <code>TRUE</code>, only switch this off if you know what you are doing.</p>
+</dd>
+</dl>
+</div>
+
+
+<h3>Active bindings</h3>
+
+<div class="r6-active-bindings">
+
+<dl>
+<dt><code>data</code></dt>
+<dd>
+<p>(<code>data.table</code>) <code>data.table</code> representation of the <code>ParamSet</code>.</p>
+</dd>
+<dt><code>values</code></dt>
+<dd>
+<p>(named <code>list()</code>)<br>
+Currently set / fixed parameter values.
+Settable, and feasibility of values will be checked when you set them.
+You do not have to set values for all parameters, but only for a subset.
+When you set values, all previously set values will be unset / removed.</p>
+</dd>
+<dt><code>tags</code></dt>
+<dd>
+<p>(named <code>list()</code> of <code>character()</code>)<br>
+Can be used to group and subset parameters.
+Named with parameter IDs.</p>
+</dd>
+<dt><code>params</code></dt>
+<dd>
+<p>(named <code>list()</code>)<br><code>data.table</code> representing the combined <code>Domain</code> objects used to construct the <code>ParamSet</code>.
+Used for internal purpuses.
+Its use by external code is deprecated.</p>
+</dd>
+<dt><code>domains</code></dt>
+<dd>
+<p>(named <code>list</code> of <code>Domain</code>)
+List of <code>Domain</code> objects that could be used to initialize this <code>ParamSet</code>.</p>
+</dd>
+<dt><code>extra_trafo</code></dt>
+<dd>
+<p>(<code style="white-space: pre;">⁠function(x, param_set)⁠</code>)<br>
+Transformation function. Settable.
+User has to pass a <code style="white-space: pre;">⁠function(x)⁠</code>, of the form<br>
+(named <code>list()</code>, ParamSet) -&gt; named <code>list()</code>.<br>
+The function is responsible to transform a feasible configuration into another encoding,
+before potentially evaluating the configuration with the target algorithm.
+For the output, not many things have to hold.
+It needs to have unique names, and the target algorithm has to accept the configuration.
+For convenience, the self-paramset is also passed in, if you need some info from it (e.g. tags).
+Is NULL by default, and you can set it to NULL to switch the transformation off.</p>
+</dd>
+<dt><code>constraint</code></dt>
+<dd>
+<p>(<code style="white-space: pre;">⁠function(x)⁠</code>)<br>
+Constraint function. Settable.
+This function must evaluate a named <code>list()</code> of values and determine whether it satisfies
+constraints, returning a scalar <code>logical(1)</code> value.</p>
+</dd>
+<dt><code>deps</code></dt>
+<dd>
+<p>(<code>data.table::data.table()</code>)<br>
+Table has cols <code>id</code> (<code>character(1)</code>) and <code>on</code> (<code>character(1)</code>) and <code>cond</code> (Condition).
+Lists all (direct) dependency parents of a param, through parameter IDs.
+Internally created by a call to <code>add_dep</code>.
+Settable, if you want to remove dependencies or perform other changes.</p>
+</dd>
+<dt><code>length</code></dt>
+<dd>
+<p>(<code>integer(1)</code>)<br> Number of contained parameters.</p>
+</dd>
+<dt><code>is_empty</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br> Is the <code>ParamSet</code> empty? Named with parameter IDs.</p>
+</dd>
+<dt><code>has_trafo</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br> Whether a <code>trafo</code> function is present, in parameters or in <code>extra_trafo</code>.</p>
+</dd>
+<dt><code>has_extra_trafo</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br> Whether <code>extra_trafo</code> is set.</p>
+</dd>
+<dt><code>has_deps</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br> Whether the parameter dependencies are present</p>
+</dd>
+<dt><code>has_constraint</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br> Whether parameter constraint is set.</p>
+</dd>
+<dt><code>all_numeric</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br> Is <code>TRUE</code> if all parameters are <code>p_dbl()</code> or <code>p_int()</code>.</p>
+</dd>
+<dt><code>all_categorical</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br> Is <code>TRUE</code> if all parameters are <code>p_fct()</code> and <code>p_lgl()</code>.</p>
+</dd>
+<dt><code>all_bounded</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br> Is <code>TRUE</code> if all parameters are bounded.</p>
+</dd>
+<dt><code>class</code></dt>
+<dd>
+<p>(named <code>character()</code>)<br> Classes of contained parameters. Named with parameter IDs.</p>
+</dd>
+<dt><code>lower</code></dt>
+<dd>
+<p>(named <code>double()</code>)<br> Lower bounds of numeric parameters (<code>NA</code> for non-numerics). Named with parameter IDs.</p>
+</dd>
+<dt><code>upper</code></dt>
+<dd>
+<p>(named <code>double()</code>)<br> Upper bounds of numeric parameters (<code>NA</code> for non-numerics). Named with parameter IDs.</p>
+</dd>
+<dt><code>levels</code></dt>
+<dd>
+<p>(named <code>list()</code> of <code>character</code>)<br> Allowed levels of categorical parameters (<code>NULL</code> for non-categoricals).
+Named with parameter IDs.</p>
+</dd>
+<dt><code>storage_type</code></dt>
+<dd>
+<p>(<code>character()</code>)<br> Data types of parameters when stored in tables. Named with parameter IDs.</p>
+</dd>
+<dt><code>special_vals</code></dt>
+<dd>
+<p>(named <code>list()</code> of <code>list()</code>)<br> Special values for all parameters. Named with parameter IDs.</p>
+</dd>
+<dt><code>default</code></dt>
+<dd>
+<p>(named <code>list()</code>)<br> Default values of all parameters. If no default exists, element is not present.
+Named with parameter IDs.</p>
+</dd>
+<dt><code>has_trafo_param</code></dt>
+<dd>
+<p>(<code>logical()</code>)<br> Whether <code>trafo</code> is set for any parameter.</p>
+</dd>
+<dt><code>is_logscale</code></dt>
+<dd>
+<p>(<code>logical()</code>)<br> Whether <code>trafo</code> was set to <code>logscale</code> during construction.<br>
+Note that this only refers to the <code>logscale</code> flag set during construction, e.g. <code>p_dbl(logscale = TRUE)</code>.
+If the parameter was set to logscale manually, e.g. through <code>p_dbl(trafo = exp)</code>,
+this <code>is_logscale</code> will be <code>FALSE</code>.</p>
+</dd>
+<dt><code>nlevels</code></dt>
+<dd>
+<p>(named <code>integer()</code>)<br> Number of distinct levels of parameters. <code>Inf</code> for double parameters or unbounded integer parameters.
+Named with param IDs.</p>
+</dd>
+<dt><code>is_number</code></dt>
+<dd>
+<p>(named <code>logical()</code>)<br> Whether parameter is <code>p_dbl()</code> or <code>p_int()</code>. Named with parameter IDs.</p>
+</dd>
+<dt><code>is_categ</code></dt>
+<dd>
+<p>(named <code>logical()</code>)<br> Whether parameter is <code>p_fct()</code> or <code>p_lgl()</code>. Named with parameter IDs.</p>
+</dd>
+<dt><code>is_bounded</code></dt>
+<dd>
+<p>(named <code>logical()</code>)<br> Whether parameters have finite bounds. Named with parameter IDs.</p>
+</dd>
+</dl>
+</div>
+
+
+<h3>Methods</h3>
+
+
+
+<h4>Public methods</h4>
+
+
+<ul>
+<li> <p><a href="#method-ParamSet-new"><code>ParamSet$new()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-ids"><code>ParamSet$ids()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-get_values"><code>ParamSet$get_values()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-set_values"><code>ParamSet$set_values()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-trafo"><code>ParamSet$trafo()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-aggr_internal_tuned_values"><code>ParamSet$aggr_internal_tuned_values()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-disable_internal_tuning"><code>ParamSet$disable_internal_tuning()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-convert_internal_search_space"><code>ParamSet$convert_internal_search_space()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-test_constraint"><code>ParamSet$test_constraint()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-test_constraint_dt"><code>ParamSet$test_constraint_dt()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-check"><code>ParamSet$check()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-check_dependencies"><code>ParamSet$check_dependencies()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-test"><code>ParamSet$test()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-assert"><code>ParamSet$assert()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-check_dt"><code>ParamSet$check_dt()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-test_dt"><code>ParamSet$test_dt()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-assert_dt"><code>ParamSet$assert_dt()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-qunif"><code>ParamSet$qunif()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-get_domain"><code>ParamSet$get_domain()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-subset"><code>ParamSet$subset()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-subspaces"><code>ParamSet$subspaces()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-flatten"><code>ParamSet$flatten()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-search_space"><code>ParamSet$search_space()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-add_dep"><code>ParamSet$add_dep()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-format"><code>ParamSet$format()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-print"><code>ParamSet$print()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ParamSet-clone"><code>ParamSet$clone()</code></a>
+</p>
+</li>
+</ul>
+<hr>
+<a id="method-ParamSet-new"></a>
+
+
+
+<h4>Method <code>new()</code>
+</h4>
+
+<p>Creates a new instance of this R6 class.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$new(params = named_list(), allow_dangling_dependencies = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>params</code></dt>
+<dd>
+<p>(named <code>list()</code>)<br>
+List of <code>Domain</code>, named with their respective ID.</p>
+</dd>
+<dt><code>allow_dangling_dependencies</code></dt>
+<dd>
+<p>(<code>character(1)</code>)<br>
+Whether dependencies depending on parameters that are not present should be allowed. A parameter <code>x</code> having
+<code>depends = y == 0</code> if <code>y</code> is not present would usually throw an error, but if dangling
+dependencies are allowed, the dependency is added regardless. This is mainly for internal
+use.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-ParamSet-ids"></a>
+
+
+
+<h4>Method <code>ids()</code>
+</h4>
+
+<p>Retrieves IDs of contained parameters based on some filter criteria
+selections, <code>NULL</code> means no restriction.
+Only returns IDs of parameters that satisfy all conditions.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$ids(class = NULL, tags = NULL, any_tags = NULL)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>class</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Typically a subset of <code>"ParamDbl"</code>, <code>"ParamInt"</code>, <code>"ParamFct"</code>, <code>"ParamLgl"</code>, <code>"ParamUty"</code>.
+Other classes are possible if implemented by 3rd party packages.
+Return only IDs of dimensions with the given class.</p>
+</dd>
+<dt><code>tags</code></dt>
+<dd>
+<p>(<code>character()</code>).
+Return only IDs of dimensions that have <em>all</em> tags given in this argument.</p>
+</dd>
+<dt><code>any_tags</code></dt>
+<dd>
+<p>(<code>character()</code>).
+Return only IDs of dimensions that have at least one of the tags given in this argument.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p><code>character()</code>.
+</p>
+
+
+<hr>
+<a id="method-ParamSet-get_values"></a>
+
+
+
+<h4>Method <code>get_values()</code>
+</h4>
+
+<p>Retrieves parameter values based on some selections, <code>NULL</code> means no
+restriction and is equivalent to <code style="white-space: pre;">⁠$values⁠</code>.
+Only returns values of parameters that satisfy all conditions.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$get_values(
+  class = NULL,
+  tags = NULL,
+  any_tags = NULL,
+  type = "with_token",
+  check_required = TRUE,
+  remove_dependencies = TRUE
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>class</code></dt>
+<dd>
+<p>(<code>character()</code>). See <code style="white-space: pre;">⁠$ids()⁠</code>.</p>
+</dd>
+<dt><code>tags</code></dt>
+<dd>
+<p>(<code>character()</code>). See <code style="white-space: pre;">⁠$ids()⁠</code>.</p>
+</dd>
+<dt><code>any_tags</code></dt>
+<dd>
+<p>(<code>character()</code>). See <code style="white-space: pre;">⁠$ids()⁠</code>.</p>
+</dd>
+<dt><code>type</code></dt>
+<dd>
+<p>(<code>character(1)</code>)<br>
+Return values <code>"with_token"</code> (i.e. all values),</p>
+</dd>
+<dt><code>check_required</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Check if all required parameters are set?</p>
+</dd>
+<dt><code>remove_dependencies</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+If <code>TRUE</code>, set values with dependencies that are not fulfilled to <code>NULL</code>.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>Named <code>list()</code>.
+</p>
+
+
+<hr>
+<a id="method-ParamSet-set_values"></a>
+
+
+
+<h4>Method <code>set_values()</code>
+</h4>
+
+<p>Allows to to modify (and overwrite) or replace the parameter values.
+Per default already set values are being kept unless new values are being provided.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$set_values(..., .values = list(), .insert = TRUE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>...</code></dt>
+<dd>
+<p>(any)<br>
+Named parameter values.</p>
+</dd>
+<dt><code>.values</code></dt>
+<dd>
+<p>(named <code>list()</code>)<br>
+Named list with parameter values. Names must not already appear in <code>...</code>.</p>
+</dd>
+<dt><code>.insert</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to insert the values (old values are being kept, if not overwritten), or to
+replace all values. Default is TRUE.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-ParamSet-trafo"></a>
+
+
+
+<h4>Method <code>trafo()</code>
+</h4>
+
+<p>Perform transformation specified by the <code>trafo</code> of <code>Domain</code> objects, as well as the <code style="white-space: pre;">⁠$extra_trafo⁠</code> field.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$trafo(x, param_set = self)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>x</code></dt>
+<dd>
+<p>(named <code>list()</code> | <code>data.frame</code>)<br>
+The value(s) to be transformed.</p>
+</dd>
+<dt><code>param_set</code></dt>
+<dd>
+<p>(<code>ParamSet</code>)<br>
+Passed to <code>extra_trafo()</code>. Note that the <code>extra_trafo</code> of <code>self</code> is used, not the <code>extra_trafo</code> of the
+<code>ParamSet</code> given in the <code>param_set</code> argument.
+In almost all cases, the default <code>param_set = self</code> should be used.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-ParamSet-aggr_internal_tuned_values"></a>
+
+
+
+<h4>Method <code>aggr_internal_tuned_values()</code>
+</h4>
+
+<p>Aggregate parameter values according to their aggregation rules.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$aggr_internal_tuned_values(x)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>x</code></dt>
+<dd>
+<p>(named <code>list()</code> of <code>list()</code>s)<br>
+The value(s) to be aggregated. Names are parameter values.
+The aggregation function is selected based on the parameter.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>(named <code>list()</code>)
+</p>
+
+
+<hr>
+<a id="method-ParamSet-disable_internal_tuning"></a>
+
+
+
+<h4>Method <code>disable_internal_tuning()</code>
+</h4>
+
+<p>Set the parameter values so that internal tuning for the selected parameters is disabled.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$disable_internal_tuning(ids)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>ids</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+The ids of the parameters for which to disable internal tuning.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p><code>Self</code>
+</p>
+
+
+<hr>
+<a id="method-ParamSet-convert_internal_search_space"></a>
+
+
+
+<h4>Method <code>convert_internal_search_space()</code>
+</h4>
+
+<p>Convert all parameters from the search space to parameter values using the transformation given by
+<code>in_tune_fn</code>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$convert_internal_search_space(search_space)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>search_space</code></dt>
+<dd>
+<p>(<code>ParamSet</code>)<br>
+The internal search space.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>(named <code>list()</code>)
+</p>
+
+
+<hr>
+<a id="method-ParamSet-test_constraint"></a>
+
+
+
+<h4>Method <code>test_constraint()</code>
+</h4>
+
+<p><span class="pkg">checkmate</span>-like test-function. Takes a named list.
+Return <code>FALSE</code> if the given <code style="white-space: pre;">⁠$constraint⁠</code> is not satisfied, <code>TRUE</code> otherwise.
+Note this is different from satisfying the bounds or types given by the <code>ParamSet</code> itself:
+If <code>x</code> does not satisfy these, an error will be thrown, given that <code>assert_value</code> is <code>TRUE</code>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$test_constraint(x, assert_value = TRUE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>x</code></dt>
+<dd>
+<p>(named <code>list()</code>)<br>
+The value to test.</p>
+</dd>
+<dt><code>assert_value</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to verify that <code>x</code> satisfies the bounds and types given by this <code>ParamSet</code>.
+Should be <code>TRUE</code> unless this was already checked before.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p><code>logical(1)</code>: Whether <code>x</code> satisfies the <code style="white-space: pre;">⁠$constraint⁠</code>.
+</p>
+
+
+<hr>
+<a id="method-ParamSet-test_constraint_dt"></a>
+
+
+
+<h4>Method <code>test_constraint_dt()</code>
+</h4>
+
+<p><span class="pkg">checkmate</span>-like test-function. Takes a <code>data.table</code>.
+For each row, return <code>FALSE</code> if the given <code style="white-space: pre;">⁠$constraint⁠</code> is not satisfied, <code>TRUE</code> otherwise.
+Note this is different from satisfying the bounds or types given by the <code>ParamSet</code> itself:
+If <code>x</code> does not satisfy these, an error will be thrown, given that <code>assert_value</code> is <code>TRUE</code>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$test_constraint_dt(x, assert_value = TRUE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>x</code></dt>
+<dd>
+<p>(<code>data.table</code>)<br>
+The values to test.</p>
+</dd>
+<dt><code>assert_value</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to verify that <code>x</code> satisfies the bounds and types given by this <code>ParamSet</code>.
+Should be <code>TRUE</code> unless this was already checked before.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p><code>logical</code>: For each row in <code>x</code>, whether it satisfies the <code style="white-space: pre;">⁠$constraint⁠</code>.
+</p>
+
+
+<hr>
+<a id="method-ParamSet-check"></a>
+
+
+
+<h4>Method <code>check()</code>
+</h4>
+
+<p><span class="pkg">checkmate</span>-like check-function. Takes a named list.
+A point x is feasible, if it configures a subset of params,
+all individual param constraints are satisfied and all dependencies are satisfied.
+Params for which dependencies are not satisfied should not be part of <code>x</code>.
+Constraints and dependencies are not checked when <code>check_strict</code> is <code>FALSE</code>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$check(xs, check_strict = TRUE, sanitize = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>xs</code></dt>
+<dd>
+<p>(named <code>list()</code>).</p>
+</dd>
+<dt><code>check_strict</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to check that constraints and dependencies are satisfied.</p>
+</dd>
+<dt><code>sanitize</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to move values that are slightly outside bounds to valid values.
+These values are accepted independent of <code>sanitize</code> (depending on the
+<code>tolerance</code> arguments of <code>p_dbl()</code> and <code>p_int()</code>) . If <code>sanitize</code>
+is <code>TRUE</code>, the additional effect is that, should checks pass, the
+sanitized values of <code>xs</code> are added to the result as attribute <code>"sanitized"</code>.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>If successful <code>TRUE</code>, if not a string with an error message.
+</p>
+
+
+<hr>
+<a id="method-ParamSet-check_dependencies"></a>
+
+
+
+<h4>Method <code>check_dependencies()</code>
+</h4>
+
+<p><span class="pkg">checkmate</span>-like check-function. Takes a named list.
+Checks that all individual param dependencies are satisfied.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$check_dependencies(xs)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>xs</code></dt>
+<dd>
+<p>(named <code>list()</code>).</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>If successful <code>TRUE</code>, if not a string with an error message.
+</p>
+
+
+<hr>
+<a id="method-ParamSet-test"></a>
+
+
+
+<h4>Method <code>test()</code>
+</h4>
+
+<p><span class="pkg">checkmate</span>-like test-function. Takes a named list.
+A point x is feasible, if it configures a subset of params,
+all individual param constraints are satisfied and all dependencies are satisfied.
+Params for which dependencies are not satisfied should not be part of <code>x</code>.
+Constraints and dependencies are not checked when <code>check_strict</code> is <code>FALSE</code>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$test(xs, check_strict = TRUE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>xs</code></dt>
+<dd>
+<p>(named <code>list()</code>).</p>
+</dd>
+<dt><code>check_strict</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to check that constraints and dependencies are satisfied.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>If successful <code>TRUE</code>, if not <code>FALSE</code>.
+</p>
+
+
+<hr>
+<a id="method-ParamSet-assert"></a>
+
+
+
+<h4>Method <code>assert()</code>
+</h4>
+
+<p><span class="pkg">checkmate</span>-like assert-function. Takes a named list.
+A point x is feasible, if it configures a subset of params,
+all individual param constraints are satisfied and all dependencies are satisfied.
+Params for which dependencies are not satisfied should not be part of <code>x</code>.
+Constraints and dependencies are not checked when <code>check_strict</code> is <code>FALSE</code>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$assert(
+  xs,
+  check_strict = TRUE,
+  .var.name = vname(xs),
+  sanitize = FALSE
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>xs</code></dt>
+<dd>
+<p>(named <code>list()</code>).</p>
+</dd>
+<dt><code>check_strict</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to check that constraints and dependencies are satisfied.</p>
+</dd>
+<dt><code>.var.name</code></dt>
+<dd>
+<p>(<code>character(1)</code>)<br>
+Name of the checked object to print in error messages.<br>
+Defaults to the heuristic implemented in vname.</p>
+</dd>
+<dt><code>sanitize</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to move values that are slightly outside bounds to valid values.
+These values are accepted independent of <code>sanitize</code> (depending on the
+<code>tolerance</code> arguments of <code>p_dbl()</code> and <code>p_int()</code>) . If <code>sanitize</code>
+is <code>TRUE</code>, the additional effect is that <code>xs</code> is converted to within bounds.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>If successful <code>xs</code> invisibly, if not an error message.
+</p>
+
+
+<hr>
+<a id="method-ParamSet-check_dt"></a>
+
+
+
+<h4>Method <code>check_dt()</code>
+</h4>
+
+<p><span class="pkg">checkmate</span>-like check-function. Takes a data.table::data.table
+where rows are points and columns are parameters.
+A point x is feasible, if it configures a subset of params,
+all individual param constraints are satisfied and all dependencies are satisfied.
+Params for which dependencies are not satisfied should not be part of <code>x</code>.
+Constraints and dependencies are not checked when <code>check_strict</code> is <code>FALSE</code>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$check_dt(xdt, check_strict = TRUE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>xdt</code></dt>
+<dd>
+<p>(data.table::data.table | <code>data.frame()</code>).</p>
+</dd>
+<dt><code>check_strict</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to check that constraints and dependencies are satisfied.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>If successful <code>TRUE</code>, if not a string with the error message.
+</p>
+
+
+<hr>
+<a id="method-ParamSet-test_dt"></a>
+
+
+
+<h4>Method <code>test_dt()</code>
+</h4>
+
+<p><span class="pkg">checkmate</span>-like test-function (s. <code style="white-space: pre;">⁠$check_dt()⁠</code>).
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$test_dt(xdt, check_strict = TRUE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>xdt</code></dt>
+<dd>
+<p>(data.table::data.table).</p>
+</dd>
+<dt><code>check_strict</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to check that constraints and dependencies are satisfied.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>If successful <code>TRUE</code>, if not <code>FALSE</code>.
+</p>
+
+
+<hr>
+<a id="method-ParamSet-assert_dt"></a>
+
+
+
+<h4>Method <code>assert_dt()</code>
+</h4>
+
+<p><span class="pkg">checkmate</span>-like assert-function (s. <code style="white-space: pre;">⁠$check_dt()⁠</code>).
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$assert_dt(xdt, check_strict = TRUE, .var.name = vname(xdt))</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>xdt</code></dt>
+<dd>
+<p>(data.table::data.table).</p>
+</dd>
+<dt><code>check_strict</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to check that constraints and dependencies are satisfied.</p>
+</dd>
+<dt><code>.var.name</code></dt>
+<dd>
+<p>(<code>character(1)</code>)<br>
+Name of the checked object to print in error messages.<br>
+Defaults to the heuristic implemented in vname.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>If successful <code>xs</code> invisibly, if not, an error is generated.
+</p>
+
+
+<hr>
+<a id="method-ParamSet-qunif"></a>
+
+
+
+<h4>Method <code>qunif()</code>
+</h4>
+
+<p>Map a <code>matrix</code> or <code>data.frame</code> of values between 0 and 1 to proportional values inside the feasible intervals of individual parameters.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$qunif(x)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>x</code></dt>
+<dd>
+<p>(<code>matrix</code> | <code>data.frame</code>)<br>
+Values to map. Column names must be a subset of the names of parameters.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p><code>data.table</code>.
+</p>
+
+
+<hr>
+<a id="method-ParamSet-get_domain"></a>
+
+
+
+<h4>Method <code>get_domain()</code>
+</h4>
+
+<p>get the <code>Domain</code> object that could be used to create a given parameter.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$get_domain(id)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>id</code></dt>
+<dd>
+<p>(<code>character(1)</code>).</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p><code>Domain</code>.
+</p>
+
+
+<hr>
+<a id="method-ParamSet-subset"></a>
+
+
+
+<h4>Method <code>subset()</code>
+</h4>
+
+<p>Create a new <code>ParamSet</code> restricted to the passed IDs.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$subset(
+  ids,
+  allow_dangling_dependencies = FALSE,
+  keep_constraint = TRUE
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>ids</code></dt>
+<dd>
+<p>(<code>character()</code>).</p>
+</dd>
+<dt><code>allow_dangling_dependencies</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to allow subsets that cut across parameter dependencies.
+Dependencies that point to dropped parameters are kept (but will be "dangling", i.e. their <code>"on"</code> will not be present).</p>
+</dd>
+<dt><code>keep_constraint</code></dt>
+<dd>
+<p>(<code>logical(1)</code>)<br>
+Whether to keep the <code style="white-space: pre;">⁠$constraint⁠</code> function.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p><code>ParamSet</code>.
+</p>
+
+
+<hr>
+<a id="method-ParamSet-subspaces"></a>
+
+
+
+<h4>Method <code>subspaces()</code>
+</h4>
+
+<p>Create new one-dimensional <code>ParamSet</code>s for each dimension.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$subspaces(ids = private$.params$id)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>ids</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+IDs for which to create <code>ParamSet</code>s. Defaults to all IDs.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>named <code>list()</code> of <code>ParamSet</code>.
+</p>
+
+
+<hr>
+<a id="method-ParamSet-flatten"></a>
+
+
+
+<h4>Method <code>flatten()</code>
+</h4>
+
+<p>Create a <code>ParamSet</code> from this object, even if this object itself is not
+a <code>ParamSet</code> but e.g. a <code>ParamSetCollection</code>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$flatten()</pre></div>
+
+
+<hr>
+<a id="method-ParamSet-search_space"></a>
+
+
+
+<h4>Method <code>search_space()</code>
+</h4>
+
+<p>Construct a <code>ParamSet</code> to tune over. Constructed from <code>TuneToken</code> in <code style="white-space: pre;">⁠$values⁠</code>, see <code>to_tune()</code>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$search_space(values = self$values)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>values</code></dt>
+<dd>
+<p>(<code style="white-space: pre;">⁠named list⁠</code>): optional named list of <code>TuneToken</code> objects to convert, in place of <code style="white-space: pre;">⁠$values⁠</code>.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-ParamSet-add_dep"></a>
+
+
+
+<h4>Method <code>add_dep()</code>
+</h4>
+
+<p>Adds a dependency to this set, so that param <code>id</code> now depends on param <code>on</code>.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$add_dep(id, on, cond, allow_dangling_dependencies = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>id</code></dt>
+<dd>
+<p>(<code>character(1)</code>).</p>
+</dd>
+<dt><code>on</code></dt>
+<dd>
+<p>(<code>character(1)</code>).</p>
+</dd>
+<dt><code>cond</code></dt>
+<dd>
+<p>(Condition).</p>
+</dd>
+<dt><code>allow_dangling_dependencies</code></dt>
+<dd>
+<p>(<code>logical(1)</code>): Whether to allow dependencies on parameters that are not present.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-ParamSet-format"></a>
+
+
+
+<h4>Method <code>format()</code>
+</h4>
+
+<p>Helper for print outputs.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$format()</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>...</code></dt>
+<dd>
+<p>(ignored).</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-ParamSet-print"></a>
+
+
+
+<h4>Method <code>print()</code>
+</h4>
+
+<p>Printer.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$print(
+  ...,
+  hide_cols = c("levels", "is_bounded", "special_vals", "tags", "storage_type")
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>...</code></dt>
+<dd>
+<p>(ignored).</p>
+</dd>
+<dt><code>hide_cols</code></dt>
+<dd>
+<p>(<code>character()</code>)<br>
+Which fields should not be printed? Default is <code>"levels"</code>,
+<code>"is_bounded"</code>, <code>"special_vals"</code>, <code>"tags"</code>, and <code>"storage_type"</code>.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-ParamSet-clone"></a>
+
+
+
+<h4>Method <code>clone()</code>
+</h4>
+
+<p>The objects of this class are cloneable with this method.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ParamSet$clone(deep = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>deep</code></dt>
+<dd>
+<p>Whether to make a deep clone.</p>
+</dd>
+</dl>
+</div>
+
+
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">pset = ParamSet$new(
+  params = list(
+    d = p_dbl(lower = -5, upper = 5, default = 0, trafo = function(x) 2^x),
+    f = p_fct(levels = letters[1:3])
+  )
+)
+
+# alternative, recommended way of construction in this case since the
+# parameter list is not dynamic:
+pset = ps(
+  d = p_dbl(lower = -5, upper = 5, default = 0, trafo = function(x) 2^x),
+  f = p_fct(levels = letters[1:3])
+)
+
+pset$check(list(d = 2.1, f = "a"))
+
+pset$check(list(d = 2.1, f = "d"))
+</code></pre>
+
+
+</div>

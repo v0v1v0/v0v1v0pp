@@ -1,0 +1,174 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>add_min_largest_shortfall_objective</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add minimum largest shortfall objective</h2>
+
+<h3>Description</h3>
+
+<p>Set the objective of a conservation planning problem to
+minimize the largest target shortfall while ensuring that
+the cost of the solution does not exceed a budget. Note that if the
+target shortfall for a single feature cannot be decreased beyond a certain
+point (e.g., because all remaining planning units occupied by that feature
+are too costly or are locked out), then solutions may only use a small
+proportion of the specified budget.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">add_min_largest_shortfall_objective(x, budget)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>problem()</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>budget</code></td>
+<td>
+<p><code>numeric</code> value specifying the maximum expenditure of
+the prioritization. For problems with multiple zones, the argument
+to <code>budget</code> can be (i) a single <code>numeric</code> value to specify a single budget
+for the entire solution or (ii) a <code>numeric</code> vector to specify
+a separate budget for each management zone.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The minimum largest shortfall objective aims to
+find the set of planning units that minimize the largest
+shortfall for any of the representation targets—that is, the fraction of
+each target that remains unmet—for as many features as possible while
+staying within a fixed budget. This objective is different from the
+minimum shortfall objective (<code>add_min_shortfall_objective()</code>) because this
+objective minimizes the largest (maximum) target shortfall,
+whereas the minimum shortfall objective
+minimizes the total (weighted sum) of the target shortfalls.
+Note that this objective function is not compatible with feature weights
+(<code>add_feature_weights()</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>An updated <code>problem()</code> object with the objective added to it.
+</p>
+
+
+<h3>Mathematical formulation</h3>
+
+<p>This objective can be expressed mathematically for a set of planning units
+(<code class="reqn">I</code> indexed by <code class="reqn">i</code>) and a set of features (<code class="reqn">J</code>
+indexed by <code class="reqn">j</code>) as:
+</p>
+<p style="text-align: center;"><code class="reqn">\mathit{Minimize} \space l \\
+\mathit{subject \space to} \\
+\sum_{i = 1}^{I} x_i r_{ij} + y_j \geq t_j \forall j \in J \\
+l \geq \frac{y_j}{t_j} \forall j \in J \\
+\sum_{i = 1}^{I} x_i c_i \leq B</code>
+</p>
+
+<p>Here, <code class="reqn">x_i</code> is the decisions variable (e.g.,
+specifying whether planning unit <code class="reqn">i</code> has been selected (1) or not
+(0)), <code class="reqn">r_{ij}</code> is the amount of feature <code class="reqn">j</code> in planning
+unit <code class="reqn">i</code>, and <code class="reqn">t_j</code> is the representation target for feature
+<code class="reqn">j</code>.
+Additionally, <code class="reqn">y_j</code> denotes the target shortfall for
+the target <code class="reqn">t_j</code> for feature <code class="reqn">j</code>, and
+<code class="reqn">l</code> denotes the largest target shortfall.
+Furthermore, <code class="reqn">B</code> is the budget allocated for the solution,
+<code class="reqn">c_i</code> is the cost of planning unit <code class="reqn">i</code>. Note that
+<code class="reqn">y_j</code> and <code class="reqn">s</code> are continuous variables bounded between zero
+and infinity.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See objectives for an overview of all functions for adding objectives.
+Also, see targets for an overview of all functions for adding targets, and
+<code>add_feature_weights()</code> to specify weights for different features.
+</p>
+<p>Other objectives: 
+<code>add_max_cover_objective()</code>,
+<code>add_max_features_objective()</code>,
+<code>add_max_phylo_div_objective()</code>,
+<code>add_max_phylo_end_objective()</code>,
+<code>add_max_utility_objective()</code>,
+<code>add_min_set_objective()</code>,
+<code>add_min_shortfall_objective()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# load data
+sim_pu_raster &lt;- get_sim_pu_raster()
+sim_features &lt;- get_sim_features()
+sim_zones_pu_raster &lt;- get_sim_zones_pu_raster()
+sim_zones_features &lt;- get_sim_zones_features()
+
+# create problem with minimum largest shortfall objective
+p1 &lt;-
+  problem(sim_pu_raster, sim_features) %&gt;%
+  add_min_largest_shortfall_objective(1800) %&gt;%
+  add_relative_targets(0.1) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve problem
+s1 &lt;- solve(p1)
+
+# plot solution
+plot(s1, main = "solution", axes = FALSE)
+
+# create multi-zone problem with minimum largest shortfall objective,
+# with 10% representation targets for each feature, and set
+# a budget such that the total maximum expenditure in all zones
+# cannot exceed 1800
+p2 &lt;-
+  problem(sim_zones_pu_raster, sim_zones_features) %&gt;%
+  add_min_largest_shortfall_objective(1800) %&gt;%
+  add_relative_targets(matrix(0.1, ncol = 3, nrow = 5)) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve problem
+s2 &lt;- solve(p2)
+
+# plot solution
+plot(category_layer(s2), main = "solution", axes = FALSE)
+
+# create multi-zone problem with minimum largest shortfall objective,
+# with 10% representation targets for each feature, and set
+# separate budgets of 1800 for each management zone
+p3 &lt;-
+  problem(sim_zones_pu_raster, sim_zones_features) %&gt;%
+  add_min_largest_shortfall_objective(c(1800, 1800, 1800)) %&gt;%
+  add_relative_targets(matrix(0.1, ncol = 3, nrow = 5)) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve problem
+s3 &lt;- solve(p3)
+
+# plot solution
+plot(category_layer(s3), main = "solution", axes = FALSE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

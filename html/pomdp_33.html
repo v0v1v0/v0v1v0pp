@@ -1,0 +1,170 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Maze</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Steward Russell's 4x3 Maze Gridworld MDP</h2>
+
+<h3>Description</h3>
+
+<p>The 4x3 maze is described in Chapter 17 of the textbook
+"Artificial Intelligence: A Modern Approach" (AIMA).
+</p>
+
+
+<h3>Format</h3>
+
+<p>An object of class MDP.
+</p>
+
+
+<h3>Details</h3>
+
+<p>The simple maze has the following layout:
+</p>
+<pre>
+    1234           Transition model:
+   ######             .8 (action direction)
+  1#   +#              ^
+  2# # -#              |
+  3#S   #         .1 &lt;-|-&gt; .1
+   ######
+</pre>
+<p>We represent the maze states as a gridworld matrix with 3 rows and
+4 columns. The states are labeled <code>s(row, col)</code> representing the position in
+the matrix.
+The # (state <code>s(2,2)</code>) in the middle of the maze is an obstruction and not reachable.
+Rewards are associated with transitions. The default reward (penalty) is -0.04.
+The start state marked with <code>S</code> is <code>s(3,1)</code>.
+Transitioning to <code>+</code> (state <code>s(1,4)</code>) gives a reward of +1.0,
+transitioning to <code>-</code> (state <code>s_(2,4)</code>)
+has a reward of -1.0. Both these states are absorbing
+(i.e., terminal) states.
+</p>
+<p>Actions are movements (<code>up</code>, <code>right</code>, <code>down</code>, <code>left</code>). The actions are
+unreliable with a .8 chance
+to move in the correct direction and a 0.1 chance to instead to move in a
+perpendicular direction leading to a stochastic transition model.
+</p>
+<p>Note that the problem has reachable terminal states which leads to a proper policy
+(that is guaranteed to reach a terminal state). This means that the solution also
+converges without discounting (<code>discount = 1</code>).
+</p>
+
+
+<h3>References</h3>
+
+<p>Russell,9 S. J. and Norvig, P. (2020). Artificial Intelligence:
+A modern approach. 4rd ed.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other MDP_examples: 
+<code>Cliff_walking</code>,
+<code>MDP()</code>,
+<code>Windy_gridworld</code>
+</p>
+<p>Other gridworld: 
+<code>Cliff_walking</code>,
+<code>Windy_gridworld</code>,
+<code>gridworld</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># The problem can be loaded using data(Maze).
+
+# Here is the complete problem definition:
+gw &lt;- gridworld_init(dim = c(3, 4), unreachable_states = c("s(2,2)"))
+gridworld_matrix(gw)
+
+# the transition function is stochastic so we cannot use the standard
+# gridworld gw$transition_prob() function
+T &lt;- function(action, start.state, end.state) {
+  action &lt;- match.arg(action, choices = gw$actions)
+  
+  # absorbing states
+  if (start.state %in% c('s(1,4)', 's(2,4)')) {
+    if (start.state == end.state) return(1)
+    else return(0)
+  }
+  
+  # actions are stochastic so we cannot use gw$trans_prob
+  if(action %in% c("up", "down")) error_direction &lt;- c("right", "left")
+  else error_direction &lt;- c("up", "down")
+  
+  rc &lt;- gridworld_s2rc(start.state)
+  delta &lt;- list(up = c(-1, 0), 
+                down = c(+1, 0),
+                right = c(0, +1), 
+                left = c(0, -1))
+  P &lt;- matrix(0, nrow = 3, ncol = 4)
+
+  add_prob &lt;- function(P, rc, a, value) {
+    new_rc &lt;- rc + delta[[a]]
+    if (!(gridworld_rc2s(new_rc) %in% gw$states))
+      new_rc &lt;- rc
+    P[new_rc[1], new_rc[2]] &lt;- P[new_rc[1], new_rc[2]] + value
+    P
+  }
+
+  P &lt;- add_prob(P, rc, action, .8)
+  P &lt;- add_prob(P, rc, error_direction[1], .1)
+  P &lt;- add_prob(P, rc, error_direction[2], .1)
+  P[rbind(gridworld_s2rc(end.state))]
+}
+
+T("up", "s(3,1)", "s(2,1)")
+
+R &lt;- rbind(
+ R_(end.state   = NA,     value = -0.04),
+ R_(end.state   = 's(2,4)',  value = -1),
+ R_(end.state   = 's(1,4)',  value = +1),
+ R_(start.state = 's(2,4)',  value = 0),
+ R_(start.state = 's(1,4)',  value = 0)
+)
+
+
+Maze &lt;- MDP(
+ name = "Stuart Russell's 3x4 Maze",
+ discount = 1,
+ horizon = Inf,
+ states = gw$states,
+ actions = gw$actions,
+ start = "s(3,1)",
+ transition_prob = T,
+ reward = R,
+ info = list(gridworld_dim = c(3, 4),
+             gridworld_labels = list(
+                "s(3,1)" = "Start",
+                "s(2,4)" = "-1",
+                "s(1,4)" = "Goal: +1"
+                )
+             )
+)
+
+Maze
+
+str(Maze)
+
+gridworld_matrix(Maze)
+gridworld_matrix(Maze, what = "labels")
+
+# find absorbing (terminal) states
+which(absorbing_states(Maze))
+
+maze_solved &lt;- solve_MDP(Maze)
+policy(maze_solved)
+
+gridworld_matrix(maze_solved, what = "values")
+gridworld_matrix(maze_solved, what = "actions")
+
+gridworld_plot_policy(maze_solved)
+</code></pre>
+
+
+</div>

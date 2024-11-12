@@ -1,0 +1,220 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>retrieve</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Retrieve Information from PubChem Instances</h2>
+
+<h3>Description</h3>
+
+<p>This generic function extracts a specific slot from a PubChem instance.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">retrieve(object, ...)
+
+## S3 method for class 'PubChemInstance'
+retrieve(object, .slot = NULL, .to.data.frame = TRUE, .verbose = FALSE, ...)
+
+## S3 method for class 'PubChemInstanceList'
+retrieve(
+  object,
+  .which = NULL,
+  .slot = NULL,
+  .to.data.frame = TRUE,
+  .combine.all = FALSE,
+  ...
+)
+
+## S3 method for class 'PC_Substance'
+retrieve(
+  object,
+  .slot = NULL,
+  .idx = 1,
+  .to.data.frame = TRUE,
+  .verbose = FALSE,
+  ...
+)
+
+## S3 method for class 'PugViewInstance'
+retrieve(object, .slot = NULL, .to.data.frame = TRUE, ...)
+
+## S3 method for class 'PugViewSection'
+retrieve(object, .slot = NULL, .to.data.frame = FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>An object returned from a PubChem request.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed to other methods.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.slot</code></td>
+<td>
+<p>A string specifying which slot to return. Should not be NULL or length of &gt;1 with some exceptions. See the notes for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.to.data.frame</code></td>
+<td>
+<p>A logical value. If TRUE, the returned object will be converted into a data.frame (or tibble).
+If conversion to a data.frame fails, a list will be returned with a warning. Be cautious with complex lists
+(i.e., many elements nested within each other) as it may be time-consuming to convert such lists into a data frame.
+Additionally, <code>.to.data.frame</code> is ignored in specific scenarios.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.verbose</code></td>
+<td>
+<p>A logical value. Should the resulting object be printed to the R console? If TRUE, the object is returned invisibly
+and the output is printed nicely to the R console. This option may not be available for some slots (or classes).
+See Notes/Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.which</code></td>
+<td>
+<p>A character value. This is the identifier of the PubChem request that will be extracted from the complete list. It is ignored if <code>.combine.all = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.combine.all</code></td>
+<td>
+<p>a logical value. If TRUE, the properties of all requested instances are combined into a single data frame (or a list if <code>.to.data.frame = FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.idx</code></td>
+<td>
+<p>An integer indicating which substance result should be returned. A PubChem request may return multiple
+substances in the output. <code>.idx</code> specifies the index of the substance to be extracted from the complete list.</p>
+</td>
+</tr>
+</table>
+<h3>Details on <code>'PugViewInstance'</code> and <code>'PugViewSection'</code>
+</h3>
+
+<p>The PugView API returns a detailed list related to PubChem requests. The 'Section' slot in this list is structured into
+a sub-class called <code>'PugViewSection'</code>. This object contains information organized through several sections (or sub-sections),
+which can be retrieved using <em>section-specific</em> functions such as section and sectionList.
+</p>
+<p>The function argument <code>.to.data.frame</code> is ignored if the "Section" slot is being extracted from the complete list.
+For other slots, <code>.to.data.frame</code> is considered as usual. See examples for usage.
+</p>
+
+
+<h3>Note</h3>
+
+<p>If the object is from the <code>'PC_Properties'</code> class, the <code>.slot</code> can be defined as NULL. If <code>.slot = NULL</code>, <code>retrieve()</code> will return all available properties. If <code>'object'</code> is of class other than <code>'PC_Properties'</code>, <code>.slot</code> should be length of 1.
+</p>
+
+
+<h4>Extracting multiple slots.</h4>
+
+<p>In some cases, it may be practical to extract multiple slots from <code>'object'</code>. For example, one may wish to extract properties from the output of get_properties by running the functions in a loop. See codes below for a practical example:
+</p>
+<pre>
+  library(dplyr)
+
+  props &lt;- get_properties(
+    properties = c("MolecularWeight", "MolecularFormula", "HBondDonorCount",
+                   "HBondAcceptorCount", "InChIKey", "InChI"),
+    identifier = 2244,
+    namespace = "cid",
+    propertyMatch = list(
+      .ignore.case = TRUE,
+      type = "contain"
+    )
+  )
+
+  bind_columns &lt;- function(x, ...){
+    part1 &lt;- x[[1]][ ,"Identifier"]
+    part2 &lt;- lapply(x, "[", 2) 
+      bind_cols()
+
+    bind_cols(part1, part2)
+  }
+
+  propsToExtract &lt;- c("MolecularWeight", "MolecularFormula", "HBondDonorCount")
+  tmp &lt;- lapply(propsToExtract, retrieve, object = props, .which = "2244")
+  bind_columns(tmp)
+</pre>
+
+
+<h4>Use of the <code>'.verbose'</code> argument</h4>
+
+<p><code>retrieve</code> returns output silently (invisibly) when <code>.verbose = TRUE</code>. However, the function behaves differently
+under the following scenarios:
+</p>
+
+<ul>
+<li>
+<p><code>.verbose</code> is ignored if <code>.combine.all = TRUE</code>. The output is returned silently.
+</p>
+</li>
+<li>
+<p><code>.verbose</code> is ignored if the requested slot is not printable to the R console because it is too complicated to print.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">compounds &lt;- get_compounds(
+  identifier = c("aspirin", "ibuprofen", "rstudio"),
+  namespace = "name"
+ )
+
+# Extract information for "aspirin"
+aspirin &lt;- instance(compounds, "aspirin")
+# print(aspirin)
+
+# Extract a specific slot from the "aspirin" compound.
+retrieve(aspirin, "props", .to.data.frame = TRUE)
+
+# Examples (PubChemInstanceList)
+retrieve(compounds, "aspirin", "props", .to.data.frame = TRUE)
+
+# Verbose Assay References to R Console
+assays &lt;- get_assays(identifier = c(1234, 7815), namespace = "aid")
+
+instance(assays, "7815")
+retrieve(assays, "7815", "xref", .verbose = TRUE)
+
+# Print assay protocol to R console (if available)
+# Note that it may be too long to print for some assays.
+# retrieve(assays, "1234", "protocol", .verbose = TRUE)
+
+# No protocol is available for assay "1234".
+# retrieve(assays, "7815", "protocol", .verbose = TRUE)
+
+# Ignores ".verbose" and ".which" if ".combine.all = TRUE".
+retrieve(assays, .slot = "xref", .verbose = TRUE, .combine.all = TRUE)
+
+### PUG VIEW EXAMPLES ###
+pview &lt;- get_pug_view(identifier = "2244", annotation = "data", domain = "compound")
+
+# PugViewSectionList object.
+# This object contains all the section information related to the PubChem request.
+sect &lt;- retrieve(pview, .slot = "Section")
+print(sect)
+
+retrieve(pview, .slot = "RecordType", .to.data.frame = TRUE)
+
+</code></pre>
+
+
+</div>

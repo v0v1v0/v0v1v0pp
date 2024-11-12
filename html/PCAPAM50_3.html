@@ -1,0 +1,125 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>makeCalls.v1PAM</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Make PCAPAM50 calls</h2>
+
+<h3>Description</h3>
+
+<p>This function uses the intermediate intrinsic subtype calls and preprocessed PAM50 gene expression
+data to create an ER-balanced set and produces PCAPAM50 Calls.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">makeCalls.v1PAM(df.pam, seed = 118, mat, inputDir=NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>df.pam</code></td>
+<td>
+<p>Data frame of PAM data; It should include the columns 'PatientID' and 'PAM50'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Seed for random number generation to ensure reproducibility.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mat</code></td>
+<td>
+<p>Matrix of preprocessed PAM50 expression data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inputDir</code></td>
+<td>
+<p>Directory for output files.If <code>NULL</code>, a subdirectory named "Calls.PCAPAM50" within the temporary directory will be used.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Returns a list containing:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>Int.sbs</code></td>
+<td>
+<p>Data frame with integrated subtype and clinical data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>score.fl</code></td>
+<td>
+<p>Data frame with scores from subtype predictions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mdns.fl</code></td>
+<td>
+<p>Data frame with median values for each gene in the ER-balanced set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SBS.colr</code></td>
+<td>
+<p>Colors associated with each subtype from the prediction results.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outList</code></td>
+<td>
+<p>Detailed results from subtype prediction functions.</p>
+</td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+<p><code>prcomp</code>, <code>merge</code>, <code>set.seed</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+  data_path &lt;- system.file("extdata", "Sample_IHC_PAM_Mat.Rdat", package = "PCAPAM50")
+  load(data_path) # Loads Test.ihc and Test.matrix
+
+
+  # Prepare the data
+  Test.ihc$ER_status &lt;- rep("NA", length(Test.ihc$PatientID))
+  Test.ihc$ER_status[grep("^L",Test.ihc$IHC)] = "pos"
+  Test.ihc$ER_status[-grep("^L",Test.ihc$IHC)] = "neg"
+  Test.ihc &lt;- Test.ihc[order(Test.ihc$ER_status, decreasing = TRUE),]
+  Test.matrix &lt;- Test.matrix[, Test.ihc$PatientID]
+
+  df.cln &lt;- data.frame(PatientID = Test.ihc$PatientID, IHC = Test.ihc$IHC, stringsAsFactors = FALSE)
+  inputDir &lt;- "Call.PC1"
+
+  # Make a secondary ER-balanced subset and derive intermediate intrinsic subtype calls
+  result &lt;- makeCalls.PC1ihc(df.cln=df.cln, seed = 118, mat = Test.matrix, inputDir=inputDir)
+
+  df.pc1pam = data.frame(PatientID=result$Int.sbs$PatientID,
+  			PAM50=result$Int.sbs$Int.SBS.Mdns.PC1ihc,
+			IHC=result$Int.sbs$IHC,
+			stringsAsFactors=FALSE) ### IHC column is optional
+  
+  
+
+  # Make a tertiary ER-balanced set and PCAPAM50 calls
+  res &lt;- makeCalls.v1PAM(df.pam = df.pc1pam, seed = 118, mat = Test.matrix, inputDir=NULL)
+
+</code></pre>
+
+
+</div>

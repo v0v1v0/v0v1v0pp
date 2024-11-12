@@ -1,0 +1,194 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>point</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Protein Structure Guided Local Test</h2>
+
+<h3>Description</h3>
+
+<p>A rare variant association test that utilizes protein tertiary structure to 
+increase signal and to identify likely causal variants. Performs 
+structure-guided collapsing, which leads to local tests that borrow 
+information from neighboring variants on a protein and that provide 
+association information on a variant-specific level.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">point(
+  yy,
+  X,
+  snp,
+  proteinCoord,
+  ...,
+  trait = "binomial",
+  cValues = c(0, 0.1, 0.2, 0.3, 0.4, 0.5),
+  weighted = TRUE,
+  weight = NULL,
+  kernel = "linear",
+  d = NULL,
+  pvMethod = "davies",
+  nperturb = 1000,
+  verbose = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>yy</code></td>
+<td>
+<p>numeric vector; phenotype values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>numeric matrix; non-genetic covariates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>snp</code></td>
+<td>
+<p>numeric matrix; genotype snp matrix (count of minor alleles).
+Matrix cannot contain missing values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>proteinCoord</code></td>
+<td>
+<p>numeric matrix; columns correspond to 3 dimensional
+coordinates (x,y,z) of each variant in the protein tertiary structure.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>optional additional arguments for p-value methods 
+CompQuadForm::davies and CompQuadForm::liu.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trait</code></td>
+<td>
+<p>character; type of phenotype data.
+Must be one of {'gaussian','binomial'}
+quantitative or case control data, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cValues</code></td>
+<td>
+<p>numeric vector; c values from which to choose the
+optimal neighborhood size for borrowing significant information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weighted</code></td>
+<td>
+<p>logical; whether or not to weight the local kernel
+test using (non-distance based) weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weight</code></td>
+<td>
+<p>numeric vector (optional) If NULL and weighted is TRUE
+(1.0-MAF)^24. Ignored if weighted is FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kernel</code></td>
+<td>
+<p>character; type of local kernel to use;
+Must be one of {'burden', 'linear', 'polynomial'}.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>numeric; If kernel = 'poly', d is the order of the
+polynomial kernel.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pvMethod</code></td>
+<td>
+<p>character; method of calculating the p-value of each
+single marker test for fixed c values.
+Must be one of {'davies', 'liu'}.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nperturb</code></td>
+<td>
+<p>numeric, number of perturbations/resamples
+(perturbed test statistics) to calculate p-value of minP statistic.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical; generate progress screen prints.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Returns a matrix the rows of which correspond to individual markers.
+Columns correspond to: <br> 
+(1) minP statistic; <br> 
+(2) local kernel test p-value; <br>
+(3) optimal scale value from input cValues; <br>
+(4) minor allele frequency; and <br>
+(5) single variant score test p-value.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+  # number of subjects
+  nsubj &lt;- 1000
+
+  # number of markers
+  nm &lt;- 5
+
+  # generate coordinates for proteins
+  protein &lt;- cbind( stats::rnorm(n = nm, mean = 17.6, sd =  6.6),
+                    stats::rnorm(n = nm, mean =  1.6, sd = 13.6),
+                    stats::rnorm(n = nm, mean = 22.9, sd = 10.4) )
+
+  # generate snp matrix
+  snp &lt;- matrix(data = rbinom(n = nsubj*nm, size = 1, p = 0.02), 
+                nrow = nsubj, ncol = nm)
+  colnames(snp) = paste0("m",1:nm)
+
+  # generate binmoial response
+  MAF &lt;- colMeans(x = snp)/2
+  causal &lt;- numeric(nm)
+  causal[c(2,4)] &lt;- 1.0
+  betaG &lt;- 0.4*abs(log10(x = MAF))*causal
+
+  #no non-genetic covariates
+  X &lt;- NULL
+  mu &lt;- -0.05 + snp %*% betaG
+
+  pryy &lt;- exp(mu)/(1+exp(mu))
+  yy &lt;- sapply(X = pryy, FUN = stats::rbinom, n = 1, size = 1)
+
+  res &lt;- point(yy = yy, X = X, snp = snp, proteinCoord = protein,
+               trait = 'binomial', cValues = c(0.1,0.2),
+               weighted = TRUE, weight = NULL, kernel = 'linear',
+               pvMethod = 'liu', nperturb = 100,
+               verbose = FALSE)
+
+</code></pre>
+
+
+</div>

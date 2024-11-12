@@ -1,0 +1,229 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>postProcess</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>remap MCMC output via affine transformations</h2>
+
+<h3>Description</h3>
+
+<p>Remap the MCMC iterates in an <code>ideal</code> object via an affine
+transformation, imposing identifying restrictions ex post (aka
+post-processing).</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">postProcess(object, constraints="normalize", debug = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+ <table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>an object of class <code>ideal</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>constraints</code></td>
+<td>
+<p>list of length <code>d+1</code>, each component providing
+a set of <code>d</code> restrictions, where <code>d</code> is the dimension of the
+fitted <code>ideal</code> model; or the character string
+<code>normalize</code> (default).  If a list, the name of each component should
+uniquely match a legislator/subject's name.  See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>debug</code></td>
+<td>
+<p>logical flag for verbose output, used for debugging</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Item-response models are unidentified without restrictions on the
+underlying parameters.  Consider the <code>d=1</code> dimensional case. The
+model is
+</p>
+<p style="text-align: center;"><code class="reqn">P(y_{ij} = 1) = F(x_i \beta_j - \alpha_j)</code>
+</p>
+
+<p>Any
+linear transformation of the latent traits, say,
+</p>
+<p style="text-align: center;"><code class="reqn">x^* = mx + c</code>
+</p>
+
+<p>can be exactly offset by applying the appropriate linear
+transformations to the item/bill parameters, meaning that there is no
+unique set of values for the model parameters that will maximize the
+likelihood function.  In higher dimensions,
+the latent traits can also be transformed via any arbitrary rotation,
+dilation and translation, with offsetting transformations applied to
+the item/bill parameters.
+</p>
+<p>One strategy in MCMC is to ignore the lack of identification at run
+time, but apply identifying restrictions ex post,
+“post-processing” the MCMC output, iteration-by-iteration.  In
+a <code>d</code>-dimensional IRT model, a sufficient condition for global
+identification is to fix <code>d+1</code> latent traits, provided the
+constrained latent traits span the <code>d</code> dimensional latent space.
+This function implements this strategy.  The user supplies a set of
+constrained ideal points in the <code>constraints</code> list.  The function
+then processes the MCMC output in the <code>ideal</code>
+<code>object</code>, finding the transformation that maps the current
+iteration's sampled values for <code>x</code> (latent traits/ideal points)
+into the sub-space of identified parameters defined by the fixed
+points in <code>constraints</code>; i.e., what is the affine transformation
+that maps the unconstrained ideal points into the constraints?  Aside
+from minuscule numerical inaccuracies resulting from matrix inversion
+etc, this transformation is exact: after post-processing, the
+<code>d+1</code> constrained points do not vary over the MCMC iterations.
+The remaining <code>n-d-1</code> ideal points are subject to (posterior)
+uncertainty; the “random tour” of the joint parameter space of
+these parameters produced by the MCMC algorithm has been mapped into a
+subspace in which the parameters are globally identified.
+</p>
+<p>If the <code>ideal</code> object was produced with <code>store.item</code>
+set to <code>TRUE</code>, then the item parameters are also post-processed,
+applying the inverse transformation.  Specifically, recall that the
+IRT model is </p>
+<p style="text-align: center;"><code class="reqn">P(y_{ij} = 1) = F(x_i'\beta_j)</code>
+</p>
+
+<p>where in this formulation <code class="reqn">x_i</code> is a vector of
+length <code>d+1</code>, including a <code>-1</code> to put a constant term into
+the model (i.e., the intercept or difficulty parameter
+is part of <code class="reqn">\beta_j</code>).  Let <code class="reqn">A</code> denote the
+non-singular, <code>d+1</code>-by-<code>d+1</code> matrix that maps the <code class="reqn">x</code>
+into the space of identified parameters.  Recall that this
+transformation is computed iteration by iteration.  Then each
+<code class="reqn">x_i</code> is transformed to <code class="reqn">x^*_i = Ax_i</code> and
+<code class="reqn">\beta_j</code> is transformed to <code class="reqn">\beta_j^* = A^{-1}
+    \beta_j</code>, <code class="reqn">i = 1, \ldots, n; j = 1,
+    \ldots, m</code>.
+</p>
+<p>Local identification can be obtained for a one-dimensional model by
+simply imposing a normalizing restriction on the ideal points: this
+normalization (mean zero, standard deviation one) is the default
+behavior, but (a) is only sufficient for local identification when
+the <code>rollcall</code> object was fit with <code>d=1</code>; (b) is not
+sufficient for even local identification when <code>d&gt;1</code>, with
+further restrictions required so as to rule out other forms of
+invariance (e.g., translation, or "dimension-switching", a
+phenomenon akin to label-switching in mixture modeling).
+</p>
+<p>The default is to impose dimension-by-dimension normalization with
+respect to the means of the marginal posterior densities of the
+ideal points, such that the these means (the usual Bayes estimates
+of the ideal points) have mean zero and standard deviation one
+across legislators.  An offsetting transformation is applied to the
+items parameters as well, if they are saved in the <code>ideal</code> object.  
+</p>
+<p>Specifically, in one-dimension, the
+two-parameter IRT model is </p>
+<p style="text-align: center;"><code class="reqn">P(y_{ij} = 1) = F(x_i \beta_j -
+  \alpha_j).</code>
+</p>
+<p>  If we normalize the
+<code class="reqn">x_i</code> to <code class="reqn">x*_i = (x_i - c)/m</code> then the offsetting
+transformations for the item/bill parameters are <code class="reqn">\beta_j^* =
+  \beta_j m</code> and <code class="reqn">\alpha_j^* = \alpha_j -
+  c\beta_j</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>ideal</code>, with components suitably
+transformed and recomputed (i.e., <code>x</code> is transformed and
+<code>xbar</code> recomputed, and if the
+<code>ideal</code> object was fit with <code>store.item=TRUE</code>,
+<code>beta</code> is transformed and <code>betabar</code> is recomputed).
+</p>
+
+
+<h3>Note</h3>
+
+<p>Applying transformations to obtain identification can
+sometimes lead to surprising results.  Each data point makes the same
+likelihood contributions with either the identified or unidentified
+parameters.  But, in general, predictions generated with the
+parameters set to their posterior means will differ depending on
+whether one uses the identified subset of parameters or the
+unidentified parameters.  For this reason, caution should be used when
+using a function such as <code>predict</code> after post-processing
+output from <code>ideal</code>.  A better strategy is to compute the
+estimand of interest at each iteration and then take averages over
+iterations.
+</p>
+<p>When specifying a value of <code>burnin</code> different from that used in
+fitting the <code>ideal</code> object, note a distinction between
+the iteration numbers of the stored iterations, and the number of
+stored iterations.  That is, the <code>n</code>-th iteration stored in an
+<code>ideal</code> object will not be iteration <code>n</code> if the
+user specified <code>thin&gt;1</code> in the call to <code>ideal</code>.
+Here, iterations are tagged with their iteration number.  Thus, if
+the user called <code>ideal</code> with <code>thin=10</code> and
+<code>burnin=100</code> then the stored iterations are numbered <code>100,
+    110, 120, ...</code>.  Any future subsetting via a <code>burnin</code> refers to
+this iteration number.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Simon Jackman <a href="mailto:simon.jackman@sydney.edu.au">simon.jackman@sydney.edu.au</a></p>
+
+
+<h3>References</h3>
+
+<p>Hoff, Peter, Adrian E. Raftery and Mark S. Handcock. 2002.
+Latent Space Approaches to Social Network Analysis. <em>Journal
+of the American Statistical Association</em> 97:1090–1098.
+</p>
+<p>Edwards, Yancy D. and Greg M. Allenby. 2003.
+Multivariate Analysis of Multiple Response Data. <em>Journal of
+Marketing Research</em> 40:321–334.
+</p>
+<p>Rivers, Douglas. 2003.  “Identification of Multidimensional
+Item-Response Models.” Typescript.  Department of Political Science,
+Stanford University.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(s109)
+f = system.file("extdata",package="pscl","id1.rda")
+load(f)
+
+id1Local &lt;- postProcess(id1)    ## default is to normalize
+summary(id1Local)
+
+id1pp &lt;- postProcess(id1,
+                     constraints=list(BOXER=-1,INHOFE=1))
+summary(id1pp)
+
+## two-dimensional fit
+f = system.file("extdata",package="pscl","id2.rda")
+load(f)
+
+id2pp &lt;- postProcess(id2,
+                     constraints=list(BOXER=c(-1,0),
+                       INHOFE=c(1,0),
+                       CHAFEE=c(0,.25)))
+
+tracex(id2pp,d=1:2,
+       legis=c("BOXER","INHOFE","COLLINS","FEINGOLD","COLEMAN",
+         "CHAFEE","MCCAIN","KYL"))
+</code></pre>
+
+
+</div>

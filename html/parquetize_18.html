@@ -1,0 +1,181 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>write_parquet_by_chunk</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>read input by chunk on function and create dataset <br>
+</h2>
+
+<h3>Description</h3>
+
+<p>Low level function that implements the logic to to read input file by chunk and write a
+dataset. <br></p>
+<p>It will:
+</p>
+
+<ul>
+<li>
+<p>calculate the number of row by chunk if needed;
+</p>
+</li>
+<li>
+<p>loop over the input file by chunk;
+</p>
+</li>
+<li>
+<p>write each output files.
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">write_parquet_by_chunk(
+  read_method,
+  input,
+  path_to_parquet,
+  max_rows = NULL,
+  max_memory = NULL,
+  chunk_memory_sample_lines = 10000,
+  compression = "snappy",
+  compression_level = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>read_method</code></td>
+<td>
+<p>a method to read input files. This method take only three
+arguments
+</p>
+<p>'input' : some kind of data. Can be a
+'skip' : the number of row to skip
+'n_max' : the number of row to return
+</p>
+<p>This method will be called until it returns a dataframe/tibble with zero row.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>input</code></td>
+<td>
+<p>that indicates the path to the input. It can be anything you
+want but more often a file's path or a data.frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path_to_parquet</code></td>
+<td>
+<p>String that indicates the path to the directory where
+the output parquet file or dataset will be stored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_rows</code></td>
+<td>
+<p>Number of lines that defines the size of the chunk. This
+argument can not be filled in if max_memory is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_memory</code></td>
+<td>
+<p>Memory size (in Mb) in which data of one parquet file
+should roughly fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chunk_memory_sample_lines</code></td>
+<td>
+<p>Number of lines to read to evaluate
+max_memory. Default to 10 000.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compression</code></td>
+<td>
+<p>compression algorithm. Default "snappy".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compression_level</code></td>
+<td>
+<p>compression level. Meaning depends on compression algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional format-specific arguments,  see
+<a href="https://arrow.apache.org/docs/r/reference/write_parquet.html">arrow::write_parquet()</a></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a dataset as return by arrow::open_dataset
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# example with a dataframe
+
+# we create the function to loop over the data.frame
+
+read_method &lt;- function(input, skip = 0L, n_max = Inf) {
+  # if we are after the end of the input we return an empty data.frame
+  if (skip+1 &gt; nrow(input)) { return(data.frame()) }
+
+  # return the n_max row from skip + 1
+  input[(skip+1):(min(skip+n_max, nrow(input))),]
+}
+
+# we use it
+
+write_parquet_by_chunk(
+  read_method = read_method,
+  input = mtcars,
+  path_to_parquet = tempfile(),
+  max_rows = 10,
+)
+
+
+#
+# Example with haven::read_sas
+#
+
+# we need to pass two argument beside the 3 input, skip and n_max.
+# We will use a closure :
+
+my_read_closure &lt;- function(encoding, columns) {
+  function(input, skip = OL, n_max = Inf) {
+    haven::read_sas(data_file = input,
+                    n_max = n_max,
+                    skip = skip,
+                    encoding = encoding,
+                    col_select = all_of(columns))
+  }
+}
+
+# we initialize the closure
+
+read_method &lt;- my_read_closure(encoding = "WINDOWS-1252", columns = c("Species", "Petal_Width"))
+
+# we use it
+write_parquet_by_chunk(
+  read_method = read_method,
+  input = system.file("examples","iris.sas7bdat", package = "haven"),
+  path_to_parquet = tempfile(),
+  max_rows = 75,
+)
+
+</code></pre>
+
+
+</div>

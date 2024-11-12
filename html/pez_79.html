@@ -1,0 +1,339 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>eco.scape</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>eco.space scape simulation with a macro-ecological focus</h2>
+
+<h3>Description</h3>
+
+<p><code>eco.scape</code> is a modified version of the Helmus et al. method
+implemented in <code>scape</code>. It produces phylogenetically
+structured communities. It allows phylogenetic signals in niche
+optima, but unlike <code>scape</code>, does not include the
+ability to specify niche optima signal type (attraction/repulsion)
+or phylogenetic signal in range size. Instead, the focus is on
+having more control over the macroecological characteristics of the
+resulting landscapes. In particular, eco.scape produces landscapes
+with fixed mean range sizes, reasonable range size and abundance
+distributions, and control over whether species present on a tree
+must be present in the landscape.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">eco.scape(
+  tree,
+  scape.size = 10,
+  g.center = 1,
+  wd.all = 0.2 * (scape.size + 1)^2,
+  signal.center = TRUE,
+  center.scale = 1,
+  site.stoch.scale = 0,
+  sd.center = 1,
+  sd.range = 1,
+  K = 100,
+  extinction = FALSE,
+  rho = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tree</code></td>
+<td>
+<p><code>phylo</code> object; must have branch
+lengths and be ultrametric</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scape.size</code></td>
+<td>
+<p>edge dimension of square landscape</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g.center</code></td>
+<td>
+<p>strength of phylogenetic signal in species range
+centers. See <code>corBlomberg</code>,
+1=brownian,&lt;1=rates of evol accelerate, &gt;1=rates decelerate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wd.all</code></td>
+<td>
+<p>niche width, larger values simulate broader range
+sizes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>signal.center</code></td>
+<td>
+<p>simulate with phylosignal in range centers</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center.scale</code></td>
+<td>
+<p>adjust strength of phylogenetic attraction in
+range centers independent of g.center</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>site.stoch.scale</code></td>
+<td>
+<p>adjust strength of random variation in
+species richness across sites</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd.center</code></td>
+<td>
+<p>sd in <code>rnorm</code>rnorm for
+the range centers, increase to get more variation in center values
+across species</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd.range</code></td>
+<td>
+<p>sd in rnorm for the range sizes, increase to get
+more variation in range sizes across gradients</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>carrying capacity of a site in terms of maximum
+individuals that can be present. Currently a constant value. Used
+to scale the presence-absence matrix to include abundances.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extinction</code></td>
+<td>
+<p>TRUE/FALSE can species on the tree go extinct on
+the landscape? If the number of species present on the landscape
+should equal the number of tips on the tree, choose FALSE. See
+Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+<p>Grafen branch adjustment of phylogenetic tree see
+<code>corGrafen</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Simulates a landscape with species (i.e., tree tips) distributions
+dependent on a supplied phylogenetic tree. The amount and type of
+structure is determened by the signal parameter
+<code>g.center</code>. Parameters are based on an Ornstein-Uhlenbeck
+model of evolution with stabilizing selection. Values of g=1
+indicate no stabilizing selection and correspond to the Brownian
+motion model of evolution; 01 corresponds to disruptive selection
+where phylogenetic signal for the supplied tree is amplified. See
+corBlomberg. Communities are simulated along two gradients where
+the positions along those gradients, <code>g.center</code>, can exhibit
+phylogenetic signal.
+</p>
+<p>The function returns a landscape where the average range size is
+equivalent to the wd.all parameter - in the scape function, this
+parameter is not necessarily returned in the resulting
+landscape. To do this, the probability of presence (th) that
+returns the wd.all parameter is solved for. If there is no solution
+that can produce the wd.all given, the error "Error in uniroot(f,
+lower = 0, upper = max(X.), tol = 10^-200): f() values at end
+points not of opposite sign" will occur. This seems to mostly arise
+for extreme or unlikely parameter values (small species pools, low
+carrying capacities). Try adjusting parameter values first.
+</p>
+<p>The <code>extinction</code> parameter specifies whether all of the
+species on the tree should be present in the final landscape. Some
+species will have probabilities of presence less than those
+required for presence. If extinctions is <code>TRUE</code>, these species
+will not be present. If <code>FALSE</code>, these species will be present
+in 1 site, that in which they have the highest probability of
+presence.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>cc</code></td>
+<td>
+<p><code>comparative.comm</code> object with
+presence/absence results of simulations. The site names are the
+row.columns of the cells in the original grid cells that made up
+the data, and these co-ordinates are also given in the <code>env</code>
+slot of the object along with the environmental gradient
+information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>presence/absence matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Yab</code></td>
+<td>
+<p>abundance matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index</code></td>
+<td>
+<p>spatial coordinates for X and Y (stacked columns)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X.joint</code></td>
+<td>
+<p>full probabilities of species at sites, used to
+construct Y</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X1</code></td>
+<td>
+<p>probabilities of species along gradient 1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X2</code></td>
+<td>
+<p>probabilities of species along gradient 2</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gradient1, gradient2</code></td>
+<td>
+<p>environmental gradient values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nichewd</code></td>
+<td>
+<p>average niche width of the assemblage</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>carrying capacity of each cell</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>environ</code></td>
+<td>
+<p>matrix depicting environmental values over the 2D
+landscape</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sppXs</code></td>
+<td>
+<p>full probabilities of each species as an array
+arranged in a scape.size X scape.size matr ix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>V.phylo</code></td>
+<td>
+<p>initial phylogenetic covariance matrix from tree,
+output of vcv.phylo(tree, corr=T)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>V.phylo.rho</code></td>
+<td>
+<p>phylogenetic covariance matrix from tree scaled
+by Grafen if rho is provided, other wise just an output of
+vcv.phylo(tree, corr=T)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>V.center</code></td>
+<td>
+<p>scaled (by g.center) phylo covariance matrix used
+in the simulations</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bspp1</code></td>
+<td>
+<p>species optima for gradient 1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bspp2</code></td>
+<td>
+<p>pecies optima for gradient 2</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Matt Helmus, Caroline Tucker, cosmetic edits by Will Pearse
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>scape</code> <code>sim.phy</code> <code>sim.meta</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Simulations
+tree &lt;- rcoal(64)
+
+scape1 &lt;- eco.scape(tree, scape.size=25, g.center=1,
+    signal.center=FALSE, K=100, extinction=TRUE)
+scape2 &lt;- eco.scape(tree, scape.size=16, g.center=0.2,
+    signal.center=TRUE, K=100, extinction=FALSE)
+scape3 &lt;- eco.scape(tree, scape.size=16, g.center=20,
+    signal.center=TRUE, K=100, extinction=TRUE)
+
+# Plotting distributions and landscape patterns
+original_landscape &lt;- scape1
+abundmax &lt;- original_landscape$K
+PA_mat &lt;- as.matrix(original_landscape$Y)
+abund_mat &lt;- original_landscape$Yab
+site.size &lt;- nrow(PA_mat)
+species &lt;- ncol(PA_mat)
+mx &lt;- original_landscape$gradient
+env &lt;- original_landscape$environ$env.gradient
+par(mfrow=c(2,2), oma=c(0,0,2,0))
+heatcol &lt;- (colorRampPalette(c("yellow","red")))
+
+image(matrix(env,sqrt(site.size),sqrt(site.size),byrow=TRUE),
+    col=heatcol(max(env)),xaxt="n",yaxt="n",main="Env gradient")
+
+image(matrix(rowSums(PA_mat),sqrt(site.size),sqrt(site.size),byrow=TRUE),
+    col=heatcol(16),xaxt="n",yaxt="n",main="Species Richness")
+
+hist(colSums(PA_mat),ylab="Number of species",xlab="Number of sites",
+    main="Species Area Relationship",col="lightgrey")
+
+hist(colSums(abund_mat),ylab="Number of species",xlab="Number of individuals",
+    main="Species Abundance Relationship",col="lightgrey")
+mtext("Env random, phy.signal=0.2, 32 species", outer=TRUE, side=3, cex=1.25)
+</code></pre>
+
+
+</div>

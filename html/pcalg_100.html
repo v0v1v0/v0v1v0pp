@@ -1,0 +1,277 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pdsep</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate Final Skeleton in the FCI algorithm</h2>
+
+<h3>Description</h3>
+
+<p>Estimate the final skeleton in the FCI algorithm (Spirtes et al, 2000),
+as described in Steps 2 and 3 of Algorithm 3.1 in Colombo et
+al. (2012).  The input of this function consists of an initial
+skeleton that was estimated by the PC algorithm (Step 1 of Algorithm
+3.1 in Colombo et al. (2012)).
+</p>
+<p>Given the initial skeleton, all unshielded triples are considered and
+oriented as colliders when appropriate.  Then, for all nodes x in the
+resulting partially directed graph G, Possible-D-SEP(x,G) is computed,
+using the function <code>qreach</code>.  Finally, for any edge y-z that is
+present in G and that is not flagged as fixed by the <code>fixedEdges</code>
+argument, conditional independence between Y and Z is tested given
+all subsets of Possible-D-SEP(y,G) and all subsets of
+Possible-D-SEP(z,G).  These tests are done at level alpha, using
+<code>indepTest</code>.  If the pair of nodes is judged to be independent
+given some set S, then S is recorded in sepset(y,z) and sepset(z,y)
+and the edge y-z is deleted.  Otherwise, the edge remains and there is
+no change to sepset.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pdsep(skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = Inf,
+      pdsep.max = Inf, NAdelete = TRUE, unfVect = NULL,
+      biCC = FALSE, fixedEdges = NULL, verbose = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>skel</code></td>
+<td>
+<p>Graph object returned by <code>skeleton</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>suffStat</code></td>
+<td>
+<p>Sufficient statistic: A list containing all necessary
+elements for making conditional independence decisions using
+function <code>indepTest</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indepTest</code></td>
+<td>
+<p>Predefined function for testing conditional independence. The
+function is internally called as <code>indepTest(x,y,S,suffStat)</code> for
+testing conditional independence of <code>x</code> and <code>y</code> given
+<code>S</code>. Here, <code>x</code> and <code>y</code> are node numbers of the
+adjacency matrix, <code>S</code> is a (possibly empty) vector of node
+numbers of the adjacency matrix and <code>suffStat</code> is a list
+containing all relevant elements for making conditional independence
+decisions. The return value of <code>indepTest</code> is the p-value of
+the test for conditional independence.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>Number of variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sepset</code></td>
+<td>
+<p>List of length <code>p</code>; each element of the list
+contains another list of length <code>p</code>.  The element
+<code>sepset[[x]][[y]]</code> contains the separation set that made the edge
+between <code>x</code> and <code>y</code> drop out.  This object is thought to be
+obtained from a <code>pcAlgo</code>-object or <code>fciAlgo</code>-object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Significance level for the individual conditional
+independence tests.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pMax</code></td>
+<td>
+<p>Matrix with the maximal p-values of conditional
+independence tests in a previous call of <code>skeleton</code>,
+<code>pc</code> or <code>fci</code> which produced <code>G</code>. This
+object is thought to be obtained from a <code>pcAlgo</code>-object or
+<code>fciAlgo</code>-object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m.max</code></td>
+<td>
+<p>Maximum size of the conditioning sets that are considered in the
+conditional independence tests.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pdsep.max</code></td>
+<td>
+<p>Maximum size of Possible-D-SEP for which subsets are
+considered as conditioning sets in the conditional independence
+tests. If the nodes <code>x</code> and <code>y</code> are adjacent in the graph
+and the size of <code class="reqn">\textrm{Possible-D-SEP}(x,G) \setminus \{x, y\}</code>, is
+bigger than pdsep.max, the edge is simply left in the graph.
+Note that if pdsep.max is less than Inf, the final PAG
+is typically a supergraph of the one computed with pdsep.max = Inf,
+because fewer tests may have been performed in the former.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>NAdelete</code></td>
+<td>
+<p>If indepTest returns <code>NA</code> and this option is
+<code>TRUE</code>, the corresponding edge is deleted. If this option is
+<code>FALSE</code>, the edge is not deleted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>unfVect</code></td>
+<td>
+<p>Vector containing numbers that encode the unfaithful
+triple (as returned by <code>pc.cons.intern</code>). This is
+needed in the conservative FCI.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>biCC</code></td>
+<td>
+<p>Logical; if <code>TRUE</code>, only nodes on paths between nodes
+a and c are considered to be in sepset(a,c).  This uses biconnected
+components, see <code>biConnComp</code> from <span class="pkg">RBGL</span>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixedEdges</code></td>
+<td>
+<p>a logical <em>symmetric</em> matrix of dimension p*p.  If entry
+<code>[i,j]</code> is true, the edge <code class="reqn">i--j</code> is never considered
+for removal. Therefore, this edge is guaranteed to be <em>present</em> in
+the resulting graph.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical indicating that detailed output is to be provided.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>To make the code more efficient, we only perform tests that were not
+performed in the estimation of the initial skeleton.
+</p>
+<p>Note that the Possible-D-SEP sets are computed once in the beginning. They are  not updated after edge deletions, in order to make sure that the output of the algorithm does not depend on the ordering of the variables (see also Colombo and Maathuis (2014)).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with the following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>G</code></td>
+<td>
+<p>Updated adjacency matrix representing the final skeleton</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sepset</code></td>
+<td>
+<p>Updated sepsets</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pMax</code></td>
+<td>
+<p>Updated matrix containing maximal p-values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allPdsep</code></td>
+<td>
+<p>Possible-D-Sep for each node</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.ord</code></td>
+<td>
+<p>Maximal order of conditioning sets during independence
+tests</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.edgetests</code></td>
+<td>
+<p>Number of conditional edgetests performed, grouped
+by the size of the conditioning set.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Markus Kalisch (<a href="mailto:kalisch@stat.math.ethz.ch">kalisch@stat.math.ethz.ch</a>) and Diego Colombo.
+</p>
+
+
+<h3>References</h3>
+
+<p>P. Spirtes, C. Glymour and R. Scheines (2000).
+<em>Causation, Prediction, and Search</em>, 2nd edition. The MIT Press.
+</p>
+<p>D. Colombo, M.H. Maathuis, M. Kalisch and T.S. Richardson (2012).
+Learning high-dimensional directed acyclic graphs with latent and
+selection variables.
+<em>Annals of Statistics</em> <b>40</b>, 294–321.
+</p>
+<p>D. Colombo and M.H. Maathuis (2014). Order-independent constraint-based
+causal structure learning. <em>Journal of Machine Learning Research</em>
+<b>15</b> 3741-3782. 
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>qreach</code> to find Possible-D-SEP(x,G);
+<code>fci</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">p &lt;- 10
+## generate and draw random DAG:
+set.seed(44)
+myDAG &lt;- randomDAG(p, prob = 0.2)
+
+## generate 10000 samples of DAG using gaussian distribution
+library(RBGL)
+n &lt;- 10000
+d.mat &lt;- rmvDAG(n, myDAG, errDist = "normal")
+
+## estimate skeleton
+indepTest &lt;- gaussCItest
+suffStat &lt;- list(C = cor(d.mat), n = n)
+alpha &lt;- 0.01
+skel &lt;- skeleton(suffStat, indepTest, alpha=alpha, p=p)
+
+## prepare input for pdsep
+sepset &lt;- skel@sepset
+pMax &lt;- skel@pMax
+
+## call pdsep to find Possible-D-Sep and enhance the skeleton
+pdsepRes &lt;- pdsep(skel@graph, suffStat, indepTest, p, sepset, alpha,
+                  pMax, verbose = TRUE)
+## call pdsep with biconnected components to find Possible-D-Sep and enhance the skeleton
+pdsepResBicc &lt;- pdsep(skel@graph, suffStat, indepTest, p, sepset, alpha,
+                      pMax, biCC= TRUE, verbose = TRUE)
+</code></pre>
+
+
+</div>

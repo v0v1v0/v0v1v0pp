@@ -1,0 +1,193 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predkmeansCVest</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Cross-validation of Predictive K-means Clustering</h2>
+
+<h3>Description</h3>
+
+<p>Performs cross-validation of predictive k-means clustering and cluster prediction.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">predkmeansCVest(
+  X,
+  R,
+  K,
+  cv.groups = 10,
+  sigma2 = 0,
+  sigma2fixed = FALSE,
+  scale = TRUE,
+  covarnames = colnames(R),
+  PCA = FALSE,
+  PCAcontrol = list(covarnames = colnames(R), ncomps = 5),
+  TPRS = FALSE,
+  TPRScontrol = list(df = 5, xname = "x", yname = "y"),
+  returnAll = FALSE,
+  ...
+)
+
+predkmeansCVpred(
+  object,
+  X = object$X,
+  R = object$R,
+  method = c("ML", "MixExp", "SVM"),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>Outcome data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+<p>Covariates. Coerced to data frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>Number of clusters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv.groups</code></td>
+<td>
+<p>A list providing the cross-validation
+groups for splitting the data. groups for splitting the data.
+Alternatively, a single number giving the number of groups into
+which the data are randomly split. A value of '0' implies leave-one-out.
+Defaults to 10.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma2</code></td>
+<td>
+<p>starting value of sigma2. Setting <code>sigma2=0</code> and 
+<code>sigma2fixed=TRUE</code> results in regular k-means clustering.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma2fixed</code></td>
+<td>
+<p>Logical indicating whether sigma2
+should be held fixed.  If FALSE, then
+sigma2 is estimated using Maximum Likelihood.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>Should the outcomes be re-scaled within each training
+group?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covarnames</code></td>
+<td>
+<p>Names of covariates to be included directly.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>PCA</code></td>
+<td>
+<p>Logical indicator for whether PCA components should be computed
+from R.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>PCAcontrol</code></td>
+<td>
+<p>Arguments passed to <code>createPCAmodelmatrix</code>. This includes <code>ncomps</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>TPRS</code></td>
+<td>
+<p>Logical indicator for whether thin-plate regression
+splines should be created and added to covariates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>TPRScontrol</code></td>
+<td>
+<p>Arguments passed to <code>createTPRSmodelmatrix</code>. This includes <code>df</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>returnAll</code></td>
+<td>
+<p>A list containing all <code>nStarts</code> solutions is
+included in the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed to either <code>predkmeans</code> or the prediction method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A <code>predkmeansCVest</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Character string indicating which prediciton method should be used. Optins are <code>ML</code>, <code>MixExp</code>, and <code>SVM</code>. See <code>predictML</code> for more information.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>These wrappers are designed to simplify cross-validation of a dataset. For models including thin-plate regression splines (TPRS) or principal component analysis (PCA) scores, these functions will re-evaluate the TPRS basis or PCA decomposition on each training set.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Joshua Keller
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>predkmeans</code>, <code>createPCAmodelmatrix</code>, <code>createTPRSmodelmatrix</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">n &lt;- 200
+r1 &lt;- rnorm(n)
+r2 &lt;- rnorm(n)
+u1 &lt;- rbinom(n, size=1,prob=0)
+cluster &lt;- ifelse(r1&lt;0, ifelse(u1, "A", "B"), ifelse(r2&lt;0, "C", "D"))
+mu1 &lt;- c(A=2, B=2, C=-2, D=-2)
+mu2 &lt;- c(A=1, B=-1, C=-1, D=-1)
+x1 &lt;- rnorm(n, mu1[cluster], 4)
+x2 &lt;- rnorm(n, mu2[cluster], 4)
+R &lt;- model.matrix(~r1 + r2)
+X &lt;- cbind(x1, x2)
+pkmcv &lt;- predkmeansCVest(X=cbind(x1, x2),
+                         R=R, K=4, nStarts=4, cv.groups= 5,
+                         TPRS=FALSE, PCA=FALSE, covarnames=colnames(R))
+pkmcv
+</code></pre>
+
+
+</div>

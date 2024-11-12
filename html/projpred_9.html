@@ -1,0 +1,100 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cl_agg</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Weighted averaging within clusters of parameter draws</h2>
+
+<h3>Description</h3>
+
+<p>This function aggregates <code class="reqn">S</code> parameter draws that have been clustered
+into <code class="reqn">S_{\mathrm{cl}}</code> clusters by averaging across the draws that
+belong to the same cluster. This averaging can be done in a weighted fashion.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cl_agg(
+  draws,
+  cl = seq_len(nrow(draws)),
+  wdraws = rep(1, nrow(draws)),
+  eps_wdraws = 0
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>draws</code></td>
+<td>
+<p>An <code class="reqn">S \times P</code> matrix of parameter draws, with
+<code class="reqn">P</code> denoting the number of parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cl</code></td>
+<td>
+<p>A numeric vector of length <code class="reqn">S</code>, giving the cluster indices for
+the draws. The cluster indices need to be values from the set <code class="reqn">\{1,
+  ..., S_{\mathrm{cl}}\}</code>, except for draws that should be
+dropped (e.g., by thinning), in which case <code>NA</code> needs to be provided at the
+positions of <code>cl</code> corresponding to these draws.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wdraws</code></td>
+<td>
+<p>A numeric vector of length <code class="reqn">S</code>, giving the weights of the
+draws. It doesn't matter whether these are normalized (i.e., sum to <code>1</code>) or
+not because internally, these weights are normalized to sum to <code>1</code> within
+each cluster. Draws that should be dropped (e.g., by thinning) can (but
+must not necessarily) have an <code>NA</code> in <code>wdraws</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps_wdraws</code></td>
+<td>
+<p>A positive numeric value (typically small) which will be
+used to improve numerical stability: The weights of the draws within each
+cluster are multiplied by <code>1 - eps_wdraws</code>. The default of <code>0</code> should be
+fine for most cases; this argument only exists to help in those cases where
+numerical instabilities occur (which must be detected by the user; this
+function will not detect numerical instabilities itself).</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An <code class="reqn">S_{\mathrm{cl}} \times P</code> matrix of aggregated
+parameter draws.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(323)
+S &lt;- 100L
+P &lt;- 3L
+draws &lt;- matrix(rnorm(S * P), nrow = S, ncol = P)
+# Clustering example:
+S_cl &lt;- 10L
+cl_draws &lt;- sample.int(S_cl, size = S, replace = TRUE)
+draws_cl &lt;- cl_agg(draws, cl = cl_draws)
+# Clustering example with nonconstant `wdraws`:
+w_draws &lt;- rgamma(S, shape = 4)
+draws_cl &lt;- cl_agg(draws, cl = cl_draws, wdraws = w_draws)
+# Thinning example (implying constant `wdraws`):
+S_th &lt;- 50L
+idxs_thin &lt;- round(seq(1, S, length.out = S_th))
+th_draws &lt;- rep(NA, S)
+th_draws[idxs_thin] &lt;- seq_len(S_th)
+draws_th &lt;- cl_agg(draws, cl = th_draws)
+
+</code></pre>
+
+
+</div>

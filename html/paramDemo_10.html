@@ -1,0 +1,261 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>CalcMort</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Calculating Parametric Age-Specific Mortality and survival.
+</h2>
+
+<h3>Description</h3>
+
+<p><code>CalcMort</code> and <code>CalcSurv</code> are used to calculate the age-specific mortality and survival functions from different parametric models.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">CalcMort(theta, x, model = "GO", shape = "simple", 
+          checkTheta = TRUE)
+
+CalcSurv(theta, x, model = "GO", shape = "simple", 
+          checkTheta = TRUE)          
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>theta </code></td>
+<td>
+<p>Numerical vector of age-specific mortality parameters (see details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x </code></td>
+<td>
+<p>Numerical vector of ages at which to calculate mortality.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model </code></td>
+<td>
+<p>The underlying mortality model to be used. <code>"EX"</code> = exponential,<code>"GO"</code> = Gompertz, <code>"WE"</code> = Weibull and <code>"LO"</code> = logistic (see <code>details</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shape </code></td>
+<td>
+<p>The overall shape of the model. Values are: <code>simple</code> = no extra parameters added; <code>Makeham</code> = a constant parameter is added to the mortality; and <code>bathtub</code> = a Gompertz declining mortality for early ages and a constant parameter are added to the mortality model (see <code>details</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>checkTheta </code></td>
+<td>
+<p>Logical to verify that the <code>beta</code> parameters conform with the model's specification (see details).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><b>1) Age-specific mortality and survival models:</b>
+</p>
+<p>The function <code>CalcMort</code> uses parametric functions to calculate age-specific survival, defined as the probability of surviving to a given age. The function follows the conventions from package BaSTA (Colchero and Clark 2012, Colchero <em>et al.</em> 2012, Colchero <em>et al.</em> 2021). The mortality function or hazard rate describes how the risk of mortality changes with age, and is defined as 
+</p>
+<p style="text-align: center;"><code class="reqn">
+\mu(x | \theta) = \lim_{\Delta x \rightarrow 0} \frac{\Pr[x &lt; X &lt; x + \Delta x | X &gt; x]}{\Delta x},
+</code>
+</p>
+
+<p>where <code class="reqn">X</code> is a random variable for ages at death, <code class="reqn">x \geq 0</code> are ages and <code class="reqn">\theta</code> is the vector of mortality parameters. From the mortality function, the survival function is then given by
+</p>
+<p style="text-align: center;"><code class="reqn">
+S(x | \bm{\theta}) = \Pr[X &gt; x] = \exp[-\int_0^x \mu(t | \bm{\theta}) dt],
+</code>
+</p>
+
+<p>with the cumulative distribution function <code class="reqn">F(x | \bm{\theta}) = 1 - S(x | \bm{\theta})</code>. The probability density function of ages at death is 
+</p>
+<p style="text-align: center;"><code class="reqn">
+f(x | \bm{\theta}) = \mu(x | \bm{\theta}) S(x | \bm{\theta}), 
+</code>
+</p>
+
+<p>for <code class="reqn">x \geq 0</code>. 
+</p>
+<p><code>1.1)</code><code>Argument </code>“<code>model</code>”<code>:</code>
+</p>
+<p>The <code>model</code> argument allows the user to choose between four basic mortality functions, namely 
+</p>
+<p>(a) <code>model = </code>“<code>EX</code>”: The exponential model (Cox and Oakes 1974), with constant mortality with age, specified as
+</p>
+<p style="text-align: center;"><code class="reqn">\mu_b(x | \bm{\theta}) = b,</code>
+</p>
+
+<p>where <code class="reqn">b &gt; 0</code>, with survival 
+</p>
+<p style="text-align: center;"><code class="reqn">
+S_b(x | \bm{\theta}) = \exp[-b x].
+</code>
+</p>
+
+<p>(b) <code>model = </code>“<code>GO</code>”: The Gompertz mortality model (Gompertz 1925, Pletcher 1999), calculated as 
+</p>
+<p style="text-align: center;"><code class="reqn">\mu_b(x | \bm{\theta}) = \exp(b_0 + b_1 x),</code>
+</p>
+
+<p>where <code class="reqn">-\infty &lt; b_0, b_1 &lt; \infty</code>, with survival
+</p>
+<p style="text-align: center;"><code class="reqn">
+S_b(x | \bm{\theta}) = \exp\left[\frac{e^{b_0}}{b_1}\left(1 - e^{b_1 x}\right)\right].
+</code>
+</p>
+
+<p>(c) <code>model = </code>“<code>WE</code>”: The Weibull mortality model (Pinder III <em>et al.</em> 1978) calculated as
+</p>
+<p style="text-align: center;"><code class="reqn">\mu_b(x | \bm{\theta}) = b_0 b_1^{b_0} x^{b_0 -1},</code>
+</p>
+
+<p>where <code class="reqn">b_0, b_1 &gt; 0</code>, with survival
+</p>
+<p style="text-align: center;"><code class="reqn">
+S_b(x | \bm{\theta}) = \exp\left[-(b_1 x)^{b_0}\right].
+</code>
+</p>
+
+<p>(d) <code>model = </code>“<code>LO</code>”: The logistic mortality model (Pletcher 1999), calculated as 
+</p>
+<p style="text-align: center;"><code class="reqn">\mu_b(x | \bm{\theta}) = \frac{\exp(b_0 + b_1 x)}{1 + b_2 \frac{e^{b_0}}{b_1} \left(e^{b_1 x}-1\right)},</code>
+</p>
+
+<p>where <code class="reqn">b_0, b_1, b_2 &gt; 0</code>, with survival
+</p>
+<p style="text-align: center;"><code class="reqn">
+S_b(x | \bm{\theta}) = \left[1 + b_2 \frac{e^{b_0}}{b_1} \left(e^{b_1 x} - 1\right)\right]^{-1 / b_2}.
+</code>
+</p>
+
+<p><code>1.2)</code><code>Argument </code>“<code>shape</code>”<code>:</code>
+</p>
+<p>The <code>shape</code> argument allows the user to extend these models in order to explore more complex mortality shapes. 
+</p>
+<p>(a) <code>shape = </code>“<code>simple</code>”: (default) Leaves the model as defined above, with mortality given by
+</p>
+<p style="text-align: center;"><code class="reqn">
+\mu(x | \bm{\theta}) = \mu_b(x | \bm{\theta})
+</code>
+</p>
+
+<p>and survival
+</p>
+<p style="text-align: center;"><code class="reqn">
+S(x | \bm{\theta}) = S_b(x | \bm{\theta}.
+</code>
+</p>
+
+<p>(b) <code>shape = </code>“<code>Makeham</code>”: A constant is added to the mortality, such that the mortality is given by
+</p>
+<p style="text-align: center;"><code class="reqn">
+\mu(x | \bm{\theta}) = c + \mu_b(x | \bm{\theta}_1),
+</code>
+</p>
+
+<p>where <code class="reqn">\bm{\theta} = [c, \bm{\theta}_1]</code>, and with survival
+</p>
+<p style="text-align: center;"><code class="reqn">
+S(x | \bm{\theta}) = e^{-cx} S_b(x | \bm{\theta}_1)
+</code>
+</p>
+
+<p>The most common models with this shape is the Gompertz-Makeham model (Gompertz 1825, Makeham 1866).
+</p>
+<p>(c) <code>shape = </code>“<code>bathtub</code>”: produces a concave shapes in mortality by adding a declining Gompertz term and a constant parameter to the basic mortality model, where the mortality function is
+</p>
+<p style="text-align: center;"><code class="reqn">
+\mu(x | \bm{\theta}) = \exp(a_0 - a_1 x) + c + \mu_b(x | \bm{\theta}_1),
+</code>
+</p>
+
+<p>where <code class="reqn">a_0 \in \mathbb{R}</code>, <code class="reqn">a_1, c \geq 0</code> and <code class="reqn">\bm{\theta}_1 \subset \bm{\theta}</code> are specified based on argument <code>model</code>, and with survival
+</p>
+<p style="text-align: center;"><code class="reqn">
+S(x | \theta) = \exp\left[\frac{e^{a_0}}{a_1}\left(e^{a_1 x} - 1\right)-cx\right] S_b(x | \theta_1).
+</code>
+</p>
+
+<p>The most widely use “<code>bathtub</code>” shaped model is the <b>Siler mortality model</b> (Siler 1979), which provides considerably good fits to mammalian data. The arguments for the Siler model are:
+</p>
+<pre>CalcMort(..., model = "GO", shape = "bathtub", ...)</pre>
+<p><b>2) Specifying theta parameters:</b>
+</p>
+<p>Argument <code>theta</code> requires a numerical vector of parameters. For instance, for a Gompertz model with simple shape and with parameter vector <code class="reqn">\bm{\theta}^{\top} = [b_0, b_1]</code> where <code class="reqn">b_0 = -5</code> and <code class="reqn">b_1 = 0.1</code>, the argument should be specified as 
+</p>
+<p><code>CalcMort(theta = c(b0 = -5, b1 = 0.1), ...)</code> 
+</p>
+<p>Note that in this example the parameter names are specified directly, this is required when <code>checkTheta = FALSE</code>. Although assigning the names to each parameter is not necessary when <code>checkTheta = TRUE</code>, it is advisable to ensure that the right values are assigned to the right parameter.  
+</p>
+<p>If argument <code>checkTheta</code> is set to <code>TRUE</code>, then the vector of <code>theta</code> parameters is verified for consistency with the requirements of the model and shape selected. 
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>CalcMort</code> and <code>CalcSur</code> return a vector of class “<code>numeric</code>” with the hazard rate or cumulative survival values at the specified ages, respectively.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Fernando Colchero <a href="mailto:fernando_colchero@eva.mpg.de">fernando_colchero@eva.mpg.de</a></p>
+
+
+<h3>References</h3>
+
+<p>Colchero, F. and J.S. Clark (2012) Bayesian inference on age-specific survival from capture-recapture data for censored and truncated data. <em>Journal of Animal Ecology</em>. 81, 139-149.
+</p>
+<p>Colchero, F., O.R. Jones and M. Rebke. (2012) BaSTA: an R package for Bayesian estimation of age-specific survival from incomplete mark-recapture/recovery data with covariates. <em>Method in Ecology and Evolution</em>. 3, 466-470. 
+</p>
+<p>Colchero, F., <em>et al.</em> (2021) The long lives of primates and the "invariant rate of aging" hypothesis. <em>Nature Communications</em> 12:3666
+</p>
+<p>Cox, D. R., and Oakes D. (1984) <em>Analysis of Survival Data</em>. Chapman and Hall, London.
+</p>
+<p>Gompertz, B. (1825) On the nature of the function expressive of the law of human mortality, and on a new mode of determining the value of life contingencies. <em>Philosophical Transactions of the Royal Society of London</em>, 115, 513-583.
+</p>
+<p>Makeham, W. M. On the law of mortality (1866). <em>Journal of the Institute of Actuaries</em> 13, 1-34.
+</p>
+<p>Pinder III, J.E., Wiener, J.G. and Smith, M.H. (1978) The Weibull distribution: a new method of summarizing survivorship data. <em>Ecology</em>, 59, 175-179.
+</p>
+<p>Siler, W. A (1979) competing-risk model for animal mortality. <em>Ecology</em> 60, 750-757.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>CalcSurv</code> to calculate age-specific survival, <code>CalcFert</code> to calculate age-specific fertility.</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Gompertz age specific mortality (default):
+mort &lt;- CalcMort(theta = c(b0 = -5, b1 = 0.1), x = 10)
+
+# Siler age specific mortality:
+mort &lt;- CalcMort(theta = c(a0 = -1, a1 = 1, c = 0.0001, 
+                          b0 = -6, b1 = 0.15), x = 10,
+                  model = "GO", shape = "bathtub")
+
+# Gompertz age specific survival (default):
+surv &lt;- CalcSurv(theta = c(b0 = -5, b1 = 0.1), x = 10)
+
+# Siler age specific survival:
+surv &lt;- CalcSurv(theta = c(a0 = -1, a1 = 1, c = 0.0001, 
+                          b0 = -6, b1 = 0.15), x = 10,
+                  model = "GO", shape = "bathtub")
+
+
+</code></pre>
+
+
+</div>

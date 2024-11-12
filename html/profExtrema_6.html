@@ -1,0 +1,139 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>coastal_flooding</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Coastal flooding as function of offshore forcing conditions.</h2>
+
+<h3>Description</h3>
+
+<p>A dataset containing the results of a numerical simulation conducted with
+the MARS model (Lazure and Dumas, 2008) for coastal flooding.
+The numerical model was adapted to the Boucholeurs area (French Atlantic coast),
+close to La Rochelle, and validated with data from the 2010 Xynthia storm event.
+See Azzimonti et al. (2017+) and Rohmer et al. (2018) for more details.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">coastal_flooding
+</code></pre>
+
+
+<h3>Format</h3>
+
+<p>A data frame with 200 rows and 6 variables:
+</p>
+
+<dl>
+<dt>Tide</dt>
+<dd>
+<p>High tide level in meters;</p>
+</dd>
+<dt>Surge</dt>
+<dd>
+<p>Surge peak amplitude in meters;</p>
+</dd>
+<dt>phi</dt>
+<dd>
+<p>Phase difference between high tide and surge peak;</p>
+</dd>
+<dt>t-</dt>
+<dd>
+<p>Duration of the increasing part of the surge temporal signal (assumed to be triangular);</p>
+</dd>
+<dt>t+</dt>
+<dd>
+<p>Duration of the decreasing part of the surge temporal signal (assumed to be triangular);</p>
+</dd>
+<dt>Area</dt>
+<dd>
+<p>Flooded area in m^2.</p>
+</dd>
+</dl>
+<h3>Details</h3>
+
+<p>The data frame contains 5 input variables: <code>Tide</code>, <code>Surge</code>, <code>phi</code>, <code>t-</code>, <code>t+</code> detailing
+the offshore forcing conditions for the model. All input variables are normalized
+in <code class="reqn">[0,1]</code>. The response is <code>Area</code>, the area flooded in m^2.
+</p>
+
+
+<h3>References</h3>
+
+<p>Azzimonti, D., Ginsbourger, D., Rohmer, J. and Idier, D. (2017+). <em>Profile extrema for visualizing and quantifying uncertainties on excursion regions. Application to coastal flooding.</em> arXiv:1710.00688.
+</p>
+<p>Rohmer, J., Idier, D., Paris, F., Pedreros, R., and Louisor, J. (2018). <em>Casting light on forcing and breaching scenarios that lead to marine inundation: Combining numerical simulations with a random-forest classification approach.</em> Environmental Modelling &amp; Software, 104:64-80.
+</p>
+<p>Lazure, P. and Dumas, F. (2008). <em>An external-internal mode coupling for a 3D hydrodynamical model for applications at regional scale (MARS)</em>. Advances in Water Resources, 31:233-250.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Define inputs
+inputs&lt;-data.frame(coastal_flooding[,-6])
+colnames(inputs)&lt;-colnames(coastal_flooding[,-6])
+colnames(inputs)[4:5]&lt;-c("tPlus","tMinus")
+
+# put response in areaFlooded variable
+areaFlooded&lt;-data.frame(coastal_flooding[,6])
+colnames(areaFlooded)&lt;-colnames(coastal_flooding)[6]
+response = sqrt(areaFlooded)
+
+
+model &lt;- km(formula=~Tide+Surge+I(phi^2)+tMinus+tPlus,
+            design = inputs,response = response,covtype="matern3_2")
+# Fix threshold
+threshold&lt;-sqrt(c(1.2e6,1.9e6,3.1e6,6.5e6))
+
+# use the coordinateProfile function
+## set up plot options
+options_plots &lt;- list(save=FALSE, folderPlots = "./" ,
+                      titleProf = "Coordinate profiles",
+                      title2d = "Posterior mean",qq_fill=TRUE)
+# set up full profiles options
+options_full&lt;-list(multistart=15,heavyReturn=TRUE)
+# set up approximation options
+d &lt;- model@d
+init_des&lt;-lhs::maximinLHS(5*d , d )
+options_approx&lt;- list(multistart=2,heavyReturn=TRUE, initDesign=init_des,
+                      fullDesignSize=100, smoother="quantSpline")
+
+# run the coordinate profile extrema on the mean
+CF_CoordProf_mean&lt;- coordinateProfiles(object = model, threshold = threshold,
+                                       uq_computations = FALSE, options_approx = options_approx,
+                                       plot_level=3, plot_options= options_plots, return_level=3,
+                                       options_full=options_full)
+
+## Not run: 
+## UQ computations might require a long time
+# set up simulation options
+## reduce nsims and batchsize for faster/less accurate UQ
+nsims=200
+opts_sims&lt;-list(algorithm="B", lower=rep(0,d ),
+                upper=rep(1,d ), batchsize=150,
+                optimcontrol=list(method="genoud", pop.size=100,print.level=0),
+                integcontrol = list(distrib="sobol",n.points=2000),nsim=nsims)
+
+opts_sims$integration.param &lt;- integration_design(opts_sims$integcontrol,
+                                                  d , opts_sims$lower,
+                                                  opts_sims$upper,
+                                                  model,threshold)
+opts_sims$integration.param$alpha &lt;- 0.5
+
+# run UQ computations
+CF_CoordProf_UQ&lt;- coordinateProfiles(object = CF_CoordProf_mean, threshold = threshold,
+                                     uq_computations = TRUE, options_approx = options_approx,
+                                     plot_level=3, plot_options= options_plots, return_level=3,
+                                     options_sims=opts_sims,options_full=options_full,
+                                     options_bound = list(beta=0.024,alpha=0.05))
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

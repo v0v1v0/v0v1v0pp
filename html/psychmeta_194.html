@@ -1,0 +1,170 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sensitivity</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Sensitivity analyses for meta-analyses</h2>
+
+<h3>Description</h3>
+
+<p>Wrapper function to compute bootstrap analyses, leave-one-out analyses, and cumulative meta-analyses.
+This function helps researchers to examine the stability/fragility of their meta-analytic results with bootstrapping and leave-one-out analyses, as well as detect initial evidence of publication bias with cumulative meta-analyses.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sensitivity(
+  ma_obj,
+  leave1out = TRUE,
+  bootstrap = TRUE,
+  cumulative = TRUE,
+  sort_method = c("weight", "n", "inv_var"),
+  boot_iter = 1000,
+  boot_conf_level = 0.95,
+  boot_ci_type = c("bca", "norm", "basic", "stud", "perc"),
+  ...
+)
+
+sensitivity_bootstrap(
+  ma_obj,
+  boot_iter = 1000,
+  boot_conf_level = 0.95,
+  boot_ci_type = c("bca", "norm", "basic", "stud", "perc"),
+  ...
+)
+
+sensitivity_cumulative(ma_obj, sort_method = c("weight", "n", "inv_var"), ...)
+
+sensitivity_leave1out(ma_obj, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ma_obj</code></td>
+<td>
+<p>Meta-analysis object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>leave1out</code></td>
+<td>
+<p>Logical scalar determining whether to compute leave-one-out analyses (<code>TRUE</code>) or not (<code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootstrap</code></td>
+<td>
+<p>Logical scalar determining whether bootstrapping is to be performed (<code>TRUE</code>) or not (<code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cumulative</code></td>
+<td>
+<p>Logical scalar determining whether a cumulative meta-analysis is to be computed (<code>TRUE</code>) or not (<code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sort_method</code></td>
+<td>
+<p>Method to sort samples in the cumulative meta-analysis. Options are "weight" to sort by weight (default), "n" to sort by sample size, and "inv_var" to sort by inverse variance.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>boot_iter</code></td>
+<td>
+<p>Number of bootstrap iterations to be computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>boot_conf_level</code></td>
+<td>
+<p>Width of confidence intervals to be constructed for all bootstrapped statistics.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>boot_ci_type</code></td>
+<td>
+<p>Type of bootstrapped confidence interval. Options are "bca", "norm", "basic", "stud", and "perc" (these are "type" options from the boot::boot.ci function). Default is "bca".
+Note: If you have too few iterations, the "bca" method will not work and you will need to either increase the iterations or choose a different method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An updated meta-analysis object with sensitivity analyses added.
+</p>
+
+<ul>
+<li>
+<p> When bootstrapping is performed, the <code>bootstrap</code> section of the <code>follow_up_analyses</code> section of the updated <code>ma_obj</code> returned by this function will contain both a matrix summarizing the mean, variance, and confidence intervals of the bootstrapped samples and a table of meta-analytic results from all bootstrapped samples.
+</p>
+</li>
+<li>
+<p> When leave-one-out analyses are performed, the <code>ma_obj</code> will acquire a list of leave-one-out results in its <code>follow_up_analyses</code> section that contains a table of all leave-one-out meta-analyses along with plots of the mean and residual variance of the effect sizes in the meta-analyses.
+</p>
+</li>
+<li>
+<p> When cumulative meta-analysis is performed, the <code>ma_obj</code> will acquire a list of cumulative meta-analysis results in its <code>follow_up_analyses</code> section that contains a table of all meta-analyses computed along with plots of the mean and residual variance of the effect sizes in the meta-analyses, sorted by the order in which studies were added to the meta-analysis.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+## Run a meta-analysis using simulated correlation data:
+ma_obj &lt;- ma_r_ic(rxyi = rxyi, n = n, rxx = rxxi, ryy = ryyi, ux = ux,
+                  correct_rr_y = FALSE, data = data_r_uvirr)
+ma_obj &lt;- ma_r_ad(ma_obj, correct_rr_y = FALSE)
+
+## Pass the meta-analysis object to the sensitivity() function:
+ma_obj &lt;- sensitivity(ma_obj = ma_obj, boot_iter = 10,
+                      boot_ci_type = "norm", sort_method = "inv_var")
+
+## Examine the tables and plots produced for the IC meta-analysis:
+ma_obj$bootstrap[[1]]$barebones
+ma_obj$bootstrap[[1]]$individual_correction$true_score
+ma_obj$leave1out[[1]]$individual_correction$true_score
+ma_obj$cumulative[[1]]$individual_correction$true_score
+
+## Examine the tables and plots produced for the AD meta-analysis:
+ma_obj$bootstrap[[1]]$artifact_distribution$true_score
+ma_obj$leave1out[[1]]$artifact_distribution$true_score
+ma_obj$cumulative[[1]]$artifact_distribution$true_score
+
+
+## Run a meta-analysis using simulated d-value data:
+ma_obj &lt;- ma_d_ic(d = d, n1 = n1, n2 = n2, ryy = ryyi,
+                  data = filter(data_d_meas_multi, construct == "Y"))
+ma_obj &lt;- ma_d_ad(ma_obj)
+                  
+## Pass the meta-analysis object to the sensitivity() function:
+ma_obj &lt;- sensitivity(ma_obj = ma_obj, boot_iter = 10,
+                      boot_ci_type = "norm", sort_method = "inv_var")
+
+## Examine the tables and plots produced for the IC meta-analysis:
+ma_obj$bootstrap[[1]]$barebones
+ma_obj$bootstrap[[1]]$individual_correction$latentGroup_latentY
+ma_obj$leave1out[[1]]$individual_correction$latentGroup_latentY
+ma_obj$cumulative[[1]]$individual_correction$latentGroup_latentY
+
+## Examine the tables and plots produced for the AD meta-analysis:
+ma_obj$bootstrap[[1]]$artifact_distribution$latentGroup_latentY
+ma_obj$leave1out[[1]]$artifact_distribution$latentGroup_latentY
+ma_obj$cumulative[[1]]$artifact_distribution$latentGroup_latentY
+
+## End(Not run)
+</code></pre>
+
+
+</div>

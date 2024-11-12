@@ -1,0 +1,157 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>summ_order</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Summarize list of pdqr-functions with order</h2>
+
+<h3>Description</h3>
+
+<p>Functions for ordering the set of pdqr-functions supplied in a list. This
+might be useful for doing comparative statistical inference for several
+groups of data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">summ_order(f_list, method = "compare", decreasing = FALSE)
+
+summ_sort(f_list, method = "compare", decreasing = FALSE)
+
+summ_rank(f_list, method = "compare")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>f_list</code></td>
+<td>
+<p>List of pdqr-functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Method to be used for ordering. Should be one of "compare",
+"mean", "median", "mode", "midrange".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>decreasing</code></td>
+<td>
+<p>If <code>TRUE</code> ordering is done decreasingly.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Ties for all methods are handled so as to preserve the original
+order.
+</p>
+<p>Method "compare" is using the following ordering relation: pdqr-function <code>f</code>
+is greater than <code>g</code> if and only if <code>P(f &gt;= g) &gt; 0.5</code>, or in code
+<code>summ_prob_true(f &gt;= g) &gt; 0.5</code> (see pdqr methods for "Ops" group generic family for more details on comparing pdqr-functions).
+This method orders input based on this relation and order()
+function. <strong>Notes</strong>:
+</p>
+
+<ul>
+<li>
+<p> This relation doesn't define strictly ordering because it is not
+transitive: there can be pdqr-functions <code>f</code>, <code>g</code>, and <code>h</code>, for which <code>f</code> is
+greater than <code>g</code>, <code>g</code> is greater than <code>h</code>, and <code>h</code> is greater than <code>f</code> (but
+should be otherwise). If not addressed, this might result into dependence of
+output on order of the input. It is solved by first preordering <code>f_list</code>
+based on method "mean" and then calling <code>order()</code>.
+</p>
+</li>
+<li>
+<p> Because comparing two pdqr-functions can be time consuming, this method
+becomes rather slow as number of <code>f_list</code> elements grows.
+</p>
+</li>
+</ul>
+<p>Methods "mean", "median", "mode", and "midrange" are based on
+<code>summ_center()</code>: ordering of <code>f_list</code> is defined as ordering of corresponding
+measures of distribution's center.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>summ_order()</code> works essentially like order(). It
+returns an integer vector representing a permutation which rearranges
+<code>f_list</code> in desired order.
+</p>
+<p><code>summ_sort()</code> returns a sorted (in desired order) variant of <code>f_list</code>.
+</p>
+<p><code>summ_rank()</code> returns a numeric vector representing ranks of <code>f_list</code>
+elements: 1 for the "smallest", <code>length(f_list)</code> for the "biggest".
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other summary functions: 
+<code>summ_center()</code>,
+<code>summ_classmetric()</code>,
+<code>summ_distance()</code>,
+<code>summ_entropy()</code>,
+<code>summ_hdr()</code>,
+<code>summ_interval()</code>,
+<code>summ_moment()</code>,
+<code>summ_prob_true()</code>,
+<code>summ_pval()</code>,
+<code>summ_quantile()</code>,
+<code>summ_roc()</code>,
+<code>summ_separation()</code>,
+<code>summ_spread()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">d_fun &lt;- as_d(dunif)
+f_list &lt;- list(a = d_fun, b = d_fun + 1, c = d_fun - 1)
+summ_order(f_list)
+summ_sort(f_list)
+summ_rank(f_list)
+
+# All methods might give different results on some elaborated pdqr-functions
+# Methods "compare" and "mean" are not equivalent
+non_mean_list &lt;- list(
+  new_d(data.frame(x = c(0.56, 0.815), y = c(1, 1)), "continuous"),
+  new_d(data.frame(x = 0:1, y = c(0, 1)), "continuous")
+)
+summ_order(non_mean_list, method = "compare")
+summ_order(non_mean_list, method = "mean")
+
+# Methods powered by `summ_center()` are not equivalent
+m &lt;- c(0, 0.2, 0.1)
+s &lt;- c(1.1, 1.2, 1.3)
+dlnorm_list &lt;- lapply(seq_along(m), function(i) {
+  as_d(dlnorm, meanlog = m[i], sdlog = s[i])
+})
+summ_order(dlnorm_list, method = "mean")
+summ_order(dlnorm_list, method = "median")
+summ_order(dlnorm_list, method = "mode")
+
+# Method "compare" handles inherited non-transitivity. Here third element is
+# "greater" than second (`P(f &gt;= g) &gt; 0.5`), second - than first, and first
+# is "greater" than third.
+non_trans_list &lt;- list(
+  new_d(data.frame(x = c(0.39, 0.44, 0.46), y = c(17, 14, 0)), "continuous"),
+  new_d(data.frame(x = c(0.05, 0.3, 0.70), y = c(4, 0, 4)), "continuous"),
+  new_d(data.frame(x = c(0.03, 0.40, 0.80), y = c(1, 1, 1)), "continuous")
+)
+summ_sort(non_trans_list)
+## Output doesn't depend on initial order
+summ_sort(non_trans_list[c(2, 3, 1)])
+</code></pre>
+
+
+</div>

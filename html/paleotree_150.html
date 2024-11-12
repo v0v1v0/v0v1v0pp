@@ -1,0 +1,419 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sampleRanges</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Sampling Taxon Ranges</h2>
+
+<h3>Description</h3>
+
+<p>A function for simulating the effect of incomplete sampling of the fossil
+record.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sampleRanges(
+  taxaData,
+  r,
+  alpha = 1,
+  beta = 1,
+  rTimeRatio = 1,
+  modern.samp.prob = 1,
+  min.taxa = 2,
+  ranges.only = TRUE,
+  minInt = 0.01,
+  merge.cryptic = TRUE,
+  randLiveHat = TRUE,
+  alt.method = FALSE,
+  plot = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>taxaData</code></td>
+<td>
+<p>A two-column matrix of per-taxon ranges. The five-column matrix
+output of <code>simFossilRecord</code>, post transformation with <code>fossilRecord2fossilTaxa</code>
+can also be supplied, which will be common in simulation usages.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>Instantaneous average sampling rate per lineage time units; given
+as a vector of <code>length = 1</code> or <code>length</code> equal to the number of taxa.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Alpha parameter of beta distribution; given as a vector of
+<code>length = 1</code> or <code>length</code> equal to the number of taxa.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>Beta parameter of beta distribution; given as a vector of 
+<code>length = 1</code> or <code>length</code> equal to the number of taxa.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rTimeRatio</code></td>
+<td>
+<p>Ratio of most recent sampling rate over earliest sampling
+rate; given as a vector of <code>length = 1</code> or <code>length</code> equal to the number of taxa.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>modern.samp.prob</code></td>
+<td>
+<p>Probability of sampling living taxa at the present
+day (time = 0), see below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.taxa</code></td>
+<td>
+<p>Minimum number of taxa sampled. The default is 2.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ranges.only</code></td>
+<td>
+<p>If <code>TRUE</code>, gives taxon first and last occurrences only. If
+<code>FALSE</code>, gives the time of all sampling events as a list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minInt</code></td>
+<td>
+<p>Minimum interval size used for simulating complex models. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>merge.cryptic</code></td>
+<td>
+<p>If <code>TRUE</code>, sampling events for cryptic species will be
+merged into one taxon.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>randLiveHat</code></td>
+<td>
+<p>If <code>TRUE</code>, taxa still alive at modern day have the
+end-point of their 'hat' chosen from a uniform distribution.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alt.method</code></td>
+<td>
+<p>If <code>TRUE</code>, use the alternative method of discretizing time
+even if a simple model of sampling is being simulated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>If <code>TRUE</code>, plots the sampling models for each taxon against time.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function implements a range of sampling models in continuous time. Be
+default, sampling is simulated under the simplest model, where sampling
+occurs as a Poisson process under a instantaneous sampling rate (<code>r</code>) which is
+homogeneous through time and across lineages (Foote, 1997). Under this model,
+the waiting times to sampling events are exponentially distributed, with an
+average waiting time of 1/r. This useful property allows sampling to be
+rapidly simulated for many taxa under this simple model in <code>sampleRanges</code>, by
+repeatedly drawing waiting times between sampling events from an exponential
+distribution. This is the model that is run when 
+<code>alpha</code>, <code>beta</code> and <code>rTimeRatio</code>.
+</p>
+<p>In addition to this simple model, <code>sampleRanges</code> also can consider a range of
+additional models, including the <em>"hatP"</em> and <em>"incP"</em> options of Liow et al.
+(2010). To describe the behavior of these models, users alter the default
+values for <code>alpha</code>, <code>beta</code> and <code>rTimeRatio</code>.
+These parameters, and <code>r</code>, can either
+be a single value which describes the behavior of the entire dataset or as a
+vector, of same length as the number of taxa, which describes the per-taxon
+value.  When any <code>rTimeRatio</code>, alpha or beta value is not equal to one, then
+the sampling rate will vary across the duration of a taxon's temporal range.
+In general, setting alpha and beta equal to a value above 2 will produce a "hat" or
+bell-shaped curve, where sampling rates peak at the midpoint of taxon
+ranges, while setting them unequal will produce asymmetric bell curves
+according to the beta function (Liow et al., 2010; Liow et al. set
+<code>alpha = 4</code> and <code>beta = 4</code>). <code>rTimeRatio</code> is the
+ratio of the sampling rate of the
+latest (most recent) time divided by the earliest (oldest) time.
+</p>
+<p>The input <code>r</code> values will be interpreted differently based on whether one <code>r</code>
+value or per-taxon values were used. If one value was input, then it is
+assumed that <code>r</code> represent the grand mean <code>r</code> for the entire dataset for purposes
+of time-varying <code>r</code>, such that if <code>rTimeRatio</code> is not equal to 1, taxa near the
+end and start of the dataset will have very different per-taxon mean
+sampling rate. 
+If per-taxon values of <code>r</code> were input, then each <code>r</code> is consider
+the per-taxon mean sampling rate. These will not be changed, but any
+within-lineage variation is distributed so that the mean is still the input
+per-taxon value. This also changes the interpretation of <code>rTimeRatio</code>, such
+that when a single <code>r</code> value and <code>rTimeRatio</code> is given, it is assumed the ratio
+describes the change in sampling rates from the start of the dataset to the
+end, while if multiple values are given for either <code>r</code> or <code>rTimeRatio</code> will
+instead see the value as describing the ratio at the first and last times of
+each taxon. For the pure hat model, this interpretation of <code>r</code> as a grand mean
+sampling means that taxa will have a sampling rate of <code>2 * r</code> at the mid-peak of their
+range, which will have considerable implications for taxonomic incompleteness.
+</p>
+<p>The particular distinctions about these parameter values are important: all
+models simulated in <code>sampleRanges</code> are structured to be effectively nested
+inside a most general model with parameters <code>r</code>,
+<code>alpha</code>, <code>beta</code> and <code>rTimeRatio</code>.
+</p>
+<p>Note that the modeling of sampling in this function is independent and
+secondary of the actual simulation of the ranges, which are (generally)
+produced by the models of <code>simFossilRecord</code> with argument <code>r</code>
+(sampling rate) not set. Thus, 'hat-shaped range distributions' 
+are only contained within single morphotaxa – they do <em>not</em>
+cross multiple morphotaxa in the case of anagenesis. Cryptic taxa each have
+their own hat and do not share a single hat; by default the ranges of
+cryptic taxa are merged to produce the range of a single observed
+morphotaxon.
+</p>
+<p>'Hats' are constrained to start and end with a taxon's range, representing
+the rise and fall of taxa in terms of abundance and geographic range (Liow
+et al., 2010). 
+However, for still-living taxa at the modern day, it is
+unknown how much longer they may be alive (for memory-less Poisson models,
+there is no age-dependent extinction). 
+The treatment of these taxa with regards to their 'hat' (i. e. the beta distribution)
+is controlled by the argument <code>randLivehat</code>.
+When <code>randLiveHat = FALSE</code>, the beta distribution is fit so that the last appearance of
+still-alive taxa at the modern day is treated as a last appearance for calculating the hat. 
+When <code>TRUE</code>, the default option, the still-alive taxa are considered to have gotten some
+distance between 0 and 1 through the beta distribution, as of the modern day. 
+This point of progression is stochastically selected for each taxon by
+pulling a number from a uniform distribution, and used for calculating the hat.
+</p>
+<p>Because sampling rate varies over morphotaxon ranges under any of these more
+complex models, sampling events cannot be quickly simulated as waiting times
+pulled from an exponential distribution. Instead, the taxon durations are
+discretized into a large number of small time intervals of length <code>minInt</code>
+(see above; <code>minInt</code> should be small enough that only one sampling event could
+feasibly happen per interval). The probability of an event occurring within
+each interval is calculated and used to stochastically simulate sampling
+events. For each interval, a number between 0 and 1 is randomly pulled from
+a uniform distribution and to the per-interval sampling probability to test
+if a sampling event occurred (if the random number is less than the
+probability, a sampling event is recorded). In general, this method is
+slower but otherwise comparable to the quicker waiting times method. See the
+examples below for a small test of this.
+</p>
+<p>As with many functions in the <code>paleotree</code> library, absolute time is always
+decreasing, i.e. the present day is zero.
+</p>
+<p>If <code>min.taxa</code> is set to zero, the simulation may produce output in which no
+taxa were ever sampled.
+</p>
+<p>If <code>modern.samp.prob</code> is set to 1.0 (the default), then living taxa will
+always be sampled at least at the present day (if there are any living
+taxa). If the probability is less than 1, they will be sampled with that
+probability at the modern day.
+</p>
+<p>By default, this function will merge sampling events from morphologically
+cryptic taxa, listing them as occurrences for the earliest member of that
+group. To change this behavior, set <code>merge.cryptic = FALSE</code>.
+</p>
+<p>Conditioning on sampling some minimum number of taxa may create strange
+simulation results for some analyses, such as simulation analyses of
+birth-death processes. Set <code>min.taxa = 0</code> to remove this conditioning.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>ranges.only</code> is <code>TRUE</code>, then the output is a two-column per-taxon
+matrix of first and last appearances in absolute time. <code>NA</code>s mean the respective taxon
+was never sampled in the simulation.
+</p>
+<p>If <code>ranges.only = FALSE</code> (the default), the output is a list, where each
+element is a vector of sampling events the timing of sampling events, each
+corresponding to a different taxon in the input. Elements that are <code>NA</code> are
+unsampled taxa.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David W. Bapst
+</p>
+
+
+<h3>References</h3>
+
+<p>Foote, M. 1997 Estimating Taxonomic Durations and Preservation
+Probability. <em>Paleobiology</em> <b>23</b>(3):278–300.
+</p>
+<p>Liow, L. H., T. B. Quental, and C. R. Marshall. 2010 When Can Decreasing
+Diversification Rates Be Detected with Molecular Phylogenies and the Fossil
+Record? <em>Systematic Biology</em> <b>59</b>(6):646–659.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>simFossilRecord</code>, <code>binTimeData</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+set.seed(444)
+record &lt;- simFossilRecord(
+             p = 0.1, 
+             q = 0.1, 
+             nruns = 1,
+	            nTotalTaxa = c(30,40), 
+	            nExtant = 0
+	            )
+taxa &lt;- fossilRecord2fossilTaxa(record)
+
+# let's see what the 'true' diversity curve looks like in this case
+layout(1:2)
+taxicDivCont(taxa)
+# simulate a fossil record with imperfect sampling with sampleRanges
+rangesCont &lt;- sampleRanges(taxa,r = 0.5)
+# plot the diversity curve based on the sampled ranges
+taxicDivCont(rangesCont)
+
+# compare the true history to what we might observe!
+
+#let's try more complicated models!
+
+# a pull-to-the-recent model with x5 increase over time
+   # similar to Liow et al.'s  incP
+layout(1:2)
+rangesCont1 &lt;- sampleRanges(taxa,
+                            r = 0.5,
+                            rTimeRatio = 5,
+                            plot = TRUE
+                            )
+taxicDivCont(rangesCont1)
+
+# a hat-shaped model
+layout(1:2)
+rangesCont1 &lt;- sampleRanges(taxa,
+                            r = 0.5,
+                            alpha = 4,
+                            beta = 4,
+                            plot = TRUE
+                            )
+taxicDivCont(rangesCont1)
+
+# a combination of these
+layout(1:2)
+rangesCont1 &lt;- sampleRanges(taxa,
+                            r = 0.5,
+                            alpha = 4,
+                            beta = 4,
+                            rTimeRatio = 5,
+                            plot = TRUE
+                            )
+taxicDivCont(rangesCont1)
+
+# testing with cryptic speciation
+layout(1)
+recordCrypt &lt;- simFossilRecord(p = 0.1, q = 0.1, 
+                               prop.cryptic = 0.5, 
+                               nruns = 1,
+                               nTotalTaxa = c(20,30), 
+                               nExtant = 0
+                               )
+taxaCrypt &lt;- fossilRecord2fossilTaxa(recordCrypt)
+rangesCrypt &lt;- sampleRanges(taxaCrypt,r = 0.5)
+taxicDivCont(rangesCrypt)
+
+#an example of hat-shaped models (beta distributions) when there are live taxa
+set.seed(444)
+recordLive &lt;- simFossilRecord(p = 0.1, 
+                              q = 0.05, 
+                              nruns = 1,
+                              nTotalTaxa = c(5,100),
+                              nExtant = c(10,100)
+                              )
+taxaLive &lt;- fossilRecord2fossilTaxa(recordLive)
+#with end-points of live taxa at random points in the hat
+rangesLive &lt;- sampleRanges(taxaLive,
+                           r = 0.1,
+                           alpha = 4,
+                           beta = 4,
+                           randLiveHat = TRUE,
+                           plot = TRUE
+                           )
+#with all taxa end-points at end-point of hat
+rangesLive &lt;- sampleRanges(taxaLive,
+                           r = 0.1,
+                           alpha = 4,
+                           beta = 4,
+                           randLiveHat = FALSE,
+                           plot = TRUE
+                           )
+
+
+
+#simulate a model where sampling rate evolves under brownian motion
+tree &lt;- taxa2phylo(taxa,obs = taxa[,3])
+sampRateBM &lt;- rTraitCont(tree)
+sampRateBM &lt;- sampRateBM-min(sampRateBM)
+layout(1:2)
+rangesCont1 &lt;- sampleRanges(taxa,r = sampRateBM,plot = TRUE)
+taxicDivCont(rangesCont1)
+
+#evolving sampling rate, hat model and pull of the recent
+layout(1:2)
+rangesCont1 &lt;- sampleRanges(taxa,
+                            r = sampRateBM,
+                            alpha = 4,
+                            beta = 4,
+                            rTimeRatio = 5,
+                            plot = TRUE
+                            )
+taxicDivCont(rangesCont1)
+layout(1)
+
+#the simpler model is simulated by pulling waiting times from an exponential
+#more complicated models are simulated by discretizing time into small intervals
+#are these two methods comparable?
+
+#let's look at the number of taxa sampled under both methods
+
+summary(replicate(100,sum(!is.na(
+               sampleRanges(taxa,
+                            r = 0.5,
+                            alt.method = FALSE
+                            )
+               [,1]))))
+
+summary(replicate(100,sum(!is.na(
+               sampleRanges(taxa,
+                            r = 0.5,
+                            alt.method = TRUE
+                            )
+               [,1]))))
+               
+#they look pretty similar!
+
+</code></pre>
+
+
+</div>

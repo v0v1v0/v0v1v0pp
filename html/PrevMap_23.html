@@ -1,0 +1,138 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Laplace.sampling.lr</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Langevin-Hastings MCMC for conditional simulation (low-rank approximation)</h2>
+
+<h3>Description</h3>
+
+<p>This function simulates from the conditional distribution of the random effects of binomial and Poisson models.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">Laplace.sampling.lr(
+  mu,
+  sigma2,
+  K,
+  y,
+  units.m,
+  control.mcmc,
+  messages = TRUE,
+  plot.correlogram = TRUE,
+  poisson.llik = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>mean vector of the linear predictor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma2</code></td>
+<td>
+<p>variance of the random effect.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>random effect design matrix, or kernel matrix for the low-rank approximation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>vector of binomial/Poisson observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>units.m</code></td>
+<td>
+<p>vector of binomial denominators, or offset if the Poisson model is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control.mcmc</code></td>
+<td>
+<p>output from <code>control.mcmc.MCML</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>messages</code></td>
+<td>
+<p>logical; if <code>messages=TRUE</code> then status messages are printed on the screen (or output device) while the function is running. Default is <code>messages=TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.correlogram</code></td>
+<td>
+<p>logical; if <code>plot.correlogram=TRUE</code> the autocorrelation plot of the conditional simulations is displayed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>poisson.llik</code></td>
+<td>
+<p>logical; if <code>poisson.llik=TRUE</code> a Poisson model is used or, if <code>poisson.llik=FALSE</code>, a binomial model is used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><b>Binomial model.</b> Conditionally on <code class="reqn">Z</code>, the data <code>y</code> follow a binomial distribution with probability <code class="reqn">p</code> and binomial denominators <code>units.m</code>. Let <code class="reqn">K</code> denote the random effects design matrix; a logistic link function is used, thus the linear predictor assumes the form </p>
+<p style="text-align: center;"><code class="reqn">\log(p/(1-p))=\mu + KZ</code>
+</p>
+<p> where <code class="reqn">\mu</code> is the mean vector component defined through <code>mu</code>.
+<b>Poisson model.</b> Conditionally on <code class="reqn">Z</code>, the data <code>y</code> follow a Poisson distribution with mean <code class="reqn">m\lambda</code>, where <code class="reqn">m</code> is an offset set through the argument <code>units.m</code>. Let <code class="reqn">K</code> denote the random effects design matrix; a log link function is used, thus the linear predictor assumes the form </p>
+<p style="text-align: center;"><code class="reqn">\log(\lambda)=\mu + KZ</code>
+</p>
+<p> where <code class="reqn">\mu</code> is the mean vector component defined through <code>mu</code>.
+The random effect <code class="reqn">Z</code> has iid components distributed as zero-mean Gaussian variables with variance <code>sigma2</code>.
+</p>
+<p><b>Laplace sampling.</b> This function generates samples from the distribution of <code class="reqn">Z</code> given the data <code>y</code>. Specifically, a Langevin-Hastings algorithm is used to update <code class="reqn">\tilde{Z} = \tilde{\Sigma}^{-1/2}(Z-\tilde{z})</code> where <code class="reqn">\tilde{\Sigma}</code> and <code class="reqn">\tilde{z}</code> are the inverse of the negative Hessian and the mode of the distribution of <code class="reqn">Z</code> given <code>y</code>, respectively. At each iteration a new value <code class="reqn">\tilde{z}_{prop}</code> for <code class="reqn">\tilde{Z}</code> is proposed from a multivariate Gaussian distribution with mean </p>
+<p style="text-align: center;"><code class="reqn">\tilde{z}_{curr}+(h/2)\nabla \log f(\tilde{Z} | y),</code>
+</p>
+
+<p>where <code class="reqn">\tilde{z}_{curr}</code> is the current value for <code class="reqn">\tilde{Z}</code>, <code class="reqn">h</code> is a tuning parameter and <code class="reqn">\nabla \log f(\tilde{Z} | y)</code> is the the gradient of the log-density of the distribution of <code class="reqn">\tilde{Z}</code> given <code>y</code>. The tuning parameter <code class="reqn">h</code> is updated according to the following adaptive scheme: the value of <code class="reqn">h</code> at the <code class="reqn">i</code>-th iteration, say <code class="reqn">h_{i}</code>, is given by </p>
+<p style="text-align: center;"><code class="reqn">h_{i} = h_{i-1}+c_{1}i^{-c_{2}}(\alpha_{i}-0.547),</code>
+</p>
+
+<p>where <code class="reqn">c_{1} &gt; 0</code> and <code class="reqn">0 &lt; c_{2} &lt; 1</code> are pre-defined constants, and <code class="reqn">\alpha_{i}</code> is the acceptance rate at the <code class="reqn">i</code>-th iteration (<code class="reqn">0.547</code> is the optimal acceptance rate for a multivariate standard Gaussian distribution).
+The starting value for <code class="reqn">h</code>, and the values for <code class="reqn">c_{1}</code> and <code class="reqn">c_{2}</code> can be set through the function <code>control.mcmc.MCML</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with the following components
+</p>
+<p><code>samples</code>: a matrix, each row of which corresponds to a sample from the predictive distribution.
+</p>
+<p><code>h</code>: vector of the values of the tuning parameter at each iteration of the Langevin-Hastings MCMC algorithm.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Emanuele Giorgi <a href="mailto:e.giorgi@lancaster.ac.uk">e.giorgi@lancaster.ac.uk</a>
+</p>
+<p>Peter J. Diggle <a href="mailto:p.diggle@lancaster.ac.uk">p.diggle@lancaster.ac.uk</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>control.mcmc.MCML</code>.
+</p>
+
+
+</div>

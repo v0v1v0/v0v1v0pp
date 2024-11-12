@@ -1,0 +1,266 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>gds</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Greedy DAG Search to Estimate Markov Equivalence Class of DAG</h2>
+
+<h3>Description</h3>
+
+<p>Estimate the observational or interventional essential graph representing the 
+Markov equivalence class of a DAG by greedily optimizing a score function in 
+the space of DAGs.  In practice, greedy search should always be done in the 
+space of equivalence classes instead of DAGs, giving the functions
+<code>gies</code> or <code>ges</code> the preference over <code>gds</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">gds(score, labels = score$getNodes(), targets = score$getTargets(),
+    fixedGaps = NULL, phase = c("forward", "backward", "turning"), 
+    iterate = length(phase) &gt; 1, turning = TRUE, maxDegree = integer(0), 
+    verbose = FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>score</code></td>
+<td>
+<p>An instance of a class derived from <code>Score</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>labels</code></td>
+<td>
+<p>Node labels; by default, they are determined from the scoring
+object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>targets</code></td>
+<td>
+<p>A <code>list</code> of intervention targets
+(cf. details).  A list of vectors, each vector listing the vertices
+of one intervention target.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixedGaps</code></td>
+<td>
+<p>Logical <em>symmetric</em> matrix of dimension p*p.  If entry
+<code>[i, j]</code> is <code>TRUE</code>, the result is guaranteed to have no edge
+between nodes <code class="reqn">i</code> and <code class="reqn">j</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phase</code></td>
+<td>
+<p>Character vector listing the phases that should be used; possible
+values: <code>forward</code>, <code>backward</code>, and <code>turning</code> (cf. details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iterate</code></td>
+<td>
+<p>Logical indicating whether the phases listed in the argument
+<code>phase</code> should be iterated more than once (<code>iterate = TRUE</code>) or
+not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>turning</code></td>
+<td>
+<p>Setting <code>turning = TRUE</code> is equivalent to setting
+<code>phases = c("forward", "backward")</code> and <code>iterate = FALSE</code>; the
+use of the argument <code>turning</code> is deprecated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxDegree</code></td>
+<td>
+<p>Parameter used to limit the vertex degree of the estimated
+graph.  Valid arguments:
+</p>
+
+<ol>
+<li>
+<p> Vector of length 0 (default): vertex degree is not limited.
+</p>
+</li>
+<li>
+<p> Real number <code class="reqn">r</code>, <code class="reqn">0 &lt; r &lt; 1</code>: degree of vertex <code class="reqn">v</code> is
+limited to <code class="reqn">r \cdot n_v</code>, where <code class="reqn">n_v</code> denotes the number of
+data points where <code class="reqn">v</code> was not intervened.
+</p>
+</li>
+<li>
+<p> Single integer: uniform bound of vertex degree for all vertices
+of the graph.
+</p>
+</li>
+<li>
+<p> Integer vector of length <code>p</code>: vector of individual bounds
+for the vertex degrees.
+</p>
+</li>
+</ol>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>if <code>TRUE</code>, detailed output is provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments for debugging purposes and fine tuning.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function estimates the observational or interventional Markov 
+equivalence class of a DAG
+based on a data sample with interventional data originating from various
+interventions and possibly observational data. The intervention targets used
+for data generation must be specified by the argument <code>targets</code> as a
+list of (integer) vectors listing the intervened vertices; observational
+data is specified by an empty set, i.e. a vector of the form
+<code>integer(0)</code>.  As an example, if data contains observational samples
+as well as samples originating from an intervention at vertices 1 and 4,
+the intervention targets must be specified as <code>list(integer(0), 
+  as.integer(1), as.integer(c(1, 4)))</code>.  
+</p>
+<p>An interventional Markov equivalence class of DAGs can be uniquely
+represented by a partially directed graph called interventional essential 
+graph.  Its edges have the following interpretation:
+</p>
+
+<ol>
+<li>
+<p> a directed edge <code class="reqn">a \longrightarrow b</code> stands for an arrow
+that has the same orientation in all representatives of the 
+interventional Markov equivalence class;
+</p>
+</li>
+<li>
+<p> an undirected edge a – b stands for an arrow that is oriented in one 
+way in some representatives of the equivalence class and in the other way 
+in other representatives of the equivalence class.
+</p>
+</li>
+</ol>
+<p>Note that when plotting the object, undirected and bidirected edges are 
+equivalent.
+</p>
+<p>Greedy DAG search (GDS) maximizes a score function (typically the BIC, passed
+to the function via the argument <code>score</code>) of a DAG in three phases, 
+starting from the empty DAG:
+</p>
+
+<dl>
+<dt>Forward phase</dt>
+<dd>
+<p>In the forward phase, GDS adds single arrows to the 
+DAG as long as this augments the score.</p>
+</dd>
+<dt>Backward phase</dt>
+<dd>
+<p>In the backward phase, the algorithm removes arrows
+from the DAG as long as this augments the score.</p>
+</dd>
+<dt>Turning phase</dt>
+<dd>
+<p>In the turning phase, the algorithm reverts arrows of
+the DAG as long as this augments the score.</p>
+</dd>
+</dl>
+<p>The phases that are actually run are specified with the argument 
+<code>phase</code>.  GDS cycles through the specified phases until no augmentation 
+of the score is possible any more if <code>iterate = TRUE</code>.  In the end, 
+<code>gds</code> returns the (interventional or observational) essential graph of 
+the last visited DAG.
+</p>
+<p>It is well-known that a greedy search in the space of DAGs instead of 
+essential graphs is more prone to be stuck in local optima of the score
+function and hence expected to yield worse estimation results than GIES
+(function <code>gies</code>) or GES (function <code>ges</code>) (Chickering,
+2002; Hauser and Bühlmann, 2012).  The 
+function <code>gds</code> is therefore not of practical use, but can be used
+to compare causal inference algorithms to an elementary and straight-forward
+approach.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>gds</code> returns a list with the following two components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>essgraph</code></td>
+<td>
+<p>An object of class <code>EssGraph</code> containing an 
+estimate of the equivalence class of the underlying DAG.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>repr</code></td>
+<td>
+<p>An object of a class derived from <code>ParDAG</code>
+containing a (random) representative of the estimated equivalence class.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Alain Hauser (<a href="mailto:alain.hauser@bfh.ch">alain.hauser@bfh.ch</a>)
+</p>
+
+
+<h3>References</h3>
+
+<p>D.M. Chickering (2002).  Optimal structure identification with greedy search.
+<em>Journal of Machine Learning Research</em> <b>3</b>, 507–554
+</p>
+<p>A. Hauser and P. Bühlmann (2012).  Characterization and greedy learning of 
+interventional Markov equivalence classes of directed acyclic graphs.
+<em>Journal of Machine Learning Research</em> <b>13</b>, 2409–2464.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>gies</code>, <code>ges</code>, <code>Score</code>, 
+<code>EssGraph</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Load predefined data
+data(gmInt)
+
+## Define the score (BIC)
+score &lt;- new("GaussL0penIntScore", gmInt$x, gmInt$targets, gmInt$target.index) 
+
+## Estimate the essential graph
+gds.fit &lt;- gds(score) 
+
+## Plot the estimated essential graph and the true DAG
+if (require(Rgraphviz)) {
+  par(mfrow=c(1,2))
+  plot(gds.fit$essgraph, main = "Estimated ess. graph")
+  plot(gmInt$g, main = "True DAG")
+}
+</code></pre>
+
+
+</div>

@@ -1,0 +1,251 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>m325nhl</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Minenergo-325. Normative heat loss of pipe</h2>
+
+<h3>Description</h3>
+
+<p>Calculate normative heat loss of pipe that is legally affirmed by
+<a href="https://docs.cntd.ru/document/902148459">Minenergo Order 325</a>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">m325nhl(
+  year = 1986,
+  laying = "underground",
+  exp5k = TRUE,
+  insulation = 0,
+  d = 700,
+  temperature = 110,
+  len = 1,
+  duration = 1,
+  beta = FALSE,
+  extra = 2
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>year</code></td>
+<td>
+<p>year when the pipe is put in operation after laying or total overhaul.
+Type: <code>assert_integerish</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>laying</code></td>
+<td>
+<p>type of pipe laying depicting the position of pipe in space:
+</p>
+
+<ul>
+<li> <p><code>air</code>,
+</p>
+</li>
+<li> <p><code>channel</code>,
+</p>
+</li>
+<li> <p><code>room</code>,
+</p>
+</li>
+<li> <p><code>tunnel</code>,
+</p>
+</li>
+<li> <p><code>underground</code>.
+</p>
+</li>
+</ul>
+<p>Type: <code>assert_subset</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exp5k</code></td>
+<td>
+<p>pipe regime flag: is pipe operated more that 5000 hours per year?
+Type: <code>assert_logical</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>insulation</code></td>
+<td>
+<p>insulation that covers the exterior of pipe:
+</p>
+
+<dl>
+<dt><code>0</code></dt>
+<dd>
+<p>no insulation</p>
+</dd>
+<dt><code>1</code></dt>
+<dd>
+<p>foamed polyurethane or analogue</p>
+</dd>
+<dt><code>2</code></dt>
+<dd>
+<p>polymer concrete</p>
+</dd>
+</dl>
+<p>Type: <code>assert_integer</code> and <code>assert_subset</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>internal diameter of pipe, [<em>mm</em>]. Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>temperature</code></td>
+<td>
+<p>temperature of heat carrier (water) inside the pipe, [<em>°C</em>].
+Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>len</code></td>
+<td>
+<p>length of pipe, [<em>m</em>]. Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>duration</code></td>
+<td>
+<p>duration of heat loss, [<em>hour</em>]. Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>should they consider additional heat loss of fittings?
+Type: <code>assert_logical</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extra</code></td>
+<td>
+<p>number of points used for temperature extrapolation: <code>2</code>, <code>3</code>,
+or <code>4</code>. Type: <code>assert_choice</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Temperature extrapolation and pipe diameter interpolation are leveraged
+for better accuracy. Both are linear as it dictated by
+<a href="https://docs.cntd.ru/document/902148459">Minenergo Order 325</a>.
+Nevertheless, one could control the extrapolation behavior by <code>extra</code>
+argument: use lower values of <code>extra</code> for soft curvature near extrapolation
+edges, and higher values for more physically reasoned behavior in far regions
+of extrapolation.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Normative heat loss of cylindrical pipe during <code>duration</code>, [<em>kcal</em>].
+If <code>len</code> of pipe is 1 <em>m</em> (meter) as well as <code>duration</code> is set to
+1 <em>h</em> (hour) (default values) then the return value is also the
+<em>specific heat loss power</em>, [<em>kcal/m/h</em>], prescribed by
+<a href="https://docs.cntd.ru/document/902148459">Minenergo Order 325</a>.
+Type: <code>assert_double</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Minenergo: 
+<code>m278hlair()</code>,
+<code>m278hlcha()</code>,
+<code>m278hlund()</code>,
+<code>m278insdata</code>,
+<code>m278inshcm()</code>,
+<code>m278soildata</code>,
+<code>m325beta()</code>,
+<code>m325nhldata</code>,
+<code>m325testbench</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"> library(pipenostics)
+
+ ## Consider a 1-meter length pipe with
+ pipe_diameter &lt;-  700.0  # [mm]
+ pipe_dating   &lt;- 1980
+ pipe_laying   &lt;- "underground"
+
+
+ ## Linear extrapolation adopted in Minenergo's Order 325 using last two points:
+ operation_temperature &lt;- seq(0, 270, 10)
+
+ qs &lt;- m325nhl(
+   year = pipe_dating, laying = pipe_laying, d = pipe_diameter,
+   temperature = operation_temperature
+ )  # [kcal/m/h]
+
+ plot(
+     operation_temperature,
+     qs,
+     type = "b",
+     main = "Minenergo's Order 325. Normative heat loss of pipe",
+     sub = sprintf(
+       "%s pipe of diameter %i [mm] laid in %i",
+        pipe_laying, pipe_diameter, pipe_dating
+     ),
+     xlab = "Temperature, [°C]",
+     ylab = "Specific heat loss power, [kcal/m/h]"
+   )
+
+
+ ## Consider heat loss due fittings:
+ operation_temperature &lt;- 65  # [°C]
+
+ fittings_qs &lt;- m325nhl(
+   year = pipe_dating, laying = pipe_laying, d = pipe_diameter,
+   temperature = operation_temperature, beta = c(FALSE, TRUE)
+ )  # [kcal/m/h]
+
+ print(fittings_qs); stopifnot(all(round(fittings_qs ,1)  == c(272.0, 312.8)))
+
+ # [1] 272.0 312.8  # [kcal/m/h]
+
+
+
+ ## Calculate heat flux:
+ operation_temperature &lt;- c(65, 105)  # [°C]
+
+ qs &lt;- m325nhl(
+   year = pipe_dating, laying = pipe_laying, d = pipe_diameter,
+   temperature = operation_temperature
+ )  # [kcal/m/h]
+ print(qs)
+
+ # [1] 272.00 321.75  # [kcal/m/h]
+
+ pipe_diameter &lt;- pipe_diameter * 1e-3          # [m]
+ factor        &lt;- 2.701283                      # [kcal/h/W]
+
+ flux &lt;- qs/factor/pipe_diameter -&gt; a  # heat flux, [W/m^2]
+ print(flux)
+
+ # [1] 143.8470 170.1572  # [W/m^2]
+
+ ## The above line is equivalent to:
+
+ flux &lt;- flux_loss(qs, pipe_diameter) -&gt; b
+
+ stopifnot(all.equal(a, b, tolerance = 5e-6))
+
+</code></pre>
+
+
+</div>

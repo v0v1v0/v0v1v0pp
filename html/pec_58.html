@@ -1,0 +1,192 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predictSurvProb</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Predicting survival probabilities</h2>
+
+<h3>Description</h3>
+
+<p>Function to extract survival probability predictions from various modeling
+approaches. The most prominent one is the Cox regression model which can be
+fitted for example with ‘coxph’ and with ‘cph’.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'aalen'
+predictSurvProb(object,newdata,times,...)
+## S3 method for class 'riskRegression'
+predictSurvProb(object,newdata,times,...)
+## S3 method for class 'cox.aalen'
+predictSurvProb(object,newdata,times,...)
+## S3 method for class 'cph'
+predictSurvProb(object,newdata,times,...)
+## S3 method for class 'coxph'
+predictSurvProb(object,newdata,times,...)
+## S3 method for class 'matrix'
+predictSurvProb(object,newdata,times,...)
+## S3 method for class 'selectCox'
+predictSurvProb(object,newdata,times,...)
+## S3 method for class 'pecCforest'
+predictSurvProb(object,newdata,times,...)
+## S3 method for class 'prodlim'
+predictSurvProb(object,newdata,times,...)
+## S3 method for class 'psm'
+predictSurvProb(object,newdata,times,...)
+## S3 method for class 'survfit'
+predictSurvProb(object,newdata,times,...)
+## S3 method for class 'pecRpart'
+predictSurvProb(object,newdata,times,...)
+#' \method{predictSurvProb}{pecCtree}(object,newdata,times,...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A fitted model from which to extract predicted survival
+probabilities</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>A data frame containing predictor variable combinations for
+which to compute predicted survival probabilities.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>times</code></td>
+<td>
+<p>A vector of times in the range of the response variable, e.g.
+times when the response is a survival object, at which to return the
+survival probabilities.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments that are passed on to the current method.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function predictSurvProb is a generic function that means it invokes
+specifically designed functions depending on the 'class' of the first
+argument.
+</p>
+<p>The function <code>pec</code> requires survival probabilities for each row in
+newdata at requested times. These probabilities are extracted from a fitted
+model of class <code>CLASS</code> with the function <code>predictSurvProb.CLASS</code>.
+</p>
+<p>Currently there are <code>predictSurvProb</code> methods for objects of class cph
+(library rms), coxph (library survival), aalen (library timereg), cox.aalen
+(library timereg), 
+rpart (library rpart), product.limit (library prodlim),
+survfit (library survival), psm (library rms)
+</p>
+
+
+<h3>Value</h3>
+
+<p>A matrix with as many rows as <code>NROW(newdata)</code> and as many
+columns as <code>length(times)</code>. Each entry should be a probability and in
+rows the values should be decreasing.
+</p>
+
+
+<h3>Note</h3>
+
+<p>In order to assess the predictive performance of a new survival model
+a specific <code>predictSurvProb</code> S3 method has to be written. For examples,
+see the bodies of the existing methods.
+</p>
+<p>The performance of the assessment procedure, in particular for resampling
+where the model is repeatedly evaluated, will be improved by supressing in
+the call to the model all the computations that are not needed for
+probability prediction. For example, <code>se.fit=FALSE</code> can be set in the
+call to <code>cph</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Thomas A. Gerds <a href="mailto:tag@biostat.ku.dk">tag@biostat.ku.dk</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Ulla B. Mogensen, Hemant Ishwaran, Thomas A. Gerds (2012).
+Evaluating Random Forests for Survival Analysis Using Prediction Error
+Curves. Journal of Statistical Software, 50(11), 1-23. DOI
+10.18637/jss.v050.i11
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>predict</code>,<code>survfit</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# generate some survival data
+library(prodlim)
+set.seed(100)
+d &lt;- SimSurv(100)
+# then fit a Cox model
+library(survival)
+library(rms)
+coxmodel &lt;- cph(Surv(time,status)~X1+X2,data=d,surv=TRUE)
+
+# Extract predicted survival probabilities 
+# at selected time-points:
+ttt &lt;- quantile(d$time)
+# for selected predictor values:
+ndat &lt;- data.frame(X1=c(0.25,0.25,-0.05,0.05),X2=c(0,1,0,1))
+# as follows
+predictSurvProb(coxmodel,newdata=ndat,times=ttt)
+
+# stratified cox model
+sfit &lt;- coxph(Surv(time,status)~strata(X1)+X2,data=d,,x=TRUE,y=TRUE)
+predictSurvProb(sfit,newdata=d[1:3,],times=c(1,3,5,10))
+
+## simulate some learning and some validation data
+learndat &lt;- SimSurv(100)
+valdat &lt;- SimSurv(100)
+## use the learning data to fit a Cox model
+library(survival)
+fitCox &lt;- coxph(Surv(time,status)~X1+X2,data=learndat,x=TRUE,y=TRUE)
+## suppose we want to predict the survival probabilities for all patients
+## in the validation data at the following time points:
+## 0, 12, 24, 36, 48, 60
+psurv &lt;- predictSurvProb(fitCox,newdata=valdat,times=seq(0,60,12))
+## This is a matrix with survival probabilities
+## one column for each of the 5 time points
+## one row for each validation set individual
+
+## Cox with ridge option
+f1 &lt;- coxph(Surv(time,status)~X1+X2,data=learndat,x=TRUE,y=TRUE)
+f2 &lt;- coxph(Surv(time,status)~ridge(X1)+ridge(X2),data=learndat,x=TRUE,y=TRUE)
+plot(predictSurvProb(f1,newdata=valdat,times=10),
+     pec:::predictSurvProb.coxph(f2,newdata=valdat,times=10),
+     xlim=c(0,1),
+     ylim=c(0,1),
+     xlab="Unpenalized predicted survival chance at 10",
+     ylab="Ridge predicted survival chance at 10")
+
+
+</code></pre>
+
+
+</div>

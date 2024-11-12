@@ -1,0 +1,278 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>poso_time_cmin</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate the time required to reach a target trough concentration (Cmin)</h2>
+
+<h3>Description</h3>
+
+<p>Estimates the time required to reach a target trough concentration (Cmin)
+given a population pharmacokinetic model, a set of individual
+parameters, a dose, and a target Cmin.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">poso_time_cmin(
+  dat = NULL,
+  prior_model = NULL,
+  tdm = FALSE,
+  target_cmin,
+  dose = NULL,
+  cmt_dose = 1,
+  endpoint = "Cc",
+  estim_method = "map",
+  nocb = FALSE,
+  p = NULL,
+  greater_than = TRUE,
+  from = 0.2,
+  last_time = 72,
+  add_dose = NULL,
+  interdose_interval = NULL,
+  duration = 0,
+  indiv_param = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dat</code></td>
+<td>
+<p>Dataframe. An individual subject dataset following the
+structure of NONMEM/rxode2 event records.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior_model</code></td>
+<td>
+<p>A <code>posologyr</code> prior population pharmacokinetics
+model, a list of six objects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tdm</code></td>
+<td>
+<p>A boolean. If <code>TRUE</code>: computes the predicted time to reach the
+target trough concentration (Cmin) following the last event from <code>dat</code>,
+and using Maximum A Posteriori estimation. Setting <code>tdm</code> to <code>TRUE</code> causes
+the following to occur:
+</p>
+
+<ul>
+<li>
+<p> the simulation  starts at the time of the last recorded dose (from the
+TDM data) plus <code>from</code>;
+</p>
+</li>
+<li>
+<p> the simulation stops at the time of the last recorded dose (from the TDM
+data) plus <code>last_time</code>;
+</p>
+</li>
+<li>
+<p> the arguments <code>dose</code>, <code>duration</code>, <code>estim_method</code>, <code>p</code>, <code>greater_than</code>,
+<code>interdose_interval</code>, <code>add_dose</code>, <code>indiv_param</code> and <code>starting_time</code> are
+ignored.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target_cmin</code></td>
+<td>
+<p>Numeric. Target trough concentration (Cmin).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dose</code></td>
+<td>
+<p>Numeric. Dose administered. This argument is ignored if <code>tdm</code> is
+set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cmt_dose</code></td>
+<td>
+<p>Character or numeric. The compartment in which the dose is
+to be administered. Must match one of the compartments in the prior model.
+Defaults to 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>endpoint</code></td>
+<td>
+<p>Character. The endpoint of the prior model to be optimised
+for. The default is "Cc", which is the central concentration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estim_method</code></td>
+<td>
+<p>A character string. An estimation method to be used for
+the individual parameters. The default method "map" is the Maximum A
+Posteriori estimation, the method "prior" simulates from the prior
+population model, and "sir" uses the Sequential Importance Resampling
+algorithm to estimate the a posteriori distribution of the individual
+parameters. This argument is ignored if <code>indiv_param</code> is provided, or if
+<code>tdm</code> is set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nocb</code></td>
+<td>
+<p>A boolean. For time-varying covariates: the next observation
+carried backward (nocb) interpolation style, similar to NONMEM. If
+<code>FALSE</code>, the last observation carried forward (locf) style will be used.
+Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>Numeric. The proportion of the distribution of Cmin to consider for
+the estimation. Mandatory for <code>estim_method=sir</code>. This argument is ignored
+if <code>tdm</code> is set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>greater_than</code></td>
+<td>
+<p>A boolean. If <code>TRUE</code>: targets a time leading to a
+proportion <code>p</code> of the cmins to be greater than <code>target_cmin</code>.
+Respectively, lower if <code>FALSE</code>. This argument is ignored if <code>tdm</code> is set
+to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>from</code></td>
+<td>
+<p>Numeric. Starting time for the simulation of the individual
+time-concentration profile. The default value is 0.2. When <code>tdm</code> is set
+to <code>TRUE</code> the simulation starts at the time of the last recorded dose plus
+<code>from</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>last_time</code></td>
+<td>
+<p>Numeric. Ending time for the simulation of the individual
+time-concentration profile. The default value is 72. When <code>tdm</code> is set to
+<code>TRUE</code> the simulation stops at the time of the last recorded dose plus
+<code>last_time</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add_dose</code></td>
+<td>
+<p>Numeric. Additional doses administered at inter-dose interval
+after the first dose. Optional. This argument is ignored if <code>tdm</code> is
+set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interdose_interval</code></td>
+<td>
+<p>Numeric. Time for the inter-dose interval for
+multiple dose regimen. Must be provided when add_dose is used. This
+argument is ignored if <code>tdm</code> is set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>duration</code></td>
+<td>
+<p>Numeric. Duration of infusion, for zero-order
+administrations. This argument is ignored if <code>tdm</code> is set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indiv_param</code></td>
+<td>
+<p>Optional. A set of individual parameters : THETA,
+estimates of ETA, and covariates.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing the following components:
+</p>
+
+<dl>
+<dt>time</dt>
+<dd>
+<p>Numeric. Time needed to reach the selected Cmin.</p>
+</dd>
+<dt>type_of_estimate</dt>
+<dd>
+<p>Character string. The type of estimate of the
+individual parameters. Either a point estimate, or a distribution.</p>
+</dd>
+<dt>cmin_estimate</dt>
+<dd>
+<p>A vector of numeric estimates of the Cmin. Either a
+single value (for a point estimate of ETA), or a distribution.</p>
+</dd>
+<dt>indiv_param</dt>
+<dd>
+<p>A <code>data.frame</code>. The set of individual parameters used
+for the determination of the time needed to reach a selected Cmin: THETA,
+estimates of ETA, and covariates</p>
+</dd>
+</dl>
+<h3>Examples</h3>
+
+<pre><code class="language-R">rxode2::setRxThreads(2L) # limit the number of threads
+
+# model
+mod_run001 &lt;- function() {
+  ini({
+    THETA_Cl &lt;- 4.0
+    THETA_Vc &lt;- 70.0
+    THETA_Ka &lt;- 1.0
+    ETA_Cl ~ 0.2
+    ETA_Vc ~ 0.2
+    ETA_Ka ~ 0.2
+    prop.sd &lt;- sqrt(0.05)
+  })
+  model({
+    TVCl &lt;- THETA_Cl
+    TVVc &lt;- THETA_Vc
+    TVKa &lt;- THETA_Ka
+
+    Cl &lt;- TVCl*exp(ETA_Cl)
+    Vc &lt;- TVVc*exp(ETA_Vc)
+    Ka &lt;- TVKa*exp(ETA_Ka)
+
+    K20 &lt;- Cl/Vc
+    Cc &lt;- centr/Vc
+
+    d/dt(depot) = -Ka*depot
+    d/dt(centr) = Ka*depot - K20*centr
+    Cc ~ prop(prop.sd)
+  })
+}
+# df_patient01: event table for Patient01, following a 30 minutes intravenous
+# infusion
+df_patient01 &lt;- data.frame(ID=1,
+                        TIME=c(0.0,1.0,14.0),
+                        DV=c(NA,25.0,5.5),
+                        AMT=c(2000,0,0),
+                        EVID=c(1,0,0),
+                        DUR=c(0.5,NA,NA))
+# predict the time needed to reach a concentration of 2.5 mg/l
+# after the administration of a 2500 mg dose over a 30 minutes
+# infusion
+poso_time_cmin(dat=df_patient01,prior_model=mod_run001,
+dose=2500,duration=0.5,from=0.5,target_cmin=2.5)
+
+</code></pre>
+
+
+</div>

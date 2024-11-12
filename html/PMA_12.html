@@ -1,0 +1,260 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PMD.cv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Do tuning parameter selection for PMD via cross-validation</h2>
+
+<h3>Description</h3>
+
+<p>Performs cross-validation to select tuning parameters for rank-1 PMD, the
+penalized matrix decomposition for a data matrix.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PMD.cv(
+  x,
+  type = c("standard", "ordered"),
+  sumabss = seq(0.1, 0.7, len = 10),
+  sumabsus = NULL,
+  lambda = NULL,
+  nfolds = 5,
+  niter = 5,
+  v = NULL,
+  chrom = NULL,
+  nuc = NULL,
+  trace = TRUE,
+  center = TRUE,
+  upos = FALSE,
+  uneg = FALSE,
+  vpos = FALSE,
+  vneg = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Data matrix of dimension $n x p$, which can contain NA for missing
+values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>"standard" or "ordered": Do we want v to simply be sparse, or
+should it also be smooth? If the columns of x are ordered (e.g. CGH spots
+along a chromosome) then choose "ordered". Default is "standard". If
+"standard", then the PMD function will make use of sumabs OR
+sumabsu&amp;sumabsv. If "ordered", then the function will make use of sumabsu
+and lambda.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sumabss</code></td>
+<td>
+<p>Used only if type is "standard". A vector of sumabs values to
+be used. Sumabs is a measure of sparsity for u and v vectors, between 0 and
+</p>
+
+<ol><li>
+<p> When sumabss is specified, and sumabsus and sumabsvs are NULL, then
+sumabsus is set to $sqrt(n)*sumabss$ and sumabsvs is set at
+$sqrt(p)*sumabss$. If sumabss is specified, then sumabsus and sumabsvs
+should be NULL. Or if sumabsus and sumabsvs are specified, then sumabss
+should be NULL.
+</p>
+</li></ol>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sumabsus</code></td>
+<td>
+<p>Used only for type "ordered". A vector of sumabsu values to
+be used. Sumabsu measures sparseness of u - it is the sum of absolute values
+of elements of u. Must be between 1 and sqrt(n).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>Used only if type is "ordered". This is the tuning parameter
+for the fused lasso penalty on v, which takes the form $lambda ||v||<em>1 +
+lambda |v_j - v</em>(j-1)|$. $lambda$ must be non-negative. If NULL, then it is
+chosen adaptively from the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nfolds</code></td>
+<td>
+<p>How many cross-validation folds should be performed?  Default
+is 5.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>niter</code></td>
+<td>
+<p>How many iterations should be performed. For speed, only 5 are
+performed by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p>The first right singular vector(s) of the data. (If missing data is
+present, then the missing values are imputed before the singular vectors are
+calculated.) v is used as the initial value for the iterative PMD algorithm.
+If x is large, then this step can be time-consuming; therefore, if PMD is to
+be run multiple times, then v should be computed once and saved.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chrom</code></td>
+<td>
+<p>If type is "ordered", then this gives the option to specify
+that some columns of x (corresponding to CGH spots) are on different
+chromosomes. Then v will be sparse, and smooth <em>within</em> each chromosome but
+not <em>between</em> chromosomes. Length of chrom should equal number of columns of
+x, and each entry in chrom should be a number corresponding to which
+chromosome the CGH spot is on.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nuc</code></td>
+<td>
+<p>If type is "ordered", can specify the nucleotide position of each
+CGH spot (column of x), to be used in plotting. If NULL, then it is assumed
+that CGH spots are equally spaced.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace</code></td>
+<td>
+<p>Print out progress as iterations are performed? Default is
+TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>Subtract out mean of x? Default is TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upos</code></td>
+<td>
+<p>Constrain the elements of u to be positive? TRUE or FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>uneg</code></td>
+<td>
+<p>Constrain the elements of u to be negative? TRUE or FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vpos</code></td>
+<td>
+<p>Constrain the elements of v to be positive? TRUE or FALSE.
+Cannot be used if type is "ordered".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vneg</code></td>
+<td>
+<p>Constrain the elements of v to be negative? TRUE or FALSE.
+Cannot be used if type is "ordered."</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If type is "standard", then lasso ($L_1$) penalties (promoting sparsity) are
+placed on u and v. If type is "ordered", then lasso penalty is placed on u
+and a fused lasso penalty (promoting sparsity and smoothness) is placed on
+v.
+</p>
+<p>Cross-validation of the rank-1 PMD is performed over sumabss (if type is
+"standard") or over sumabsus (if type is "ordered"). If type is "ordered",
+then lambda is chosen from the data without cross-validation.
+</p>
+<p>The cross-validation works as follows: Some percent of the elements of $x$
+is removed at random from the data matrix. The PMD is performed for a range
+of tuning parameter values on this partially-missing data matrix; then,
+missing values are imputed using the decomposition obtained. The value of
+the tuning parameter that results in the lowest sum of squared errors of the
+missing values if "best".
+</p>
+<p>To do cross-validation on the rank-2 PMD, first the rank-1 PMD should be
+computed, and then this function should be performed on the residuals, given
+by $x-udv'$.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>cv</code></td>
+<td>
+<p>Average sum of squared errors obtained over
+cross-validation folds.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv.error</code></td>
+<td>
+<p>Standard error of average sum of
+squared errors obtained over cross-validation folds.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bestsumabs</code></td>
+<td>
+<p>If
+type="standard", then value of sumabss resulting in smallest CV error is
+returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bestsumabsu</code></td>
+<td>
+<p>If type="ordered", then value of sumabsus
+resulting in smallest CV error is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v.init</code></td>
+<td>
+<p>The first right
+singular vector(s) of the data; these are returned to save on computation
+time if PMD will be run again.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Witten D. M., Tibshirani R.,  and Hastie, T. (2009)
+<em>A penalized matrix decomposition, with applications to sparse principal components and canonical correlation analysis</em>, <em>Biostatistics, Gol 10 (3), 515-534, Jul 2009</em><br></p>
+
+
+<h3>See Also</h3>
+
+<p>PMD, SPC
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># See examples in PMD help file
+</code></pre>
+
+
+</div>

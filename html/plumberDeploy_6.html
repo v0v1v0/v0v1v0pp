@@ -1,0 +1,147 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>do_provision</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Provision a DigitalOcean plumber server</h2>
+
+<h3>Description</h3>
+
+<p>Create (if required), install the necessary prerequisites, and
+deploy a sample plumber application on a DigitalOcean virtual machine.
+You may sign up for a Digital Ocean account
+<a href="https://www.digitalocean.com/?refcode=add0b50f54c4&amp;utm_campaign=Referral_Invite&amp;utm_medium=Referral_Program&amp;utm_source=CopyPaste">here</a>.
+You should configure an account ssh key with <code>analogsea::key_create()</code> prior to using this method.
+This command is idempotent, so feel free to run it on a single server multiple times.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">do_provision(droplet, unstable = FALSE, example = TRUE, ...)
+
+do_install_plumber(droplet, unstable, ...)
+
+do_ip(droplet, path)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>droplet</code></td>
+<td>
+<p>The DigitalOcean droplet that you want to provision
+(see <code>analogsea::droplet()</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>unstable</code></td>
+<td>
+<p>If <code>FALSE</code>, will install plumber from CRAN. If <code>TRUE</code>, will
+install the unstable version of plumber from GitHub.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>example</code></td>
+<td>
+<p>If <code>TRUE</code>, will deploy an example API named <code>hello</code>
+to the server on port 8000.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments passed into the <code>analogsea::droplet_create()</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path</code></td>
+<td>
+<p>path to attach to the IP address before browsing.  Should likely
+start with a <code>/</code> or <code>:</code> (as in <code style="white-space: pre;">⁠:8080⁠</code>), otherwise <code>/</code> will be added.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Provisions a Ubuntu 20.04-x64 droplet with the following customizations:
+</p>
+
+<ul>
+<li>
+<p> A recent version of R installed
+</p>
+</li>
+<li>
+<p> plumber installed globally in the system library
+</p>
+</li>
+<li>
+<p> An example plumber API deployed at <code style="white-space: pre;">⁠/var/plumber⁠</code>
+</p>
+</li>
+<li>
+<p> A systemd definition for the above plumber API which will ensure that the plumber
+API is started on machine boot and respawned if the R process ever crashes. On the
+server you can use commands like <code style="white-space: pre;">⁠systemctl restart plumber⁠</code> to manage your API, or
+<code style="white-space: pre;">⁠journalctl -u plumber⁠</code> to see the logs associated with your plumber process.
+</p>
+</li>
+<li>
+<p> The 'nginx“ web server installed to route web traffic from port 80 (HTTP) to your plumber
+process.
+</p>
+</li>
+<li> <p><code>ufw</code> installed as a firewall to restrict access on the server. By default it only
+allows incoming traffic on port 22 (SSH) and port 80 (HTTP).
+</p>
+</li>
+<li>
+<p> A 4GB swap file is created to ensure that machines with little RAM (the default) are
+able to get through the necessary R package compilations.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>The DigitalOcean droplet
+</p>
+<p>The URL to be browsed
+</p>
+
+
+<h3>Note</h3>
+
+<p>Please see <a href="https://github.com/sckott/analogsea/issues/205">https://github.com/sckott/analogsea/issues/205</a> in case
+of an error by default <code>do_provision</code> and an error of
+<code>"Error: Size is not available in this region."</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+  auth = try(analogsea::do_oauth())
+  if (!inherits(auth, "try-error") &amp;&amp;
+      inherits(auth, "request")) {
+    analogsea::droplets()
+    droplet = do_provision(region = "sfo3", example = FALSE)
+    analogsea::droplets()
+    analogsea::install_r_package(droplet, c("readr", "remotes"))
+    do_deploy_api(droplet, "hello",
+                  system.file("plumber", "10-welcome", package = "plumber"),
+                  port=8000, forward=TRUE)
+    if (interactive()) {
+        utils::browseURL(do_ip(droplet, "/hello"))
+    }
+    analogsea::droplet_delete(droplet)
+  }
+
+## End(Not run)
+</code></pre>
+
+
+</div>

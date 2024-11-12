@@ -1,0 +1,202 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>intgen.idw</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Interpolation of genetic distances to a a grid of points.
+</h2>
+
+<h3>Description</h3>
+
+<p>Interpolations of a matrix containing genetic distances using the Inverse
+Distance Weighting (IDW) algorithm. It generates a matrix of interpolated
+values for each grid cell and for each sample.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">intgen.idw(d.real, d.gen, method = "Shepard", p = 2, R = 2, N = 15)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>d.real</code></td>
+<td>
+
+<p>distance matrix between sampled locals (columns) and locals where 
+interpolation is to be executed (rows). Names should correspond to genetic
+distances matrix.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d.gen</code></td>
+<td>
+
+<p>genetic distances matrix. Names should correspond to real distances matrix,
+but not necessarily in the same order.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+
+<p>Method to calculate weights for idw. Should be "Shepard" (default), 
+"Modified", "Neighbours", or distinctive abreviations of each. See details
+section for additional help on each method.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+
+<p>The power to use in weight calculation.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+
+<p>Radius to use with Modified Shepard method.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N</code></td>
+<td>
+
+<p>Maximum number of neighbours to use with Shepard with neighbours.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The IDW interpolation algorithm is commonly used to interpolate genetic
+data over a spatial grid. This function provides a simple interface to
+interpolate such data with three methods:
+</p>
+
+<ol>
+<li>
+<p><em>Shepard</em>: 
+weights are the inverse of the distance between the interpolation
+location <code class="reqn">x</code> and the sample points <code class="reqn">x_i</code>, raised to the 
+power <code class="reqn">p</code>
+</p>
+<p style="text-align: center;"><code class="reqn">w(x) = \frac{1}{d(x, x_i)^p}</code>
+</p>
+
+
+</li>
+<li>
+<p><em>Modified Shepard</em>:
+distances are weighted with a search radius <code class="reqn">r</code> to calculate the 
+interpolation weights 
+</p>
+<p style="text-align: center;"><code class="reqn">w(x) = \left(\frac{r-d(x, x_i)}{r.d(x, xi)}\right)^p</code>
+</p>
+
+
+</li>
+<li>
+<p><em>Shepard with neighbours</em>:
+A maximum ammount of <code class="reqn">N</code> neighbours is allowed to the weight 
+calculation following Shepard method.
+
+</p>
+</li>
+</ol>
+<p>The functions 'intgen.idw' and 'idw' are similar but whereas the first
+interpolate all samples to a grid-based coordinates, the second
+interpolates a single set of values. Although 'idw' can be used to
+generate the same results, the 'intgen.idw' should be faster (see the
+examples).
+</p>
+
+
+<h3>Value</h3>
+
+<p>This function returns a matrix containing all interpolated values for each
+locality (rows) and for each sample (columns)
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Pedro Tarroso &lt;ptarroso@cibio.up.pt&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>Fortin, M. -J. and Dale, M. (2006) <em>Spatial Analysis: A guide for Ecologists</em>. Cambridge: Cambridge University Press.
+</p>
+<p>Isaaks, E. H. and Srivastava, R. M. (1989) <em>An Introduction to applied geostatistics</em>. New York: Oxford University Press.
+</p>
+<p>Legendre, P. and Legendre, L. (1998) <em>Numerical ecology</em>. 2nd english edition. Amesterdam: Elsevier
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>idw</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">    data(vipers)
+    data(d.gen)
+    data(grid)
+
+    # create a matrix of distances from sample points (columns) to all
+    # grid pixels
+    rd &lt;- geo.dist(grid, vipers[,1:2])
+
+    #interpolate with idw
+    result &lt;- intgen.idw(rd, d.gen)
+
+    #plot the 12 random interpolations
+    layout(matrix(c(1:12), 4,3))
+
+    for (i in sample(1:nrow(vipers), 12))
+    {
+        dt &lt;- data.frame(grid, int=result[,i])
+        # when samples are given with real coordinates, aspect of image 
+        # should be maintained with asp=1 to plot properly. 
+        image(sort(unique(grid[,1])), sort(unique(grid[,2])), 
+              xtabs(int~x+y, dt), xlab='Longitude', ylab='Latitude', 
+              main=colnames(result)[i])
+        cex &lt;- (d.gen[,i]-min(d.gen[,i]))/(max(d.gen[,i])-min(d.gen[,i]))
+        points(vipers[,1:2], cex=cex+0.5)
+    }
+
+## Not run: 
+    # Compare 'idw' with 'intgen.idw' to generate the same results.
+    # NOTE: it may take a few minutes to run.
+    result2 &lt;- matrix(NA, nrow=nrow(grid), ncol=nrow(vipers))
+    for (i in 1:nrow(vipers)) {
+        values &lt;- d.gen[i,]
+        intpl &lt;- idw(values, vipers[,1:2], grid)
+        result2[,i] &lt;- intpl[,1]
+    }
+    colnames(result2) &lt;- rownames(vipers)
+
+    # compare all items in the two matrices to check equality:
+    all(result == result2)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

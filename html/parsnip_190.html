@@ -1,0 +1,127 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>glm_grouped</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit a grouped binomial outcome from a data set with case weights</h2>
+
+<h3>Description</h3>
+
+<p><code>stats::glm()</code> assumes that a tabular data set with case weights corresponds
+to "different observations have different dispersions" (see <code>?glm</code>).
+</p>
+<p>In some cases, the case weights reflect that the same covariate pattern was
+observed multiple times (i.e., <em>frequency weights</em>). In this case,
+<code>stats::glm()</code> expects the data to be formatted as the number of events for
+each factor level so that the outcome can be given to the formula as
+<code>cbind(events_1, events_2)</code>.
+</p>
+<p><code>glm_grouped()</code> converts data with integer case weights to the expected
+"number of events" format for binomial data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">glm_grouped(formula, data, weights, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>A formula object with one outcome that is a two-level factors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame with the outcomes and predictors (but not case
+weights).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>An integer vector of weights whose length is the same as the
+number of rows in <code>data</code>. If it is a non-integer numeric, it will be converted
+to integer (with a warning).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Options to pass to <code>stats::glm()</code>. If <code>family</code> is not set, it will
+automatically be assigned the basic binomial family.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A object produced by <code>stats::glm()</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+#----------------------------------------------------------------------------
+# The same data set formatted three ways
+
+# First with basic case weights that, from ?glm, are used inappropriately.
+ucb_weighted &lt;- as.data.frame(UCBAdmissions)
+ucb_weighted$Freq &lt;- as.integer(ucb_weighted$Freq)
+head(ucb_weighted)
+nrow(ucb_weighted)
+
+# Format when yes/no data are in individual rows (probably still inappropriate)
+library(tidyr)
+ucb_long &lt;- uncount(ucb_weighted, Freq)
+head(ucb_long)
+nrow(ucb_long)
+
+# Format where the outcome is formatted as number of events
+ucb_events &lt;-
+  ucb_weighted %&gt;%
+  tidyr::pivot_wider(
+    id_cols = c(Gender, Dept),
+    names_from = Admit,
+    values_from = Freq,
+    values_fill = 0L
+  )
+head(ucb_events)
+nrow(ucb_events)
+
+#----------------------------------------------------------------------------
+# Different model fits
+
+# Treat data as separate Bernoulli data:
+glm(Admit ~ Gender + Dept, data = ucb_long, family = binomial)
+
+# Weights produce the same statistics
+glm(
+  Admit ~ Gender + Dept,
+  data = ucb_weighted,
+  family = binomial,
+  weights = ucb_weighted$Freq
+)
+
+# Data as binomial "x events out of n trials" format. Note that, to get the same
+# coefficients, the order of the levels must be reversed.
+glm(
+  cbind(Rejected, Admitted) ~ Gender + Dept,
+  data = ucb_events,
+  family = binomial
+)
+
+# The new function that starts with frequency weights and gets the correct place:
+glm_grouped(Admit ~ Gender + Dept, data = ucb_weighted, weights = ucb_weighted$Freq)
+
+</code></pre>
+
+
+</div>

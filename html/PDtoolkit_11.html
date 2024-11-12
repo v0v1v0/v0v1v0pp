@@ -1,0 +1,148 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>dp.testing</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Testing the discriminatory power of PD rating model</h2>
+
+<h3>Description</h3>
+
+<p><code>dp.testing</code> performs testing of discriminatory power of the model in use applied to application portfolio
+in comparison to the discriminatory power from the moment of development. Testing is performed based on area
+under curve (AUC) from the application portfolio and development sample under assumption that latter is a
+deterministic (as given) and that test statistics follow the normal distribution.
+Standard error of AUC for application portfolio is calculated as proposed by
+Hanley and McNeil (see References).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">dp.testing(app.port, def.ind, pdc, auc.test, alternative, alpha = 0.05)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>app.port</code></td>
+<td>
+<p>Application portfolio (data frame) which contains default indicator (0/1) and
+calibrated probabilities of default (PD) in use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>def.ind</code></td>
+<td>
+<p>Name of the column that represents observed default indicator (0/1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pdc</code></td>
+<td>
+<p>Name of the column that represent calibrated PD in use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>auc.test</code></td>
+<td>
+<p>Value of tested AUC (usually AUC from development sample).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alternative</code></td>
+<td>
+<p>Alternative hypothesis. Available options are: <code>"less", "greater", "two.sided"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Significance level of p-value for hypothesis testing. Default is 0.05.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Due to the fact that test of discriminatory power is usually implemented on the application portfolio,
+certain prerequisites are needed to be fulfilled. In the first place model should be developed
+and rating scale should be formed. In order to reflect appropriate role and right moment of
+tests application, presented simplified example covers all steps before test implementation.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The command <code>dp.testing</code> returns a data frame with input parameters along with
+hypothesis testing metrics such as estimated difference of observed (application portfolio) and testing AUC,
+standard error of observed AUC, p-value of testing procedure and accepted hypothesis.
+</p>
+
+
+<h3>References</h3>
+
+<p>Hanley J. and McNeil B. (1982). The meaning and use of the area under a receiver operating characteristic (ROC) curve.
+Radiology (1982) 43 (1) pp. 29-36.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">suppressMessages(library(PDtoolkit))
+data(loans)
+#estimate some dummy model
+mod.frm &lt;- `Creditability` ~ `Account Balance` + `Duration of Credit (month)` +
+				`Age (years)`
+lr.mod &lt;- glm(mod.frm, family = "binomial", data = loans)
+summary(lr.mod)$coefficients
+#model predictions
+loans$pred &lt;-  unname(predict(lr.mod, type = "response", newdata = loans))
+#scale probabilities
+loans$score &lt;- scaled.score(probs = loans$pred, score = 600, odd = 50/1, pdo = 20)
+#group scores into rating
+loans$rating &lt;- sts.bin(x = round(loans$score), y = loans$Creditability, y.type = "bina")[[2]]
+#create rating scale
+rs &lt;- loans %&gt;%
+group_by(rating) %&gt;%
+summarise(no = n(),
+	    nb = sum(Creditability),
+	    ng = sum(1 - Creditability)) %&gt;%
+mutate(dr = nb / no)
+rs
+#calcualte portfolio default rate
+sum(rs$dr * rs$no / sum(rs$no))
+#calibrate rating scale to central tendency of 27% with minimum PD of 5%
+ct &lt;- 0.27
+min.pd &lt;- 0.05
+rs$pd &lt;- rs.calibration(rs = rs, 
+			dr = "dr", 
+			w = "no", 
+			ct = ct, 
+			min.pd = min.pd,
+			method = "log.odds.ab")[[1]]
+#check
+rs
+sum(rs$pd * rs$no / sum(rs$no))
+#bring calibrated PDs to the development sample
+loans &lt;- merge(loans, rs, by = "rating", all.x = TRUE)
+#calculate development AUC
+auc.dev &lt;- auc.model(predictions = loans$pd, observed = loans$Creditability)
+auc.dev
+#simulate some dummy application portfolio
+set.seed(321)
+app.port &lt;- loans[sample(1:nrow(loans), 400), ]
+#calculate application portfolio AUC
+auc.app &lt;- auc.model(predictions = app.port$pd, observed = app.port$Creditability)
+auc.app
+#test deterioration of descriminatory power measured by AUC
+dp.testing(app.port = app.port, 
+     def.ind = "Creditability", 
+     pdc = "pd", auc.test = 0.7557,
+     alternative = "less", 
+     alpha = 0.05)
+</code></pre>
+
+
+</div>

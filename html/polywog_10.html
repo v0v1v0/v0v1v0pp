@@ -1,0 +1,473 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>polywog</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Polynomial regression with oracle variable selection</h2>
+
+<h3>Description</h3>
+
+<p>Fits a regression model using a polynomial basis expansion of the input
+variables, with penalization via the adaptive LASSO or SCAD to provide
+oracle variable selection.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">polywog(formula, data, subset, weights, na.action, degree = 3,
+  family = c("gaussian", "binomial"), method = c("alasso", "scad"),
+  penwt.method = c("lm", "glm"), unpenalized = character(0),
+  .parallel = FALSE, boot = 0, control.boot = control.bp(.parallel =
+  .parallel), lambda = NULL, nlambda = 100, lambda.min.ratio = 1e-04,
+  nfolds = 10, foldid = NULL, thresh = ifelse(method == "alasso", 1e-07,
+  0.001), maxit = ifelse(method == "alasso", 1e+05, 5000), model = TRUE,
+  X = FALSE, y = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>model formula specifying the response and input
+variables.  See "Details" for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a data frame, list or environment containing the variables
+specified in the model formula.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+<p>an optional vector specifying a subset of observations to be
+used in fitting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>an optional vector specifying weights for each observation to
+be used in fitting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.action</code></td>
+<td>
+<p>a function specifying what to do with observations
+containing <code>NA</code>s (default <code>na.omit</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>degree</code></td>
+<td>
+<p>integer specifying the degree of the polynomial expansion of
+the input variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p><code>"gaussian"</code> (default) or <code>"binomial"</code> for logistic
+regression (binary response only).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>variable selection method: <code>"alasso"</code> (default) for
+adaptive LASSO or <code>"scad"</code> for SCAD.  You can also select <code>method
+= "none"</code> to return the model matrix and other information without fitting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penwt.method</code></td>
+<td>
+<p>estimator for obtaining first-stage estimates in
+logistic models when <code>method = "alasso"</code>: <code>"lm"</code> (default) for a
+linear probability model, <code>"glm"</code> for logistic regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>unpenalized</code></td>
+<td>
+<p>names of model terms to be exempt from the adaptive
+penalty (only available when <code>method = "alasso"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.parallel</code></td>
+<td>
+<p>logical: whether to perform k-fold cross-validation in
+parallel (only available when <code>method = "alasso"</code>).  See "Details"
+below for more information on parallel computation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>boot</code></td>
+<td>
+<p>number of bootstrap iterations (0 for no bootstrapping).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control.boot</code></td>
+<td>
+<p>list of arguments to be passed to
+<code>bootPolywog</code> when bootstrapping; see <code>control.bp</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>a vector of values from which the penalty factor is to be
+selected via k-fold cross-validation.  <code>lambda</code> is left unspecified
+by default, in which case a sequence of values is generated automatically,
+controlled by the <code>nlambda</code> and <code>lambda.min.ratio</code> arguments.
+Naturally, k-fold cross-validation is skipped if <code>lambda</code> contains
+exactly one value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlambda</code></td>
+<td>
+<p>number of values of the penalty factor to examine via
+cross-validation if <code>lambda</code> is not specified in advance; see
+"Details".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.min.ratio</code></td>
+<td>
+<p>ratio of the lowest value to the highest in the
+generated sequence of values of the penalty factor if <code>lambda</code> is
+not specified; see "Details".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nfolds</code></td>
+<td>
+<p>number of folds to use in cross-validation to select the
+penalization factor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>foldid</code></td>
+<td>
+<p>optional vector manually assigning fold numbers to each
+observation used for fitting (only available when <code>method =
+"alasso"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thresh</code></td>
+<td>
+<p>convergence threshold, passed as the <code>thresh</code> argument
+to <code>glmnet</code> when <code>method = "alasso"</code> and as the
+<code>eps</code> argument to <code>ncvreg</code> when <code>method = "scad"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit</code></td>
+<td>
+<p>maximum number of iterations to allow in adaptive LASSO or
+SCAD fitting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>logical: whether to include the model frame in the returned
+object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>logical: whether to include the raw design matrix (i.e., the
+matrix of input variables prior to taking their polynomial expansion) in
+the returned object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>logical: whether to include the response variable in the returned
+object.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The design matrix for the regression is a polynomial basis expansion of the
+matrix of raw input variables.  This includes all powers and interactions of
+the input variables up to the specified <code>degree</code>.  For example, the
+following terms will be included in <code>polywog(y ~ x1 + x2, degree = 3,
+...)</code>:
+</p>
+
+<ul>
+<li>
+<p> terms of degree 0: intercept
+</p>
+</li>
+<li>
+<p> terms of degree 1: <code>x1</code>, <code>x2</code>
+</p>
+</li>
+<li>
+<p> terms of degree 2: <code>x1^2</code>, <code>x2^2</code>, <code>x1*x2</code>
+</p>
+</li>
+<li>
+<p> terms of degree 3: <code>x1^3</code>, <code>x2^3</code>, <code>x1*x2^2</code>,
+<code>x1^2*x2</code>
+</p>
+</li>
+</ul>
+<p>To exclude certain terms from the basis expansion, use a model formula like
+<code>y ~ x1 + x2 | z1 + z2</code>.  Only the degree 1 terms of <code>z1</code> and
+<code>z2</code> will be included.
+</p>
+<p>It is possible that the "raw" basis expansion will be rank-deficient, such
+as if there are binary input variables (in which case <code class="reqn">x_i = x_i^n</code> for
+all <code class="reqn">n &gt; 0</code>).  The procedure detects collinearity via <code>qr</code> and
+removes extraneous columns before fitting.
+</p>
+<p>For both the adaptive LASSO and SCAD, the penalization factor <code class="reqn">\lambda</code>
+is chosen by k-fold cross-validation.  The selected value minimizes the
+average mean squared error of out-of-sample fits.  (To select both
+<code class="reqn">\lambda</code> and the polynomial degree simultaneously via cross-validation,
+see <code>cv.polywog</code>.)
+</p>
+<p>The cross-validation process may be run in parallel via
+<code>foreach</code> by registering an appropriate backend and specifying
+<code>.parallel = TRUE</code>.  The appropriate backend is system-specific; see
+<code>foreach</code> for information on selecting and registering a
+backend.  The bootstrap iterations may also be run in parallel by
+specifying <code>control.boot = control.bp(.parallel = TRUE)</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"polywog"</code>, a list containing: </p>
+
+<dl>
+<dt><code>coefficients</code></dt>
+<dd>
+<p>the estimated coefficients.</p>
+</dd>
+<dt><code>lambda</code></dt>
+<dd>
+<p>value of the penalty factor <code class="reqn">\lambda</code> used to
+fit the final model.</p>
+</dd>
+<dt><code>lambda.cv</code></dt>
+<dd>
+<p>a list containing the results of the
+cross-validation procedure used to select the penalty factor: </p>
+
+<dl>
+<dt><code>lambda</code></dt>
+<dd>
+<p>values of the penalty factor tested in
+cross-validation.</p>
+</dd>
+<dt><code>cvError</code></dt>
+<dd>
+<p>out-of-fold prediction error corresponding to
+each value of <code>lambda</code>.</p>
+</dd>
+<dt><code>lambdaMin</code></dt>
+<dd>
+<p>value of <code>lambda</code> with the minimal
+cross-validation error.</p>
+</dd>
+<dt><code>errorMin</code></dt>
+<dd>
+<p>minimized value of the cross-validation error.</p>
+</dd>
+</dl>
+</dd>
+<dt><code>fitted.values</code></dt>
+<dd>
+<p>the fitted mean values for each observation
+used in fitting.</p>
+</dd>
+<dt><code>lmcoef</code></dt>
+<dd>
+<p>coefficients from an unpenalized least-squares
+regression of the response variable on the polynomial expansion of the
+input variables.</p>
+</dd>
+<dt><code>penwt</code></dt>
+<dd>
+<p>adaptive weight given to each term in the LASSO
+penalty (<code>NULL</code> for models fit via SCAD).</p>
+</dd>
+<dt><code>formula</code></dt>
+<dd>
+<p>model formula, as a <code>Formula</code> object.</p>
+</dd>
+<dt><code>degree</code></dt>
+<dd>
+<p>degree of the polynomial basis expansion.</p>
+</dd>
+<dt><code>family</code></dt>
+<dd>
+<p>model family, <code>"gaussian"</code> or
+<code>"binomial"</code>.</p>
+</dd>
+<dt><code>weights</code></dt>
+<dd>
+<p>observation weights if specified.</p>
+</dd>
+<dt><code>method</code></dt>
+<dd>
+<p>the specified regularization method.</p>
+</dd>
+<dt><code>penwt.method</code></dt>
+<dd>
+<p>the specified method for calculating
+the adaptive LASSO weights (<code>NULL</code> for models fit via SCAD).</p>
+</dd>
+<dt><code>unpenalized</code></dt>
+<dd>
+<p>logical vector indicating which terms were not
+included in the LASSO penalty.</p>
+</dd>
+<dt><code>thresh</code></dt>
+<dd>
+<p>convergence threshold used in fitting.</p>
+</dd>
+<dt><code>maxit</code></dt>
+<dd>
+<p>iteration limit used in fitting.</p>
+</dd>
+<dt><code>terms</code></dt>
+<dd>
+<p>the <code>terms</code> object used to construct the
+model frame.</p>
+</dd>
+<dt><code>polyTerms</code></dt>
+<dd>
+<p>a matrix indicating the power of each raw input
+term (columns) in each term of the polynomial expansion used in fitting
+(rows).</p>
+</dd>
+<dt><code>nobs</code></dt>
+<dd>
+<p>the number of observations used to fit the model.</p>
+</dd>
+<dt><code>na.action</code></dt>
+<dd>
+<p>information on how <code>NA</code> values in the input
+data were handled.</p>
+</dd>
+<dt><code>xlevels</code></dt>
+<dd>
+<p>levels of factor variables used in fitting.</p>
+</dd>
+<dt><code>varNames</code></dt>
+<dd>
+<p>names of the raw input variables included in the
+model formula.</p>
+</dd>
+<dt><code>call</code></dt>
+<dd>
+<p>the original function call.</p>
+</dd>
+<dt><code>model</code></dt>
+<dd>
+<p>if <code>model = TRUE</code>, the model frame used in
+fitting; otherwise <code>NULL</code>.</p>
+</dd>
+<dt><code>X</code></dt>
+<dd>
+<p>if <code>X = TRUE</code>, the raw model matrix (i.e., prior to
+taking the polynomial expansion); otherwise <code>NULL</code>.  For calculating
+the expanded model matrix, see <code>model.matrix.polywog</code>.</p>
+</dd>
+<dt><code>y</code></dt>
+<dd>
+<p>if <code>y = TRUE</code>, the response variable used in
+fitting; otherwise <code>NULL</code>.</p>
+</dd>
+<dt><code>boot.matrix</code></dt>
+<dd>
+<p>if <code>boot &gt; 0</code>, a sparse matrix of class
+<code>"dgCMatrix"</code> where each column is the estimate from a
+bootstrap replicate.  See <code>bootPolywog</code> for more information
+on bootstrapping.</p>
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p>Brenton Kenkel and Curtis S. Signorino
+</p>
+
+
+<h3>References</h3>
+
+<p>Brenton Kenkel and Curtis S. Signorino.  2012.  "A Method for
+Flexible Functional Form Estimation: Bootstrapped Basis Regression with
+Variable Selection."  Typescript, University of Rochester.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>To estimate variation via the bootstrap, see
+<code>bootPolywog</code>.  To generate fitted values, see
+<code>predVals</code> (and the underlying method
+<code>predict.polywog</code>).  For plots, see <code>plot.polywog</code>.
+The polynomial degree may be selected via cross-validation using
+<code>cv.polywog</code>.
+</p>
+<p>Adaptive LASSO estimates are provided via <code>glmnet</code> and
+<code>cv.glmnet</code> from the <span class="pkg">glmnet</span> package.  SCAD estimates are
+via <code>ncvreg</code> and <code>cv.ncvreg</code> in the <span class="pkg">ncvreg</span>
+package.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Using occupational prestige data
+data(Prestige, package = "carData")
+Prestige &lt;- transform(Prestige, income = income / 1000)
+
+## Fit a polywog model with bootstrap iterations
+## (note: using low convergence threshold to shorten computation time of the
+## example, *not* recommended in practice!)
+set.seed(22)
+fit1 &lt;- polywog(prestige ~ education + income + type,
+                data = Prestige,
+                degree = 2,
+                boot = 5,
+                thresh = 1e-4)
+
+## Basic information
+print(fit1)
+summary(fit1)
+
+## See how fitted values change with education holding all else fixed
+predVals(fit1, "education", n = 10)
+
+## Plot univariate relationships
+plot(fit1)
+
+## Use SCAD instead of adaptive LASSO
+fit2 &lt;- update(fit1, method = "scad", thresh = 1e-3)
+cbind(coef(fit1), coef(fit2))
+</code></pre>
+
+
+</div>

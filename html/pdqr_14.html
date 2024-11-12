@@ -1,0 +1,323 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>as_p</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Convert to pdqr-function</h2>
+
+<h3>Description</h3>
+
+<p>Convert some function to be a proper pdqr-function of specific
+class, i.e. a function describing distribution with finite
+support and finite values of probability/density.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">as_p(f, ...)
+
+## Default S3 method:
+as_p(f, support = NULL, ..., n_grid = 10001)
+
+## S3 method for class 'pdqr'
+as_p(f, ...)
+
+as_d(f, ...)
+
+## Default S3 method:
+as_d(f, support = NULL, ..., n_grid = 10001)
+
+## S3 method for class 'pdqr'
+as_d(f, ...)
+
+as_q(f, ...)
+
+## Default S3 method:
+as_q(f, support = NULL, ..., n_grid = 10001)
+
+## S3 method for class 'pdqr'
+as_q(f, ...)
+
+as_r(f, ...)
+
+## Default S3 method:
+as_r(f, support = NULL, ..., n_grid = 10001,
+  n_sample = 10000, args_new = list())
+
+## S3 method for class 'pdqr'
+as_r(f, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>Appropriate function to be converted (see Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Extra arguments to <code>f</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>support</code></td>
+<td>
+<p>Numeric vector with two increasing elements describing desired
+support of output. If <code>NULL</code> or any its value is <code>NA</code>, detection is done
+using specific algorithms (see Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_grid</code></td>
+<td>
+<p>Number of grid points at which <code>f</code> will be evaluated (see
+Details). Bigger values lead to better approximation precision, but worse
+memory usage and evaluation speed (direct and in <code style="white-space: pre;">⁠summ_*()⁠</code> functions).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_sample</code></td>
+<td>
+<p>Number of points to sample from <code>f</code> inside <code>as_r()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>args_new</code></td>
+<td>
+<p>List of extra arguments for <code>new_d()</code> to control <code>density()</code>
+inside <code>as_r()</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>General purpose of <code style="white-space: pre;">⁠as_*()⁠</code> functions is to create a proper
+pdqr-function of desired class from input which doesn't satisfy these
+conditions. Here is described sequence of steps which are taken to achieve
+that goal.
+</p>
+<p>If <strong><code>f</code> is already a pdqr-function</strong>, <code style="white-space: pre;">⁠as_*()⁠</code> functions properly update it
+to have specific class. They take input's "x_tbl" metadata
+and type to use with corresponding new_*()
+function. For example, <code>as_p(f)</code> in case of pdqr-function <code>f</code> is essentially
+the same as <code>new_p(x = meta_x_tbl(f), type = meta_type(f))</code>.
+</p>
+<p>If <strong><code>f</code> is a function describing "honored" distribution</strong>, it is detected
+and output is created in predefined way taking into account extra arguments
+in <code>...</code>. For more details see "Honored distributions" section.
+</p>
+<p>If <strong><code>f</code> is some other unknown function</strong>, <code style="white-space: pre;">⁠as_*()⁠</code> functions use heuristics
+for approximating input distribution with a "proper" pdqr-function. Outputs
+of <code style="white-space: pre;">⁠as_*()⁠</code> can be only pdqr-functions of type "continuous" (because of
+issues with support detection). It is assumed that <code>f</code> returns values
+appropriate for desired output class of <code style="white-space: pre;">⁠as_*()⁠</code> function and output type
+"continuous". For example, input for <code>as_p()</code> should return values of some
+continuous cumulative distribution function (monotonically non-increasing
+values from 0 to 1). To manually create function of type "discrete", supply
+data frame input describing it to appropriate <code style="white-space: pre;">⁠new_*()⁠</code> function.
+</p>
+<p>General algorithm of how <code style="white-space: pre;">⁠as_*()⁠</code> functions work for unknown function is as
+follows:
+</p>
+
+<ul>
+<li> <p><strong>Detect support</strong>. See "Support detection" section for more details.
+</p>
+</li>
+<li> <p><strong>Create data frame input for <code style="white-space: pre;">⁠new_*()⁠</code></strong>. The exact process differs:
+</p>
+
+<ul>
+<li>
+<p> In <code>as_p()</code> equidistant grid of <code>n_grid</code> points is created inside
+detected support. After that, input's values at the grid is taken as
+reference points of cumulative distribution function used to
+<em>approximate</em> density at that same grid. This method showed to work more
+reliably in case density goes to infinity. That grid and density values
+are used as "x" and "y" columns of data frame input for <code>new_p()</code>.
+</p>
+</li>
+<li>
+<p> In <code>as_d()</code> "x" column of data frame is the same equidistant grid is
+taken as in <code>as_p()</code>. "y" column is taken as input's values at this grid
+after possibly imputing infinity values. This imputation is done by
+taking maximum from left and right linear extrapolations on mentioned
+grid.
+</p>
+</li>
+<li>
+<p> In <code>as_q()</code>, at first inverse of input <code>f</code> function is computed on [0;
+1] interval. It is done by approximating it with piecewise-linear
+function on [0; 1] equidistant grid with <code>n_grid</code> points, imputing
+infinity values (which ensures finite support), and computing inverse of
+approximation. This inverse of <code>f</code> is used to create data frame input
+with <code>as_p()</code>.
+</p>
+</li>
+<li>
+<p> In <code>as_r()</code> at first d-function with <code>new_d()</code> is created based on the
+same sample used for support detection and extra arguments supplied as
+list in <code>args_new</code> argument. In other words, density estimation is done
+based on sample, generated from input <code>f</code>. After that, its values are
+used to create data frame with <code>as_d()</code>.
+</p>
+</li>
+</ul>
+</li>
+<li> <p><strong>Use appropriate <code style="white-space: pre;">⁠new_*()⁠</code> function</strong> with data frame from previous step
+and <code>type = "continuous"</code>. This step implies that all tails outside detected
+support are trimmed and data frame is normalized to represent proper
+piecewise-linear density.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>A pdqr-function of corresponding class.
+</p>
+
+
+<h3>Honored distributions</h3>
+
+<p>For efficient workflow, some commonly used distributions are recognized as
+special ("honored"). Those receive different treatment in <code style="white-space: pre;">⁠as_*()⁠</code> functions.
+</p>
+<p>Basically, there is a manually selected list of "honored" distributions with
+all their information enough to detect them. Currently that list has all
+common univariate distributions from 'stats' package,
+i.e. all except multinomial and "less common distributions of test
+statistics".
+</p>
+<p>"Honored" distribution is <strong>recognized only if <code>f</code> is one of <code style="white-space: pre;">⁠p*()⁠</code>, <code style="white-space: pre;">⁠d*()⁠</code>,
+<code style="white-space: pre;">⁠q*()⁠</code>, or <code style="white-space: pre;">⁠r*()⁠</code> function describing honored distribution and is supplied as
+variable with original name</strong>. For example, <code>as_d(dunif)</code> will be treated as
+"honored" distribution but <code>as_d(function(x) {dunif(x)})</code> will not.
+</p>
+<p>After it is recognized that input <code>f</code> represents "honored" distribution,
+<strong>its support is computed based on predefined rules</strong>. Those take into
+account special features of distribution (like infinite support or infinite
+density values) and supplied extra arguments in <code>...</code>. Usually output support
+"loses" only around <code>1e-6</code> probability on each infinite tail.
+</p>
+<p>After that, for "discrete" type output <code>new_d()</code> is used for appropriate data
+frame input and for "continuous" - <code>as_d()</code> with appropriate <code style="white-space: pre;">⁠d*()⁠</code> function
+and support. D-function is then converted to desired class with <code style="white-space: pre;">⁠as_*()⁠</code>.
+</p>
+
+
+<h3>Support detection</h3>
+
+<p>In case input is a function without any extra information, <code style="white-space: pre;">⁠as_*()⁠</code> functions
+must know which finite support its output should have. User can supply
+desired support directly with <code>support</code> argument, which can also be <code>NULL</code>
+(mean automatic detection of both edges) or have <code>NA</code> to detect only those
+edges.
+</p>
+<p>Support is detected in order to preserve as much information as practically
+reasonable. Exact methods differ:
+</p>
+
+<ul>
+<li>
+<p> In <code>as_p()</code> support is detected as values at which input function is equal
+to <code>1e-6</code> (left edge detection) and <code>1 - 1e-6</code> (right edge), which means
+"losing" <code>1e-6</code> probability on each tail. <strong>Note</strong> that those values are
+searched inside [-10^100; 10^100] interval.
+</p>
+</li>
+<li>
+<p> In <code>as_d()</code>, at first an attempt at finding one point of non-zero density
+is made by probing 10000 points spread across wide range of real line
+(approximately from <code>-1e7</code> to <code>1e7</code>). If input's value at all of them is
+zero, error is thrown. After finding such point, cumulative distribution
+function is made by integrating input with integrate()
+using found point as reference (without this there will be poor accuracy of
+<code>integrate()</code>). Created CDF function is used to find <code>1e-6</code> and <code>1 - 1e-6</code>
+quantiles as in <code>as_p()</code>, which serve as detected support.
+</p>
+</li>
+<li>
+<p> In <code>as_q()</code> quantiles for 0 and 1 are probed for being infinite. If they
+are, <code>1e-6</code> and <code>1 - 1e-6</code> quantiles are used respectively instead of
+infinite values to form detected support.
+</p>
+</li>
+<li>
+<p> In <code>as_r()</code> sample of size <code>n_sample</code> is generated and detected support is
+its range stretched by mean difference of sorted points (to account for
+possible tails at which points were not generated). <strong>Note</strong> that this means
+that original input <code>f</code> "demonstrates its randomness" only once inside
+<code>as_r()</code>, with output then used for approximation of "original randomness".
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>pdqr_approx_error()</code> for computing approximation errors compared to
+some reference function (usually input to <code style="white-space: pre;">⁠as_*()⁠</code> family).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Convert existing "proper" pdqr-function
+set.seed(101)
+x &lt;- rnorm(10)
+my_d &lt;- new_d(x, "continuous")
+
+my_p &lt;- as_p(my_d)
+
+# Convert "honored" function to be a proper pdqr-function. To use this
+# option, supply originally named function.
+p_unif &lt;- as_p(punif)
+r_beta &lt;- as_r(rbeta, shape1 = 2, shape2 = 2)
+d_pois &lt;- as_d(dpois, lambda = 5)
+
+## `pdqr_approx_error()` computes pdqr approximation error
+summary(pdqr_approx_error(as_d(dnorm), dnorm))
+
+## This will work as if input is unkonw function because of unsupported
+## variable name
+my_runif &lt;- function(n) {
+  runif(n)
+}
+r_unif_2 &lt;- as_r(my_runif)
+plot(as_d(r_unif_2))
+
+# Convert some other function to be a "proper" pdqr-function
+my_d_quadr &lt;- as_d(function(x) {
+  0.75 * (1 - x^2)
+}, support = c(-1, 1))
+
+# Support detection
+unknown &lt;- function(x) {
+  dnorm(x, mean = 1)
+}
+## Completely automatic support detection
+as_d(unknown)
+## Semi-automatic support detection
+as_d(unknown, support = c(-4, NA))
+as_d(unknown, support = c(NA, 5))
+
+## If support is very small and very distant from zero, it probably won't
+## get detected in `as_d()` (throwing a relevant error)
+## Not run: 
+as_d(function(x) {
+  dnorm(x, mean = 10000, sd = 0.1)
+})
+
+## End(Not run)
+
+# Using different level of granularity
+as_d(unknown, n_grid = 1001)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,162 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>stability.selection</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Stability selection procedure to select covariates for the sparse PLS, 
+LOGIT-SPLS and multinomial-SPLS methods</h2>
+
+<h3>Description</h3>
+
+<p>The function <code>stability.selection</code> returns the list of selected 
+covariates, when following the stability selection procedure described in 
+Durif et al. (2018). In particular, it selects covariates that are selected 
+by most of the sparse PLS, the logit-SPLS or the multinomial-SPLS models 
+when exploring the grid of hyper-parameter candidate values.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">stability.selection(stab.out, piThreshold = 0.9, rhoError = 10)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>stab.out</code></td>
+<td>
+<p>the output of the functions <code>spls.stab</code>, 
+<code>logit.spls.stab</code> or <code>multinom.spls.stab</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>piThreshold</code></td>
+<td>
+<p>a value in (0,1], corresponding to the threshold 
+probability used to select covariate (c.f. Durif et al., 2018).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rhoError</code></td>
+<td>
+<p>a positive value used to restrict the grid of 
+hyper-parameter candidate values (c.f. Durif et al., 2018).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The procedure is described in Durif et al. (2018). The stability selection 
+procedure can be summarize as follow (c.f. Meinshausen and Buhlmann, 2010).
+</p>
+<p>(i) For each candidate values of hyper-parameters, a model is trained 
+on <code>nresamp</code> resamplings of the data. Then, for each candidate value of
+the hyper-parameters, the probability that a covariate 
+(i.e. a column in <code>X</code>) is selected is computed among the resamplings.
+</p>
+<p>The estimated probabilities can be visualized as a heatmap with the 
+function <code>stability.selection.heatmap</code>.
+</p>
+<p>(ii) Eventually, the set of "stable selected" variables corresponds to the 
+set of covariates that were selected by most of the training among the 
+grid of hyper-parameters candidate values, based on a threshold probability
+<code>piThreshold</code> and a restriction of the grid of hyper-parameters based 
+on <code>rhoError</code> (c.f. Durif et al., 2018, for details).
+</p>
+<p>This function achieves the second step (ii) of the stability selection 
+procedure. The first step (i) is achieved by the functions 
+<code>spls.stab</code>, <code>logit.spls.stab</code> 
+or <code>multinom.spls.stab</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object with the following attributes:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>selected.predictors</code></td>
+<td>
+<p>The list of the name of covariates that 
+are selected.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.probs</code></td>
+<td>
+<p>The corresponding estimated probabilities of selection for 
+each covariate, i.e. the maximal values on the reduced grid of 
+hyper-parameters.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Ghislain Durif (<a href="https://gdurif.perso.math.cnrs.fr/">https://gdurif.perso.math.cnrs.fr/</a>).
+</p>
+
+
+<h3>References</h3>
+
+<p>Durif, G., Modolo, L., Michaelsson, J., Mold, J.E., Lambert-Lacroix, S., 
+Picard, F., 2018. High dimensional classification with combined 
+adaptive sparse PLS and logistic regression. Bioinformatics 34, 
+485–493. <a href="https://doi.org/10.1093/bioinformatics/btx571">doi:10.1093/bioinformatics/btx571</a>.
+Available at <a href="http://arxiv.org/abs/1502.05933">http://arxiv.org/abs/1502.05933</a>.
+</p>
+<p>Meinshausen, N., Buhlmann P. (2010). Stability Selection. Journal of the 
+Royal Statistical Society: Series B (Statistical Methodology) 
+72, no. 4, 417-473.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>spls.stab</code>, <code>logit.spls.stab</code>, 
+<code>multinom.spls.stab</code>, <code>stability.selection.heatmap</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+### load plsgenomics library
+library(plsgenomics)
+
+### generating data
+n &lt;- 100
+p &lt;- 100
+sample1 &lt;- sample.cont(n=n, p=p, kstar=10, lstar=2, 
+                       beta.min=0.25, beta.max=0.75, mean.H=0.2, 
+                       sigma.H=10, sigma.F=5, sigma.E=5)
+                       
+X &lt;- sample1$X
+Y &lt;- sample1$Y
+
+### hyper-parameters values to test
+lambda.l1.range &lt;- seq(0.05,0.95,by=0.1) # between 0 and 1
+ncomp.range &lt;- 1:10
+
+### tuning the hyper-parameters
+stab1 &lt;- spls.stab(X=X, Y=Y, lambda.l1.range=lambda.l1.range, 
+                   ncomp.range=ncomp.range, weight.mat=NULL, 
+                   adapt=FALSE, center.X=TRUE, center.Y=TRUE, 
+                   scale.X=TRUE, scale.Y=TRUE, weighted.center=FALSE, 
+                   ncores=1, nresamp=100)
+                       
+str(stab1)
+
+### selected covariates
+stability.selection(stab1, piThreshold=0.6, rhoError=10)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

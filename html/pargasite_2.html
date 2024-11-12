@@ -1,0 +1,210 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>create_pargasite_data</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a data cube for air pollutant levels covering the conterminous United
+States</h2>
+
+<h3>Description</h3>
+
+<p>A function to create a raster-based pollutant concentration input for
+pargasite's shiny application. It downloads pollutant data via the
+Environmental Protection Agency's (EPA) Air Quality System (AQS) API
+service, filters the data by exceptional event (e.g., wildfire) status, and
+performs the inverse distance weighted (IDW) interpolation to estimate
+pollutant concentrations covering the conterminous United States (CONUS) at
+user-defined time ranges.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">create_pargasite_data(
+  pollutant = c("CO", "SO2", "NO2", "Ozone", "PM2.5", "PM10"),
+  data_field = c("NAAQS_statistic", "arithmetic_mean"),
+  event_filter = c("Events Included", "Events Excluded", "Concurred Events Excluded"),
+  year,
+  by_month = FALSE,
+  cell_size = 10000,
+  nmax = Inf,
+  aqs_email = get_aqs_email(),
+  aqs_key = get_aqs_key(),
+  download_chunk_size = c("2-week", "month")
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pollutant</code></td>
+<td>
+<p>A string specifying an air pollutant to create a raster
+data cube. Must be one of CO2, SO2, NO2, Ozone, PM2.5 and PM10.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data_field</code></td>
+<td>
+<p>A vector of strings specifying whether which data fields
+are used to summarize the data. Must be either 'NAAQS statistic',
+'arithmetic_mean', or both. 'NAAQS_statistic' try to chooses an
+appropriate field based on National Ambient Air Quality Standards (NAAQS)
+in the AQS yearly data (e.g, for CO 1-hour average, 'second_max_value'
+would be chosen). 'arithmetic_mean' represents the measure of central
+tendency in the yearly data. Ignored when <code>by_month = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>event_filter</code></td>
+<td>
+<p>A vector of strings indicating whether data measured
+during exceptional events are included in the summary. 'Events Included'
+means that events occurred and the data from theme is included in the
+summary. 'Events Excluded' means that events occurred but data from them
+is excluded from the summary. 'Concurred Events Excluded' means that
+events occurred but only EPA concurred exclusions are removed from the
+summary. If multiple values are specified, pollutant levels for each
+filter are stored in <code>event</code> dimension in the resulting output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>year</code></td>
+<td>
+<p>A vector of 4-digit numeric values specifying years to retrieve
+pollutant levels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>by_month</code></td>
+<td>
+<p>A logical value indicating whether data summarized at
+monthly level instead of yearly level.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cell_size</code></td>
+<td>
+<p>A numeric value specifying a cell size of grid cells in
+meters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nmax</code></td>
+<td>
+<p>An integer value specifying the number of nearest observations
+that should be used for spatial interpolation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aqs_email</code></td>
+<td>
+<p>A string specifying the registered email for AQS API
+service.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aqs_key</code></td>
+<td>
+<p>A string specifying the registered key for AQS API service.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>download_chunk_size</code></td>
+<td>
+<p>A string specifying a chunk size for AQS API
+daily data download to prevent an unexpected server timeout error. Ignored
+when <code>by_month = FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>By default, it returns yearly-summarized concentrations using AQS's annual
+data but can also provide monthly-summarized concentrations by aggregating
+AQS's daily data. Note that the function chooses an appropriate data field
+for each pollutant to check the air quality status based on the National
+Ambient Air Quality Standard (NAAQS) for yearly-summarized outputs as
+follows
+</p>
+
+<ul>
+<li>
+<p> CO 1-hour: <code>second_max_value</code> field
+</p>
+</li>
+<li>
+<p> CO 8-hour: <code>second_max_nonoverlap</code> field
+</p>
+</li>
+<li>
+<p> SO2 1-hour: <code>ninety_ninth_percentile</code> field
+</p>
+</li>
+<li>
+<p> NO2 1-hour: <code>nineth_eighth_percentile</code> field
+</p>
+</li>
+<li>
+<p> NO2 Annual: <code style="white-space: pre;">⁠arithmetic mean⁠</code> field
+</p>
+</li>
+<li>
+<p> Ozone 8-hour: <code>fourth_max_value</code> field
+</p>
+</li>
+<li>
+<p> PM10 24-hour: <code>primary_exceedance_count</code> field
+</p>
+</li>
+<li>
+<p> PM25 24-hour: <code>ninety_eighth_percentile</code> field
+</p>
+</li>
+<li>
+<p> PM25 Annual: <code>arithmetic_mean</code> field
+</p>
+</li>
+</ul>
+<p>For monthly-summarized outputs, it uses the <code>arithmetic_mean</code> field of daily
+data. Please check AQS API <code>metaData/fieldsByService</code> (see
+raqs::metadata_fieldsbyservice) and
+<a href="https://aqs.epa.gov/aqsweb/documents/AQS_Data_Dictionary.html">AQS
+data dictionary</a> for the details of field descriptions.
+</p>
+<p>For spatial interpolation, the AQS data is projected to EPSG:6350 (NAD83
+CONUS Albers), and thus, <code>cell_size</code> value is represented in meters (5,000
+creates 5km x 5km grid). The smaller <code>cell_size</code>, the more processing time
+is required.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A stars object containing the interpolated pollutant levels over
+CONUS.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+
+## Set your AQS API key first using [raqs::set_aqs_user] to run the example.
+
+## SO2 and CO concentrations through 2020 to 2022
+so2 &lt;- create_pargasite_data("SO2", "Events Included", year = 2020:2022)
+co &lt;- create_pargasite_data("CO", "Events Included", year = 2020:2022)
+
+## Combine them; can combine other pollutant grids in the same way
+pargasite_input &lt;- c(so2, co)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

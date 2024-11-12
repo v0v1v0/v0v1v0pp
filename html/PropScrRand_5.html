@@ -1,0 +1,164 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pba</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Propensity-Biased Allocation
+</h2>
+
+<h3>Description</h3>
+
+<p>Performs propensity-biased allocation for assigning a new unit to treatment in a sequential design with two treatment levels (i.e., treatment and control).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pba(x, tr, newx, k = 1, global = 0.5)
+pbaAgain(previous, newx, k = NA)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A data frame of the covariate values of previously assigned units.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tr</code></td>
+<td>
+<p>A vector of treatment assignments (0 or 1) for previously assigned units.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newx</code></td>
+<td>
+<p>Data frame of covariate values of the new unit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Balancing parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>global</code></td>
+<td>
+<p>Global target proportion to be treated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>previous</code></td>
+<td>
+<p>The output of a previous call to <code>pba</code> or <code>pbaAgain</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function <code>pba</code> generates a treatment assignment for a new unit.  The steps of the process include regressesing <code>tr</code> on <code>x</code> by logistic regression, computeing the fitted value of the new unit using covarate values in <code>newx</code>, and transforming the fitted propensity score into the probability of treatment by a call to <code>piFunction</code> using <code>k</code> and <code>global</code> as parameters.  The balancing parameter <code>k</code> must be one of <code>0</code>, <code>Inf</code>, or the ratio of two positive odd integers.  Small values of <code>k</code> result in less restrictive randomization while larger values of <code>k</code> result in more forced balance. In particular, <code>k = 0</code> is equivalent to pure randomization and <code>k = Inf</code> results in deterministic allocation.  Finally, a treatment assignment for the new unit is generated via a Bernoulli trial with probability from <code>piFunction</code>.
+</p>
+<p>The function <code>pbaAgain</code> takes as input the output from a previous call to <code>pba</code> or <code>pbaAgain</code> and runs <code>pba</code> for the new unit using the values of <code>newx</code>.  If <code>k = NA</code> (the default), the value of <code>k</code> from <code>previous</code> is used; otherwise, the provided value of <code>k</code> is used.  The parameter <code>global</code> is assumed to stay the same throughout the trial.  The output of <code>pbaAgain</code> contains the same information as <code>pba</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>results</code></td>
+<td>
+<p>A list of results from the PBA procedure.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phat</code></td>
+<td>
+<p>The fitted propensity score for the new unit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ptreat</code></td>
+<td>
+<p>The probability of assignment to the treatment group for the new unit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newtr</code></td>
+<td>
+<p>Result of random assignment using <code>ptreat</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>input</code></td>
+<td>
+<p>A list of inputs to PBA procdure.  Used in future calls to <code>pbaAgain</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Input <code>x</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tr</code></td>
+<td>
+<p>Input <code>tr</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newx</code></td>
+<td>
+<p>Input <code>newx</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Input <code>k</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>global</code></td>
+<td>
+<p>Input <code>global</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Travis Loux
+</p>
+
+
+<h3>References</h3>
+
+<p>Loux, T.M. (2013) A simple, flexible, and effective covariate-adaptive treatment allocation procedure.  Statistics in Medicine 32(22), 3775-3787. DOI: 10.1002/sim.5837
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">x0 = data.frame(matrix(rnorm(60), ncol=3))
+t0 = rbinom(nrow(x0), size=1, prob=0.5)
+
+x1 = data.frame(matrix(rnorm(3), ncol=3))
+trial1 = pba(x=x0, tr=t0, newx=x1, k=Inf)
+
+x2 = data.frame(matrix(rnorm(3), ncol=3))
+trial2 = pbaAgain(previous=trial1, newx=x2)
+
+x3 = data.frame(matrix(rnorm(3), ncol=3))
+trial3 = pbaAgain(previous=trial2, newx=x3, k=5/3)
+</code></pre>
+
+
+</div>

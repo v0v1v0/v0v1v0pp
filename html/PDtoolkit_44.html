@@ -1,0 +1,147 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>stepRPC</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Stepwise logistic regression based on risk profile concept</h2>
+
+<h3>Description</h3>
+
+<p><code>stepRPC</code> customized stepwise regression with p-value and trend check which additionally takes into account
+the order of supplied risk factors per group when selects a candidate for the final regression model. Trend check is performed
+comparing observed trend between target and analyzed risk factor and trend of the estimated coefficients within the
+logistic regression. Note that procedure checks the column names of supplied <code>db</code> data frame therefore some
+renaming (replacement of special characters) is possible to happen. For details, please, check the help example.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">stepRPC(
+  start.model,
+  risk.profile,
+  p.value = 0.05,
+  coding = "WoE",
+  coding.start.model = TRUE,
+  check.start.model = TRUE,
+  db,
+  offset.vals = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>start.model</code></td>
+<td>
+<p>Formula class that represents the starting model. It can include some risk factors, but it can be
+defined only with intercept (<code>y ~ 1</code> where <code>y</code> is target variable).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>risk.profile</code></td>
+<td>
+<p>Data frame with defined risk profile. It has to contain the following columns: <code>rf</code> and
+<code>group</code>. Column <code>group</code> defines order of groups that will be tested first as a candidate
+for the regression model. Risk factors selected in each group are kept as a starting variables
+for the next group testing. Column <code>rf</code> contains all candidate risk factors supplied for testing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.value</code></td>
+<td>
+<p>Significance level of p-value of the estimated coefficients. For <code>WoE</code> coding this value is
+is directly compared to the p-value of the estimated coefficients, while for <code>dummy</code> coding
+multiple Wald test is employed and its value is used for comparison with selected threshold (<code>p.value</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coding</code></td>
+<td>
+<p>Type of risk factor coding within the model. Available options are: <code>"WoE"</code> and
+<code>"dummy"</code>. If <code>"WoE"</code> is selected, then modalities of the risk factors are replaced
+by WoE values, while for <code>"dummy"</code> option dummies (0/1) will be created for <code>n-1</code>
+modalities where <code>n</code> is total number of modalities of analyzed risk factor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coding.start.model</code></td>
+<td>
+<p>Logical (<code>TRUE</code> or <code>FALSE</code>), if the risk factors from the starting model should be WoE coded.
+It will have an impact only for WoE coding option.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>check.start.model</code></td>
+<td>
+<p>Logical (<code>TRUE</code> or <code>FALSE</code>), if risk factors from the starting model should
+checked for p-value and trend in stepwise process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>db</code></td>
+<td>
+<p>Modeling data with risk factors and target variable. All risk factors (apart from the risk factors from the starting model)
+should be categorized and as of character type.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offset.vals</code></td>
+<td>
+<p>This can be used to specify an a priori known component to be included in the linear predictor during fitting.
+This should be <code>NULL</code> or a numeric vector of length equal to the number of cases. Default is <code>NULL</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The command <code>stepRPC</code> returns a list of four objects.<br>
+The first object (<code>model</code>), is the final model, an object of class inheriting from <code>"glm"</code>.<br>
+The second object (<code>steps</code>), is the data frame with risk factors selected at each iteration.<br>
+The third object (<code>warnings</code>), is the data frame with warnings if any observed.
+The warnings refer to the following checks: if risk factor has more than 10 modalities,
+if any of the bins (groups) has less than 5% of observations and
+if there are problems with WoE calculations.<br>
+The final, fourth, object <code>dev.db</code> returns the model development database.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">suppressMessages(library(PDtoolkit))
+data(loans)
+#identify numeric risk factors
+num.rf &lt;- sapply(loans, is.numeric)
+num.rf &lt;- names(num.rf)[!names(num.rf)%in%"Creditability" &amp; num.rf]
+#discretized numeric risk factors using ndr.bin from monobin package
+loans[, num.rf] &lt;- sapply(num.rf, function(x) 
+ndr.bin(x = loans[, x], y = loans[, "Creditability"])[[2]])
+str(loans)
+#create risk factor priority groups
+rf.all &lt;- names(loans)[-1]
+set.seed(591)
+rf.pg &lt;- data.frame(rf = rf.all, group = sample(1:3, length(rf.all), rep = TRUE))
+head(rf.pg)
+#bring AUC for each risk factor in order to sort them within groups
+bva &lt;- bivariate(db = loans, target = "Creditability")[[1]]
+rf.auc &lt;- unique(bva[, c("rf", "auc")])
+rf.pg &lt;- merge(rf.pg, rf.auc, by = "rf", all.x = TRUE)
+#prioritized risk factors
+rf.pg &lt;- rf.pg[order(rf.pg$group, rf.pg$auc), ]
+rf.pg &lt;- rf.pg[order(rf.pg$group), ]
+rf.pg
+res &lt;- stepRPC(start.model = Creditability ~ 1, 
+	   risk.profile = rf.pg, 
+	   p.value = 0.05, 
+	   coding = "WoE",
+	   db = loans)
+summary(res$model)$coefficients
+res$steps
+head(res$dev.db)
+</code></pre>
+
+
+</div>

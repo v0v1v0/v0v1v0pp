@@ -1,0 +1,213 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PCM</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a phylogenetic comparative model object</h2>
+
+<h3>Description</h3>
+
+<p>This is the entry-point function for creating model objects
+within the PCMBase framework representing a single model-type with one or
+several model-regimes of this type associated with the branches of a tree.
+For mixed Gaussian phylogenetic models, which enable multiple model-types,
+use the <code>MixedGaussian</code> function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PCM(
+  model,
+  modelTypes = class(model)[1],
+  k = 1L,
+  regimes = 1L,
+  params = NULL,
+  vecParams = NULL,
+  offset = 0L,
+  spec = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>This argument can take one of the following forms:
+</p>
+
+<ul>
+<li>
+<p> a character vector of the S3-classes of the model object to be
+created (one model object can have one or more S3-classes, with the class
+PCM at the origin of the hierarchy);
+</p>
+</li>
+<li>
+<p> an S3 object which's class inherits from the PCM S3 class.
+</p>
+</li>
+</ul>
+<p>The Details section explains how these two types of input are processed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>modelTypes</code></td>
+<td>
+<p>a character string vector specifying a set (family) of
+model-classes, to which the constructed model object belongs. These are used
+for model-selection.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>integer denoting the number of traits (defaults to 1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regimes</code></td>
+<td>
+<p>a character or integer vector denoting the regimes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params</code></td>
+<td>
+<p>NULL (default) or a list of parameter values (scalars, vectors,
+matrices, or arrays) or sub-models (S3 objects inheriting from the PCM class).
+See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vecParams</code></td>
+<td>
+<p>NULL (default) or a numeric vector the vector
+representation of the variable parameters in the model. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offset</code></td>
+<td>
+<p>integer offset in vecParams; see Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spec</code></td>
+<td>
+<p>NULL or a list specifying the model parameters (see
+<code>PCMSpecify</code>). If NULL (default), the generic PCMSpecify
+is called on the created object of class <code>model</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters intended for use by sub-classes of the PCM
+class.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This is an S3 generic. The PCMBase package defines three methods for
+it:
+</p>
+
+<dl>
+<dt>PCM.PCM: </dt>
+<dd>
+<p>A default constructor for any object with a class inheriting
+from "PCM".</p>
+</dd>
+<dt>PCM.character: </dt>
+<dd>
+<p>A default PCM constructor from a character string
+specifying the type of model.</p>
+</dd>
+<dt>PCM.default: </dt>
+<dd>
+<p>A default constructor called when no other constructor
+is found. When called this constructor raises an error message.</p>
+</dd>
+</dl>
+<h3>Value</h3>
+
+<p>an object of S3 class as defined by the argument <code>model</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>MixedGaussian</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># a Brownian motion model with one regime
+modelBM &lt;- PCM(model = "BM", k = 2)
+# print the model
+modelBM
+
+# a BM model with two regimes
+modelBM.ab &lt;- PCM("BM", k = 2, regimes = c("a", "b"))
+modelBM.ab
+
+# print a single parameter of the model (in this case, the root value)
+modelBM.ab$X0
+
+# assign a value to this parameter (note that the brackets [] are necessary
+# to preserve  the parameter attributes):
+modelBM.ab$X0[] &lt;- c(5, 2)
+
+PCMNumTraits(modelBM)
+PCMNumRegimes(modelBM)
+PCMNumRegimes(modelBM.ab)
+
+# number of numerical parameters in the model
+PCMParamCount(modelBM)
+
+# Get a vector representation of all parameters in the model
+PCMParamGetShortVector(modelBM)
+
+# Limits for the model parameters:
+lowerLimit &lt;- PCMParamLowerLimit(modelBM)
+upperLimit &lt;- PCMParamUpperLimit(modelBM)
+
+# assign the model parameters at random: this will use uniform distribution
+# with boundaries specified by PCMParamLowerLimit and PCMParamUpperLimit
+# We do this in two steps:
+# 1. First we generate a random vector. Note the length of the vector equals PCMParamCount(modelBM)
+randomParams &lt;- PCMParamRandomVecParams(modelBM, PCMNumTraits(modelBM), PCMNumRegimes(modelBM))
+randomParams
+# 2. Then we load this random vector into the model.
+PCMParamLoadOrStore(modelBM, randomParams, 0, PCMNumTraits(modelBM), PCMNumRegimes(modelBM), TRUE)
+
+print(modelBM)
+
+PCMParamGetShortVector(modelBM)
+
+# generate a random phylogenetic tree of 10 tips
+tree &lt;- ape::rtree(10)
+
+#simulate the model on the tree
+traitValues &lt;- PCMSim(tree, modelBM, X0 = modelBM$X0)
+
+# calculate the likelihood for the model parameters, given the tree and the trait values
+PCMLik(traitValues, tree, modelBM)
+
+# create a likelihood function for faster processing for this specific model.
+# This function is convenient for calling in optim because it recieves and parameter
+# vector instead of a model object.
+likFun &lt;- PCMCreateLikelihood(traitValues, tree, modelBM)
+likFun(randomParams)
+</code></pre>
+
+
+</div>

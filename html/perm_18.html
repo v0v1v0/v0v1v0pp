@@ -1,0 +1,298 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>perm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Exact or Asymptotic 2-sample, k-sample, and trend permutation tests</h2>
+
+<h3>Description</h3>
+
+<p>These functions perform either: two-sample permutation tests (<code>permTS</code>),
+k-sample permutation tests (<code>permKS</code>), or trend permutation tests (<code>permTREND</code>).
+The test function can be transformed to a linear function of the scores times the covariate, where the covariate 
+may be either a factor or character vector with two (<code>permTS</code>) or more (<code>permKS</code>) levels or a  
+numeric vector (<code>permTREND</code>).   By using suitable scores one can create
+for example, the permutation t-test (general scores), the Wilcoxon rank sum test (rank scores),
+the logrank test (need to use other functions to create these scores). It performs either 
+exact (network algorithm, complete enumeration, or Monte Carlo) asymptotic calculations (using permutational 
+central limit theorem).   
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">permTS(x, ...)
+
+## Default S3 method:
+permTS(x, y, alternative = c("two.sided", "less", "greater"), 
+    exact = NULL, method = NULL, methodRule = methodRuleTS1, 
+    control=permControl(), ...)
+
+## S3 method for class 'formula'
+permTS(formula, data, subset, na.action, ...)
+
+
+permKS(x,...)
+
+
+## Default S3 method:
+permKS(x, g, exact = NULL, method = NULL, 
+   methodRule = methodRuleKS1, control=permControl(), ...)
+
+## S3 method for class 'formula'
+permKS(formula,data,subset, na.action,...)
+
+permTREND(x,...)
+
+## Default S3 method:
+permTREND(x, y, alternative = c("two.sided", "less", "greater"), 
+   exact = NULL, method = NULL, methodRule = methodRuleTREND1, control=permControl(),...)
+
+## S3 method for class 'formula'
+permTREND(formula,data,subset,na.action,...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>numeric vector of respose scores for the first group</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>numeric vector of either response scores for the second group (for permTS) 
+or trend scores for each observation (for permTREND)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g</code></td>
+<td>
+<p>a factor or character vector denoting group membership</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alternative</code></td>
+<td>
+<p>a character string specifying the alternative hypothesis, must be one of "two.sided"
+(default), "greater","less" (see details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exact</code></td>
+<td>
+<p>a logical value, TRUE denotes exact test, ignored if method is not NULL</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>a character value, one of 'pclt','exact.network','exact.ce','exact.mc'. If NULL method chosen by methodRule</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>methodRule</code></td>
+<td>
+<p>a function used to choose the method (see details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>a list with arguments that control the algortihms, see <code>permControl</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a formula of the form lhs~rhs where lhs is a numeric variable giving the response 
+scores and rhs a factor with two levels giving the corresponding groups. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>an optional matrix or data frame containing the variables in the formula</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+<p>an optional vector specifying a subset of observations to be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.action</code></td>
+<td>
+<p>a function which indicates what should happen when the data contain NAs. Defaults to 
+getOption("na.action"). </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p> further arguments to be passed to or from methods. </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>There are 4 different methods for deciding how to determine the p-value by defining which test statistics are extreme.
+For <code>alternative</code> there are 3 choices, "two.sided", "less" or "greater", but within alternative="two.sided" there are 2 methods defined by the 
+<code>tsmethod</code> given within <code>control</code>, see <code>permControl</code>.   If Ti is a vector of test statistics, and T0 is the observed test statistic, then 
+alternative="less" gives p.lte=Pr[Ti&lt;=T0], alternative="greater" gives p.gte=Pr[Ti&gt;=T0], 
+alternative="two.sided" with tsmethod="central" (default) gives p.twosided=max(1, 2*min(p.lte,p.gte)), and alternative="two.sided"
+with tsmethod="abs" gives p.twosidedAbs=Pr[abs(Ti - mean(Ti) ) &gt;=abs(T0-mean(Ti))]. For <code>permTS</code> the test statistic 
+is equivalent to the mean of one group minus the mean of the other group. For <code>permTREND</code> the test 
+statistic is equivalent to the correlation between the response (x) and the trend scores (y).
+For <code>permKS</code> only a twosided pvalue based on Pr[Ti&gt;=T0] is allowed, where the test statistic, Ti, is the 
+weighted sum of the square of the mean within group, where the weights are the sample size for each group.  This will
+give for example, the usual Kruskal-Wallis test when the ranks are used on the responses.
+</p>
+<p>Many standard statistical tests may be put into the form of the permutation test (see Graubard and Korn, 1987). 
+There is a choice of four different methods to calculate the p-values (the last two are only available for 
+<code>permTS</code>): 
+</p>
+
+<ol>
+<li>
+<p> pclt: using permutational central limit theorem (see e.g., Sen, 1985).
+</p>
+</li>
+<li>
+<p> exact.mc:exact using Monte Carlo.
+</p>
+</li>
+<li>
+<p> exact.network: exact method using a network algorithm (see e.g., Agresti, Mehta, and Patel, 1990). Currently the network 
+method does 
+not implement many of the time saving suggestions such as clubbing.
+</p>
+</li>
+<li>
+<p> exact.ce: exact using complete enumeration. This is good for very small sample sizes and when doing simulations, since the cm need only 
+be calculated once for the simulation.
+</p>
+</li>
+</ol>
+<p>The <code>exact.network</code> and <code>exact.ce</code> may give errors related to running out of memory when the sample size is not small and will depend on the system you are using (e.g., about 15 in each group for <code>exact.network</code> or 
+14 in each group for <code>exact.ce</code>).
+</p>
+<p>These associated functions for the above methods (e.g.,  <code>twosample.pclt</code>, <code>twosample.exact.network</code>, etc),  
+are internal and are not to be called directly. 
+</p>
+<p>The <code>methodRule</code> is a function which takes the first two objects of the default implementation, and returns the 
+method. This function can be used to appropriately choose the method based on the size of the data.
+For explanation of the default method rules see <code>methodRuleTS1</code>, <code>methodRuleKS1</code>, or 
+<code>methodRuleTREND1</code>. 
+</p>
+<p>For more details see Fay and Shaw (2010, Section 5).
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>htest</code> or for 'exact.mc' of class <code>mchtest</code>, 
+a list with the following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>p.value</code></td>
+<td>
+<p>p value associated with alternative</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alternative</code></td>
+<td>
+<p>description of alternative hypothesis</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.values</code></td>
+<td>
+<p>a vector giving lower, upper, and two-sided p-values as well as 
+p.equal which is the proportion equal to the observed test statistic</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>a character vector describing the test</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimate</code></td>
+<td>
+<p>an estimate of the test statistic</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>statistic</code></td>
+<td>
+<p>statistic used for asymptotics, either Z statistics or chi square statistic, output if method="pclt"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parameter</code></td>
+<td>
+<p>degrees of freedom for chi square statistic, output if 'statistic' is the chi square statistic</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data.name</code></td>
+<td>
+<p>character vector describing the response and group variables</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.conf.int</code></td>
+<td>
+<p>a confidence interval on the p-value if method='exact.mc' 
+(see <code>calcPvalsMC</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nmc</code></td>
+<td>
+<p>number of Monte Carlo replications if method='exact.mc', NULL otherwise</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Michael Fay</p>
+
+
+<h3>References</h3>
+
+ 
+<p>Agresti, A, Mehta, CR, Patel, NR (1990). JASA 85: 453-458.
+</p>
+<p>Fay, MP and Shaw, PA (2010). Exact and Asymptotic Weighted Logrank Tests for Interval Censored Data: The interval R package.
+Journal of Statistical Software. <a href="https://doi.org/10.18637/jss.v036.i02">doi:10.18637/jss.v036.i02</a>. 36 (2):1-34.
+</p>
+<p>Graubard, BI, and Korn, EL (1987). Biometrics 43: 471-476.
+</p>
+<p>Sen, PK (1985) ‘Permutational central limit theorems’ in Encyclopedia of Statistics, Vol 6.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Example from StatExact manual
+dBP&lt;-c(94,108,110,90,80,94,85,90,90,90,108,94,78,105,88)
+treatment&lt;-c(rep("treated",4),rep("control",11))
+permTS(dBP~treatment,alternative="less",method="pclt")
+result&lt;-permTS(dBP[treatment=="treated"],dBP[treatment=="control"],alternative="greater")
+result
+result$p.values
+</code></pre>
+
+
+</div>

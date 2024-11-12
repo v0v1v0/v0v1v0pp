@@ -1,0 +1,125 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>as.matrix.projection</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Extract projected parameter draws and coerce to matrix</h2>
+
+<h3>Description</h3>
+
+<p>This is the <code>as.matrix()</code> method for <code>projection</code> objects (returned by
+<code>project()</code>, possibly as elements of a <code>list</code>). It extracts the projected
+parameter draws and returns them as a matrix. In case of different (i.e.,
+nonconstant) weights for the projected draws, see
+<code>as_draws_matrix.projection()</code> for a better solution.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'projection'
+as.matrix(x, nm_scheme = NULL, allow_nonconst_wdraws_prj = FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>An object of class <code>projection</code> (returned by <code>project()</code>, possibly
+as elements of a <code>list</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nm_scheme</code></td>
+<td>
+<p>The naming scheme for the columns of the output matrix.
+Either <code>NULL</code>, <code>"rstanarm"</code>, or <code>"brms"</code>, where <code>NULL</code> chooses <code>"rstanarm"</code>
+or <code>"brms"</code> based on the class of the reference model fit (and uses
+<code>"rstanarm"</code> if the reference model fit is of an unknown class).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allow_nonconst_wdraws_prj</code></td>
+<td>
+<p>A single logical value indicating whether to
+allow projected draws with different (i.e., nonconstant) weights (<code>TRUE</code>)
+or not (<code>FALSE</code>). <strong>CAUTION</strong>: Expert use only because if set to <code>TRUE</code>,
+the weights of the projected draws are stored in an attribute <code>wdraws_prj</code>
+and handling this attribute requires special care (e.g., when subsetting
+the returned matrix).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Currently ignored.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In case of the augmented-data projection for a multilevel submodel
+of a <code>brms::categorical()</code> reference model, the multilevel parameters (and
+therefore also their names) slightly differ from those in the <span class="pkg">brms</span>
+reference model fit (see section "Augmented-data projection" in
+<code>extend_family()</code>'s documentation).
+</p>
+
+
+<h3>Value</h3>
+
+<p>An <code class="reqn">S_{\mathrm{prj}} \times Q</code> matrix of projected
+draws, with <code class="reqn">S_{\mathrm{prj}}</code> denoting the number of projected
+draws and <code class="reqn">Q</code> the number of parameters. If <code>allow_nonconst_wdraws_prj</code>
+is set to <code>TRUE</code>, the weights of the projected draws are stored in an
+attribute <code>wdraws_prj</code>. (If <code>allow_nonconst_wdraws_prj</code> is <code>FALSE</code>,
+projected draws with nonconstant weights cause an error.)
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Data:
+dat_gauss &lt;- data.frame(y = df_gaussian$y, df_gaussian$x)
+
+# The `stanreg` fit which will be used as the reference model (with small
+# values for `chains` and `iter`, but only for technical reasons in this
+# example; this is not recommended in general):
+fit &lt;- rstanarm::stan_glm(
+  y ~ X1 + X2 + X3 + X4 + X5, family = gaussian(), data = dat_gauss,
+  QR = TRUE, chains = 2, iter = 500, refresh = 0, seed = 9876
+)
+
+# Projection onto an arbitrary combination of predictor terms (with a small
+# value for `ndraws`, but only for the sake of speed in this example; this
+# is not recommended in general):
+prj &lt;- project(fit, predictor_terms = c("X1", "X3", "X5"), ndraws = 21,
+               seed = 9182)
+
+# Applying the as.matrix() generic to the output of project() dispatches to
+# the projpred::as.matrix.projection() method:
+prj_mat &lt;- as.matrix(prj)
+
+# Since the draws have all the same weight here, we can treat them like
+# ordinary MCMC draws, e.g., we can summarize them using the `posterior`
+# package:
+if (requireNamespace("posterior", quietly = TRUE)) {
+  print(posterior::summarize_draws(
+    posterior::as_draws_matrix(prj_mat),
+    "median", "mad", function(x) quantile(x, probs = c(0.025, 0.975))
+  ))
+}
+# Or visualize them using the `bayesplot` package:
+if (requireNamespace("bayesplot", quietly = TRUE)) {
+  print(bayesplot::mcmc_intervals(prj_mat))
+}
+
+</code></pre>
+
+
+</div>

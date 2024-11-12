@@ -1,0 +1,171 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ff.PKPD.1.comp.oral.md.CL.imax</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Structural model: one-compartment, oral absorption, multiple bolus dose, 
+parameterized using CL driving an inhibitory IMAX model with a direct effect.</h2>
+
+<h3>Description</h3>
+
+<p>This is a structural model function that encodes the model described above.
+The function is suitable for input to the <code>create.poped.database</code> function using the
+<code>ff_fun</code> or <code>ff_file</code> argument.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ff.PKPD.1.comp.oral.md.CL.imax(model_switch, xt, parameters, poped.db)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model_switch</code></td>
+<td>
+<p>a vector of values, the same size as <code>xt</code>, identifying which model 
+response should be computed for the 
+corresponding xt value.  Used for multiple response models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xt</code></td>
+<td>
+<p>a vector of independent variable values (often time).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parameters</code></td>
+<td>
+<p>A named list of parameter values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>poped.db</code></td>
+<td>
+<p>a poped database.  This can be used to extract information that may be needed in the model file.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list consisting of:
+</p>
+
+<ol>
+<li>
+<p> y the values of the model at the specified points.
+</p>
+</li>
+<li>
+<p> poped.db A (potentially modified) poped database.
+</p>
+</li>
+</ol>
+<h3>See Also</h3>
+
+<p>Other models: 
+<code>feps.add()</code>,
+<code>feps.add.prop()</code>,
+<code>feps.prop()</code>,
+<code>ff.PK.1.comp.oral.md.CL()</code>,
+<code>ff.PK.1.comp.oral.md.KE()</code>,
+<code>ff.PK.1.comp.oral.sd.CL()</code>,
+<code>ff.PK.1.comp.oral.sd.KE()</code>,
+<code>ff.PKPD.1.comp.sd.CL.emax()</code>
+</p>
+<p>Other structural_models: 
+<code>ff.PK.1.comp.oral.md.CL()</code>,
+<code>ff.PK.1.comp.oral.md.KE()</code>,
+<code>ff.PK.1.comp.oral.sd.CL()</code>,
+<code>ff.PK.1.comp.oral.sd.KE()</code>,
+<code>ff.PKPD.1.comp.sd.CL.emax()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(PopED)
+
+## find the parameters that are needed to define from the structural model
+ff.PKPD.1.comp.oral.md.CL.imax
+ff.PK.1.comp.oral.md.CL
+
+## -- parameter definition function 
+## -- names match parameters in function ff
+sfg &lt;- function(x,a,bpop,b,bocc){
+  ## -- parameter definition function 
+  parameters=c( V=bpop[1]*exp(b[1]),
+                KA=bpop[2]*exp(b[2]),
+                CL=bpop[3]*exp(b[3]),
+                Favail=bpop[4],
+                DOSE=a[1],
+                TAU = a[2],
+                E0=bpop[5]*exp(b[4]),
+                IMAX=bpop[6],
+                IC50=bpop[7])
+  return( parameters ) 
+}
+
+
+
+feps &lt;- function(model_switch,xt,parameters,epsi,poped.db){
+  ## -- Residual Error function
+  returnArgs &lt;- do.call(poped.db$model$ff_pointer,list(model_switch,xt,parameters,poped.db)) 
+  y &lt;- returnArgs[[1]]
+  poped.db &lt;- returnArgs[[2]]
+  
+  MS &lt;- model_switch
+  
+  pk.dv &lt;- y*(1+epsi[,1])+epsi[,2]
+  pd.dv &lt;-  y*(1+epsi[,3])+epsi[,4]
+  
+  y[MS==1] = pk.dv[MS==1]
+  y[MS==2] = pd.dv[MS==2]
+  
+  return(list( y= y,poped.db =poped.db )) 
+}
+
+
+## -- Define initial design  and design space
+poped.db &lt;- create.poped.database(ff_fun=ff.PKPD.1.comp.oral.md.CL.imax,
+                                  fError_fun=feps,
+                                  fg_fun=sfg,
+                                  groupsize=20,
+                                  m=3,
+                                  bpop=c(V=72.8,KA=0.25,CL=3.75,Favail=0.9,
+                                         E0=1120,IMAX=0.807,IC50=0.0993),  
+                                  notfixed_bpop=c(1,1,1,0,1,1,1),
+                                  d=c(V=0.09,KA=0.09,CL=0.25^2,E0=0.09), 
+                                  sigma=c(0.04,5e-6,0.09,100),
+                                  notfixed_sigma=c(0,0,0,0),
+                                  xt=c( 1,2,8,240,240,1,2,8,240,240),
+                                  minxt=c(0,0,0,240,240,0,0,0,240,240),
+                                  maxxt=c(10,10,10,248,248,10,10,10,248,248),
+                                  G_xt=c(1,2,3,4,5,1,2,3,4,5),
+                                  model_switch=c(1,1,1,1,1,2,2,2,2,2),
+                                  a=cbind(c(20,40,0),c(24,24,24)),
+                                  bUseGrouped_xt=1,
+                                  ourzero=0,
+                                  maxa=c(200,40),
+                                  mina=c(0,2))
+
+
+##  create plot of model without variability 
+plot_model_prediction(poped.db,facet_scales="free")
+
+## evaluate initial design
+FIM &lt;- evaluate.fim(poped.db) 
+FIM
+det(FIM)
+get_rse(FIM,poped.db)
+
+</code></pre>
+
+
+</div>

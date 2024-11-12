@@ -1,0 +1,149 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>linksrm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Linked Stress Release Model Object</h2>
+
+<h3>Description</h3>
+
+<p>Creates a point process model object with class <code>"linksrm"</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">linksrm(data, gif, marks, params, gmap, mmap, TT)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a <code>data.frame</code> containing the history of the process, denoted below as <code class="reqn"> {\cal H}_t</code>. It should contain all variables that are required to evaluate the <code>gif</code> function and the mark distribution, though can contain others too. No history is represented as <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gif</code></td>
+<td>
+<p>ground intensity function. At this stage, this can only be <code>linksrm_gif</code> or modifications of that function; see “Details” below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>marks</code></td>
+<td>
+<p>mark distribution. See topic <code>marks</code> for further details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params</code></td>
+<td>
+<p>numeric vector of <em>all</em> model parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gmap</code></td>
+<td>
+<p><code>expression</code>, maps the model parameters (<code>params</code>) into the parameter sub-space of the ground intensity function; see “Details” below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mmap</code></td>
+<td>
+<p><code>expression</code>, maps the model parameters (<code>params</code>) into the parameter sub-space of the mark distribution; see “Details” below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>TT</code></td>
+<td>
+<p>vector of length 2, being the time interval over which the integral of the ground intensity function is to be evaluated.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The linked stress release model has a slightly peculiar structure which makes it difficult to fit into the <code>mpp</code> class. While the region should be thought of as a mark, it is completely defined by the function <code>linksrm_gif</code>, and hence from the programming perspective the <code>region</code> mark is really tied in with the <code>gif</code> function. Hence at the moment, the linked stress release model is treated as a special case. There may be other models that could be grouped into this class.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">p &lt;- c(-1.5, -1.5, 0.01, 0.03, 2, -0.5, 0.2, 1, 1*log(10), 3)
+TT &lt;- c(0, 1000)
+
+rexptrunc_mark &lt;- function(ti, data, params){
+    x &lt;- rexp(n=1, params[1])
+    x[x &gt; params[2]] &lt;- params[2]
+    names(x) &lt;- "magnitude"
+    return(x)
+}
+
+x &lt;- linksrm(data=NULL,
+             gif=linksrm_gif,
+             marks=list(NULL, rexptrunc_mark),
+             params=p,
+             gmap=expression(params[1:8]),
+             mmap=expression(params[9:10]),
+             TT=TT)
+
+x &lt;- simulate(x, seed=5)
+print(logLik(x))
+
+#   estimate parameters
+temp_map &lt;- function(y, p){
+    #    map only gif parameters into model object
+    y$params[1:8] &lt;- p
+    return(y)
+}
+
+weight &lt;- c(0.1, 0.1, 0.005, 0.005, 0.1, 0.1, 0.1, 0.1)
+
+#   see manual page for linksrm_gif for modifications to
+#   make calculations faster
+
+#   for testing, restrict to 5 iterations
+z &lt;- nlm(neglogLik, p[1:8], object=x, pmap=temp_map,
+         hessian=TRUE, gradtol=1e-08, steptol=1e-10,
+         print.level=2, iterlim=5, typsize=weight)
+
+param.names &lt;- c("a1", "a2", "b1", "b2", "c11", "c12", "c21", "c22")
+param.est &lt;- cbind(p[1:8], z$estimate, sqrt(diag(solve(z$hessian))))
+dimnames(param.est) &lt;- list(param.names,
+                            c("Actual", "Estimate", "StdErr"))
+print(param.est)
+
+#   place parameter estimates into model object
+x &lt;- temp_map(x, z$estimate)
+
+#   plot ground intensity function
+par.default &lt;- par(mfrow=c(2,1), mar=c(4.1, 4.1, 0.5, 1))
+x$gif &lt;- linksrm_gif
+plot(x, 1, xlab="")
+plot(x, 2)
+par(par.default)
+
+#   plot "residuals" for each region
+tau &lt;- residuals(x)
+par(mfrow=c(2,1))
+for (i in 1:2){
+    plot(tau[[i]], ylab="Transformed Time",
+         xlab="Event Number", main=paste("Region", i))
+    abline(a=0, b=1, lty=2, col="red")
+}
+
+#   plot cusum of "residuals" for each region
+for (i in 1:2){
+    plot(tau[[i]] - 1:length(tau[[i]]), ylab="Cusum of Transformed Time",
+         xlab="Event Number", main=paste("Region", i))
+    abline(h=0, lty=2, col="red")
+}
+
+par(mfrow=c(1,1))
+</code></pre>
+
+
+</div>

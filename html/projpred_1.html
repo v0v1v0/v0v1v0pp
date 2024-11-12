@@ -1,0 +1,356 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>projpred-package</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Projection predictive feature selection</h2>
+
+<h3>Description</h3>
+
+<p>The <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> package <span class="pkg">projpred</span> performs the projection predictive variable (or
+"feature") selection for various regression models. We recommend to read the
+<code>README</code> file (available with enhanced formatting
+<a href="https://mc-stan.org/projpred/">online</a>) and the main vignette (<code>topic = "projpred"</code>, but also available
+<a href="https://mc-stan.org/projpred/articles/projpred.html">online</a>) before
+continuing here.
+</p>
+
+
+<h3>Terminology</h3>
+
+<p>Throughout the whole package documentation, we use the term "submodel" for
+all kinds of candidate models onto which the reference model is projected.
+For custom reference models, the candidate models don't need to be actual
+<em>sub</em>models of the reference model, but in any case (even for custom
+reference models), the candidate models are always actual <em>sub</em>models of the
+full <code>formula</code> used by the search procedure. In this regard, it is correct
+to speak of <em>sub</em>models, even in case of a custom reference model.
+</p>
+<p>The following model type abbreviations will be used at multiple places
+throughout the documentation: GLM (generalized linear model), GLMM
+(generalized linear multilevel—or "mixed"—model), GAM (generalized
+additive model), and GAMM (generalized additive multilevel—or
+"mixed"—model). Note that the term "generalized" includes the Gaussian
+family as well.
+</p>
+
+
+<h3>Draw-wise divergence minimizers</h3>
+
+<p>For the projection of the reference model onto a submodel, <span class="pkg">projpred</span>
+currently relies on the following functions as draw-wise divergence
+minimizers (in other words, these are the workhorse functions employed by
+<span class="pkg">projpred</span>'s internal default <code>div_minimizer</code> functions, see
+<code>init_refmodel()</code>):
+</p>
+
+<ul>
+<li>
+<p> Submodel without multilevel or additive terms:
+</p>
+
+<ul>
+<li>
+<p> For the traditional (or latent) projection (or the augmented-data
+projection in case of the <code>binomial()</code> or <code>brms::bernoulli()</code> family): An
+internal C++ function which basically serves the same purpose as <code>lm()</code>
+for the <code>gaussian()</code> family and <code>glm()</code> for all other families. The
+returned object inherits from class <code>subfit</code>. Possible tuning parameters
+for this internal C++ function are: <code>regul</code> (amount of ridge
+regularization; default: <code>1e-4</code>), <code>thresh_conv</code> (convergence threshold;
+default: <code>1e-7</code>), <code>qa_updates_max</code> (maximum number of quadratic
+approximation updates; default: <code>100</code>, but fixed to <code>1</code> in case of the
+Gaussian family with identity link), <code>ls_iter_max</code> (maximum number of
+line search iterations; default: <code>30</code>, but fixed to <code>1</code> in case of the
+Gaussian family with identity link), <code>normalize</code> (single logical value
+indicating whether to scale the predictors internally with the returned
+regression coefficient estimates being back-adjusted appropriately;
+default: <code>TRUE</code>), <code>beta0_init</code> (single numeric value giving the starting
+value for the intercept at centered predictors; default: <code>0</code>), and
+<code>beta_init</code> (numeric vector giving the starting values for the regression
+coefficients; default: vector of <code>0</code>s).
+</p>
+</li>
+<li>
+<p> For the augmented-data projection: <code>MASS::polr()</code> (the returned object
+inherits from class <code>polr</code>) for the <code>brms::cumulative()</code> family or
+<code>rstanarm::stan_polr()</code> fits, <code>nnet::multinom()</code> (the returned object
+inherits from class <code>multinom</code>) for the <code>brms::categorical()</code> family.
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p> Submodel with multilevel but no additive terms:
+</p>
+
+<ul>
+<li>
+<p> For the traditional (or latent) projection (or the augmented-data
+projection in case of the <code>binomial()</code> or <code>brms::bernoulli()</code> family):
+<code>lme4::lmer()</code> (the returned object inherits from class <code>lmerMod</code>) for
+the <code>gaussian()</code> family, <code>lme4::glmer()</code> (the returned object inherits
+from class <code>glmerMod</code>) for all other families.
+</p>
+</li>
+<li>
+<p> For the augmented-data projection: <code>ordinal::clmm()</code> (the returned
+object inherits from class <code>clmm</code>) for the <code>brms::cumulative()</code> family,
+<code>mclogit::mblogit()</code> (the returned object inherits from class <code>mmblogit</code>)
+for the <code>brms::categorical()</code> family.
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p> Submodel without multilevel but additive terms: <code>mgcv::gam()</code> (the returned
+object inherits from class <code>gam</code>).
+</p>
+</li>
+<li>
+<p> Submodel with multilevel and additive terms: <code>gamm4::gamm4()</code> (within
+<span class="pkg">projpred</span>, the returned object inherits from class <code>gamm4</code>).
+</p>
+</li>
+</ul>
+<h3>Verbosity, messages, warnings, errors</h3>
+
+<p>Setting global option <code>projpred.extra_verbose</code> to <code>TRUE</code> will print out which
+submodel <span class="pkg">projpred</span> is currently projecting onto as well as (if <code>method = "forward"</code> and <code>verbose = TRUE</code> in <code>varsel()</code> or <code>cv_varsel()</code>) which
+submodel has been selected at those steps of the forward search for which a
+percentage (of the maximum submodel size that the search is run up to) is
+printed. In general, however, we cannot recommend setting this global option
+to <code>TRUE</code> for <code>cv_varsel()</code> with <code>validate_search = TRUE</code> (simply due to the
+amount of information that will be printed, but also due to the progress bar
+which will not work as intended anymore).
+</p>
+<p>By default, <span class="pkg">projpred</span> catches messages and warnings from the draw-wise
+divergence minimizers and throws their unique collection after performing all
+draw-wise divergence minimizations (i.e., draw-wise projections). This can be
+deactivated by setting global option <code>projpred.warn_prj_drawwise</code> to <code>FALSE</code>.
+</p>
+<p>Furthermore, by default, <span class="pkg">projpred</span> checks the convergence of the
+draw-wise divergence minimizers and throws a warning if any seem to have not
+converged. This warning is thrown after the warning message from global
+option <code>projpred.warn_prj_drawwise</code> (see above) and can be deactivated by
+setting global option <code>projpred.check_conv</code> to <code>FALSE</code>.
+</p>
+
+
+<h3>Parallelization</h3>
+
+<p>The projection of the reference model onto a submodel can be run in parallel
+(across the projected draws). This is powered by the <span class="pkg">foreach</span> package.
+Thus, any parallel (or sequential) backend compatible with <span class="pkg">foreach</span> can
+be used, e.g., the backends from packages <span class="pkg">doParallel</span>, <span class="pkg">doMPI</span>, or
+<span class="pkg">doFuture</span>. Using the global option <code>projpred.prll_prj_trigger</code>, the
+number of projected draws below which no parallelization is applied (even if
+a parallel backend is registered) can be modified. Such a "trigger" threshold
+exists because of the computational overhead of a parallelization which makes
+the projection parallelization only useful for a sufficiently large number of
+projected draws. By default, the projection parallelization is turned off,
+which can also be achieved by supplying <code>Inf</code> (or <code>NULL</code>) to option
+<code>projpred.prll_prj_trigger</code>. Note that we cannot recommend the projection
+parallelization on Windows because in our experience, the parallelization
+overhead is larger there, causing a parallel run to take longer than a
+sequential run. Also note that the projection parallelization works well for
+submodels which are GLMs (and hence also for the latent projection if the
+submodel has no multilevel or additive predictor terms), but for all other
+types of submodels, the fitted submodel objects are quite big, which—when
+running in parallel—may lead to excessive memory usage which in turn may
+crash the R session (on Unix systems, setting an appropriate memory limit via
+<code>unix::rlimit_as()</code> may avoid crashing the whole machine). Thus, we currently
+cannot recommend parallelizing projections onto submodels which are GLMs (in
+this context, the latent projection onto a submodel without multilevel and
+without additive terms may be regarded as a projection onto a submodel which
+is a GLM). However, for <code>cv_varsel()</code>, there is also a <em>CV</em> parallelization
+(i.e., a parallelization of <span class="pkg">projpred</span>'s cross-validation) which can be
+activated via argument <code>parallel</code>.
+</p>
+
+
+<h3>Multilevel models: "Integrating out" group-level effects</h3>
+
+<p>In case of multilevel models, <span class="pkg">projpred</span> offers two global options for
+"integrating out" group-level effects: <code>projpred.mlvl_pred_new</code> and
+<code>projpred.mlvl_proj_ref_new</code>. When setting <code>projpred.mlvl_pred_new</code> to <code>TRUE</code>
+(default is <code>FALSE</code>), then at
+<em>prediction</em> time, <span class="pkg">projpred</span> will treat group levels existing in the
+training data as <em>new</em> group levels, implying that their group-level effects
+are drawn randomly from a (multivariate) Gaussian distribution. This concerns
+both, the reference model and the (i.e., any) submodel. Furthermore, setting
+<code>projpred.mlvl_pred_new</code> to <code>TRUE</code> causes <code>as.matrix.projection()</code> and
+<code>as_draws_matrix.projection()</code> to omit the projected group-level effects (for
+the group levels from the original dataset). When setting
+<code>projpred.mlvl_proj_ref_new</code> to <code>TRUE</code> (default is <code>FALSE</code>), then at
+<em>projection</em> time, the reference model's fitted values (that the submodels
+fit to) will be computed by treating the group levels from the original
+dataset as <em>new</em> group levels, implying that their group-level effects will
+be drawn randomly from a (multivariate) Gaussian distribution (as long as the
+reference model is a multilevel model, which—for custom reference
+models—does not need to be the case). This also affects the latent response
+values for a latent projection correspondingly. Setting
+<code>projpred.mlvl_pred_new</code> to <code>TRUE</code> makes sense, e.g., when the prediction
+task is such that any group level will be treated as a new one. Typically,
+setting <code>projpred.mlvl_proj_ref_new</code> to <code>TRUE</code> only makes sense when
+<code>projpred.mlvl_pred_new</code> is already set to <code>TRUE</code>. In that case, the default
+of <code>FALSE</code> for <code>projpred.mlvl_proj_ref_new</code> ensures that at projection time,
+the submodels fit to the best possible fitted values from the reference
+model, and setting <code>projpred.mlvl_proj_ref_new</code> to <code>TRUE</code> would make sense if
+the group-level effects should be integrated out completely.
+</p>
+
+
+<h3>Memory usage</h3>
+
+<p>By setting the global option <code>projpred.run_gc</code> to <code>TRUE</code>, <span class="pkg">projpred</span> will
+call <code>gc()</code> at some places (e.g., after each size that the forward search
+passes through) to free up some memory. These <code>gc()</code> calls are not always
+necessary to reduce the peak memory usage, but they add runtime (hence the
+default of <code>FALSE</code> for that global option).
+</p>
+
+
+<h3>Other notes</h3>
+
+<p>Most examples are not executed when called via <code>example()</code>. To execute them,
+their code has to be copied and pasted manually to the console.
+</p>
+
+
+<h3>Functions</h3>
+
+
+<dl>
+<dt>
+<code>init_refmodel()</code>, <code>get_refmodel()</code>
+</dt>
+<dd>
+<p>For setting up an object
+containing information about the reference model, the submodels, and how
+the projection should be carried out. Explicit calls to <code>init_refmodel()</code>
+and <code>get_refmodel()</code> are only rarely needed.</p>
+</dd>
+<dt>
+<code>varsel()</code>, <code>cv_varsel()</code>
+</dt>
+<dd>
+<p>For running the <em>search</em> part and the
+<em>evaluation</em> part for a projection predictive variable selection, possibly
+with cross-validation (CV).</p>
+</dd>
+<dt>
+<code>summary.vsel()</code>, <code>print.vsel()</code>, <code>plot.vsel()</code>,
+<code>suggest_size.vsel()</code>, <code>ranking()</code>, <code>cv_proportions()</code>,
+<code>plot.cv_proportions()</code>, <code>performances()</code>
+</dt>
+<dd>
+<p>For post-processing the results
+from <code>varsel()</code> and <code>cv_varsel()</code>.</p>
+</dd>
+<dt><code>project()</code></dt>
+<dd>
+<p>For projecting the reference model onto submodel(s).
+Typically, this follows the variable selection, but it can also be applied
+directly (without a variable selection).</p>
+</dd>
+<dt>
+<code>as.matrix.projection()</code> and <code>as_draws_matrix.projection()</code>
+</dt>
+<dd>
+<p>For
+extracting projected parameter draws.</p>
+</dd>
+<dt>
+<code>proj_linpred()</code>, <code>proj_predict()</code>
+</dt>
+<dd>
+<p>For making predictions from a
+submodel (after projecting the reference model onto it).</p>
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p><strong>Maintainer</strong>: Frank Weber <a href="mailto:fweber144@protonmail.com">fweber144@protonmail.com</a>
+</p>
+<p>Authors:
+</p>
+
+<ul>
+<li>
+<p> Juho Piironen <a href="mailto:juho.t.piironen@gmail.com">juho.t.piironen@gmail.com</a>
+</p>
+</li>
+<li>
+<p> Markus Paasiniemi
+</p>
+</li>
+<li>
+<p> Alejandro Catalina <a href="mailto:alecatfel@gmail.com">alecatfel@gmail.com</a>
+</p>
+</li>
+<li>
+<p> Aki Vehtari
+</p>
+</li>
+</ul>
+<p>Other contributors:
+</p>
+
+<ul>
+<li>
+<p> Jonah Gabry [contributor]
+</p>
+</li>
+<li>
+<p> Marco Colombo [contributor]
+</p>
+</li>
+<li>
+<p> Paul-Christian Bürkner [contributor]
+</p>
+</li>
+<li>
+<p> Hamada S. Badr [contributor]
+</p>
+</li>
+<li>
+<p> Brian Sullivan [contributor]
+</p>
+</li>
+<li>
+<p> Sölvi Rögnvaldsson [contributor]
+</p>
+</li>
+<li>
+<p>  The LME4 Authors (see file 'LICENSE' for details) [copyright holder]
+</p>
+</li>
+<li>
+<p> Yann McLatchie [contributor]
+</p>
+</li>
+<li>
+<p> Juho Timonen [contributor]
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p>Useful links:
+</p>
+
+<ul>
+<li> <p><a href="https://mc-stan.org/projpred/">https://mc-stan.org/projpred/</a>
+</p>
+</li>
+<li> <p><a href="https://discourse.mc-stan.org">https://discourse.mc-stan.org</a>
+</p>
+</li>
+<li>
+<p> Report bugs at <a href="https://github.com/stan-dev/projpred/issues/">https://github.com/stan-dev/projpred/issues/</a>
+</p>
+</li>
+</ul>
+</div>

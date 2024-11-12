@@ -1,0 +1,189 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>test.one.species.tree</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Tests the fit of a population tree to quartet concordance factor data</h2>
+
+<h3>Description</h3>
+
+<p>From a set of quartet concordance factors obtained from genetic data
+(proportion of loci that truly have a given quartet), this function tests
+the adequacy of the coalescent process on a given population tree, where branch
+lengths indicate coalescent units.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">test.one.species.tree(cf, guidetree, prep, edge.keep,
+                      plot=TRUE, shape.correction = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>cf</code></td>
+<td>
+<p>data frame containing one row for each 4-taxon set, with taxon names
+in columns 1-4 and concordance factors in columns 5-7.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>guidetree</code></td>
+<td>
+<p>tree of class phylo on the same taxon set as those in <code>cf</code>,
+with branch lengths in coalescent units.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prep</code></td>
+<td>
+<p>result of <code>test.tree.preparation(cf,guidetree)</code>.
+If the test is repeated multiple times on various resolutions of the guide tree
+(see <code>edge.keep</code>), it saves time to do this only once.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>edge.keep</code></td>
+<td>
+<p>Indices of edges to keep in the guide tree.
+All other edges are collapsed to reflect ancestral panmixia.
+In the tested population tree, the collapsed edges have length set to 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>boolean. If TRUE, a number of plots are output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shape.correction</code></td>
+<td>
+<p>boolean. If TRUE, the shapes of all Dirichlet distributions
+are corrected to be greater or equal to 1. This correction avoids Dirichlet densities
+going near 0 or 1. It applies when the <code class="reqn">\alpha</code> parameter is estimated and
+when the outlier p-values are calculated.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>estimated <code class="reqn">\alpha</code> parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>negPseudoLoglik</code></td>
+<td>
+<p>Negative pseudo log-likelihood of the population tree.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X2</code></td>
+<td>
+<p>Chi-square statistic, from comparing the counts of outlier p-values
+(in <code>outlier.table</code>) to the expected counts.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chisq.pval</code></td>
+<td>
+<p>p-value from the chi-square test, obtained from the comparing the <code>X2</code>
+value to a chi-square distribution with 3 df.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chisq.conclusion</code></td>
+<td>
+<p>character string. If the chi-square test is significant, this
+statement says if there is an excess (or deficit) of outlier 4-taxon sets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outlier.table</code></td>
+<td>
+<p>Table with 2 rows (observed and expected counts) and 4 columns:
+number of 4-taxon sets with p-values <code class="reqn">p\leq 0.01</code>,
+<code class="reqn">0.01&lt;p\leq 0.05</code>, <code class="reqn">0.05&lt;p\leq 0.10</code>
+or <code class="reqn">p&gt;0.10</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outlier.pvalues</code></td>
+<td>
+<p>Vector of outlier p-values, with as many entries as there
+are rows in <code>cf</code>, one for each set of 4 taxa.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cf.exp</code></td>
+<td>
+<p>Matrix of concordance factors expected from the estimated population tree,
+with as many rows as in <code>cf</code> (one row for each 4-taxon set) and 3 columns
+(one for each of the 3 possible quartet trees).</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Cécile Ané</p>
+
+
+<h3>References</h3>
+
+<p>Stenz, Noah W. M., Bret Larget, David A. Baum and Cécile Ané (2015).
+Exploring tree-like and non-tree-like patterns using genome sequences:
+An example using the inbreeding plant species <em>Arabidopsis thaliana</em> (L.) Heynh.
+Systematic Biology, <b>64</b>(5):809-823.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>stepwise.test.tree</code>, <code>test.tree.preparation</code>.</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(quartetCF)
+data(guidetree)
+prelim &lt;- test.tree.preparation(quartetCF,guidetree) # takes 5-10 seconds
+
+# test of panmixia: all edges collapsed, none resolved.
+panmixia &lt;- test.one.species.tree(quartetCF,guidetree,prelim,edge.keep=NULL)
+panmixia[1:6]
+
+# test of full tree: all internal edges resolved, none collapsed.
+Ntaxa = length(guidetree$tip.label)
+# indices of internal edges:
+internal.edges = which(guidetree$edge[,2] &gt; Ntaxa)
+fulltree &lt;- test.one.species.tree(quartetCF,guidetree,prelim,edge.keep=internal.edges)
+fulltree[1:6]
+
+# test of a partial tree, some edges (but not all) collapsed
+edges2keep &lt;- c(1,2,4,6,7,8,11,14,20,21,23,24,31,34,35,36,38,39,44,47,53)
+partialTree &lt;- test.one.species.tree(quartetCF,guidetree,prelim,edge.keep=edges2keep)
+partialTree[1:5]
+partialTree$outlier.table
+# identify taxa most responsible for the extra outlier quartets
+outlier.4taxa &lt;- which(partialTree$outlier.pvalues &lt; 0.01)
+length(outlier.4taxa) # 483 4-taxon sets with outlier p-value below 0.01
+q01 = as.matrix(quartetCF[outlier.4taxa,1:4])
+sort(table(as.vector(q01)),decreasing=TRUE)
+# So: Cnt_1 and Vind_1 both appear in 239 of these 483 outlier 4-taxon sets.
+sum(apply(q01,1,function(x){"Cnt_1" %in% x | "Vind_1" %in% x}))
+# 266 outlier 4-taxon sets have either Cnt_1 or Vind_1
+sum(apply(q01,1,function(x){"Cnt_1" %in% x &amp; "Vind_1" %in% x}))
+# 212 outlier 4-taxon sets have both Cnt_1 and Vind_1
+
+</code></pre>
+
+
+</div>

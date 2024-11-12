@@ -1,0 +1,141 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>create_simulation_obj</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compile MCMC sampler using STAN and create simulation object</h2>
+
+<h3>Description</h3>
+
+<p>Compile MCMC sampler using STAN and create simulation object
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">create_simulation_obj(
+  data_matrix_list,
+  covariate = NULL,
+  outcome,
+  borrowing,
+  treatment,
+  quiet = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data_matrix_list</code></td>
+<td>
+<p><code>SimDataList</code>. The list of lists of data matrices created
+with <code>sim_data_list()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covariate</code></td>
+<td>
+<p><code>SimCovariateList</code> or <code>Covariate</code> or <code>NULL</code>. List of <code>Covariate</code> objects created
+with <code>sim_covariate()</code>, a single <code>Covariate</code> object created by <code>add_covariates()</code>,
+or <code>NULL</code> (no covariate adjustment).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outcome</code></td>
+<td>
+<p><code>SimOutcomeList</code> or <code>Outcome</code>. List of <code>Outcome</code> objects created with
+<code>sim_outcome()</code>, or single <code>Outcome</code> object (e.g., created by <code>outcome_surv_exponential()</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>borrowing</code></td>
+<td>
+<p><code>SimBorrowingList</code> or <code>Borrowing</code>. List of <code>Borrowing</code> objects created
+with <code>sim_borrowing()</code>, or a single <code>Borrowing</code> object created by <code>borrowing_full()</code>,
+<code>borrowing_none()</code>, or <code>borrowing_hierarchical_commensurate()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>treatment</code></td>
+<td>
+<p><code>SimTreatmentList</code> or <code>Treatment</code>. List of <code>Treatment</code> objects created
+with <code>sim_treatment()</code> or a single <code>Treatment</code> object created by <code>treatment_details()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>logical. Whether to print messages (<code>quiet = FALSE</code>) or not
+(<code>quiet = TRUE</code>, the default)</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Object of class <code>Simulation</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">base_mat &lt;- matrix(
+  c(
+    rep(0, 200), rep(0, 200), rep(1, 200),
+    rep(1, 200), rep(0, 200), rep(0, 200),
+    rep(0, 600)
+  ),
+  ncol = 3,
+  dimnames = list(NULL, c("ext", "trt", "driftOR"))
+)
+
+add_binary_endpoint &lt;- function(odds_ratio,
+                                base_matrix = base_mat) {
+  linear_predictor &lt;- base_matrix[, "trt"] * log(odds_ratio)
+  prob &lt;- 1 / (1 + exp(-linear_predictor))
+
+  bin_endpoint &lt;- rbinom(
+    NROW(base_matrix),
+    1,
+    prob
+  )
+
+  cbind(base_matrix, matrix(bin_endpoint, ncol = 1, dimnames = list(NULL, "ep")))
+}
+
+data_list &lt;- list(
+  list(add_binary_endpoint(1.5), add_binary_endpoint(1.5)),
+  list(add_binary_endpoint(2.5), add_binary_endpoint(2.5))
+)
+
+guide &lt;- data.frame(
+  trueOR = c(1.5, 2.5),
+  driftOR = c(1.0, 1.0),
+  index = 1:2
+)
+
+sdl &lt;- sim_data_list(
+  data_list = data_list,
+  guide = guide,
+  effect = "trueOR",
+  drift = "driftOR",
+  index = "index"
+)
+
+if (check_cmdstan()) {
+  sim_object &lt;- create_simulation_obj(
+    data_matrix_list = sdl,
+    outcome = outcome_bin_logistic("ep", prior_normal(0, 1000)),
+    borrowing = sim_borrowing_list(list(
+      full_borrowing = borrowing_full("ext"),
+      bdb = borrowing_hierarchical_commensurate("ext", prior_exponential(0.0001))
+    )),
+    treatment = treatment_details("trt", prior_normal(0, 1000))
+  )
+}
+</code></pre>
+
+
+</div>

@@ -1,0 +1,556 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>measure_disease</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Performs plant disease measurements</h2>
+
+<h3>Description</h3>
+
+
+<ul>
+<li> <p><code>measure_disease()</code> computes the percentage of symptomatic leaf area and
+(optionally) counts and compute shapes (area, perimeter, radius, etc.) of
+lesions in a sample or entire leaf using color palettes. See more at
+<strong>Details</strong>.
+</p>
+</li>
+<li> <p><code>measure_disease_iter()</code> provides an iterative section for
+<code>measure_disease()</code>, where the user picks up samples in the image to create
+the needed color palettes.
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">measure_disease(
+  img,
+  img_healthy = NULL,
+  img_symptoms = NULL,
+  img_background = NULL,
+  pattern = NULL,
+  filter = 10,
+  parallel = FALSE,
+  workers = NULL,
+  resize = FALSE,
+  fill_hull = TRUE,
+  index_lb = NULL,
+  index_dh = "GLI",
+  has_white_bg = FALSE,
+  threshold = NULL,
+  invert = FALSE,
+  lower_size = NULL,
+  upper_size = NULL,
+  topn_lower = NULL,
+  topn_upper = NULL,
+  randomize = TRUE,
+  nsample = 3000,
+  watershed = FALSE,
+  lesion_size = "medium",
+  tolerance = NULL,
+  extension = NULL,
+  show_features = FALSE,
+  show_segmentation = FALSE,
+  plot = TRUE,
+  show_original = TRUE,
+  show_background = TRUE,
+  show_contour = TRUE,
+  contour_col = "white",
+  contour_size = 1,
+  col_leaf = NULL,
+  col_lesions = NULL,
+  col_background = NULL,
+  marker = FALSE,
+  marker_col = NULL,
+  marker_size = NULL,
+  save_image = FALSE,
+  prefix = "proc_",
+  name = NULL,
+  dir_original = NULL,
+  dir_processed = NULL,
+  verbose = TRUE
+)
+
+measure_disease_iter(
+  img,
+  has_background = TRUE,
+  r = 2,
+  viewer = get_pliman_viewer(),
+  show = "rgb",
+  index = "NGRDI",
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>img</code></td>
+<td>
+<p>The image to be analyzed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>img_healthy</code></td>
+<td>
+<p>A color palette of healthy tissues.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>img_symptoms</code></td>
+<td>
+<p>A color palette of lesioned tissues.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>img_background</code></td>
+<td>
+<p>A color palette of the background (if exists). These
+arguments can be either an <code>Image</code> object stored in the global environment
+or a character value. If a chacarceter is used (eg., <code>img_healthy = "leaf"</code>), the function will search in the current working directory a valid
+image that contains "<code style="white-space: pre;">⁠leaf"⁠</code> in the name. Note that if two images matches
+this pattern, an error will occour.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pattern</code></td>
+<td>
+<p>A pattern of file name used to identify images to be
+processed. For example, if <code>pattern = "im"</code> all images that the name
+matches the pattern (e.g., img1.-, image1.-, im2.-) will be analyzed.
+Providing any number as pattern (e.g., <code>pattern = "1"</code>) will select
+images that are named as 1.-, 2.-, and so on.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filter</code></td>
+<td>
+<p>Performs median filtering in the binary image that segments the
+leaf from background? By default, a median filter of <code>size = 10</code> is applied.
+This is useful to reduce the noise and segment the leaf and background more
+accurately. See more at <code>image_filter()</code>. Set to <code>FALSE</code> to cancel median
+filtering.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>Processes the images asynchronously (in parallel) in separate
+R sessions running in the background on the same machine. It may speed up
+the processing time, especially when <code>pattern</code> is used is informed. The
+number of sections is set up to 30% of available cores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>workers</code></td>
+<td>
+<p>A positive numeric scalar or a function specifying the maximum
+number of parallel processes that can be active at the same time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resize</code></td>
+<td>
+<p>Resize the image before processing? Defaults to <code>FALSE</code>. Use a
+numeric value of range 0-100 (proportion of the size of the original
+image).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fill_hull</code></td>
+<td>
+<p>Fill holes in the image? Defaults to <code>TRUE</code>. This is useful
+to fill holes in leaves, e.g., those caused by insect attack, ensuring the
+hole area will be accounted for the leaf, not background.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index_lb</code></td>
+<td>
+<p>The index used to segment the foreground (e.g., leaf) from
+the background. If not declared, the entire image area (pixels) will be
+considered in the computation of the severity.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index_dh</code></td>
+<td>
+<p>The index used to segment diseased from healthy tissues when
+<code>img_healthy</code> and <code>img_symptoms</code> are not declared. Defaults to <code>"GLI"</code>. See
+<code>image_index()</code> for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>has_white_bg</code></td>
+<td>
+<p>Logical indicating whether a white background is present.
+If <code>TRUE</code>, pixels that have R, G, and B values equals to 1 will be
+considered as <code>NA</code>. This may be useful to compute an image index for
+objects that have, for example, a white background. In such cases, the
+background will not be considered for the threshold computation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>By default (<code>threshold = NULL</code>), a threshold value based on
+Otsu's method is used to reduce the grayscale image to a binary image. If a
+numeric value is informed, this value will be used as a threshold. Inform
+any non-numeric value different than "Otsu" to iteratively choose the
+threshold based on a raster plot showing pixel intensity of the index. Must
+be a vector of length 2 to indicate the threshold for <code>index_lb</code> and
+<code>index_dh</code>, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>invert</code></td>
+<td>
+<p>Inverts the binary image if desired. This is useful to process
+images with black background. Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower_size</code></td>
+<td>
+<p>Lower limit for size for the image analysis. Leaf images
+often contain dirt and dust. To prevent dust from affecting the image
+analysis, the lower limit of analyzed size is set to 0.1, i.e., objects
+with lesser than 10% of the mean of all objects are removed. One can set a
+known area or use <code>lower_limit = 0</code> to select all objects (not advised).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper_size</code></td>
+<td>
+<p>Upper limit for size for the image analysis. Defaults to
+<code>NULL</code>, i.e., no upper limit used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>topn_lower, topn_upper</code></td>
+<td>
+<p>Select the top <code>n</code> lesions based on its area.
+<code>topn_lower</code> selects the <code>n</code> lesions with the smallest area whereas
+<code>topn_upper</code> selects the <code>n</code> lesions with the largest area.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>randomize</code></td>
+<td>
+<p>Randomize the lines before training the model? Defaults to
+<code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsample</code></td>
+<td>
+<p>The number of sample pixels to be used in training step.
+Defaults to <code>3000</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>watershed</code></td>
+<td>
+<p>If <code>TRUE</code> (Default) implements the Watershed Algorithm to
+segment lesions connected by a fairly few pixels that could be considered
+as two distinct lesions. If <code>FALSE</code>, lesions that are connected by any
+pixel are considered unique lesions. For more details see
+<code>EBImage::watershed()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lesion_size</code></td>
+<td>
+<p>The size of the lesion. Used to automatically tune
+<code>tolerance</code> and <code>extension</code> parameters. One of the following. <code>"small"</code>
+(2-5 mm in diameter, e.g, rust pustules), <code>"medium"</code> (0.5-1.0 cm in
+diameter, e.g, wheat leaf spot), <code>"large"</code> (1-2 cm in diameter, and
+<code>"elarge"</code> (2-3 cm in diameter, e.g, target spot of soybean).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tolerance</code></td>
+<td>
+<p>The minimum height of the object in the units of image
+intensity between its highest point (seed) and the point where it contacts
+another object (checked for every contact pixel). If the height is smaller
+than the tolerance, the object will be combined with one of its neighbors,
+which is the highest. Defaults to <code>NULL</code>, i.e., starting values are set up
+according to the argument <code>lesion_size</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extension</code></td>
+<td>
+<p>Radius of the neighborhood in pixels for the detection of
+neighboring objects. Defaults to 20. Higher value smooths out small
+objects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>show_features</code></td>
+<td>
+<p>If <code>TRUE</code> returnS the lesion features such as number,
+area, perimeter, and radius. Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>show_segmentation</code></td>
+<td>
+<p>Shows the object segmentation colored with random
+permutations. Defaults to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>Show image after processing? Defaults to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>show_original</code></td>
+<td>
+<p>Show the symptoms in the original image?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>show_background</code></td>
+<td>
+<p>Show the background? Defaults to <code>TRUE</code>. A white
+background is shown by default when <code>show_original = FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>show_contour</code></td>
+<td>
+<p>Show a contour line around the lesions? Defaults
+to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contour_col, contour_size</code></td>
+<td>
+<p>The color and size for the contour line
+around objects. Defaults to <code>contour_col = "white"</code> and <code>contour_size = 1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>col_leaf</code></td>
+<td>
+<p>Leaf color after image processing. Defaults to <code>"green"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>col_lesions</code></td>
+<td>
+<p>Symptoms color after image processing. Defaults to
+<code>"red"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>col_background</code></td>
+<td>
+<p>Background color after image processing. Defaults to
+<code>"NULL"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>marker, marker_col, marker_size</code></td>
+<td>
+<p>The type, color and size of the object
+marker. Defaults to <code>NULL</code>, which shows nothing. Use <code>marker = "point"</code> to
+show a point in each lesion or <code>marker = "*"</code> where <code>"*"</code> is any variable
+name of the <code>shape</code> data frame returned by the function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save_image</code></td>
+<td>
+<p>Save the image after processing? The image is saved in the
+current working directory named as <code style="white-space: pre;">⁠proc_*⁠</code> where <code>*</code> is the image name
+given in <code>img</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prefix</code></td>
+<td>
+<p>The prefix to be included in the processed images. Defaults to
+<code>"proc_"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>The name of the image to save. Use this to overwrite the name of
+the image in <code>img</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dir_original, dir_processed</code></td>
+<td>
+<p>The directory containing the original and
+processed images. Defaults to <code>NULL</code>. In this case, the function will
+search for the image <code>img</code> in the current working directory. After
+processing, when <code>save_image = TRUE</code>, the processed image will be also
+saved in such a directory. It can be either a full path, e.g.,
+<code>"C:/Desktop/imgs"</code>, or a subfolder within the current working directory,
+e.g., <code>"/imgs"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If <code>TRUE</code> (default) a summary is shown in the console.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>has_background</code></td>
+<td>
+<p>A logical indicating if the image has a background to
+be segmented before processing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>The radius of neighborhood pixels. Defaults to <code>2</code>. A square is
+drawn indicating the selected pixels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>viewer</code></td>
+<td>
+<p>The viewer option. If not provided, the value is retrieved
+using <code>get_pliman_viewer()</code>. This option controls the type of viewer to use
+for interactive plotting. The available options are "base" and "mapview".
+If set to "base", the base R graphics system is used for interactive
+plotting. If set to "mapview", the mapview package is used. To set this
+argument globally for all functions in the package, you can use the
+<code>set_pliman_viewer()</code> function. For example, you can run
+<code>set_pliman_viewer("mapview")</code> to set the viewer option to "mapview" for
+all functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>show</code></td>
+<td>
+<p>The show option for the mapview viewer, either <code>"rgb"</code> or
+<code>"index"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index</code></td>
+<td>
+<p>The index to be shown when <code>show = "rgb"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further parameters passed on to <code>measure_disease()</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In <code>measure_disease()</code>, a general linear model (binomial family) fitted to
+the RGB values is used to segment the lesions from the healthy leaf. If a
+pallet of background is provided, the function takes care of the details to
+isolate it before computing the number and area of lesions. By using <code>pattern</code>
+it is possible to process several images with common pattern names that are
+stored in the current working directory or in the subdirectory informed in
+<code>dir_original</code>.
+</p>
+<p>If <code>img_healthy</code> and <code>img_symptoms</code> are not declared, RGB-based phenotyping of
+foliar disease severity is performed using the index informed in <code>index_lb</code> to
+first segment leaf from background and <code>index_dh</code> to segment diseased from
+healthy tissues.
+</p>
+<p><code>measure_disease_iter()</code> only run in an interactive section. In this function,
+users will be able to pick up samples of images to iteratively create the
+needed color palettes. This process calls <code>pick_palette()</code> internally. If
+<code>has_background</code> is TRUE (default) the color palette for the background is
+first created. The sample of colors is performed in each left-button mouse
+click and continues until the user press Esc. Then, a new sampling process is
+performed to sample the color of healthy tissues and then diseased tissues.
+The generated palettes are then passed on to measure_disease(). All the
+arguments of such function can be passed using the ... (three dots).
+</p>
+<p>When <code>show_features = TRUE</code>, the function computes a total of 36 lesion
+features (23 shape features and 13 texture features). The Haralick texture
+features for each object based on a gray-level co-occurrence matrix (Haralick
+et al. 1979). See more details in <code>analyze_objects()</code>.
+</p>
+
+
+<h3>Value</h3>
+
+
+<ul>
+<li> <p><code>measure_disease()</code> returns a list with the following objects:
+</p>
+
+<ul>
+<li> <p><code>severity</code> A data frame with the percentage of healthy and symptomatic
+areas.
+</p>
+</li>
+<li> <p><code>shape</code>,<code>statistics</code> If <code>show_features = TRUE</code> is used, returns the shape
+(area, perimeter, etc.) for each lesion and a summary statistic of the
+results.
+</p>
+</li>
+</ul>
+</li>
+<li> <p><code>measure_disease_iter()</code> returns a list with the following objects:
+</p>
+
+<ul>
+<li> <p><code>results</code> A list with the objects returned by <code>measure_disease()</code>.
+</p>
+</li>
+<li> <p><code>leaf</code> The color palettes for the healthy leaf.
+</p>
+</li>
+<li> <p><code>disease</code> The color palettes for the diseased leaf.
+</p>
+</li>
+<li> <p><code>background</code> The color palettes for the background.
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Tiago Olivoto <a href="mailto:tiagoolivoto@gmail.com">tiagoolivoto@gmail.com</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(pliman)
+img &lt;- image_pliman("sev_leaf_nb.jpg")
+healthy &lt;- image_pliman("sev_healthy.jpg")
+lesions &lt;- image_pliman("sev_sympt.jpg")
+image_combine(img, healthy, lesions, ncol = 3)
+
+sev &lt;-
+ measure_disease(img = img,
+                 img_healthy = healthy,
+                 img_symptoms = lesions,
+                 lesion_size = "large",
+                 plot = TRUE)
+
+# an interactive section
+measure_disease_iter(img)
+
+
+</code></pre>
+
+
+</div>

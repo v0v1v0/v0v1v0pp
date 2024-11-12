@@ -1,0 +1,134 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Pycnophylactic Interpolation</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Perform Tobler's pycnophylactic algorithm.
+</h2>
+
+<h3>Description</h3>
+
+<p>Given a <code>SpatialPolygonsDataFrame</code> and a set of populations for each polygon,
+compute a population density estimate based on Tobler's pycnophylactic interpolation
+algorithm. The result is a <code>SpatialGridDataFrame</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pycno(x, pops, celldim, r = 0.2, converge = 3, verbose=TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+
+<p>A <code>SpatialPolygonsDataFrame</code> representing a set of zones for which total populations are known.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pops</code></td>
+<td>
+
+<p>A list of populations,  one for each zone represented in <code>x</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>celldim</code></td>
+<td>
+
+<p>The size of the cell sides for the output SpatialGridDataFrame,  
+or a SpatialGrid or SpatialGridDataFrame with the grid topology of the desired output. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+
+<p>A relaxation parameter for the iterative step in the pycnophylactic algorithm.  Prevents
+over-compensation in the smoothing step.  In practice the default value works well.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>converge</code></td>
+<td>
+
+<p>A convergence parameter,  informing the decision on when iterative improvements on the smooth surface have converged sufficiently - see details.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+
+<p>If set to <code>TRUE</code> (the default value) makes the function report the maximum change in any pixel value for each iterative step.  If set to <code>FALSE</code> the function is silent.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This method uses an iterative approach,  and for each iteration notes the maximum change in a pixel.  When this value falls below a certain level (actually 10^(-converge) times the largest initial pixel value) the iterations stop and the current surface is reported.  
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>SpatialGridDataFrame</code> with each pixel set at the estimated density computed with the Pycnophylactic algorithm,  these values being stored in the data item <code>dens</code>. The extent of this object is set at by the bounding box of the input <code>SpatialPolygonsDataFrame</code>.  Pixels outside of all of the polygons are set to NA.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Pycnophylatic interpolation has the property that the sum of the estimated values associated with all of the pixels in any polygon equals the supplied population for that polygon.  A further property is that all pixel values are greater than or equal to zero.  The method is generally used to obtain pixel-based population estimates when total populations for a set of irregular polygons (eg. counties) are known.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Chris Brunsdon
+</p>
+
+
+<h3>References</h3>
+
+<p>Tobler, W.R. (1979) <em>Smooth Pycnophylactic Interpolation for Geographical Regions</em>. Journal of the American Statistical Association, v74(367) pp. 519-530.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(sp)
+# Read in data for North Carolina as a SpatialPolygonsDataFrame
+#nc.sids &lt;- readShapeSpatial(system.file("shapes/sids.shp", package="maptools")[1], 
+#   IDvar="FIPSNO", proj4string=CRS("+proj=longlat +ellps=clrk66"))
+
+nc.sids &lt;- as(sf::st_read(system.file("shape/nc.shp", package="sf")), "Spatial")
+row.names(nc.sids) &lt;- as.character(nc.sids$FIPSNO)
+
+# Compute the pycnophylactic surface for 1974 births as a SpatialGridDataFrame
+# Note probably shouldn't really base grid cells on Lat/Long coordinates
+# This example just serves to illustrate the use of the function
+# It is suggested to use a hihger value for 'converge' - this value justs speeds 
+# things up for the example.
+births74 &lt;- pycno(nc.sids,nc.sids$BIR74,0.05,converge=1)
+
+# Draw it
+image(births74)
+
+# Overlay North Carolina county boundaries for reference
+plot(nc.sids,add=TRUE)
+</code></pre>
+
+
+</div>

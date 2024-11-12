@@ -1,0 +1,186 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ExponentialRegression</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Non-biased exponential regression</h2>
+
+<h3>Description</h3>
+
+<p>The idea of this function is to fit a regression exponential model using MCMC
+because regression model using glm can produce biased outputs.<br>
+prior.default.distribution can be "dnorm", "dunif", or "dgamma". Note that if you propose
+dgamma prior, it will use uniform prior for r because r can be negative.<br>
+The SD model is asd*Nt+bsd. The asd parameter represents multiplicative model and the
+bsd parameter represents additive model. Both can be used simultaneously.<br>
+density can be dnorm or dnbinom_new (from HelpersMG package). dnbinom_new() is a
+negative binomial with mean and sd parametrization.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ExponentialRegression(
+  data = stop("A data.frame with values"),
+  colname.time = "time",
+  colname.number = "numbers",
+  weights = NULL,
+  fitted.parameters = c(N0 = NA, r = NA, asd = NA),
+  fixed.parameters = NULL,
+  n.iter = c(1e+05, 1e+05),
+  prior.default.distribution = "dnorm",
+  density = dnorm
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data.frame with a column time and a column number.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colname.time</code></td>
+<td>
+<p>Name of the column to be used as time index.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colname.number</code></td>
+<td>
+<p>Name of the column to be used as number index.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>an optional vector of ‘prior weights’ to be used in the fitting process. Should be NULL or a numeric vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fitted.parameters</code></td>
+<td>
+<p>A named vector with the parameters to be fitted</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixed.parameters</code></td>
+<td>
+<p>A named vector with the parameters to be fixed</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.iter</code></td>
+<td>
+<p>The number of MCMC iterations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior.default.distribution</code></td>
+<td>
+<p>The default prior distribution; see description.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>density</code></td>
+<td>
+<p>by default is dnorm but can be dnbinom_new</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>ExponentialRegression is used to fit additive, multiplicative or mixte exponential regression
+</p>
+
+
+<h3>Value</h3>
+
+<p>Return a list with the results of exponential regression
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Marc Girondot <a href="mailto:marc.girondot@gmail.com">marc.girondot@gmail.com</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library("phenology")
+t &lt;- 1:100
+N0 &lt;- 100
+r &lt;- 0.05
+y &lt;- N0*exp(t*r)
+
+# Multiplicative model
+Nt &lt;- rnorm(100, mean=y, sd=0.2*y)
+df &lt;- data.frame(time=t, numbers=Nt)
+g &lt;- ExponentialRegression(data=df, fitted.parameters=c(N0=NA, r=NA, asd=NA))
+plot(g, parameters="r")
+as.parameters(g, index="median")
+# Note that if you propose gamma prior, it will use uniform prior for r
+# because r can be negative
+g &lt;- ExponentialRegression(data=df, 
+                           fitted.parameters=c(N0=NA, r=NA, asd=NA), 
+                           prior.default.distribution="dgamma")
+plot(g, parameters="r")
+as.parameters(g, index="median")
+
+# Additive model
+Nt &lt;- rnorm(100, mean=y, sd=5)
+df &lt;- data.frame(time=t, numbers=Nt)
+g &lt;- ExponentialRegression(data=df, fitted.parameters=c(N0=NA, r=NA, bsd=NA))
+plot(g, parameters="r")
+as.parameters(g, index="median")
+
+# Mixt model
+Nt &lt;- rnorm(100, mean=y, sd=0.2*y+5)
+df &lt;- data.frame(time=t, numbers=Nt)
+g &lt;- ExponentialRegression(data=df, fitted.parameters=c(N0=NA, r=NA, asd=NA, bsd=NA))
+plot(g, parameters="r")
+as.parameters(g, index="median")
+
+# Example with 3 common ways to perform the regression
+t &lt;- 1:100
+N0 &lt;- 100
+r &lt;- 0.05
+y &lt;- N0*exp(t*r)
+out_glm &lt;- NULL
+out_mcmc &lt;- NULL
+out_nls &lt;- NULL
+for (i in 1:500) {
+        print(i)
+        set.seed(i)
+        Nt &lt;- rnorm(100, mean=y, sd=0.2*y)
+        df &lt;- data.frame(time=t, numbers=Nt)
+        g0 &lt;- glm(log(numbers) ~ time, data = df)
+        out_glm &lt;- c(out_glm, c(exp(coef(g0)[1]), coef(g0)[2]))
+        g1 &lt;- ExponentialRegression(data=df, n.iter=c(10000, 20000))
+        out_mcmc &lt;- c(out_mcmc, as.parameters(g1, index="median")[1:2])
+        g2 &lt;- nls(numbers ~ N0*exp(r*time), start = list(N0 = 100, r = 0.05), data = df)
+        out_nls &lt;- c(out_nls, coef(g2))
+}
+# In conclusion the method proposed here has no biais as compare to glm and nls fits
+out_glm &lt;- matrix(out_glm, ncol=2, byrow=TRUE)
+out_mcmc &lt;- matrix(out_mcmc, ncol=2, byrow=TRUE)
+out_nls &lt;- matrix(out_nls, ncol=2, byrow=TRUE)
+mean(out_glm[, 1]); mean(out_mcmc[, 1]); mean(out_nls[, 1])
+sd(out_glm[, 1])/sqrt(nrow(out_glm)); sd(out_mcmc[, 1])/sqrt(nrow(out_mcmc)); 
+sd(out_nls[, 1])/sqrt(nrow(out_nls))
+mean(out_glm[, 2]); mean(out_mcmc[, 2]); mean(out_nls[, 2])
+sd(out_glm[, 2])/sqrt(nrow(out_glm)); sd(out_mcmc[, 2])/sqrt(nrow(out_mcmc)); 
+sd(out_nls[, 2])/sqrt(nrow(out_nls))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

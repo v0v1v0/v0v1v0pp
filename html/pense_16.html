@@ -1,0 +1,162 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>coef.pense_cvfit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Extract Coefficient Estimates</h2>
+
+<h3>Description</h3>
+
+<p>Extract coefficients from an adaptive PENSE (or LS-EN) regularization path with hyper-parameters
+chosen by cross-validation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'pense_cvfit'
+coef(
+  object,
+  alpha = NULL,
+  lambda = "min",
+  se_mult = 1,
+  sparse = NULL,
+  standardized = FALSE,
+  exact = deprecated(),
+  correction = deprecated(),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>PENSE with cross-validated hyper-parameters to extract coefficients from.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Either a single number or <code>NULL</code> (default).
+If given, only fits with the given <code>alpha</code> value are considered.
+If <code>lambda</code> is a numeric value and <code>object</code> was fit with multiple <em>alpha</em>
+values and no value is provided, the first value in <code>object$alpha</code> is used with a warning.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>either a string specifying which penalty level to use
+(<code>"min"</code>, <code>"se"</code>, <code style="white-space: pre;">⁠"{m}-se⁠</code>")
+or a single numeric value of the penalty parameter. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se_mult</code></td>
+<td>
+<p>If <code>lambda = "se"</code>, the multiple of standard errors to tolerate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sparse</code></td>
+<td>
+<p>should coefficients be returned as sparse or dense vectors?
+Defaults to the sparsity setting of the given <code>object</code>.
+Can also be set to <code>sparse = 'matrix'</code>, in which case a sparse matrix
+is returned instead of a sparse vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardized</code></td>
+<td>
+<p>return the standardized coefficients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exact, correction</code></td>
+<td>
+<p>defunct.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>currently not used.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>either a numeric vector or a sparse vector of type
+dsparseVector
+of size <code class="reqn">p + 1</code>, depending on the <code>sparse</code> argument.
+Note: prior to version 2.0.0 sparse coefficients were returned as sparse matrix of
+type <em>dgCMatrix</em>.
+To get a sparse matrix as in previous versions, use <code>sparse = 'matrix'</code>.
+</p>
+
+
+<h3>Hyper-parameters</h3>
+
+<p>If <code>lambda = "{m}-se"</code> and <code>object</code> contains fitted estimates for every penalization
+level in the sequence, use the fit the most parsimonious model with prediction performance
+statistically indistinguishable from the best model.
+This is determined to be the model with prediction performance within <code>m * cv_se</code>
+from the best model.
+If <code>lambda = "se"</code>, the multiplier <em>m</em> is taken from <code>se_mult</code>.
+</p>
+<p>By default all <em>alpha</em> hyper-parameters available in the fitted object are considered.
+This can be overridden by supplying one or multiple values in parameter <code>alpha</code>.
+For example, if <code>lambda = "1-se"</code> and <code>alpha</code> contains two values, the "1-SE" rule is applied
+individually for each <code>alpha</code> value, and the fit with the better prediction error is considered.
+</p>
+<p>In case <code>lambda</code> is a number and <code>object</code> was fit for several <em>alpha</em> hyper-parameters,
+<code>alpha</code> must also be given, or the first value in <code>object$alpha</code> is used with a warning.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other functions for extracting components: 
+<code>coef.pense_fit()</code>,
+<code>predict.pense_cvfit()</code>,
+<code>predict.pense_fit()</code>,
+<code>residuals.pense_cvfit()</code>,
+<code>residuals.pense_fit()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Compute the PENSE regularization path for Freeny's revenue data
+# (see ?freeny)
+data(freeny)
+x &lt;- as.matrix(freeny[ , 2:5])
+
+regpath &lt;- pense(x, freeny$y, alpha = 0.5)
+plot(regpath)
+
+# Extract the coefficients at a certain penalization level
+coef(regpath, lambda = regpath$lambda[[1]][[40]])
+
+# What penalization level leads to good prediction performance?
+set.seed(123)
+cv_results &lt;- pense_cv(x, freeny$y, alpha = 0.5,
+                       cv_repl = 2, cv_k = 4)
+plot(cv_results, se_mult = 1)
+
+# Extract the coefficients at the penalization level with
+# smallest prediction error ...
+coef(cv_results)
+# ... or at the penalization level with prediction error
+# statistically indistinguishable from the minimum.
+coef(cv_results, lambda = '1-se')
+</code></pre>
+
+
+</div>

@@ -1,0 +1,192 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mcmc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Maximum likelihood Models 
+</h2>
+
+<h3>Description</h3>
+
+<p>Maximum likelihood Models 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mcmc(alogprior, aloglikelihood, agenerate, alogproposal, m0, niter)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>alogprior</code></td>
+<td>
+<p>Name of a function that computes the log of
+the prior distribution.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aloglikelihood</code></td>
+<td>
+<p>Name of a function the computes the log of
+the likelihood.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>agenerate</code></td>
+<td>
+<p>Name of a function that generates a random
+model from the current model using the
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alogproposal</code></td>
+<td>
+<p>Name of a function that computes the log of
+the proposal distribution r(x,y).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m0</code></td>
+<td>
+<p>Initial model
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>niter</code></td>
+<td>
+<p>Number of iterations to perform
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>mout</code></td>
+<td>
+<p> MCMC samples</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mMAP</code></td>
+<td>
+<p>Best model found in the MCMC simulation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>accrate</code></td>
+<td>
+<p> Acceptance rate</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Jonathan M. Lees&lt;jonathan.lees@unc.edu&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">fun &lt;-function(m,x)
+{
+  y=m[1]*exp(m[2]*x)+m[3]*x*exp(m[4]*x)
+  return(y)
+}
+
+generate &lt;-function( x) {  
+  y=x+step*rnorm(4)
+  return(y)
+}
+
+logprior &lt;-function(m)
+{
+  if( (m[1]&gt;=0) &amp; (m[1]&lt;=2) &amp;
+     (m[2]&gt;=-0.9) &amp; (m[2]&lt;=0) &amp;
+     (m[3]&gt;=0) &amp; (m[3]&lt;=2) &amp;
+     (m[4]&gt;=-0.9) &amp; (m[4]&lt;=0)  )
+    {
+      lp=0
+    }
+  else
+    {
+      lp= -Inf
+    }
+
+  return(lp)
+}
+loglikelihood &lt;-function(m)
+{ 
+  fvec=(y-fun(m,x))/sigma
+  L=(-1/2)*sum(fvec^2)
+  return(L)
+}
+logproposal &lt;-function(x,y)
+  {  
+    LR=(-1/2)*sum((x-y)^2/step^2)
+    return(LR)
+  }
+
+###  Generate the data set.
+x=seq(from=1, by=0.25, to=7.0)
+
+mtrue=c(1.0, -0.5, 1.0, -0.75)
+
+ytrue=fun(mtrue,x)
+
+sigma=0.01*rep(1, times= length(ytrue) )
+
+y=ytrue+sigma*rnorm(length(ytrue) )
+
+### set the MCMC parameters
+### number of skips to reduce autocorrelation of models
+skip=100
+### burn-in steps
+BURNIN=1000
+### number of posterior distribution samples
+N=4100
+### MVN step size
+step = 0.005*rep(1,times=4)
+
+###  We assume flat priors here
+m0 = c(0.9003,
+   -0.5377,
+    0.2137,
+   -0.0280)
+
+alogprior='logprior'
+aloglikelihood='loglikelihood'
+agenerate='generate'
+alogproposal='logproposal'
+
+### ###  initialize model at a random point on [-1,1]
+
+###  m0=(runif(4)-0.5)*2
+###  this is the matlab initialization:
+m0 = c(0.9003,
+   -0.5377,
+    0.2137,
+   -0.0280)
+
+MM =  mcmc('logprior','loglikelihood','generate','logproposal',m0,N)
+
+mout = MM[[1]]
+mMAP= MM[[2]]
+pacc= MM[[3]]
+
+
+</code></pre>
+
+
+</div>

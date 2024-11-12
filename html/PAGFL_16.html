@@ -1,0 +1,265 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>grouped_tv_plm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Grouped Time-varying Panel Data Model</h2>
+
+<h3>Description</h3>
+
+<p>Estimate a grouped time-varying panel data model given an observed group structure. Coefficient functions are homogeneous within groups but heterogeneous across groups.
+The time-varying coefficients are modeled as polynomial B-splines. The function supports both static and dynamic panel data models.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">grouped_tv_plm(
+  formula,
+  data,
+  groups,
+  index = NULL,
+  n_periods = NULL,
+  d = 3,
+  M = floor(length(y)^(1/7) - log(p)),
+  const_coef = NULL,
+  rho = 0.04 * log(N * n_periods)/sqrt(N * n_periods),
+  verbose = TRUE,
+  parallel = TRUE,
+  ...
+)
+
+## S3 method for class 'tv_gplm'
+summary(object, ...)
+
+## S3 method for class 'tv_gplm'
+formula(x, ...)
+
+## S3 method for class 'tv_gplm'
+df.residual(object, ...)
+
+## S3 method for class 'tv_gplm'
+print(x, ...)
+
+## S3 method for class 'tv_gplm'
+coef(object, ...)
+
+## S3 method for class 'tv_gplm'
+residuals(object, ...)
+
+## S3 method for class 'tv_gplm'
+fitted(object, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a formula object describing the model to be estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a <code>data.frame</code> or <code>matrix</code> holding a panel data set. If no <code>index</code> variables are provided, the panel must be balanced and ordered in the long format <code class="reqn">\bold{Y}=(Y_1^\prime, \dots, Y_N^\prime)^\prime</code>, <code class="reqn">Y_i = (Y_{i1}, \dots, Y_{iT})^\prime</code> with <code class="reqn">Y_{it} = (y_{it}, x_{it}^\prime)^\prime</code>. Conversely, if <code>data</code> is not ordered or not balanced, <code>data</code> must include two index variables that declare the cross-sectional unit <code class="reqn">i</code> and the time period <code class="reqn">t</code> of each observation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groups</code></td>
+<td>
+<p>a numerical or character vector of length <code class="reqn">N</code> that indicates the group membership of each cross-sectional unit <code class="reqn">i</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index</code></td>
+<td>
+<p>a character vector holding two strings. The first string denotes the name of the index variable identifying the cross-sectional unit <code class="reqn">i</code>, and the second string represents the name of the variable declaring the time period <code class="reqn">t</code>. In case of a balanced panel data set that is ordered in the long format, <code>index</code> can be left empty if the the number of time periods <code>n_periods</code> is supplied.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_periods</code></td>
+<td>
+<p>the number of observed time periods <code class="reqn">T</code>. If an <code>index</code> character vector is passed, this argument can be left empty. Default is <code>Null</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>the polynomial degree of the B-splines. Default is 3.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M</code></td>
+<td>
+<p>the number of interior knots of the B-splines. If left unspecified, the default heuristic <code class="reqn">M = \text{floor}((NT)^{\frac{1}{7}} - \log(p))</code> is used. Note that <code class="reqn">M</code> does not include the boundary knots and the entire sequence of knots is of length <code class="reqn">M + d + 1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>const_coef</code></td>
+<td>
+<p>a character vector containing the variable names of explanatory variables that enter with time-constant coefficients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+<p>the tuning parameter balancing the fitness and penalty terms in the IC. If left unspecified, the heuristic <code class="reqn">\rho = 0.07 \frac{\log(NT)}{\sqrt{NT}}</code> of Mehrabani (2023, sec. 6) is used. We recommend the default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, helpful warning messages are shown. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, certain operations are parallelized across multiple cores. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>ellipsis</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>of class <code>tv_gplm</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>of class <code>tv_gplm</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Consider the grouped time-varying panel data model
+</p>
+<p style="text-align: center;"><code class="reqn">y_{it} = \gamma_i + \beta^\prime_{i} (t/T) x_{it} + \epsilon_{it}, \quad i = 1, \dots, N, \; t = 1, \dots, T,</code>
+</p>
+
+<p>where <code class="reqn">y_{it}</code> is the scalar dependent variable, <code class="reqn">\gamma_i</code> is an individual fixed effect, <code class="reqn">x_{it}</code> is a <code class="reqn">p \times 1</code> vector of explanatory variables, and <code class="reqn">\epsilon_{it}</code> is a zero mean error.
+The coefficient vector <code class="reqn">\beta_{i} (t/T)</code> is subject to the observed group pattern
+</p>
+<p style="text-align: center;"><code class="reqn">\beta_i \left(\frac{t}{T} \right) = \sum_{k = 1}^K \alpha_k \left( \frac{t}{T} \right) \bold{1} \{i \in G_k \},</code>
+</p>
+
+<p>with <code class="reqn">\cup_{k = 1}^K G_k = \{1, \dots, N\}</code>, <code class="reqn">G_k \cap G_j = \emptyset</code> and <code class="reqn">\| \alpha_k - \alpha_j \| \neq 0</code> for any <code class="reqn">k \neq j</code>, <code class="reqn">k = 1, \dots, K</code>.
+</p>
+<p><code class="reqn">\alpha_k (t/T)</code> and, in turn, <code class="reqn">\beta_i (t/T)</code> is estimated as polynomial B-splines using the penalized sieve-technique. To this end, let <code class="reqn">B(v)</code> denote a <code class="reqn">M + d +1</code> vector of polynomial spline basis functions, where <code class="reqn">d</code> represents the polynomial degree and <code class="reqn">M</code> gives the number of interior knots of the B-spline.
+<code class="reqn">\alpha_{k}(t/T)</code> is approximated by forming a linear combination of the basis functions <code class="reqn">\alpha_{k}(t/T) \approx \xi_k^\prime B(t/T)</code>, where <code class="reqn">\xi_k</code> is a <code class="reqn">(M + d + 1) \times p</code> coefficient matrix.
+</p>
+<p>The explanatory variables are projected onto the spline basis system, which results in the <code class="reqn">(M + d + 1)p \times 1</code> vector <code class="reqn">z_{it} = x_{it} \otimes B(v)</code>. Subsequently, the DGP can be reformulated as
+</p>
+<p style="text-align: center;"><code class="reqn">y_{it} = \gamma_i + z_{it}^\prime \text{vec}(\pi_{i}) + u_{it},</code>
+</p>
+
+<p>where <code class="reqn">\pi_i = \xi_k</code> if <code class="reqn">i \in G_k</code>, <code class="reqn">u_{it} = \epsilon_{it} + \eta_{it}</code>, and <code class="reqn">\eta_{it}</code> reflects a sieve approximation error. We refer to Su et al. (2019, sec. 2) for more details on the sieve technique.
+</p>
+<p>Finally, <code class="reqn">\hat{\alpha}_{k}(t/T)</code> is obtained as <code class="reqn">\hat{\alpha}_{k}(t/T) = \hat{\xi}_k^\prime B(t/T)</code>, where the vector of control points <code class="reqn">\xi_k</code> is estimated using <em>OLS</em>
+</p>
+<p style="text-align: center;"><code class="reqn">\hat{\xi}_k = \left( \sum_{i \in G_k} \sum_{t = 1}^T \tilde{z}_{it} \tilde{z}_{it}^\prime \right)^{-1} \sum_{i \in G_k} \sum_{t = 1}^T \tilde{z}_{it} \tilde{y}_{it},</code>
+</p>
+
+<p>and <code class="reqn">\tilde{a}_{it} = a_{it} - T^{-1} \sum_{t = 1}^T a_{it}</code>, <code class="reqn">a = \{y, z\}</code> to concentrate out the fixed effect <code class="reqn">\gamma_i</code> (within-transformation).
+</p>
+<p>In case of an unbalanced panel data set, the earliest and latest available observations per group define the start and end-points of the interval on which the group-specific time-varying coefficients are defined.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>tv_gplm</code> holding
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a <code>data.frame</code> containing the dependent and explanatory variables as well as cross-sectional and time indices,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coefficients</code></td>
+<td>
+<p>let <code class="reqn">p^{(1)}</code> denote the number of time-varying and <code class="reqn">p^{(2)}</code> the number of time constant coefficients. A <code>list</code> holding (i) a <code class="reqn">T \times p^{(1)} \times K</code> array of the group-specific functional coefficients and (ii) a <code class="reqn">K \times p^{(2)}</code> matrix of time-constant estimates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groups</code></td>
+<td>
+<p>a <code>list</code> containing (i) the total number of groups <code class="reqn">K</code> and (ii) a vector of group memberships <code class="reqn">(\hat{g}_1, \dots, \hat{g}_N)</code>, where <code class="reqn">\hat{g}_i = k</code> if <code class="reqn">i</code> is part of group <code class="reqn">k</code>,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>residuals</code></td>
+<td>
+<p>a vector of residuals of the demeaned model,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fitted</code></td>
+<td>
+<p>a vector of fitted values of the demeaned model,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>args</code></td>
+<td>
+<p>a <code>list</code> of additional arguments,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>IC</code></td>
+<td>
+<p>a <code>list</code> containing (i) the value of the IC and (ii) the <em>MSE</em>,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>the function call.</p>
+</td>
+</tr>
+</table>
+<p>An object of class <code>tv_gplm</code> has <code>print</code>, <code>summary</code>, <code>fitted</code>, <code>residuals</code>, <code>formula</code>, <code>df.residual</code> and <code>coef</code> S3 methods.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Paul Haimerl
+</p>
+
+
+<h3>References</h3>
+
+<p>Su, L., Wang, X., &amp; Jin, S. (2019). Sieve estimation of time-varying panel data models with latent structures. <em>Journal of Business &amp; Economic Statistics</em>, 37(2), 334-349. <a href="https://doi.org/10.1080/07350015.2017.1340299">doi:10.1080/07350015.2017.1340299</a>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Simulate a time-varying panel with a trend and a group pattern
+set.seed(1)
+sim &lt;- sim_tv_DGP(N = 10, n_periods = 50, intercept = TRUE, p = 2)
+df &lt;- data.frame(y = c(sim$y))
+groups &lt;- sim$groups
+
+# Estimate the time-varying grouped panel data model
+estim &lt;- grouped_tv_plm(y ~ ., data = df, n_periods = 50, groups = groups)
+summary(estim)
+
+</code></pre>
+
+
+</div>

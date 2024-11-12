@@ -1,0 +1,270 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>poso_dose_auc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate the dose needed to reach a target area under the concentration-time
+curve (AUC)</h2>
+
+<h3>Description</h3>
+
+<p>estimates the dose needed to reach a target area under the concentration-time
+curve (AUC) given a population pharmacokinetic model, a set of individual
+parameters, and a target AUC.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">poso_dose_auc(
+  dat = NULL,
+  prior_model = NULL,
+  tdm = FALSE,
+  time_auc,
+  time_dose = NULL,
+  cmt_dose = 1,
+  target_auc,
+  estim_method = "map",
+  nocb = FALSE,
+  p = NULL,
+  greater_than = TRUE,
+  starting_time = 0,
+  interdose_interval = NULL,
+  add_dose = NULL,
+  duration = 0,
+  starting_dose = 100,
+  indiv_param = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dat</code></td>
+<td>
+<p>Dataframe. An individual subject dataset following the
+structure of NONMEM/rxode2 event records.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior_model</code></td>
+<td>
+<p>A <code>posologyr</code> prior population pharmacokinetics
+model, a list of six objects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tdm</code></td>
+<td>
+<p>A boolean. If <code>TRUE</code>: estimates the optimal dose for a selected
+target auc over a selected duration following the events from <code>dat</code>, and
+using Maximum A Posteriori estimation. Setting <code>tdm</code> to <code>TRUE</code> causes the
+following to occur:
+</p>
+
+<ul>
+<li>
+<p> the <code>time_dose</code> argument is required and is used as the starting point
+for the AUC calculation instead of <code>starting_time</code>;
+</p>
+</li>
+<li>
+<p> the arguments <code>estim_method</code>, <code>p</code>, <code>greater_than</code>, <code>interdose_interval</code>,
+<code>add_dose</code>, <code>indiv_param</code> and <code>starting_time</code> are ignored.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time_auc</code></td>
+<td>
+<p>Numeric. A duration. The target AUC is computed from
+<code>starting_time</code> to <code>starting_time</code> + <code>time_auc</code>.
+When <code>tdm</code> is set to <code>TRUE</code> the target AUC is computed from <code>time_dose</code> to
+<code>time_dose</code> + <code>time_auc</code> instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time_dose</code></td>
+<td>
+<p>Numeric. Time when the dose is to be given. Only used and
+mandatory, when <code>tdm</code> is set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cmt_dose</code></td>
+<td>
+<p>Character or numeric. The compartment in which the dose is
+to be administered. Must match one of the compartments in the prior model.
+Defaults to 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target_auc</code></td>
+<td>
+<p>Numeric. The target AUC.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estim_method</code></td>
+<td>
+<p>A character string. An estimation method to be used for
+the individual parameters. The default method "map" is the Maximum A
+Posteriori estimation, the method "prior" simulates from the prior
+population model, and "sir" uses the Sequential Importance Resampling
+algorithm to estimate the a posteriori distribution of the individual
+parameters. This argument is ignored if <code>indiv_param</code> is provided, or if
+<code>tdm</code> is set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nocb</code></td>
+<td>
+<p>A boolean. for time-varying covariates: the next observation
+carried backward (nocb) interpolation style, similar to NONMEM.  If
+<code>FALSE</code>, the last observation carried forward (locf) style will be used.
+Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>Numeric. The proportion of the distribution of AUC to consider for
+the optimization. Mandatory for <code>estim_method=sir</code>. This argument is
+ignored if <code>tdm</code> is set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>greater_than</code></td>
+<td>
+<p>A boolean. If <code>TRUE</code>: targets a dose leading to a
+proportion <code>p</code> of the AUCs to be greater than <code>target_auc</code>. Respectively,
+lower if <code>FALSE</code>. This argument is ignored if <code>tdm</code> is set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>starting_time</code></td>
+<td>
+<p>Numeric. First point in time of the AUC, for multiple
+dose regimen. The default is zero. This argument is ignored if <code>tdm</code> is
+set to <code>TRUE</code>, and <code>time_dose</code> is used as a starting point instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interdose_interval</code></td>
+<td>
+<p>Numeric. Time for the interdose interval for
+multiple dose regimen. Must be provided when add_dose is used. This
+argument is ignored if <code>tdm</code> is set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add_dose</code></td>
+<td>
+<p>Numeric. Additional doses administered at inter-dose interval
+after the first dose. Optional. This argument is ignored if <code>tdm</code> is set
+to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>duration</code></td>
+<td>
+<p>Numeric. Duration of infusion, for zero-order
+administrations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>starting_dose</code></td>
+<td>
+<p>Numeric. Starting dose for the optimization
+algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indiv_param</code></td>
+<td>
+<p>Optional. A set of individual parameters : THETA,
+estimates of ETA, and covariates. This argument is ignored if <code>tdm</code> is
+set to <code>TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing the following components:
+</p>
+
+<dl>
+<dt>dose</dt>
+<dd>
+<p>Numeric. An optimal dose for the selected target AUC.</p>
+</dd>
+<dt>type_of_estimate</dt>
+<dd>
+<p>Character string. The type of estimate of the
+individual parameters. Either a point estimate, or a distribution.</p>
+</dd>
+<dt>auc_estimate</dt>
+<dd>
+<p>A vector of numeric estimates of the AUC. Either a
+single value (for a point estimate of ETA), or a distribution.</p>
+</dd>
+<dt>indiv_param</dt>
+<dd>
+<p>A <code>data.frame</code>. The set of individual parameters used
+for the determination of the optimal dose : THETA, estimates of ETA, and
+covariates</p>
+</dd>
+</dl>
+<h3>Examples</h3>
+
+<pre><code class="language-R">rxode2::setRxThreads(2L) # limit the number of threads
+
+# model
+mod_run001 &lt;- function() {
+  ini({
+    THETA_Cl &lt;- 4.0
+    THETA_Vc &lt;- 70.0
+    THETA_Ka &lt;- 1.0
+    ETA_Cl ~ 0.2
+    ETA_Vc ~ 0.2
+    ETA_Ka ~ 0.2
+    prop.sd &lt;- sqrt(0.05)
+  })
+  model({
+    TVCl &lt;- THETA_Cl
+    TVVc &lt;- THETA_Vc
+    TVKa &lt;- THETA_Ka
+
+    Cl &lt;- TVCl*exp(ETA_Cl)
+    Vc &lt;- TVVc*exp(ETA_Vc)
+    Ka &lt;- TVKa*exp(ETA_Ka)
+
+    K20 &lt;- Cl/Vc
+    Cc &lt;- centr/Vc
+
+    d/dt(depot) = -Ka*depot
+    d/dt(centr) = Ka*depot - K20*centr
+    Cc ~ prop(prop.sd)
+  })
+}
+# df_patient01: event table for Patient01, following a 30 minutes intravenous
+# infusion
+df_patient01 &lt;- data.frame(ID=1,
+                        TIME=c(0.0,1.0,14.0),
+                        DV=c(NA,25.0,5.5),
+                        AMT=c(2000,0,0),
+                        EVID=c(1,0,0),
+                        DUR=c(0.5,NA,NA))
+# estimate the optimal dose to reach an AUC(0-12h) of 45 h.mg/l
+poso_dose_auc(dat=df_patient01,prior_model=mod_run001,
+time_auc=12,target_auc=45)
+
+</code></pre>
+
+
+</div>

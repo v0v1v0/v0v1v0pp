@@ -1,0 +1,137 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>int_conformal_cv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Prediction intervals via conformal inference CV+</h2>
+
+<h3>Description</h3>
+
+<p>Nonparametric prediction intervals can be computed for fitted regression
+workflow objects using the CV+ conformal inference method described by
+Barber <em>at al</em> (2018).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">int_conformal_cv(object, ...)
+
+## Default S3 method:
+int_conformal_cv(object, ...)
+
+## S3 method for class 'resample_results'
+int_conformal_cv(object, ...)
+
+## S3 method for class 'tune_results'
+int_conformal_cv(object, parameters, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>An object from a tidymodels resampling or tuning function such
+as <code>tune::fit_resamples()</code>, <code>tune::tune_grid()</code>, or similar. The object
+should have been produced in a way that the <code>.extracts</code> column contains the
+fitted workflow for each resample (see the Details below).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Not currently used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parameters</code></td>
+<td>
+<p>An tibble of tuning parameter values that can be
+used to filter the predicted values before processing. This tibble should
+select a single set of hyper-parameter values from the tuning results. This is
+only required when a tuning object is passed to <code>object</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function implements the CV+ method found in Section 3 of Barber <em>at al</em>
+(2018). It uses the resampled model fits and their associated holdout
+residuals to make prediction intervals for regression models.
+</p>
+<p>This function prepares the objects for the computations. The <code>predict()</code>
+method computes the intervals for new data.
+</p>
+<p>This method was developed for V-fold cross-validation (no repeats). Interval
+coverage is unknown for any other resampling methods. The function will not
+stop the computations for other types of resamples, but we have no way of
+knowing whether the results are appropriate.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"int_conformal_cv"</code> containing the information
+to create intervals. The <code>predict()</code> method is used to produce the intervals.
+</p>
+
+
+<h3>References</h3>
+
+<p>Rina Foygel Barber, Emmanuel J. Candès, Aaditya Ramdas, Ryan J. Tibshirani
+"Predictive inference with the jackknife+," <em>The Annals of Statistics</em>,
+49(1), 486-507, 2021
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>predict.int_conformal_cv()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(workflows)
+library(dplyr)
+library(parsnip)
+library(rsample)
+library(tune)
+library(modeldata)
+
+set.seed(2)
+sim_train &lt;- sim_regression(200)
+sim_new &lt;- sim_regression(5) %&gt;% select(-outcome)
+
+sim_rs &lt;- vfold_cv(sim_train)
+
+# We'll use a neural network model
+mlp_spec &lt;-
+  mlp(hidden_units = 5, penalty = 0.01) %&gt;%
+  set_mode("regression")
+
+# Use a control function that saves the predictions as well as the models.
+# Consider using the butcher package in the extracts function to have smaller
+# object sizes
+
+ctrl &lt;- control_resamples(save_pred = TRUE, extract = I)
+
+set.seed(3)
+nnet_res &lt;-
+  mlp_spec %&gt;%
+  fit_resamples(outcome ~ ., resamples = sim_rs, control = ctrl)
+
+nnet_int_obj &lt;- int_conformal_cv(nnet_res)
+nnet_int_obj
+
+predict(nnet_int_obj, sim_new)
+
+</code></pre>
+
+
+</div>

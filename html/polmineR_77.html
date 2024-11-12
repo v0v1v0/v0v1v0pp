@@ -1,0 +1,193 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>as.speeches</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Split corpus or partition into speeches.</h2>
+
+<h3>Description</h3>
+
+<p>Split entire corpus or a partition into speeches. The heuristic is to split
+the corpus/partition into partitions on day-to-day basis first, using the
+s-attribute provided by <code>s_attribute_date</code>. These subcorpora are then
+splitted into speeches by speaker name, using s-attribute <code>s_attribute_name</code>.
+If there is a gap larger than the number of tokens supplied by argument
+<code>gap</code>, contributions of a speaker are assumed to be two seperate speeches.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">as.speeches(.Object, ...)
+
+## S4 method for signature 'partition'
+as.speeches(
+  .Object,
+  s_attribute_date = grep("date", s_attributes(.Object), value = TRUE),
+  s_attribute_name = grep("name", s_attributes(.Object), value = TRUE),
+  gap = 500,
+  mc = FALSE,
+  verbose = TRUE,
+  progress = TRUE
+)
+
+## S4 method for signature 'subcorpus'
+as.speeches(
+  .Object,
+  s_attribute_date = grep("date", s_attributes(.Object), value = TRUE),
+  s_attribute_name = grep("name", s_attributes(.Object), value = TRUE),
+  gap = 500,
+  mc = FALSE,
+  verbose = TRUE,
+  progress = TRUE
+)
+
+## S4 method for signature 'corpus'
+as.speeches(
+  .Object,
+  s_attribute_date = grep("date", s_attributes(.Object), value = TRUE),
+  s_attribute_name = grep("name", s_attributes(.Object), value = TRUE),
+  gap = 500,
+  subset,
+  mc = FALSE,
+  verbose = TRUE,
+  progress = TRUE
+)
+
+## S4 method for signature 'character'
+as.speeches(
+  .Object,
+  s_attribute_date = grep("date", s_attributes(.Object), value = TRUE),
+  s_attribute_name = grep("name", s_attributes(.Object), value = TRUE),
+  gap = 500,
+  mc = FALSE,
+  verbose = TRUE,
+  progress = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>.Object</code></td>
+<td>
+<p>A <code>partition</code>, or length-one <code>character</code> vector indicating a
+CWB corpus.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s_attribute_date</code></td>
+<td>
+<p>A length-one <code>character</code> vector, the s-attribute that
+provides the dates of sessions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s_attribute_name</code></td>
+<td>
+<p>A length-one <code>character</code> vector, the s-attribute that
+provides the names of speakers.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gap</code></td>
+<td>
+<p>An <code>integer</code> value, the number of tokens between strucs
+assumed to make the difference whether a speech has been interrupted (by an
+interjection or question), or whether to assume seperate speeches.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mc</code></td>
+<td>
+<p>Whether to use multicore, defaults to <code>FALSE</code>. If <code>progress</code> is
+<code>TRUE</code>, argument <code>mc</code> is passed into <code>pblapply</code> as argument <code>cl</code>. If
+<code>progress</code> is <code>FALSE</code>, <code>mc</code> is passed into <code>mclapply()</code> as argument
+<code>mc.cores</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A <code>logical</code> value, defaults to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progress</code></td>
+<td>
+<p>A <code>logical</code> value, whether to show progress bar.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+<p>A <code>logical</code> expression evaluated in a temporary <code>data.table</code>
+with columns 'speaker' and 'date' to define a subset of the entire corpus
+to be turned into speeches. Usually faster than applying <code>as.speeches()</code> on
+a <code>partition</code> or <code>subcorpus</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>partition_bundle</code>, the names of the objects in the bundle are
+the speaker name, the date of the speech and an index for the number of the
+speech on a given day, concatenated by underscores.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+use("polmineR")
+speeches &lt;- as.speeches(
+  "GERMAPARLMINI",
+  s_attribute_date = "date", s_attribute_name = "speaker"
+)
+speeches_count &lt;- count(speeches, p_attribute = "word")
+tdm &lt;- as.TermDocumentMatrix(speeches_count, col = "count")
+
+bt &lt;- partition("GERMAPARLMINI", date = "2009-10-27")
+speeches &lt;- as.speeches(
+  bt, 
+  s_attribute_name = "speaker",
+  s_attribute_date = "date"
+)
+summary(speeches)
+
+## End(Not run)
+## Not run: 
+#' sp &lt;- corpus("GERMAPARLMINI") %&gt;%
+  as.speeches(s_attribute_name = "speaker", s_attribute_date = "date")
+
+sp &lt;- corpus("GERMAPARLMINI") %&gt;%
+  as.speeches(
+    s_attribute_name = "speaker",
+    s_attribute_date = "date",
+    subset = {date == as.Date("2009-11-11")},
+    progress = FALSE
+  )
+  
+sp &lt;- corpus("GERMAPARLMINI") %&gt;%
+  as.speeches(
+    s_attribute_name = "speaker",
+    s_attribute_date = "date",
+    subset = {date == "2009-11-10" &amp; grepl("Merkel", speaker)},
+    progress = FALSE
+  )
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,122 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pr_hook</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Register a hook</h2>
+
+<h3>Description</h3>
+
+<p>Plumber routers support the notion of "hooks" that can be registered
+to execute some code at a particular point in the lifecycle of a request.
+Plumber routers currently support four hooks:
+</p>
+
+<ol>
+<li> <p><code>preroute(data, req, res)</code>
+</p>
+</li>
+<li> <p><code>postroute(data, req, res, value)</code>
+</p>
+</li>
+<li> <p><code>preserialize(data, req, res, value)</code>
+</p>
+</li>
+<li> <p><code>postserialize(data, req, res, value)</code>
+In all of the above you have access to a disposable environment in the <code>data</code>
+parameter that is created as a temporary data store for each request. Hooks
+can store temporary data in these hooks that can be reused by other hooks
+processing this same request.
+</p>
+</li>
+</ol>
+<h3>Usage</h3>
+
+<pre><code class="language-R">pr_hook(pr, stage, handler)
+
+pr_hooks(pr, handlers)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pr</code></td>
+<td>
+<p>A Plumber API. Note: The supplied Plumber API object will also be updated in place as well as returned by the function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stage</code></td>
+<td>
+<p>A character string. Point in the lifecycle of a request.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>handler</code></td>
+<td>
+<p>A hook function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>handlers</code></td>
+<td>
+<p>A named list of hook handlers</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>One feature when defining hooks in Plumber routers is the ability to modify
+the returned value. The convention for such hooks is: any function that accepts
+a parameter named <code>value</code> is expected to return the new value. This could
+be an unmodified version of the value that was passed in, or it could be a
+mutated value. But in either case, if your hook accepts a parameter
+named <code>value</code>, whatever your hook returns will be used as the new value
+for the response.
+</p>
+<p>You can add hooks using the <code>pr_hook</code>, or you can add multiple
+hooks at once using <code>pr_hooks</code>, which takes a named list in
+which the names are the names of the hooks, and the values are the
+handlers themselves.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A Plumber router with the defined hook(s) added
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+pr() %&gt;%
+  pr_hook("preroute", function(req){
+    cat("Routing a request for", req$PATH_INFO, "...\n")
+  }) %&gt;%
+  pr_hooks(list(
+    preserialize = function(req, value){
+      print("About to serialize this value:")
+      print(value)
+
+      # Must return the value since we took one in. Here we're not choosing
+      # to mutate it, but we could.
+      value
+    },
+    postserialize = function(res){
+      print("We serialized the value as:")
+      print(res$body)
+    }
+  )) %&gt;%
+  pr_handle("GET", "/", function(){ 123 }) %&gt;%
+  pr_run()
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

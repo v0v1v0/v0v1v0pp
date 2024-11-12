@@ -1,0 +1,293 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>wbgee</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Panel regression models fit with GEE</h2>
+
+<h3>Description</h3>
+
+<p>Fit "within-between" and several other regression variants
+for panel data via generalized estimating equations.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">wbgee(
+  formula,
+  data,
+  id = NULL,
+  wave = NULL,
+  model = "w-b",
+  cor.str = c("ar1", "exchangeable", "unstructured"),
+  detrend = FALSE,
+  use.wave = FALSE,
+  wave.factor = FALSE,
+  min.waves = 2,
+  family = gaussian,
+  balance.correction = FALSE,
+  dt.random = TRUE,
+  dt.order = 1,
+  weights = NULL,
+  offset = NULL,
+  interaction.style = c("double-demean", "demean", "raw"),
+  scale = FALSE,
+  scale.response = FALSE,
+  n.sd = 1,
+  calc.fit.stats = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>Model formula. See details for crucial
+info on <code>panelr</code>'s formula syntax.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>The data, either a <code>panel_data</code> object or <code>data.frame</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>If <code>data</code> is not a <code>panel_data</code> object, then the name of the
+individual id column as a string. Otherwise, leave as NULL, the default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wave</code></td>
+<td>
+<p>If <code>data</code> is not a <code>panel_data</code> object, then the name of the
+panel wave column as a string. Otherwise, leave as NULL, the default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>One of <code>"w-b"</code>, <code>"within"</code>, <code>"between"</code>,
+<code>"contextual"</code>. See details for more on these options.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cor.str</code></td>
+<td>
+<p>Any correlation structure accepted by <code>geepack::geeglm()</code>.
+Default is "ar1", most useful alternative is "exchangeable". "unstructured"
+may cause problems due to its computational complexity.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>detrend</code></td>
+<td>
+<p>Adjust within-subject effects for trends in the predictors?
+Default is FALSE, but some research suggests this is a better idea
+(see Curran and Bauer (2011) reference).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use.wave</code></td>
+<td>
+<p>Should the wave be included as a predictor? Default is
+FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wave.factor</code></td>
+<td>
+<p>Should the wave variable be treated as an unordered
+factor instead of continuous? Default is FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.waves</code></td>
+<td>
+<p>What is the minimum number of waves an individual must
+have participated in to be included in the analysis? Default is <code>2</code> and
+any valid number is accepted. <code>"all"</code> is also acceptable if you want to
+include only complete panelists.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>Use this to specify GLM link families. Default is <code>gaussian</code>,
+the linear model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>balance.correction</code></td>
+<td>
+<p>Correct between-subject effects for unbalanced
+panels following the procedure in Curran and Bauer (2011)? Default is
+FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dt.random</code></td>
+<td>
+<p>Should the detrending procedure be performed with a
+random slope for each entity? Default is TRUE but for short panels
+FALSE may be better, fitting a trend for all entities.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dt.order</code></td>
+<td>
+<p>If detrending using <code>detrend</code>, what order polynomial
+would you like to specify for the relationship between time and the
+predictors? Default is 1, a linear model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>If using weights, either the name of the column in the data
+that contains the weights or a vector of the weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offset</code></td>
+<td>
+<p>this can be used to specify an <em>a priori</em> known
+component to be included in the linear predictor during
+fitting. This should be <code>NULL</code> or a numeric vector of length
+equal to the number of cases.  One or more <code>offset</code>
+terms can be included in the formula instead or as well, and if more
+than one is specified their sum is used.  See <code>model.offset</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interaction.style</code></td>
+<td>
+<p>The best way to calculate interactions in within
+models is in some dispute. The conventional way (<code>"demean"</code>) is to first
+calculate the product of the variables involved in the interaction before
+those variables have their means subtracted and then subtract the mean of
+the product from the product term (see Schunk and Perales (2017)).
+Giesselmann and Schmidt-Catran (2020) show this method carries
+between-entity differences that within models are designed to model out.
+They suggest an alternate method (<code>"double-demean"</code>) in which the product
+term is first calculated using the de-meaned lower-order variables and
+then the subject means are subtracted from this product term. Another
+option is to simply use the product term of the de-meaned variables
+(<code>"raw"</code>), but Giesselmann and Schmidt-Catran (2020) show this method
+biases the results towards zero effect. The default is <code>"double-demean"</code>
+but if emulating other software is the goal, <code>"demean"</code> might be
+preferred.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>If <code>TRUE</code>, reports standardized regression
+coefficients by scaling and mean-centering input data (the latter can be
+changed via the <code>scale.only</code> argument). Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale.response</code></td>
+<td>
+<p>Should the response variable also be rescaled? Default
+is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.sd</code></td>
+<td>
+<p>How many standard deviations should you divide by for
+standardization? Default is 1, though some prefer 2.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>calc.fit.stats</code></td>
+<td>
+<p>Calculate fit statistics? Default is TRUE, but
+occasionally poor-fitting models might trip up here.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments provided to <code>geepack::geeglm()</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>See the documentation for <code>wbm()</code> for many details on formula syntax and
+other arguments.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>wbgee</code> object, which inherits from <code>geeglm</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Jacob A. Long
+</p>
+
+
+<h3>References</h3>
+
+<p>Allison, P. (2009). <em>Fixed effects regression models</em>.
+Thousand Oaks, CA: SAGE Publications.
+https://doi.org/10.4135/9781412993869.d33
+</p>
+<p>Bell, A., &amp; Jones, K. (2015). Explaining fixed effects: Random effects
+modeling of time-series cross-sectional and panel data.
+<em>Political Science Research and Methods</em>, <em>3</em>, 133–153.
+https://doi.org/10.1017/psrm.2014.7
+</p>
+<p>Curran, P. J., &amp; Bauer, D. J. (2011). The disaggregation of within-person
+and between-person effects in longitudinal models of change.
+<em>Annual Review of Psychology</em>, <em>62</em>, 583–619.
+https://doi.org/10.1146/annurev.psych.093008.100356
+</p>
+<p>Giesselmann, M., &amp; Schmidt-Catran, A. W. (2020). Interactions in fixed
+effects regression models. <em>Sociological Methods &amp; Research</em>, 1–28.
+https://doi.org/10.1177/0049124120914934
+</p>
+<p>McNeish, D. (2019). Effect partitioning in cross-sectionally clustered data
+without multilevel models. <em>Multivariate Behavioral Research</em>,
+Advance online publication. https://doi.org/10.1080/00273171.2019.1602504
+</p>
+<p>McNeish, D., Stapleton, L. M., &amp; Silverman, R. D. (2016). On the unnecessary
+ubiquity of hierarchical linear modeling. <em>Psychological Methods</em>, <em>22</em>,
+114-140. https://doi.org/10.1037/met0000078
+</p>
+<p>Schunck, R., &amp; Perales, F. (2017). Within- and between-cluster effects in
+generalized linear mixed models: A discussion of approaches and the
+<code>xthybrid</code> command. <em>The Stata Journal</em>, <em>17</em>, 89–115.
+https://doi.org/10.1177/1536867X1701700106
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">if (requireNamespace("geepack")) {
+  data("WageData")
+  wages &lt;- panel_data(WageData, id = id, wave = t)
+  model &lt;- wbgee(lwage ~ lag(union) + wks | blk + fem | blk * lag(union),
+           data = wages)
+  summary(model)
+}
+
+</code></pre>
+
+
+</div>

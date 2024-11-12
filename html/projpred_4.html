@@ -1,0 +1,118 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>as_draws_matrix.projection</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Extract projected parameter draws and coerce to <code>draws_matrix</code> (see package
+<span class="pkg">posterior</span>)</h2>
+
+<h3>Description</h3>
+
+<p>These are the <code>posterior::as_draws()</code> and <code>posterior::as_draws_matrix()</code>
+methods for <code>projection</code> objects (returned by <code>project()</code>, possibly as
+elements of a <code>list</code>). They extract the projected parameter draws and return
+them as a <code>draws_matrix</code>. In case of different (i.e., nonconstant) weights
+for the projected draws, a <code>draws_matrix</code> allows for a safer handling of
+these weights (safer in contrast to the matrix returned by
+<code>as.matrix.projection()</code>), in particular by providing the natural input for
+<code>posterior::resample_draws()</code> (see section "Examples" below).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'projection'
+as_draws_matrix(x, ...)
+
+## S3 method for class 'projection'
+as_draws(x, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>An object of class <code>projection</code> (returned by <code>project()</code>, possibly
+as elements of a <code>list</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments passed to <code>as.matrix.projection()</code>, except for
+<code>allow_nonconst_wdraws_prj</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In case of the augmented-data projection for a multilevel submodel
+of a <code>brms::categorical()</code> reference model, the multilevel parameters (and
+therefore also their names) slightly differ from those in the <span class="pkg">brms</span>
+reference model fit (see section "Augmented-data projection" in
+<code>extend_family()</code>'s documentation).
+</p>
+
+
+<h3>Value</h3>
+
+<p>An <code class="reqn">S_{\mathrm{prj}} \times Q</code> <code>draws_matrix</code> (see
+<code>posterior::draws_matrix()</code>) of projected draws, with
+<code class="reqn">S_{\mathrm{prj}}</code> denoting the number of projected draws and
+<code class="reqn">Q</code> the number of parameters. If the projected draws have nonconstant
+weights, <code>posterior::weight_draws()</code> is applied internally.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Data:
+dat_gauss &lt;- data.frame(y = df_gaussian$y, df_gaussian$x)
+
+# The `stanreg` fit which will be used as the reference model (with small
+# values for `chains` and `iter`, but only for technical reasons in this
+# example; this is not recommended in general):
+fit &lt;- rstanarm::stan_glm(
+  y ~ X1 + X2 + X3 + X4 + X5, family = gaussian(), data = dat_gauss,
+  QR = TRUE, chains = 2, iter = 500, refresh = 0, seed = 9876
+)
+
+# Projection onto an arbitrary combination of predictor terms (with a small
+# value for `nclusters`, but only for illustrative purposes; this is not
+# recommended in general):
+prj &lt;- project(fit, predictor_terms = c("X1", "X3", "X5"), nclusters = 5,
+               seed = 9182)
+
+# Applying the posterior::as_draws_matrix() generic to the output of
+# project() dispatches to the projpred::as_draws_matrix.projection()
+# method:
+prj_draws &lt;- posterior::as_draws_matrix(prj)
+
+# Resample the projected draws according to their weights:
+set.seed(3456)
+prj_draws_resampled &lt;- posterior::resample_draws(prj_draws, ndraws = 1000)
+
+# The values from the following two objects should be the same (in general,
+# this only holds approximately):
+print(proportions(table(rownames(prj_draws_resampled))))
+print(weights(prj_draws))
+
+# Treat the resampled draws like ordinary draws, e.g., summarize them:
+print(posterior::summarize_draws(
+  prj_draws_resampled,
+  "median", "mad", function(x) quantile(x, probs = c(0.025, 0.975))
+))
+# Or visualize them using the `bayesplot` package:
+if (requireNamespace("bayesplot", quietly = TRUE)) {
+  print(bayesplot::mcmc_intervals(prj_draws_resampled))
+}
+
+</code></pre>
+
+
+</div>

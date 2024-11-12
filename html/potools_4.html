@@ -1,0 +1,95 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>check_untranslated_cat</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Check for untranslated messages emitted by cat</h2>
+
+<h3>Description</h3>
+
+<p>Diagnose the R messages in a package to discover the presence of messages
+emitted by <code>cat()</code> which haven't been translated (i.e., passed
+through <code>gettext()</code>, <code>gettextf()</code>, or
+<code>ngettext()</code>).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">check_untranslated_cat(message_data)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>message_data</code></td>
+<td>
+<p>A <code>data.table</code>, or object convertible to one.</p>
+</td>
+</tr></table>
+<h3>Details</h3>
+
+<p>The function <code>cat</code> is commonly used to emit messages to users (e.g.,
+for a <code>verbose</code> mode), but it is not equipped for translation. Instead,
+messages must first be translated and then emitted. Any character literals
+found in the package's R code used in <code>cat</code> but not translated will be
+flagged by this function.
+</p>
+<p>For flagged calls, a potential replacement is offered, built using
+<code>gettext</code> or <code>gettextf</code> (depending on whether one or more
+<code>...</code> arguments are supplied to <code>cat</code>). For the <code>gettextf</code>
+case, the suggested template is always <code style="white-space: pre;">⁠%s⁠</code> (string) since this works
+for all inputs; the author should tighten this to the appropriate
+<code>sprintf()</code> template marker as appropriate, for example if the author
+knows the input is an integer, use <code style="white-space: pre;">⁠%d⁠</code> or <code style="white-space: pre;">⁠%i⁠</code> instead of <code style="white-space: pre;">⁠%s⁠</code>.
+</p>
+<p>NB: not all <code>cat</code> calls are included – in particular, no <code>cat</code>
+call specifying a non-default <code>file</code> are flagged, nor are any where the
+supplied <code>sep</code> is not a character literal (e.g., <code>sep=x</code> instead
+of <code>sep=""</code>)
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>data.table</code> with columns <code>call</code>, <code>file</code>,
+<code>line_number</code>, and <code>replacement</code> summarizing the results.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Michael Chirico
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>translate_package()</code>, <code>update_pkg_po()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+pkg &lt;- file.path(system.file(package = 'potools'), 'pkg')
+# copy to a temporary location to be able to read/write/update below
+tmp_pkg &lt;- file.path(tempdir(), "pkg")
+dir.create(tmp_pkg)
+file.copy(pkg, dirname(tmp_pkg), recursive = TRUE)
+
+# first, extract message data
+message_data = get_message_data(tmp_pkg)
+
+# now, diagnose the messages for any untranslated strings shown through cat()
+check_untranslated_cat(message_data)
+
+# cleanup
+unlink(tmp_pkg, recursive = TRUE)
+rm(pkg, tmp_pkg, message_data)
+</code></pre>
+
+
+</div>

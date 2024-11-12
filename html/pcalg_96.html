@@ -1,0 +1,175 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pcSelect</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>PC-Select: Estimate subgraph around a response variable</h2>
+
+<h3>Description</h3>
+
+<p> The goal is feature selection: If you
+have a response variable <code class="reqn">y</code> and a data matrix <code class="reqn">dm</code>, we want
+to know which variables are “strongly influential” on <code class="reqn">y</code>. The
+type of influence is the same as in the PC-Algorithm, i.e., <code class="reqn">y</code>
+and <code class="reqn">x</code> (a column of <code class="reqn">dm</code>) are associated if they are
+correlated even when conditioning on any subset of the remaining
+columns in <code class="reqn">dm</code>. Therefore, only very strong relations will be
+found and the result is typically a subset of other feature selection
+techniques. Note that there are also robust correlation methods
+available which render this method robust.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pcSelect(y, dm, alpha, corMethod = "standard",
+         verbose = FALSE, directed = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>response vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dm</code></td>
+<td>
+<p>data matrix (rows: samples/observations, columns: variables);
+<code>nrow(dm) == length(y)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>significance level of individual partial correlation tests.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>corMethod</code></td>
+<td>
+<p>a string determining the method for correlation
+estimation via <code>mcor()</code>; specifically any of the
+<code>mcor(*, method = "..")</code> can be used, e.g., <code>"Qn"</code> for
+one kind of robust correlation estimate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p><code>logical</code> or in <code class="reqn">\{0,1,2\}</code>;
+</p>
+
+<dl>
+<dt>FALSE, 0:</dt>
+<dd>
+<p>No output,</p>
+</dd>
+<dt>TRUE, 1:</dt>
+<dd>
+<p>Little output,</p>
+</dd>
+<dt>2:</dt>
+<dd>
+<p>Detailed output.</p>
+</dd>
+</dl>
+<p>Note that such diagnostic output may make the function considerably slower.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>directed</code></td>
+<td>
+<p>logical; should the output graph be directed?</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function basically applies <code>pc</code> on the data
+matrix obtained by joining <code>y</code> and <code>dm</code>.  Since the output is
+not concerned with the edges found within the columns of <code>dm</code>,
+the algorithm is adapted accordingly.  Therefore, the runtime and the
+ability to deal with large datasets is typically increased
+substantially.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>G</code></td>
+<td>
+<p>A <code>logical</code> vector indicating which column of
+<code>dm</code> is associated with <code>y</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zMin</code></td>
+<td>
+<p>The minimal z-values when testing partial correlations
+between <code>y</code> and each column of <code>dm</code>.  The larger the
+number, the more consistent is the edge with the data.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Markus Kalisch (<a href="mailto:kalisch@stat.math.ethz.ch">kalisch@stat.math.ethz.ch</a>) and Martin Maechler.
+</p>
+
+
+<h3>References</h3>
+
+<p>Buehlmann, P., Kalisch, M. and Maathuis, M.H. (2010).
+Variable selection for high-dimensional linear models:
+partially faithful distributions and the PC-simple algorithm.
+<em>Biometrika</em> <b>97</b>, 261–278.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pc</code> which is the more general version of this function;
+<code>pcSelect.presel</code> which applies <code>pcSelect()</code> twice.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">p &lt;- 10
+## generate and draw random DAG :
+suppressWarnings(RNGversion("3.5.0"))
+set.seed(101)
+myDAG &lt;- randomDAG(p, prob = 0.2)
+if (require(Rgraphviz)) {
+  plot(myDAG, main = "randomDAG(10, prob = 0.2)")
+}
+## generate 1000 samples of DAG using standard normal error distribution
+n &lt;- 1000
+d.mat &lt;- rmvDAG(n, myDAG, errDist = "normal")
+
+## let's pretend that the 10th column is the response and the first 9
+## columns are explanatory variable. Which of the first 9 variables
+## "cause" the tenth variable?
+y &lt;- d.mat[,10]
+dm &lt;- d.mat[,-10]
+(pcS &lt;- pcSelect(d.mat[,10], d.mat[,-10], alpha=0.05))
+## You see, that variable 4,5,6 are considered as important
+## By inspecting zMin,
+with(pcS, zMin[G])
+## you can also see that the influence of variable 6
+## is most evident from the data (its zMin is 18.64, so quite large - as
+## a rule of thumb for judging what is large, you could use quantiles
+## of the Standard Normal Distribution)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,192 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>setup_projects</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Set up the projects folder</h2>
+
+<h3>Description</h3>
+
+<p>Creates or restores the projects folder at the user-specified path.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">setup_projects(
+  path,
+  folder_name = "projects",
+  overwrite = FALSE,
+  make_directories = FALSE,
+  .Renviron_path = file.path(Sys.getenv("HOME"), ".Renviron")
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>path</code></td>
+<td>
+<p>The file path of the <strong>directory inside of which</strong> the user
+would like the projects folder to be created. Do not include the name of
+the projects folder itself (i.e., the value of the argument
+<code>folder_name</code> below).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>folder_name</code></td>
+<td>
+<p>The name of the projects folder that will be created in
+the directory specified by the argument <code>path</code> above. Defaults to
+<code>"projects"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Logical indicating whether or not to abandon any previously
+stored projects folders stored in the system.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>make_directories</code></td>
+<td>
+<p>Logical indicating whether or not the function should
+write any directories specified in the <code>path</code> argument that don't
+already exist.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.Renviron_path</code></td>
+<td>
+<p>The full file path of the .Renviron file where the user
+would like to store the <code>projects_folder()</code> path. Default is
+the home .Renviron file. If the file doesn't exist it will be created.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>projects</code> package remembers where the
+projects folder is located by storing its file path
+in a .Renviron file (the home .Renviron file by default). The entry is
+named <code>PROJECTS_FOLDER_PATH</code>.
+</p>
+<p>Note that changing the <code>.Renviron_path</code> argument may create an .Renviron
+file that R will not notice or use. See Startup for more details.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The project folder's path, invisibly.
+</p>
+
+
+<h3>Default contents</h3>
+
+<p>The projects folder
+automatically contains the subdirectories <em>.metadata</em> and
+<em>.templates</em>, which are hidden by default on some operating systems.
+</p>
+<p>The <em>.metadata</em> folder and its contents should <strong>never</strong> be
+manually moved or modified.
+</p>
+<p>The <em>.templates</em> folder is where template project files and folders
+should be stored. When this function is successfully run, the default
+projects folder template is created (as "default_folder") alongside a few
+other template files. When a new project is created,
+<code>new_project()</code> looks here for the folder named by its
+<code>template_folder</code> argument (<code>"default_folder"</code> by default), and
+this folder is copied into the projects folder
+(with name specified by the <code>folder_name</code> argument) as the new project
+folder. Users are able and encouraged to customize the
+<code>default_folder</code> to suit their research needs, and may even create
+multiple project folder templates for different situations.
+</p>
+<p>The default templates are in the folder located at the path produced by
+running: <code>system.file("templates", package = "projects")</code>
+</p>
+
+
+<h3>Behavior when projects folder already exists</h3>
+
+<p>If <code>overwrite =
+  TRUE</code>, the function will run no matter what. Use with caution.
+</p>
+<p>If the user has a pre-existing projects folder and
+runs this command with the pre-existing projects folder's path, nothing
+will be deleted.
+</p>
+<p><strong>Therefore</strong>, if the user "broke" the projects folder (e.g., by
+deleting metadata; by changing the "PROJECTS_FOLDER_PATH" line in the
+<em>.Renviron</em> file), the user can "fix" the projects folder to some
+degree by running this function with the folder's actual file path (e.g.,
+restore all default templates; restore missing metadata files).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>new_project()</code> for information on templates
+</p>
+<p>Startup for more information on how <em>.Renviron</em> files work.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#############################################################################
+# Setup
+# Any existing "projects" folder is left totally untouched,
+# and the user's home directory and .Renviron file are also left untouched.
+old_home  &lt;- Sys.getenv("HOME")
+old_ppath &lt;- Sys.getenv("PROJECTS_FOLDER_PATH")
+temp_dir &lt;- tempfile("dir")
+dir.create(temp_dir)
+Sys.setenv(HOME = temp_dir)
+Sys.unsetenv("PROJECTS_FOLDER_PATH")
+#############################################################################
+
+# Creating the projects folder
+setup_projects(path = temp_dir)
+
+# Viewing the projects folder path:
+path1 &lt;- projects_folder()
+
+# Viewing the contents of the projects folder:
+list.files(path1, full.names = TRUE, recursive = TRUE,  all.files = TRUE)
+
+# Create an arbitrary subfolder in temp_dir:
+subfolder_path &lt;- file.path(temp_dir, "test")
+dir.create(subfolder_path)
+
+
+# Wrapped in if (interactive()) because it requires user input
+if (interactive()) {
+  # The function won't let the user abandon the old projects folder...
+  setup_projects(path = subfolder_path)
+
+  # ...unless overwrite = TRUE
+  setup_projects(path = file.path(temp_dir, "test"), overwrite = TRUE)
+
+  # Even then, only the stored location of the projects folder is overwritten.
+  # The old projects folder still exists:
+  list.files(path1, full.names = TRUE, recursive = TRUE,  all.files = TRUE)
+
+  # Giving the "projects" folder a different name:
+  setup_projects(path = temp_dir, folder_name = "studies", overwrite = TRUE)
+}
+
+#############################################################################
+# Cleanup
+# (or, the user can just restart R)
+Sys.setenv(HOME = old_home, PROJECTS_FOLDER_PATH = old_ppath)
+#############################################################################
+</code></pre>
+
+
+</div>

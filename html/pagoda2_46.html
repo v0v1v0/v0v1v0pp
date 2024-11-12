@@ -1,0 +1,2109 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Pagoda2</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Pagoda2 R6 class</h2>
+
+<h3>Description</h3>
+
+<p>The class encompasses gene count matrices, providing methods for normalization, calculating embeddings, and differential expression.
+</p>
+
+
+<h3>Public fields</h3>
+
+<div class="r6-fields">
+
+<dl>
+<dt><code>counts</code></dt>
+<dd>
+<p>Gene count matrix, normalized on total counts (default=NULL)</p>
+</dd>
+<dt><code>modelType</code></dt>
+<dd>
+<p>string Model used to normalize count matrices. Only supported values are 'raw', 'plain', and 'linearObs'.
+– 'plain': Normalize by regressing out on the non-zero observations of each gene (default).
+– 'raw': Use the raw count matrices, without normalization. The expression matrix taken "as is" without normalization, although log.scale still applies. 
+– 'linearObs': Fit a linear model of pooled counts across all genes against depth. This approach isn't recommened, as the depth dependency is not completely normalized out.</p>
+</dd>
+<dt><code>clusters</code></dt>
+<dd>
+<p>Results of clustering (default=list())</p>
+</dd>
+<dt><code>graphs</code></dt>
+<dd>
+<p>Graph representations of the dataset (default=list())</p>
+</dd>
+<dt><code>reductions</code></dt>
+<dd>
+<p>Results of reductions, e.g. PCA (default=list())</p>
+</dd>
+<dt><code>embeddings</code></dt>
+<dd>
+<p>Results of visualization algorithms, t-SNE or largeVis (default=list())</p>
+</dd>
+<dt><code>diffgenes</code></dt>
+<dd>
+<p>Lists of differentially expressed genes (default=list())</p>
+</dd>
+<dt><code>n.cores</code></dt>
+<dd>
+<p>number of cores (default=1)</p>
+</dd>
+<dt><code>misc</code></dt>
+<dd>
+<p>list with additional info (default=list())</p>
+</dd>
+<dt><code>batch</code></dt>
+<dd>
+<p>Batch factor for the dataset (default=NULL)</p>
+</dd>
+<dt><code>genegraphs</code></dt>
+<dd>
+<p>Slot to store graphical representations in gene space (i.e. gene kNN graphs) (default=list())</p>
+</dd>
+<dt><code>depth</code></dt>
+<dd>
+<p>Number of molecules measured per cell (default=NULL)</p>
+</dd>
+</dl>
+</div>
+
+
+<h3>Methods</h3>
+
+
+
+<h4>Public methods</h4>
+
+
+<ul>
+<li> <p><a href="#method-new"><code>Pagoda2$new()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-setCountMatrix"><code>Pagoda2$setCountMatrix()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-adjustVariance"><code>Pagoda2$adjustVariance()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-makeKnnGraph"><code>Pagoda2$makeKnnGraph()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-getKnnClusters"><code>Pagoda2$getKnnClusters()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-geneKnnbyPCA"><code>Pagoda2$geneKnnbyPCA()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-getHierarchicalDiffExpressionAspects"><code>Pagoda2$getHierarchicalDiffExpressionAspects()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-makeGeneKnnGraph"><code>Pagoda2$makeGeneKnnGraph()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-getDensityClusters"><code>Pagoda2$getDensityClusters()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-getDifferentialGenes"><code>Pagoda2$getDifferentialGenes()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-plotDiffGeneHeatmap"><code>Pagoda2$plotDiffGeneHeatmap()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-getRefinedLibSizes"><code>Pagoda2$getRefinedLibSizes()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-plotGeneHeatmap"><code>Pagoda2$plotGeneHeatmap()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-plotEmbedding"><code>Pagoda2$plotEmbedding()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-getOdGenes"><code>Pagoda2$getOdGenes()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-getNormalizedExpressionMatrix"><code>Pagoda2$getNormalizedExpressionMatrix()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-calculatePcaReduction"><code>Pagoda2$calculatePcaReduction()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-expandOdGenes"><code>Pagoda2$expandOdGenes()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-localPcaKnn"><code>Pagoda2$localPcaKnn()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-testPathwayOverdispersion"><code>Pagoda2$testPathwayOverdispersion()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-getEmbedding"><code>Pagoda2$getEmbedding()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-clone"><code>Pagoda2$clone()</code></a>
+</p>
+</li>
+</ul>
+<hr>
+<a id="method-new"></a>
+
+
+
+<h4>Method <code>new()</code>
+</h4>
+
+<p>Initialize Pagoda2 class
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$new(
+  x,
+  modelType = "plain",
+  n.cores = parallel::detectCores(logical = FALSE),
+  verbose = TRUE,
+  min.cells.per.gene = 0,
+  trim = round(min.cells.per.gene/2),
+  min.transcripts.per.cell = 10,
+  batch = NULL,
+  lib.sizes = NULL,
+  log.scale = TRUE,
+  keep.genes = NULL
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>x</code></dt>
+<dd>
+<p>input count matrix</p>
+</dd>
+<dt><code>modelType</code></dt>
+<dd>
+<p>Model used to normalize count matrices (default='plain'). Only supported values are 'raw', 'plain', and 'linearObs'.</p>
+</dd>
+<dt><code>n.cores</code></dt>
+<dd>
+<p>numeric Number of cores to use (default=1)</p>
+</dd>
+<dt><code>verbose</code></dt>
+<dd>
+<p>boolean Whether to give verbose output (default=TRUE)</p>
+</dd>
+<dt><code>min.cells.per.gene</code></dt>
+<dd>
+<p>integer Minimum number of cells per gene, used to subset counts for coverage (default=0)</p>
+</dd>
+<dt><code>trim</code></dt>
+<dd>
+<p>numeric Parameter used for winsorizing count data (default=round(min.cells.per.gene/2)). If value&gt;0, will winsorize counts in normalized space in the hopes of getting a more stable depth estimates. If value&lt;=0, ignored.</p>
+</dd>
+<dt><code>min.transcripts.per.cell</code></dt>
+<dd>
+<p>integer Minimum number of transcripts per cells, used to subset counts for coverage (default=10)</p>
+</dd>
+<dt><code>batch</code></dt>
+<dd>
+<p>fctor Batch factor for the dataset (default=NULL)</p>
+</dd>
+<dt><code>lib.sizes</code></dt>
+<dd>
+<p>character vector of library sizes (default=NULL)</p>
+</dd>
+<dt><code>log.scale</code></dt>
+<dd>
+<p>boolean If TRUE, scale counts by log() (default=TRUE)</p>
+</dd>
+<dt><code>keep.genes</code></dt>
+<dd>
+<p>list of genes to keep in count matrix after filtering out by coverage but before normalization (default=NULL)</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>new Pagoda2 object
+</p>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>\donttest{ 
+## Load pre-generated a dataset of 50 bone marrow cells as matrix
+cm &lt;- readRDS(system.file("extdata", "sample_BM1_50.rds", package="pagoda2"))
+## Perform QC, i.e. filter any cells that
+counts &lt;- gene.vs.molecule.cell.filter(cm, min.cell.size=500)
+rownames(counts) &lt;- make.unique(rownames(counts))
+## Generate Pagoda2 object 
+p2_object &lt;- Pagoda2$new(counts, log.scale=TRUE, min.cells.per.gene=10, n.cores=1) 
+}
+
+</pre>
+</div>
+
+
+<hr>
+<a id="method-setCountMatrix"></a>
+
+
+
+<h4>Method <code>setCountMatrix()</code>
+</h4>
+
+<p>Provide the initial count matrix, and estimate deviance residual matrix (correcting for depth and batch)
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$setCountMatrix(
+  countMatrix,
+  depthScale = 1000,
+  min.cells.per.gene = 0,
+  trim = round(min.cells.per.gene/2),
+  min.transcripts.per.cell = 10,
+  lib.sizes = NULL,
+  log.scale = FALSE,
+  keep.genes = NULL,
+  verbose = TRUE
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>countMatrix</code></dt>
+<dd>
+<p>input count matrix</p>
+</dd>
+<dt><code>depthScale</code></dt>
+<dd>
+<p>numeric Scaling factor for normalizing counts (defaul=1e3). If 'plain', counts are scaled by counts = counts/as.numeric(depth/depthScale).</p>
+</dd>
+<dt><code>min.cells.per.gene</code></dt>
+<dd>
+<p>integer Minimum number of cells per gene, used to subset counts for coverage (default=0)</p>
+</dd>
+<dt><code>trim</code></dt>
+<dd>
+<p>numeric Parameter used for winsorizing count data (default=round(min.cells.per.gene/2)). If value&gt;0, will winsorize counts in normalized space in the hopes of getting a more stable depth estimates. If value&lt;=0, ignored.</p>
+</dd>
+<dt><code>min.transcripts.per.cell</code></dt>
+<dd>
+<p>integer Minimum number of transcripts per cells, used to subset counts for coverage (default=10)</p>
+</dd>
+<dt><code>lib.sizes</code></dt>
+<dd>
+<p>character vector of library sizes (default=NULL)</p>
+</dd>
+<dt><code>log.scale</code></dt>
+<dd>
+<p>boolean If TRUE, scale counts by log() (default=TRUE)</p>
+</dd>
+<dt><code>keep.genes</code></dt>
+<dd>
+<p>list of genes to keep in count matrix after filtering out by coverage but before normalization (default=NULL)</p>
+</dd>
+<dt><code>verbose</code></dt>
+<dd>
+<p>boolean Whether to give verbose output (default=TRUE)</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>normalized count matrix (or if modelTye='raw', the unnormalized count matrix)
+</p>
+
+
+<hr>
+<a id="method-adjustVariance"></a>
+
+
+
+<h4>Method <code>adjustVariance()</code>
+</h4>
+
+<p>Adjust variance of the residual matrix, determine overdispersed sites
+This is done to normalize the extent to which genes with (very) different expression magnitudes will contribute to the downstream anlaysis.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$adjustVariance(
+  gam.k = 5,
+  alpha = 0.05,
+  plot = FALSE,
+  use.raw.variance = FALSE,
+  use.unadjusted.pvals = FALSE,
+  do.par = TRUE,
+  max.adjusted.variance = 1000,
+  min.adjusted.variance = 0.001,
+  cells = NULL,
+  verbose = TRUE,
+  min.gene.cells = 0,
+  persist = is.null(cells),
+  n.cores = self$n.cores
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>gam.k</code></dt>
+<dd>
+<p>integer The k used for the generalized additive model 'v ~ s(m, k =gam.k)' (default=5). If gam.k&lt;2, linear regression is used 'lm(v ~ m)'.</p>
+</dd>
+<dt><code>alpha</code></dt>
+<dd>
+<p>numeric The Type I error probability or the significance level (default=5e-2). This is the criterion used to measure statistical significance, i.e. if the p-value &lt; alpha, then it is statistically significant.</p>
+</dd>
+<dt><code>plot</code></dt>
+<dd>
+<p>boolean Whether to output the plot (default=FALSE)</p>
+</dd>
+<dt><code>use.raw.variance</code></dt>
+<dd>
+<p>(default=FALSE). If modelType='raw', then this conditional will be used as TRUE.</p>
+</dd>
+<dt><code>use.unadjusted.pvals</code></dt>
+<dd>
+<p>boolean Whether to use Benjamini-Hochberg adjusted p-values (default=FALSE).</p>
+</dd>
+<dt><code>do.par</code></dt>
+<dd>
+<p>boolean Whether to put multiple graphs into a signle plot with par() (default=TRUE)</p>
+</dd>
+<dt><code>max.adjusted.variance</code></dt>
+<dd>
+<p>numeric Maximum adjusted variance (default=1e3). The gene scale factor is defined as sqrt(pmax(min.adjusted.variance,pmin(max.adjusted.variance,df$qv))/exp(df$v))</p>
+</dd>
+<dt><code>min.adjusted.variance</code></dt>
+<dd>
+<p>numeric Minimum adjusted variance (default=1e-3). The gene scale factor is defined as sqrt(pmax(min.adjusted.variance,pmin(max.adjusted.variance,df$qv))/exp(df$v))</p>
+</dd>
+<dt><code>cells</code></dt>
+<dd>
+<p>character vector Subset of cells upon which to perform variance normalization with adjustVariance() (default=NULL)</p>
+</dd>
+<dt><code>verbose</code></dt>
+<dd>
+<p>boolean Whether to give verbose output (default=TRUE)</p>
+</dd>
+<dt><code>min.gene.cells</code></dt>
+<dd>
+<p>integer Minimum number of genes per cells (default=0). This parameter is used to filter counts.</p>
+</dd>
+<dt><code>persist</code></dt>
+<dd>
+<p>boolean Whether to save results (default=TRUE, i.e. is.null(cells)).</p>
+</dd>
+<dt><code>n.cores</code></dt>
+<dd>
+<p>numeric Number of cores to use (default=1)</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>residual matrix with adjusted variance
+</p>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>\donttest{
+## Load pre-generated a dataset of 50 bone marrow cells as matrix
+cm &lt;- readRDS(system.file("extdata", "sample_BM1_50.rds", package="pagoda2"))
+## Perform QC, i.e. filter any cells that
+counts &lt;- gene.vs.molecule.cell.filter(cm, min.cell.size=500)
+rownames(counts) &lt;- make.unique(rownames(counts))
+## Generate Pagoda2 object 
+p2_object &lt;- Pagoda2$new(counts,log.scale=TRUE, min.cells.per.gene=10, n.cores=1) 
+## Normalize gene expression variance
+p2_object$adjustVariance(plot=TRUE, gam.k=10)
+}
+
+</pre>
+</div>
+
+
+<hr>
+<a id="method-makeKnnGraph"></a>
+
+
+
+<h4>Method <code>makeKnnGraph()</code>
+</h4>
+
+<p>Create k-nearest neighbor graph
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$makeKnnGraph(
+  k = 30,
+  nrand = 1000,
+  type = "counts",
+  weight.type = "1m",
+  odgenes = NULL,
+  n.cores = self$n.cores,
+  distance = "cosine",
+  center = TRUE,
+  x = NULL,
+  p = NULL,
+  var.scale = (type == "counts"),
+  verbose = TRUE
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>k</code></dt>
+<dd>
+<p>integer Number of k clusters for k-NN (default=30)</p>
+</dd>
+<dt><code>nrand</code></dt>
+<dd>
+<p>numeric Number of randomizations i.e. the gene sets (of the same size) to be evaluated in parallel with each gene set (default=1e3)</p>
+</dd>
+<dt><code>type</code></dt>
+<dd>
+<p>string Data type of the reduction (default='counts'). If type='counts', this will access the raw counts. Otherwise, 'type' must be name of the reductions.</p>
+</dd>
+<dt><code>weight.type</code></dt>
+<dd>
+<p>string 'cauchy', 'normal', 'constant', '1m' (default='1m')</p>
+</dd>
+<dt><code>odgenes</code></dt>
+<dd>
+<p>character vector Overdispersed genes to retrieve (default=NULL)</p>
+</dd>
+<dt><code>n.cores</code></dt>
+<dd>
+<p>numeric Number of cores to use (default=1)</p>
+</dd>
+<dt><code>distance</code></dt>
+<dd>
+<p>string Distance metric used: 'cosine', 'L2', 'L1', 'cauchy', 'euclidean' (default='cosine')</p>
+</dd>
+<dt><code>center</code></dt>
+<dd>
+<p>boolean Whether to use centering when distance='cosine' (default=TRUE). The parameter is ignored otherwise.</p>
+</dd>
+<dt><code>x</code></dt>
+<dd>
+<p>counts or reduction to use (default=NULL). If NULL, uses counts. Otherwise, checks for the reduction in self$reductions[[type]]</p>
+</dd>
+<dt><code>p</code></dt>
+<dd>
+<p>(default=NULL)</p>
+</dd>
+<dt><code>var.scale</code></dt>
+<dd>
+<p>boolean Apply scaling if using raw counts (default=TRUE). If type="counts", var.scale is TRUE by default.</p>
+</dd>
+<dt><code>verbose</code></dt>
+<dd>
+<p>boolean Whether to give verbose output (default=TRUE)</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>kNN graph, stored in self$graphs
+</p>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>\donttest{
+## Load pre-generated a dataset of 50 bone marrow cells as matrix
+cm &lt;- readRDS(system.file("extdata", "sample_BM1_50.rds", package="pagoda2"))
+## Perform QC, i.e. filter any cells that
+counts &lt;- gene.vs.molecule.cell.filter(cm, min.cell.size=300)
+rownames(counts) &lt;- make.unique(rownames(counts))
+## Generate Pagoda2 object   
+p2_object &lt;- Pagoda2$new(counts,log.scale=TRUE, min.cells.per.gene=10, n.cores=1) 
+## Normalize gene expression variance
+p2_object$adjustVariance(plot=TRUE, gam.k=10)
+## Generate a kNN graph of cells that will allow us to identify clusters of cells
+p2_object$makeKnnGraph(k=20, center=FALSE, distance='L2')
+}
+
+</pre>
+</div>
+
+
+<hr>
+<a id="method-getKnnClusters"></a>
+
+
+
+<h4>Method <code>getKnnClusters()</code>
+</h4>
+
+<p>Calculate clusters based on the kNN graph
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$getKnnClusters(
+  type = "counts",
+  method = igraph::multilevel.community,
+  name = "community",
+  n.cores = self$n.cores,
+  g = NULL,
+  min.cluster.size = 1,
+  persist = TRUE,
+  ...
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>type</code></dt>
+<dd>
+<p>string Data type (default='counts'). Currently only 'counts' supported.</p>
+</dd>
+<dt><code>method</code></dt>
+<dd>
+<p>Method to use (default=igraph::multilevel.community). Accepted methods are either 'igraph::infomap.community' or 'igraph::multilevel.community'. 
+If NULL, if the number of vertices of the graph is greater than or equal to 2000, 'igraph::multilevel.community' will be used. Otherwise, 'igraph::infomap.community' will be used.</p>
+</dd>
+<dt><code>name</code></dt>
+<dd>
+<p>string Name of the community structure calculated from 'method' (default='community')</p>
+</dd>
+<dt><code>n.cores</code></dt>
+<dd>
+<p>numeric Number of cores to use (default=1)</p>
+</dd>
+<dt><code>g</code></dt>
+<dd>
+<p>Input graph (default=NULL). If NULL, access graph from self$graphs[[type]].</p>
+</dd>
+<dt><code>min.cluster.size</code></dt>
+<dd>
+<p>Minimum size of clusters (default=1). This parameter is primarily used to remove very small clusters.</p>
+</dd>
+<dt><code>persist</code></dt>
+<dd>
+<p>boolean Whether to save the clusters and community structure (default=TRUE)</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Additional parameters to pass to 'method'</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>the community structure calculated from 'method'
+</p>
+
+
+<hr>
+<a id="method-geneKnnbyPCA"></a>
+
+
+
+<h4>Method <code>geneKnnbyPCA()</code>
+</h4>
+
+<p>Deprecated function. Use makeGeneKnnGraph() instead.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$geneKnnbyPCA()</pre></div>
+
+
+<hr>
+<a id="method-getHierarchicalDiffExpressionAspects"></a>
+
+
+
+<h4>Method <code>getHierarchicalDiffExpressionAspects()</code>
+</h4>
+
+<p>Take a given clustering and generate a hierarchical clustering
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$getHierarchicalDiffExpressionAspects(
+  type = "counts",
+  groups = NULL,
+  clusterName = NULL,
+  method = "ward.D",
+  dist = "pearson",
+  persist = TRUE,
+  z.threshold = 2,
+  n.cores = self$n.cores,
+  min.set.size = 5,
+  verbose = TRUE
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>type</code></dt>
+<dd>
+<p>string Data type of the reduction (default='counts'). If type='counts', this will access the raw counts. Otherwise, 'type' must be name of the reductions.</p>
+</dd>
+<dt><code>groups</code></dt>
+<dd>
+<p>factor named with cell names specifying the clusters of cells to be compared (one against all) (default=NULL). To compare two cell clusters against each other, simply pass a factor containing only two levels.</p>
+</dd>
+<dt><code>clusterName</code></dt>
+<dd>
+<p>string Cluster name to access (default=NULL)</p>
+</dd>
+<dt><code>method</code></dt>
+<dd>
+<p>string The agglomeration method to be used in stats::hcust(method=method) (default='ward.D'). Accepted values are: "ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid" (= UPGMC). For more information, see stats::hclust().</p>
+</dd>
+<dt><code>dist</code></dt>
+<dd>
+<p>string 'pearson', 'spearman', 'euclidean', 'L2', 'JS' (default='pearson')</p>
+</dd>
+<dt><code>persist</code></dt>
+<dd>
+<p>boolean Whether to save the clusters and community structure (default=TRUE)</p>
+</dd>
+<dt><code>z.threshold</code></dt>
+<dd>
+<p>numeric Threshold of z-scores to filter, &gt;=z.threshold are kept (default=2)</p>
+</dd>
+<dt><code>n.cores</code></dt>
+<dd>
+<p>numeric Number of cores to use (default=1)</p>
+</dd>
+<dt><code>min.set.size</code></dt>
+<dd>
+<p>integer Minimum threshold of sets to keep (default=5)</p>
+</dd>
+<dt><code>verbose</code></dt>
+<dd>
+<p>boolean Whether to give verbose output (default=TRUE)</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>hierarchical clustering
+</p>
+
+
+<hr>
+<a id="method-makeGeneKnnGraph"></a>
+
+
+
+<h4>Method <code>makeGeneKnnGraph()</code>
+</h4>
+
+<p>Calculates gene Knn network for gene similarity
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$makeGeneKnnGraph(
+  nPcs = 100,
+  center = TRUE,
+  fastpath = TRUE,
+  maxit = 1000,
+  k = 30,
+  n.cores = self$n.cores,
+  verbose = TRUE
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>nPcs</code></dt>
+<dd>
+<p>integer Number of principal components (default=100). This is the parameter 'nv' in irlba::irlba(), the number of right singular vectors to estimate.</p>
+</dd>
+<dt><code>center</code></dt>
+<dd>
+<p>boolean Whether to center the PCA (default=TRUE)</p>
+</dd>
+<dt><code>fastpath</code></dt>
+<dd>
+<p>boolean Whether to try a (fast) C algorithm implementation if possible (default=TRUE). This parameter is equivalent to 'fastpath' in irlba::irlba().</p>
+</dd>
+<dt><code>maxit</code></dt>
+<dd>
+<p>integer Maximum number of iterations (default=1000). This parameter is equivalent to 'maxit' in irlba::irlba().</p>
+</dd>
+<dt><code>k</code></dt>
+<dd>
+<p>integer Number of k clusters for calculating k-NN on the resulting principal components (default=30).</p>
+</dd>
+<dt><code>n.cores</code></dt>
+<dd>
+<p>numeric Number of cores to use (default=1)</p>
+</dd>
+<dt><code>verbose</code></dt>
+<dd>
+<p>boolean Whether to give verbose output (default=TRUE)</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>graph with gene similarity
+</p>
+
+
+<hr>
+<a id="method-getDensityClusters"></a>
+
+
+
+<h4>Method <code>getDensityClusters()</code>
+</h4>
+
+<p>Calculate density-based clusters
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$getDensityClusters(
+  type = "counts",
+  embeddingType = NULL,
+  name = "density",
+  eps = 0.5,
+  v = 0.7,
+  s = 1,
+  verbose = TRUE,
+  ...
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>type</code></dt>
+<dd>
+<p>string Data type (default='counts'). Currently only 'counts' supported.</p>
+</dd>
+<dt><code>embeddingType</code></dt>
+<dd>
+<p>The type of embedding used when calculating with ‘getEmbedding()' (default=NULL). Accepted values are: ’largeVis', 'tSNE', 'FR', 'UMAP', 'UMAP_graph'</p>
+</dd>
+<dt><code>name</code></dt>
+<dd>
+<p>string Name fo the clustering (default='density').</p>
+</dd>
+<dt><code>eps</code></dt>
+<dd>
+<p>numeric value of the eps parameter, fed into dbscan::dbscan(x=emb, eps=eps, ...)</p>
+</dd>
+<dt><code>v</code></dt>
+<dd>
+<p>numeric The “value” to be used to complete the HSV color descriptions (default=0.7). Equivalent to the 'v' parameter in grDevices::rainbow().</p>
+</dd>
+<dt><code>s</code></dt>
+<dd>
+<p>numeric The “saturation” to be used to complete the HSV color descriptions (default=1). Equivalent to the 's' parameter in grDevices::rainbow().</p>
+</dd>
+<dt><code>verbose</code></dt>
+<dd>
+<p>boolean Whether to give verbose output (default=TRUE)</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Additional parameters passed to dbscan::dbscan(emb, ...)</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>density-based clusters
+</p>
+
+
+<hr>
+<a id="method-getDifferentialGenes"></a>
+
+
+
+<h4>Method <code>getDifferentialGenes()</code>
+</h4>
+
+<p>Determine differentially expressed genes, comparing each group against all others using Wilcoxon rank sum test
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$getDifferentialGenes(
+  type = "counts",
+  clusterType = NULL,
+  groups = NULL,
+  name = "customClustering",
+  z.threshold = 3,
+  upregulated.only = FALSE,
+  verbose = FALSE,
+  append.specificity.metrics = TRUE,
+  append.auc = FALSE
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>type</code></dt>
+<dd>
+<p>string Data type (default='counts'). Currently only 'counts' supported.</p>
+</dd>
+<dt><code>clusterType</code></dt>
+<dd>
+<p>Optional cluster type to use as a group-defining factor (default=NULL)</p>
+</dd>
+<dt><code>groups</code></dt>
+<dd>
+<p>factor named with cell names specifying the clusters of cells to be compared (one against all) (default=NULL). To compare two cell clusters against each other, simply pass a factor containing only two levels.</p>
+</dd>
+<dt><code>name</code></dt>
+<dd>
+<p>string Slot to store the results in (default='customClustering')</p>
+</dd>
+<dt><code>z.threshold</code></dt>
+<dd>
+<p>numeric Minimal absolute Z score (adjusted) to report (default=3)</p>
+</dd>
+<dt><code>upregulated.only</code></dt>
+<dd>
+<p>boolean Whether to report only genes that are expressed significantly higher in each group (default=FALSE)</p>
+</dd>
+<dt><code>verbose</code></dt>
+<dd>
+<p>boolean Whether to give verbose output (default=FALSE)</p>
+</dd>
+<dt><code>append.specificity.metrics</code></dt>
+<dd>
+<p>boolean Whether to append specifity metrics (default=TRUE). Uses the function sccore::appendSpecificityMetricsToDE().</p>
+</dd>
+<dt><code>append.auc</code></dt>
+<dd>
+<p>boolean If TRUE, append AUC values (default=FALSE). Parameter ignored if append.specificity.metrics is FALSE.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>List with each element of the list corresponding to a cell group in the provided/used factor (i.e. factor levels) 
+Each element of a list is a data frame listing the differentially epxressed genes (row names), with the following columns: 
+Z - adjusted Z score, with positive values indicating higher expression in a given group compare to the rest
+M - log2 fold change
+highest- a boolean flag indicating whether the expression of a given gene in a given vcell group was on average higher than in every other cell group
+fe - fraction of cells in a given group having non-zero expression level of a given gene
+</p>
+
+
+<hr>
+<a id="method-plotDiffGeneHeatmap"></a>
+
+
+
+<h4>Method <code>plotDiffGeneHeatmap()</code>
+</h4>
+
+<p>Plot heatmap of DE results
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$plotDiffGeneHeatmap(
+  type = "counts",
+  clusterType = NULL,
+  groups = NULL,
+  n.genes = 100,
+  z.score = 2,
+  gradient.range.quantile = 0.95,
+  inner.clustering = FALSE,
+  gradientPalette = NULL,
+  v = 0.8,
+  s = 1,
+  box = TRUE,
+  drawGroupNames = FALSE,
+  ...
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>type</code></dt>
+<dd>
+<p>string Data type (default='counts'). Currently only 'counts' supported.</p>
+</dd>
+<dt><code>clusterType</code></dt>
+<dd>
+<p>Optional cluster type to use as a group-defining factor (default=NULL)</p>
+</dd>
+<dt><code>groups</code></dt>
+<dd>
+<p>factor named with cell names specifying the clusters of cells to be compared (one against all) (default=NULL). To compare two cell clusters against each other, simply pass a factor containing only two levels.</p>
+</dd>
+<dt><code>n.genes</code></dt>
+<dd>
+<p>integer Number of genes to plot (default=100)</p>
+</dd>
+<dt><code>z.score</code></dt>
+<dd>
+<p>numeric Threshold of z-scores to filter (default=2). Only greater than or equal to this value are kept.</p>
+</dd>
+<dt><code>gradient.range.quantile</code></dt>
+<dd>
+<p>numeric Trimming quantile (default=0.95)</p>
+</dd>
+<dt><code>inner.clustering</code></dt>
+<dd>
+<p>boolean Whether to cluster cells within each cluster (default=FALSE)</p>
+</dd>
+<dt><code>gradientPalette</code></dt>
+<dd>
+<p>palette of colors to use (default=NULL). If NULL, uses 'colorRampPalette(c('gray90','red'), space = "Lab")(1024)'</p>
+</dd>
+<dt><code>v</code></dt>
+<dd>
+<p>numeric The “value” to be used to complete the HSV color descriptions (default=0.7). Equivalent to the 'v' parameter in grDevices::rainbow().</p>
+</dd>
+<dt><code>s</code></dt>
+<dd>
+<p>numeric The “saturation” to be used to complete the HSV color descriptions (default=1). Equivalent to the 's' parameter in grDevices::rainbow().</p>
+</dd>
+<dt><code>box</code></dt>
+<dd>
+<p>boolean Whether to draw a box around the current plot in the given color and linetype (default=TRUE)</p>
+</dd>
+<dt><code>drawGroupNames</code></dt>
+<dd>
+<p>boolean Whether to draw group names (default=FALSE)</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Additional parameters passed to internal function used for heatmap plotting, my.heatmap2()</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>heatmap of DE results
+</p>
+
+
+<hr>
+<a id="method-getRefinedLibSizes"></a>
+
+
+
+<h4>Method <code>getRefinedLibSizes()</code>
+</h4>
+
+<p>Recalculate library sizes using robust regression within clusters
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$getRefinedLibSizes(
+  clusterType = NULL,
+  groups = NULL,
+  type = "counts",
+  n.cores = self$n.cores
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>clusterType</code></dt>
+<dd>
+<p>Name of cluster to access (default=NULL). If NULL, takes the most recently generated clustering. Parameter ignored if groups is not NULL.</p>
+</dd>
+<dt><code>groups</code></dt>
+<dd>
+<p>factor named with cell names specifying the clusters of cells (default=NULL)</p>
+</dd>
+<dt><code>type</code></dt>
+<dd>
+<p>string Either 'counts' or the name of a stored embedding, names(self$embeddings) (default=NULL)</p>
+</dd>
+<dt><code>n.cores</code></dt>
+<dd>
+<p>numeric Number of cores to use (default=self$n.cores=1)</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>recalculated library sizes
+</p>
+
+
+<hr>
+<a id="method-plotGeneHeatmap"></a>
+
+
+
+<h4>Method <code>plotGeneHeatmap()</code>
+</h4>
+
+<p>Plot heatmap for a given set of genes
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$plotGeneHeatmap(
+  genes,
+  type = "counts",
+  clusterType = NULL,
+  groups = NULL,
+  gradient.range.quantile = 0.95,
+  cluster.genes = FALSE,
+  inner.clustering = FALSE,
+  gradientPalette = NULL,
+  v = 0.8,
+  s = 1,
+  box = TRUE,
+  drawGroupNames = FALSE,
+  useRaster = TRUE,
+  smooth.span = max(1, round(nrow(self$counts)/1024)),
+  ...
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>genes</code></dt>
+<dd>
+<p>character vector Gene names</p>
+</dd>
+<dt><code>type</code></dt>
+<dd>
+<p>string Data type (default='counts'). Currently only 'counts' supported.</p>
+</dd>
+<dt><code>clusterType</code></dt>
+<dd>
+<p>Optional cluster type to use as a group-defining factor (default=NULL)</p>
+</dd>
+<dt><code>groups</code></dt>
+<dd>
+<p>factor named with cell names specifying the clusters of cells to be compared (one against all) (default=NULL). To compare two cell clusters against each other, simply pass a factor containing only two levels.</p>
+</dd>
+<dt><code>gradient.range.quantile</code></dt>
+<dd>
+<p>numeric Trimming quantile (default=0.95)</p>
+</dd>
+<dt><code>cluster.genes</code></dt>
+<dd>
+<p>boolean Whether to cluster genes within each cluster using stats::hclust() (default=FALSE)</p>
+</dd>
+<dt><code>inner.clustering</code></dt>
+<dd>
+<p>boolean Whether to cluster cells within each cluster (default=FALSE)</p>
+</dd>
+<dt><code>gradientPalette</code></dt>
+<dd>
+<p>palette of colors to use (default=NULL). If NULL, uses 'colorRampPalette(c('gray90','red'), space = "Lab")(1024)'</p>
+</dd>
+<dt><code>v</code></dt>
+<dd>
+<p>numeric The “value” to be used to complete the HSV color descriptions (default=0.7). Equivalent to the 'v' parameter in grDevices::rainbow().</p>
+</dd>
+<dt><code>s</code></dt>
+<dd>
+<p>numeric The “saturation” to be used to complete the HSV color descriptions (default=1). Equivalent to the 's' parameter in grDevices::rainbow().</p>
+</dd>
+<dt><code>box</code></dt>
+<dd>
+<p>boolean Whether to draw a box around the current plot in the given color and linetype (default=TRUE)</p>
+</dd>
+<dt><code>drawGroupNames</code></dt>
+<dd>
+<p>boolean Whether to draw group names (default=FALSE)</p>
+</dd>
+<dt><code>useRaster</code></dt>
+<dd>
+<p>boolean If TRUE a bitmap raster is used to plot the image instead of polygons (default=TRUE). The grid must be regular in that case, otherwise an error is raised. For more information, see graphics::image().</p>
+</dd>
+<dt><code>smooth.span</code></dt>
+<dd>
+<p>(default=max(1,round(nrow(self$counts)/1024)))</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Additional parameters passed to internal function used for heatmap plotting, my.heatmap2()</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>plot of gene heatmap
+</p>
+
+
+<hr>
+<a id="method-plotEmbedding"></a>
+
+
+
+<h4>Method <code>plotEmbedding()</code>
+</h4>
+
+<p>Show embedding
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$plotEmbedding(
+  type = NULL,
+  embeddingType = NULL,
+  clusterType = NULL,
+  groups = NULL,
+  colors = NULL,
+  gene = NULL,
+  plot.theme = ggplot2::theme_bw(),
+  ...
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>type</code></dt>
+<dd>
+<p>string Either 'counts' or the name of a stored embedding, names(self$embeddings) (default=NULL)</p>
+</dd>
+<dt><code>embeddingType</code></dt>
+<dd>
+<p>string Embedding type (default=NULL). If NULL, takes the most recently generated embedding.</p>
+</dd>
+<dt><code>clusterType</code></dt>
+<dd>
+<p>Name of cluster to access (default=NULL). If NULL, takes the most recently generated clustering. Parameter ignored if groups is not NULL.</p>
+</dd>
+<dt><code>groups</code></dt>
+<dd>
+<p>factor named with cell names specifying the clusters of cells (default=NULL)</p>
+</dd>
+<dt><code>colors</code></dt>
+<dd>
+<p>character vector List of gene names (default=NULL)</p>
+</dd>
+<dt><code>gene</code></dt>
+<dd>
+<p>(default=NULL)</p>
+</dd>
+<dt><code>plot.theme</code></dt>
+<dd>
+<p>(default=ggplot2::theme_bw())</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Additional parameters passed to sccore::embeddingPlot()</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>plot of the embedding
+</p>
+
+
+<hr>
+<a id="method-getOdGenes"></a>
+
+
+
+<h4>Method <code>getOdGenes()</code>
+</h4>
+
+<p>Get overdispersed genes
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$getOdGenes(
+  n.odgenes = NULL,
+  alpha = 0.05,
+  use.unadjusted.pvals = FALSE
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>n.odgenes</code></dt>
+<dd>
+<p>integer Number of overdispersed genes to retrieve (default=NULL). If NULL, will return all.</p>
+</dd>
+<dt><code>alpha</code></dt>
+<dd>
+<p>numeric The Type I error probability or the significance level (default=5e-2). This is the criterion used to measure statistical significance, i.e. if the p-value &lt; alpha, then it is statistically significant.</p>
+</dd>
+<dt><code>use.unadjusted.pvals</code></dt>
+<dd>
+<p>boolean Whether to use Benjamini-Hochberg adjusted p-values (default=FALSE).</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>vector of overdispersed genes
+</p>
+
+
+<hr>
+<a id="method-getNormalizedExpressionMatrix"></a>
+
+
+
+<h4>Method <code>getNormalizedExpressionMatrix()</code>
+</h4>
+
+<p>Return variance-normalized matrix for specified genes or a number of OD genes
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$getNormalizedExpressionMatrix(genes = NULL, n.odgenes = NULL)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>genes</code></dt>
+<dd>
+<p>vector of gene names to explicitly return (default=NULL)</p>
+</dd>
+<dt><code>n.odgenes</code></dt>
+<dd>
+<p>integer Number of overdispersed genes to retrieve (default=NULL). If NULL, will return all.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>cell by gene matrix
+</p>
+
+
+<hr>
+<a id="method-calculatePcaReduction"></a>
+
+
+
+<h4>Method <code>calculatePcaReduction()</code>
+</h4>
+
+<p>Calculate PCA reduction of the data
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$calculatePcaReduction(
+  nPcs = 20,
+  type = "counts",
+  name = "PCA",
+  use.odgenes = TRUE,
+  n.odgenes = NULL,
+  odgenes = NULL,
+  center = TRUE,
+  cells = NULL,
+  fastpath = TRUE,
+  maxit = 100,
+  verbose = TRUE,
+  var.scale = (type == "counts"),
+  ...
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>nPcs</code></dt>
+<dd>
+<p>numeric Number of principal components (PCs) (default=20)</p>
+</dd>
+<dt><code>type</code></dt>
+<dd>
+<p>string Dataset view to reduce (counts by default, but can specify a name of an existing reduction) (default='counts')</p>
+</dd>
+<dt><code>name</code></dt>
+<dd>
+<p>string Name for the PCA reduction to be created (default='PCA')</p>
+</dd>
+<dt><code>use.odgenes</code></dt>
+<dd>
+<p>boolean Whether pre-calculated set of overdispersed genes should be used (default=TRUE)</p>
+</dd>
+<dt><code>n.odgenes</code></dt>
+<dd>
+<p>integer Number of overdispersed genes to retrieve (default=NULL). If NULL, will return all.</p>
+</dd>
+<dt><code>odgenes</code></dt>
+<dd>
+<p>Explicitly specify a set of overdispersed genes to use for the reduction (default=NULL)</p>
+</dd>
+<dt><code>center</code></dt>
+<dd>
+<p>boolean Whether data should be centered prior to PCA (default=TRUE)</p>
+</dd>
+<dt><code>cells</code></dt>
+<dd>
+<p>optional subset of cells on which PCA should be run (default=NULL)</p>
+</dd>
+<dt><code>fastpath</code></dt>
+<dd>
+<p>boolean Use C implementation for speedup (default=TRUE)</p>
+</dd>
+<dt><code>maxit</code></dt>
+<dd>
+<p>numeric Maximum number of iterations (default=100). For more information, see 'maxit' parameter in irlba::irlba().</p>
+</dd>
+<dt><code>verbose</code></dt>
+<dd>
+<p>boolean Whether to give verbose output (default=TRUE)</p>
+</dd>
+<dt><code>var.scale</code></dt>
+<dd>
+<p>boolean Apply scaling if using raw counts (default=TRUE). If type="counts", var.scale is TRUE by default.</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>additional arguments forwarded to irlba::irlba</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>Invisible PCA result (the reduction itself is saved in self$reductions[[name]])"
+</p>
+
+
+<hr>
+<a id="method-expandOdGenes"></a>
+
+
+
+<h4>Method <code>expandOdGenes()</code>
+</h4>
+
+<p>Reset overdispersed genes 'odgenes' to be a superset of the standard odgene selection (guided by n.odgenes or alpha), 
+and a set of recursively determined odgenes based on a given group (or a cluster info)
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$expandOdGenes(
+  type = "counts",
+  clusterType = NULL,
+  groups = NULL,
+  min.group.size = 30,
+  od.alpha = 0.1,
+  use.odgenes = FALSE,
+  n.odgenes = NULL,
+  odgenes = NULL,
+  n.odgene.multiplier = 1,
+  gam.k = 10,
+  verbose = FALSE,
+  n.cores = self$n.cores,
+  min.odgenes = 10,
+  max.odgenes = Inf,
+  recursive = TRUE
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>type</code></dt>
+<dd>
+<p>string Data type (default='counts'). Currently only 'counts' supported.</p>
+</dd>
+<dt><code>clusterType</code></dt>
+<dd>
+<p>Optional cluster type to use as a group-defining factor (default=NULL)</p>
+</dd>
+<dt><code>groups</code></dt>
+<dd>
+<p>factor named with cell names specifying the clusters of cells to be compared (one against all) (default=NULL). To compare two cell clusters against each other, simply pass a factor containing only two levels.</p>
+</dd>
+<dt><code>min.group.size</code></dt>
+<dd>
+<p>integer Number of minimum cells for filtering out group size (default=30)</p>
+</dd>
+<dt><code>od.alpha</code></dt>
+<dd>
+<p>numeric The Type I error probability or the significance level for calculating overdispersed genes (default=1e-1). This is the criterion used to measure statistical significance, i.e. if the p-value &lt; alpha, then it is statistically significant.</p>
+</dd>
+<dt><code>use.odgenes</code></dt>
+<dd>
+<p>boolean Whether pre-calculated set of overdispersed genes should be used (default=FALSE)</p>
+</dd>
+<dt><code>n.odgenes</code></dt>
+<dd>
+<p>integer Number of overdispersed genes to retrieve (default=NULL). If NULL, will return all.</p>
+</dd>
+<dt><code>odgenes</code></dt>
+<dd>
+<p>Explicitly specify a set of overdispersed genes to use for the reduction (default=NULL) #' @param odgenes (default=NULL)</p>
+</dd>
+<dt><code>n.odgene.multiplier</code></dt>
+<dd>
+<p>numeric (default=1)</p>
+</dd>
+<dt><code>gam.k</code></dt>
+<dd>
+<p>integer The k used for the generalized additive model 'v ~ s(m, k =gam.k)' (default=10). If gam.k&lt;2, linear regression is used 'lm(v ~ m)'.</p>
+</dd>
+<dt><code>verbose</code></dt>
+<dd>
+<p>boolean Whether to give verbose output (default=TRUE)</p>
+</dd>
+<dt><code>n.cores</code></dt>
+<dd>
+<p>numeric Number of cores to use (default=1)</p>
+</dd>
+<dt><code>min.odgenes</code></dt>
+<dd>
+<p>integer Minimum number of overdispersed genes to use (default=10)</p>
+</dd>
+<dt><code>max.odgenes</code></dt>
+<dd>
+<p>integer Maximum number of overdispersed genes to use (default=Inf)</p>
+</dd>
+<dt><code>recursive</code></dt>
+<dd>
+<p>boolean Whether to determine groups for which variance normalization will be rerun (default=TRUE)</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>List of overdispersed genes
+</p>
+
+
+<hr>
+<a id="method-localPcaKnn"></a>
+
+
+
+<h4>Method <code>localPcaKnn()</code>
+</h4>
+
+<p>local PCA implementation
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$localPcaKnn(
+  nPcs = 5,
+  type = "counts",
+  clusterType = NULL,
+  groups = NULL,
+  k = 30,
+  b = 1,
+  a = 1,
+  min.group.size = 30,
+  name = "localPCA",
+  od.alpha = 0.1,
+  n.odgenes = NULL,
+  gam.k = 10,
+  verbose = FALSE,
+  n.cores = self$n.cores,
+  min.odgenes = 5,
+  take.top.odgenes = FALSE,
+  recursive = TRUE,
+  euclidean = FALSE,
+  perplexity = k,
+  return.pca = FALSE,
+  skip.pca = FALSE
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>nPcs</code></dt>
+<dd>
+<p>integer Number of principal components (default=5)</p>
+</dd>
+<dt><code>type</code></dt>
+<dd>
+<p>string Data type (default='counts'). Currently only 'counts' supported.</p>
+</dd>
+<dt><code>clusterType</code></dt>
+<dd>
+<p>Optional cluster type to use as a group-defining factor (default=NULL)</p>
+</dd>
+<dt><code>groups</code></dt>
+<dd>
+<p>factor named with cell names specifying the clusters of cells to be compared (one against all) (default=NULL). To compare two cell clusters against each other, simply pass a factor containing only two levels.</p>
+</dd>
+<dt><code>k</code></dt>
+<dd>
+<p>integer Number of components for kNN graph (default=30)</p>
+</dd>
+<dt><code>b</code></dt>
+<dd>
+<p>numeric Constant within exp(-b*(ncid/cldsd)^2), used for calculating cell relevance per cluster (default=1)</p>
+</dd>
+<dt><code>a</code></dt>
+<dd>
+<p>numeric Constant within "(1-exp(-a*(dsq)/(p$pcs$trsd^2)))*(pk /outerproduct pk)" (default=1)</p>
+</dd>
+<dt><code>min.group.size</code></dt>
+<dd>
+<p>integer Number of minimum cells for filtering out group size (default=30)</p>
+</dd>
+<dt><code>name</code></dt>
+<dd>
+<p>string Title (default='localPCA')</p>
+</dd>
+<dt><code>od.alpha</code></dt>
+<dd>
+<p>numeric Significance level for calculating overdispersed genes (default=1e-1). P-values will be filtered by &lt;log(od.alpha).</p>
+</dd>
+<dt><code>n.odgenes</code></dt>
+<dd>
+<p>integer Number of overdispersed genes to retrieve (default=NULL). If NULL, will return all.</p>
+</dd>
+<dt><code>gam.k</code></dt>
+<dd>
+<p>integer The k used for the generalized additive model 'v ~ s(m, k =gam.k)' (default=10). If gam.k&lt;2, linear regression is used 'lm(v ~ m)'.</p>
+</dd>
+<dt><code>verbose</code></dt>
+<dd>
+<p>boolean Whether to give verbose output (default=TRUE)</p>
+</dd>
+<dt><code>n.cores</code></dt>
+<dd>
+<p>numeric Number of cores to use (default=1)</p>
+</dd>
+<dt><code>min.odgenes</code></dt>
+<dd>
+<p>integer Minimum number of overdispersed genes to use (default=5)</p>
+</dd>
+<dt><code>take.top.odgenes</code></dt>
+<dd>
+<p>boolean Take top overdispersed genes in decreasing order (default=FALSE)</p>
+</dd>
+<dt><code>recursive</code></dt>
+<dd>
+<p>boolean Whether to recursively determine groups for which variance normalization will be rerun (default=FALSE)</p>
+</dd>
+<dt><code>euclidean</code></dt>
+<dd>
+<p>boolean Whether to applied euclidean-based distance similarity during variance normalization (default=FALSE)</p>
+</dd>
+<dt><code>perplexity</code></dt>
+<dd>
+<p>integer Perplexity parameter within Rtsne::Rtsne() (default=k). Please see Rtsne for more details.</p>
+</dd>
+<dt><code>return.pca</code></dt>
+<dd>
+<p>boolean Whether to return the PCs (default=FALSE)</p>
+</dd>
+<dt><code>skip.pca</code></dt>
+<dd>
+<p>boolean If TRUE and return.pca=TRUE, will return a list of scale factors, cells, and overdispersed genes, i.e. list(sf=sf, cells=cells, odgenes=odgenes) (default=FALSE). Otherwise, ignored.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>localPcaKnn return here
+</p>
+
+
+<hr>
+<a id="method-testPathwayOverdispersion"></a>
+
+
+
+<h4>Method <code>testPathwayOverdispersion()</code>
+</h4>
+
+<p>Test pathway overdispersion
+Note: this is a compressed version of the PAGODA1 approach in SCDE &lt;https://hms-dbmi.github.io/scde/&gt;
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$testPathwayOverdispersion(
+  setenv,
+  type = "counts",
+  max.pathway.size = 1000,
+  min.pathway.size = 10,
+  n.randomizations = 5,
+  verbose = FALSE,
+  n.cores = self$n.cores,
+  score.alpha = 0.05,
+  plot = FALSE,
+  cells = NULL,
+  adjusted.pvalues = TRUE,
+  z.score = qnorm(0.05/2, lower.tail = FALSE),
+  use.oe.scale = FALSE,
+  return.table = FALSE,
+  name = "pathwayPCA",
+  correlation.distance.threshold = 0.2,
+  loading.distance.threshold = 0.01,
+  top.aspects = Inf,
+  recalculate.pca = FALSE,
+  save.pca = TRUE
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>setenv</code></dt>
+<dd>
+<p>Specific environment for pathway analysis</p>
+</dd>
+<dt><code>type</code></dt>
+<dd>
+<p>string Data type (default='counts'). Currently only 'counts' supported.</p>
+</dd>
+<dt><code>max.pathway.size</code></dt>
+<dd>
+<p>integer Maximum number of observed genes in a valid gene set (default=1e3)</p>
+</dd>
+<dt><code>min.pathway.size</code></dt>
+<dd>
+<p>integer Minimum number of observed genes that should be contained in a valid gene set (default=10)</p>
+</dd>
+<dt><code>n.randomizations</code></dt>
+<dd>
+<p>numeric Number of random gene sets (of the same size) to be evaluated in parallel with each gene set (default=5). (This can be kept at 5 or 10, but should be increased to 50-100 if the significance of pathway overdispersion will be determined relative to random gene set models.)</p>
+</dd>
+<dt><code>verbose</code></dt>
+<dd>
+<p>boolean Whether to give verbose output (default=TRUE)</p>
+</dd>
+<dt><code>n.cores</code></dt>
+<dd>
+<p>numeric Number of cores to use (default=1)</p>
+</dd>
+<dt><code>score.alpha</code></dt>
+<dd>
+<p>numeric Significance level of the confidence interval for determining upper/lower bounds (default=0.05)</p>
+</dd>
+<dt><code>plot</code></dt>
+<dd>
+<p>boolean Whether to output the plot (default=FALSE)</p>
+</dd>
+<dt><code>cells</code></dt>
+<dd>
+<p>character vector Specific cells to investigate (default=NULL)</p>
+</dd>
+<dt><code>adjusted.pvalues</code></dt>
+<dd>
+<p>boolean Whether to use adjusted p-values (default=TRUE)</p>
+</dd>
+<dt><code>z.score</code></dt>
+<dd>
+<p>numeric Z-score to be used as a cutoff for statistically significant patterns (default=qnorm(0.05/2, lower.tail = FALSE))</p>
+</dd>
+<dt><code>use.oe.scale</code></dt>
+<dd>
+<p>boolean Whether the variance of the returned aspect patterns should be normalized using observed/expected value instead of the default chi-squared derived variance corresponding to overdispersion Z-score (default=FALSE)</p>
+</dd>
+<dt><code>return.table</code></dt>
+<dd>
+<p>boolean Whether to return a text table with results (default=FALSE)</p>
+</dd>
+<dt><code>name</code></dt>
+<dd>
+<p>string Title (default='pathwayPCA')</p>
+</dd>
+<dt><code>correlation.distance.threshold</code></dt>
+<dd>
+<p>numeric Similarity threshold for grouping interdependent aspects in pagoda.reduce.redundancy() (default=0.2)</p>
+</dd>
+<dt><code>loading.distance.threshold</code></dt>
+<dd>
+<p>numeric Similarity threshold for grouping interdependent aspects in pagoda.reduce.loading.redundancy() (default=0.2)</p>
+</dd>
+<dt><code>top.aspects</code></dt>
+<dd>
+<p>Restrict output to the top N aspects of heterogeneity (default=Inf)</p>
+</dd>
+<dt><code>recalculate.pca</code></dt>
+<dd>
+<p>boolean Whether to recalculate PCA (default=FALSE)</p>
+</dd>
+<dt><code>save.pca</code></dt>
+<dd>
+<p>boolean Whether to save the PCA results (default=TRUE). If TRUE, caches them in self$misc[['pwpca']].</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>pathway output
+</p>
+
+
+<hr>
+<a id="method-getEmbedding"></a>
+
+
+
+<h4>Method <code>getEmbedding()</code>
+</h4>
+
+<p>Return embedding
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$getEmbedding(
+  type = "counts",
+  embeddingType = "largeVis",
+  name = NULL,
+  dims = 2,
+  M = 1,
+  gamma = 1/M,
+  perplexity = 50,
+  verbose = TRUE,
+  sgd_batches = NULL,
+  diffusion.steps = 0,
+  diffusion.power = 0.5,
+  distance = "pearson",
+  n.cores = self$n.cores,
+  n.sgd.cores = n.cores,
+  ...
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>type</code></dt>
+<dd>
+<p>string Data type (default='counts'). Currently only 'counts' supported.</p>
+</dd>
+<dt><code>embeddingType</code></dt>
+<dd>
+<p>string Type of embedding to construct (default='largeVis'). Possible values are: 'largeVis', 'tSNE', 'FR' (Fruchterman–Reingold), 'UMAP', 'UMAP_graph'</p>
+</dd>
+<dt><code>name</code></dt>
+<dd>
+<p>string Name of the embedding (default=NULL). If NULL, the name = embeddingType.</p>
+</dd>
+<dt><code>dims</code></dt>
+<dd>
+<p>integer Parameter 'dims' Matrix::sparseMatrix(); a non-negative, integer, dimensions vector of length 2 (default=2). See Matrix package documentation for more details.</p>
+</dd>
+<dt><code>M</code></dt>
+<dd>
+<p>numeric (largeVis) The number of negative edges to sample for each positive edge (default=5). Parameter only used if embeddingType is 'largeVis'.</p>
+</dd>
+<dt><code>gamma</code></dt>
+<dd>
+<p>numeric (largeVis) The strength of the force pushing non-neighbor nodes apart (default=7). Parameter only used if embeddingType is 'largeVis'.</p>
+</dd>
+<dt><code>perplexity</code></dt>
+<dd>
+<p>numeric Parameter 'perplexity' within largeVis::buildWijMatrix() (default=50). Please see the largeVis documentation for more details.</p>
+</dd>
+<dt><code>verbose</code></dt>
+<dd>
+<p>boolean Whether to give verbose output (default=TRUE)</p>
+</dd>
+<dt><code>sgd_batches</code></dt>
+<dd>
+<p>numeric The number of edges to process during SGD (default=NULL). Passed to projectKNNs(). Defaults to a value set based on the size of the dataset. If the parameter given is
+between <code>0</code> and <code>1</code>, the default value will be multiplied by the parameter.</p>
+</dd>
+<dt><code>diffusion.steps</code></dt>
+<dd>
+<p>integer Iteration steps to use. If 0, no steps are run. (default=0)</p>
+</dd>
+<dt><code>diffusion.power</code></dt>
+<dd>
+<p>numeric Factor to be used when calculating diffusion, (default=0.5)</p>
+</dd>
+<dt><code>distance</code></dt>
+<dd>
+<p>string 'pearson', 'spearman', 'euclidean', 'L2', 'JS' (default='pearson')</p>
+</dd>
+<dt><code>n.cores</code></dt>
+<dd>
+<p>numeric Number of cores to use (default=1)</p>
+</dd>
+<dt><code>n.sgd.cores</code></dt>
+<dd>
+<p>numeric Number of cores to use (default=n.cores)</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Additional parameters passed to embedding functions, Rtsne::Rtsne() if 'L2', uwot::umap() if 'UMAP', embedKnnGraphUmap() if 'UMAP_graph'</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>embedding stored in self$embedding
+</p>
+
+
+<hr>
+<a id="method-clone"></a>
+
+
+
+<h4>Method <code>clone()</code>
+</h4>
+
+<p>The objects of this class are cloneable with this method.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Pagoda2$clone(deep = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>deep</code></dt>
+<dd>
+<p>Whether to make a deep clone.</p>
+</dd>
+</dl>
+</div>
+
+
+
+
+<h3>Author(s)</h3>
+
+<p>Simon Steiger
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## ------------------------------------------------
+## Method `Pagoda2$new`
+## ------------------------------------------------
+
+ 
+## Load pre-generated a dataset of 50 bone marrow cells as matrix
+cm &lt;- readRDS(system.file("extdata", "sample_BM1_50.rds", package="pagoda2"))
+## Perform QC, i.e. filter any cells that
+counts &lt;- gene.vs.molecule.cell.filter(cm, min.cell.size=500)
+rownames(counts) &lt;- make.unique(rownames(counts))
+## Generate Pagoda2 object 
+p2_object &lt;- Pagoda2$new(counts, log.scale=TRUE, min.cells.per.gene=10, n.cores=1) 
+
+
+
+## ------------------------------------------------
+## Method `Pagoda2$adjustVariance`
+## ------------------------------------------------
+
+
+## Load pre-generated a dataset of 50 bone marrow cells as matrix
+cm &lt;- readRDS(system.file("extdata", "sample_BM1_50.rds", package="pagoda2"))
+## Perform QC, i.e. filter any cells that
+counts &lt;- gene.vs.molecule.cell.filter(cm, min.cell.size=500)
+rownames(counts) &lt;- make.unique(rownames(counts))
+## Generate Pagoda2 object 
+p2_object &lt;- Pagoda2$new(counts,log.scale=TRUE, min.cells.per.gene=10, n.cores=1) 
+## Normalize gene expression variance
+p2_object$adjustVariance(plot=TRUE, gam.k=10)
+
+
+
+## ------------------------------------------------
+## Method `Pagoda2$makeKnnGraph`
+## ------------------------------------------------
+
+
+## Load pre-generated a dataset of 50 bone marrow cells as matrix
+cm &lt;- readRDS(system.file("extdata", "sample_BM1_50.rds", package="pagoda2"))
+## Perform QC, i.e. filter any cells that
+counts &lt;- gene.vs.molecule.cell.filter(cm, min.cell.size=300)
+rownames(counts) &lt;- make.unique(rownames(counts))
+## Generate Pagoda2 object   
+p2_object &lt;- Pagoda2$new(counts,log.scale=TRUE, min.cells.per.gene=10, n.cores=1) 
+## Normalize gene expression variance
+p2_object$adjustVariance(plot=TRUE, gam.k=10)
+## Generate a kNN graph of cells that will allow us to identify clusters of cells
+p2_object$makeKnnGraph(k=20, center=FALSE, distance='L2')
+
+
+</code></pre>
+
+
+</div>

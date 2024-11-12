@@ -1,0 +1,227 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>meta</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Get metadata of pdqr-function</h2>
+
+<h3>Description</h3>
+
+<p>Tools for getting metadata of <strong>pdqr-function</strong>: a function which represents
+distribution with finite support and finite values of probability/density.
+The key metadata which defines underline distribution is <strong>"x_tbl"</strong>. If two
+pdqr-functions have the same "x_tbl" metadata, they represent the same
+distribution and can be converted to one another with <code style="white-space: pre;">⁠as_*()⁠</code> family of
+functions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">meta_all(f)
+
+meta_class(f)
+
+meta_type(f)
+
+meta_support(f)
+
+meta_x_tbl(f)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>A pdqr-function.</p>
+</td>
+</tr></table>
+<h3>Details</h3>
+
+<p>Internally storage of metadata is implemented as follows:
+</p>
+
+<ul>
+<li>
+<p> Pdqr class is a first "appropriate" ("p", "d", "q", or "r") S3 class of
+pdqr-function. All "proper" pdqr-functions have full S3 class of the form:
+<code>c(cl, "pdqr", "function")</code>, where <code>cl</code> is pdqr class.
+</p>
+</li>
+<li>
+<p> Pdqr type, support, and "x_tbl" are stored into function's
+environment.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p><code>meta_all()</code> returns a list of all metadata. <code>meta_class()</code>,
+<code>meta_type()</code>, <code>meta_support</code>, and <code>meta_x_tbl()</code> return corresponding
+metadata.
+</p>
+
+
+<h3>Pdqr class</h3>
+
+<p>Pdqr class is returned by <code>meta_class()</code>. This can be one of "p", "d", "q",
+"r". Represents <strong>how pdqr-function describes underlying distribution</strong>:
+</p>
+
+<ul>
+<li>
+<p> P-function (i.e. of class "p") returns value of cumulative distribution
+function (probability of random variable being not more than certain value)
+at points <code>q</code> (its numeric vector input). Internally it is implemented as
+direct integration of corresponding (with the same "x_tbl" metadata)
+d-function.
+</p>
+</li>
+<li>
+<p> D-function returns value of probability mass or density function (depending
+on pdqr type) at points <code>x</code> (its numeric vector input). Internally it is
+implemented by directly using "x_tbl" metadata (see section '"x_tbl"
+metadata' for more details).
+</p>
+</li>
+<li>
+<p> Q-function returns value of quantile function at points <code>p</code> (its numeric
+vector input). Internally it is implemented as inverse of corresponding
+p-function (returns the smallest "x" value which has cumulative probability
+not less than input).
+</p>
+</li>
+<li>
+<p> R-function generates random sample of size <code>n</code> (its single number input)
+from distribution. Internally it is implemented using inverse transform
+sampling: certain amount of points from standard uniform distribution is generated, and the output is values of
+corresponding q-function at generated points.
+</p>
+</li>
+</ul>
+<p>These names are chosen so as to follow base R convention of naming distribution functions. All
+pdqr-functions take only one argument with the same meaning as the first ones
+in base R. It has no other arguments specific to some parameters of
+distribution family. To emulate their other common arguments, use the
+following transformations (here <code>d_f</code> means a function of class "d", etc.):
+</p>
+
+<ul>
+<li>
+<p> For <code>d_f(x, log = TRUE)</code> use <code>log(d_f(x))</code>.
+</p>
+</li>
+<li>
+<p> For <code>p_f(q, lower.tail = FALSE)</code> use <code>1 - p_f(q)</code>.
+</p>
+</li>
+<li>
+<p> For <code>p_f(q, log.p = TRUE)</code> use <code>log(p_f(q))</code>.
+</p>
+</li>
+<li>
+<p> For <code>q_f(p, lower.tail = FALSE)</code> use <code>q_f(1 - p)</code>.
+</p>
+</li>
+<li>
+<p> For <code>q_f(p, log.p = TRUE)</code> use <code>q_f(exp(p))</code>.
+</p>
+</li>
+</ul>
+<h3>Pdqr type</h3>
+
+<p>Pdqr type is returned by <code>meta_type()</code>. This can be one of "discrete" or
+"continuous". Represents <strong>type of underlying distribution</strong>:
+</p>
+
+<ul>
+<li>
+<p> Type "discrete" is used for distributions with finite number of outcomes.
+Functions with "discrete" type has a fixed set of "x" values ("x" column in
+"x_tbl" metadata) on which d-function returns possibly non-zero output
+(values from "prob" column in "x_tbl" metadata).
+</p>
+</li>
+<li>
+<p> Type "continuous" is used to represent continuous distributions with
+piecewise-linear density with finite values and on finite support. Density
+goes through points defined by "x" and "y" columns in "x_tbl" metadata.
+</p>
+</li>
+</ul>
+<h3>Pdqr support</h3>
+
+<p>Pdqr support is returned by <code>meta_support()</code>. This is a numeric vector with
+two finite values. Represents <strong>support of underlying distribution</strong>: closed
+interval, outside of which d-function is equal to zero. <strong>Note</strong> that inside
+of support d-function can also be zero, which especially true for "discrete"
+functions.
+</p>
+<p>Technically, pdqr support is range of values from "x" column of "x_tbl"
+metadata.
+</p>
+
+
+<h3>"x_tbl" metadata</h3>
+
+<p>Metadata "x_tbl" is returned by <code>meta_x_tbl()</code>. This is a key metadata which
+<strong>completely defines distribution</strong>. It is a data frame with three numeric
+columns, content of which partially depends on pdqr type.
+</p>
+<p>Type "discrete" functions have "x_tbl" with columns "x", "prob", "cumprob".
+D-functions return a value from "prob" column for input which is very near
+(should be equal up to ten digits, defined by round(*, digits = 10)) to corresponding value of "x" column. Rounding is done to
+account for issues with representation of numerical values (see Note section
+of <code>==</code>'s help page). For any other input, d-functions return
+zero.
+</p>
+<p>Type "continuous" functions have "x_tbl" with columns "x", "y", "cumprob".
+D-functions return a value of piecewise-linear function passing through
+points that have "x" and "y" coordinates. For any value outside support (i.e.
+strictly less than minimum "x" and strictly more than maximum "x") output is
+zero.
+</p>
+<p>Column "cumprob" always represents the probability of underlying random
+variable being not more than corresponding value in "x" column.
+</p>
+
+
+<h3>Change of metadata</h3>
+
+<p>All metadata of pdqr-functions are not meant to be changed directly. Also
+change of pdqr type, support, and "x_tbl" metadata will lead to a complete
+change of underlying distribution.
+</p>
+<p>To change <strong>pdqr class</strong>, for example to convert p-function to d-function,
+use <code style="white-space: pre;">⁠as_*()⁠</code> family of functions: <code>as_p()</code>, <code>as_d()</code>, <code>as_q()</code>, <code>as_r()</code>.
+</p>
+<p>To change <strong>pdqr type</strong>, use <code>form_retype()</code>. It changes underlying
+distribution in the most suitable for user way.
+</p>
+<p>To change <strong>pdqr support</strong>, use <code>form_resupport()</code> or <code>form_tails()</code>.
+</p>
+<p>Change of <strong>"x_tbl" metadata</strong> is not possible, because basically it means
+creating completely new pdqr-function. To do that, supply data frame with
+"x_tbl" format suitable for desired "type" to appropriate <code style="white-space: pre;">⁠new_*()⁠</code> function:
+<code>new_p()</code>, <code>new_d()</code>, <code>new_q()</code>, <code>new_r()</code>. Also, there is a <code>form_regrid()</code>
+function which will increase or decrease granularity of pdqr-function.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">d_unif &lt;- as_d(dunif)
+
+str(meta_all(d_unif))
+
+meta_class(d_unif)
+meta_type(d_unif)
+meta_support(d_unif)
+head(meta_x_tbl(d_unif))
+</code></pre>
+
+
+</div>

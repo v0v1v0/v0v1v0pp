@@ -1,0 +1,219 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>modToWave</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Convert a PTModule object into an audio Wave object</h2>
+
+<h3>Description</h3>
+
+<p>Converts a <code>PTModule</code> object into a <code>tuneR::Wave</code>
+object, which can be played, further analysed, modified and saved.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S4 method for signature 'PTModule'
+modToWave(
+  mod,
+  video = c("PAL", "NTSC"),
+  target.rate = 44100,
+  target.bit = 16,
+  stereo.separation = 1,
+  low.pass.filter = TRUE,
+  tracks = 1:4,
+  mix = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>mod</code></td>
+<td>
+<p>An object of class <code>PTModule</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>video</code></td>
+<td>
+<p>The video mode of a Commodore Amiga affects timing routines and
+the playback sample rate. This mode can be specified with this argument and
+is represented by a <code>character</code> string that can have either the value
+'<a href="https://en.wikipedia.org/wiki/PAL">PAL</a>'
+or '<a href="https://en.wikipedia.org/wiki/NTSC">NTSC</a>'. PAL is used by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target.rate</code></td>
+<td>
+<p>A positive <code>integer</code> sample rate for the target <code>Wave</code>.
+Should be at least 2000.
+Default value is 44100 Hz, which is conform CD quality. 22050 Hz will also
+produce a decent sound quality and saves you some working memory.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target.bit</code></td>
+<td>
+<p>Number of bits for the target <code>Wave</code>. Should be a <code>numeric</code>
+value of either 8, 16, 24 or 32. Default is 16, which is conform CD quality
+(the quality doesn't really improve at higher bit values, as the original
+samples are of 8 bit quality).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stereo.separation</code></td>
+<td>
+<p>A <code>numeric</code> value between 0 and 1.
+When set to 1 (default), stereo channels (Amiga channels 1 and 4 on left,
+and channels 2 and 3 on right) are completely separated. When set to
+less than 1, stereo channels are mixed, where the number gives the
+fraction of separation of the channels. When set to 0, both channels
+are completely mixed and a mono <code>Wave</code> is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>low.pass.filter</code></td>
+<td>
+<p>A <code>logical</code> value indicating whether low pass
+filters should be applied when generating wave data. The Commodore Amiga
+had hardware audio filters. One (low pass 6 db/Oct tuned at
+4.9 kHz) that filters all audio and one (low pass 12 db/Oct tuned at
+approximately 3.3 kHz) that can be turned on and off at will with effect
+command E00/E01 (see also ProTrackR documentation,
+section on effect commands). These filters are only applied when the
+<code>low.pass.filter</code> argument is set to <code>TRUE</code> and the
+<code>target.rate</code> is set to values &gt; 4.9 kHz. If you don't want to simulate
+this typical Amiga sound, turn the filters off to save processing time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tracks</code></td>
+<td>
+<p>Either <code>logical</code> or <code>numeric</code> values indicating
+which of the 4 <code>PTTrack</code>s are to be converted. By default
+all 4 tracks are selected.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mix</code></td>
+<td>
+<p>A logical value indicating whether the 4 Amiga channels should
+be mixed to the 2 (stereo) output channels. When set to <code>TRUE</code> (default) a stereo
+<code>tuneR::Wave</code> object is returned. When set to <code>FALSE</code> a
+multi-channel <code>tuneR::WaveMC</code> object is returned. The
+<code>stereo.separation</code> argument is ignored in the latter case.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments that are passed to <code>playingtable</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Before the <code>PTModule</code> object can be converted into a
+<code>tuneR::Wave</code> object, the rows of the
+<code>PTPattern</code> objects in the module need to be put
+in the right order. This method does that by calling
+<code>playingtable</code>.
+</p>
+<p>Once the rows of the pattern tables are in the right order, all selected
+<code>PTTrack</code> objects of the module are looped by this function
+and the routines described below are applied to each track.
+</p>
+<p>On the Commodore Amiga the chip responsible for audio output (Paula),
+the audio playback of samples can be controlled by the user in two ways:
+the playback rate of the sample can be changed by specifying 'period'
+values (see e.g. <code>periodToSampleRate</code>) and specifying a
+volume which is linearly scaled between 0 (silent) and 64 (maximum).
+</p>
+<p>So, for each track, the correct period and volume values are determined
+based on the note, effect command and sample information in the module.
+</p>
+<p>Then, the <code>PTSample</code> objects are resampled, using the
+period values and volume values as determined in the previous step.
+</p>
+<p>Next audio filters are applied to mimic original Commodore Amiga
+sound. Finaly, the wave data for each separate track is mixed to
+one (mono) or two (stereo) of the output channels.
+</p>
+<p>Converting ProTracker modules into wave objects can be time consuming.
+The time required to convert an object obviously depends on your
+machine's capacities and the length of the module but also the
+complexity of the module. To speed up the conversion you could
+reduce the target sample rate or turn off the low pass filter.
+On modern machines, the time required for conversion should generally
+be less than the playback time of the module.
+</p>
+<p>You can save the resulting <code>tuneR::Wave</code> object by calling
+<code>tuneR::writeWave</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>tuneR::Wave</code> object, generated from the
+<code>mod</code> object is returned. A <code>tuneR::WaveMC</code> object is returned when
+the <code>mix</code> argument is set to <code>FALSE</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>As audio can be mixed with this package at frequencies much greater than the
+Commodore Amiga's audio output rate, some aliasing of the sound could occur.
+This results in high frequency audio, that would not be produced on an Amiga.
+The current version of this package does not filter out these artefacts.
+This should not be a problem if you're not concerned with producing an
+accurate Amiga timbre.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Pepijn de Vries
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other module.operations: 
+<code>PTModule-class</code>,
+<code>appendPattern()</code>,
+<code>clearSamples()</code>,
+<code>clearSong()</code>,
+<code>deletePattern()</code>,
+<code>fix.PTModule()</code>,
+<code>moduleSize()</code>,
+<code>patternLength()</code>,
+<code>patternOrderLength()</code>,
+<code>patternOrder()</code>,
+<code>playMod()</code>,
+<code>playingtable()</code>,
+<code>rawToPTModule()</code>,
+<code>read.module()</code>,
+<code>trackerFlag()</code>,
+<code>write.module()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+data(mod.intro)
+wav &lt;- modToWave(mod.intro)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

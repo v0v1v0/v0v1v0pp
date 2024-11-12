@@ -1,0 +1,254 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>varima.sim</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulate Data From Seasonal/Nonseasonal ARIMA(p,d,q)*(ps,ds,qs)_s or VARIMA(p,d,q)*(ps,ds,qs)_s Models</h2>
+
+<h3>Description</h3>
+
+<p>Simulate time series from AutoRegressive Integrated Moving Average, <code>ARIMA(p,d,q)</code>, or 
+Vector Integrated AutoRegressive Moving Average, <code>VARIMA(p,d,q)</code>, 
+where <code>d</code> is a nonnegative difference integer in the <code>ARIMA</code> case 
+and it is a vector of <code class="reqn">k</code> differenced components
+<code class="reqn">d_1,...,d_k</code> in the <code>VARIMA</code> case.
+In general, this function can be implemented in simulating univariate or multivariate 
+Seasonal AutoRegressive Integrated Moving Average, <code>SARIMA(p,d,q)*(ps,ds,qs)_s</code> 
+and <code>SVARIMA(p,d,q)*(ps,ds,qs)_s</code>, where <code>ps</code> and <code>qs</code> are 
+the orders of the seasonal univariate/multivariate AutoRegressive and Moving Average components respectively.
+<code>ds</code> is a nonnegative difference integer in the <code>SARIMA</code> case 
+and it is a vector of <code class="reqn">k</code> differenced components <code class="reqn">ds_1,...,ds_k</code> in the <code>SVARIMA</code> case, 
+whereas <code>s</code> is the seasonal period. 
+The simulated process may have a deterministic terms, drift constant and time trend, with non-zero mean.
+The innovations may have finite or infinite variance.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">varima.sim(model=list(ar=NULL,ma=NULL,d=NULL,sar=NULL,sma=NULL,D=NULL,period=NULL),
+          n,k=1,constant=NA,trend=NA,demean=NA,innov=NULL, 
+          innov.dist=c("Gaussian","t","bootstrap"),...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a list with univariate/multivariate component <code>ar</code> and/or <code>ma</code> and/or <code>sar</code>
+and/or <code>sma</code> giving the univariate/multivariate <code>AR</code> and/or <code>MA</code> and/or <code>SAR</code> 
+and/or <code>SMA</code> coefficients respectively. 
+<code>period</code> specifies the seasonal period. 
+For seasonality, default is <code>NULL</code> indicates that <code>period =12</code>. 
+<code>d</code> and <code>D</code> are integer or vector representing the order of the usual and seasonal difference.
+An empty list gives an <code>ARIMA(0, 0, 0)*(0,0,0)_null</code> model, that is white noise.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>length of the series.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p> number of simulated series. For example, <code>k=1</code> is used for univariate series and <code>k=2</code> is used for bivariate series.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>constant</code></td>
+<td>
+<p>a numeric vector represents the intercept in the deterministic equation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trend</code></td>
+<td>
+<p>a numeric vector represents the slop in the deterministic equation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>demean</code></td>
+<td>
+<p>a numeric vector represents the mean of the series.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>innov</code></td>
+<td>
+<p>a vector of univariate or multivariate innovation series. 
+This may used as an initial series to genrate innovations with <code>innov.dist = "bootstrap"</code>.
+This argument is irrelevant with the other selections of <code>innov.dist</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>innov.dist</code></td>
+<td>
+<p>distribution to generate univariate or multivariate innovation process. 
+This could be <code>Gaussian</code>, <code>t</code>, or <code>bootstrap</code> using resampled errors rather than distributed errors.
+Default is <code>Gaussian</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>arguments to be passed to methods, such as <code>dft</code> degrees of freedom 
+needed to generate innovations with univariate/multivariate series with t-distribution innovations.
+The argument <code>trunc.lag</code> represents the truncation lag that is used 
+to truncate the infinite <code>MA</code> or <code>VMA</code> Process. 
+IF it is not given, then <code>trunc.lag</code> = min(100, <code class="reqn">n/3</code>). 
+Optionally <code>sigma</code> is the variance of a Gaussian or t white noise series.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is used to simulate a univariate/multivariate seasonal/nonseasonal 
+<code>SARIMA</code> or <code>SVARIMA</code> model of order <code class="reqn">(p,d,q)\times(ps,ds,qs)_s</code> 
+</p>
+<p style="text-align: center;"><code class="reqn">\phi(B)\Phi(B^s)d(B)D(B^s)(Z_{t})-\mu = a + b \times t + \theta(B)\Theta(B^s)e_{t},</code>
+</p>
+
+<p>where <code class="reqn">a, b,</code> and <code class="reqn">\mu</code> correspond to the arguments <code>constant</code>, <code>trend</code>, and <code>demean</code> respectively.
+The univariate or multivariate series <code class="reqn">e_{t}</code> represents the innovations series given from the argument <code>innov</code>.
+If <code>innov = NULL</code> then <code class="reqn">e_{t}</code> will be generated from   
+a univariate or multivariate normal distribution or t-distribution. 
+<code class="reqn">\phi(B)</code> and <code class="reqn">\theta(B)</code> are the <code>VAR</code> and the <code>VMA</code> coefficient matrices respectively 
+and <code class="reqn">B</code> is the backshift time operator.
+<code class="reqn">\Phi(B^s)</code> and <code class="reqn">\Theta(B^s)</code> are the <code>Vector SAR</code> <code>Vector SMA</code> 
+coefficient matrices respectively.
+<code class="reqn">d(B)=diag[(1-B)^{d_{1}},\ldots,(1-B)^{d_{k}}]</code> and
+<code class="reqn">D(B^s)=diag[(1-B^s)^{ds_{1}},\ldots,(1-B^s)^{ds_{k}}]</code> are diagonal matrices. 
+This states that each individual series <code class="reqn">Z_{i}, i=1,...,k</code> is differenced <code class="reqn">d_{i}ds_{i}</code> times
+to reduce to a stationary <code>Vector ARMA(p,0,q)*(ps,0,qs)_s</code> series.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Simulated data from <code>SARIMA(p,d,q)</code> or <code>SVARIMA(p,d,q)*(ps,ds,qs)_s</code> process 
+that may have a drift and deterministic time trend terms.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p> Esam Mahdi and A.I. McLeod.</p>
+
+
+<h3>References</h3>
+
+<p>Hipel, K.W. and McLeod, A.I. (2005). "Time Series Modelling of Water Resources and Environmental Systems".
+</p>
+<p>Reinsel, G. C. (1997). "Elements of Multivariate Time Series Analysis". Springer-Verlag, 2nd edition.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>arima.sim</code>, <code>vma.sim</code>, <code>ImpulseVMA</code>, <code>InvertQ</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#################################################################################
+# Simulate white noise series from a Gaussian distribution                      #
+#################################################################################
+set.seed(1234)
+Z1 &lt;- varima.sim(n=400)       ## a univariate series
+plot(Z1)
+Z2 &lt;- varima.sim(n=400,k=2)   ## a bivariate series
+plot(Z2)
+Z3 &lt;- varima.sim(n=400,k=5)   ## a multivariate series of dimension 5
+plot(Z3)
+#################################################################################
+# Simulate MA(1) where innovation series is provided via argument innov         #
+#################################################################################
+set.seed(1234)
+n &lt;- 200
+ma &lt;-  0.6
+Z&lt;-varima.sim(list(ma=ma),n=n,innov=rnorm(n),innov.dist="bootstrap")
+plot(Z)
+#################################################################################
+# Simulate seasonal ARIMA(2,1,0)*(0,2,1)_12 process with ar=c(1.3,-0.35),      #
+# ma.season = 0.8. Gaussian innovations. The series is truncated at lag 50   #
+#################################################################################
+set.seed(12834)
+n &lt;- 100
+ar &lt;- c(1.3, -0.35)
+ma.season &lt;- 0.8
+Z&lt;-varima.sim(list(ar=ar,d=1,sma=ma.season,D=2),n=n,trunc.lag=50)
+plot(Z)
+acf(Z)
+#################################################################################
+# Simulate seasonal ARMA(0,0,0)*(2,0,0)_4 process with intercept = 0.8          #
+# ar.season = c(0.9,-0.9), period = 4, t5-distribution innovations with df = 3 #
+#################################################################################
+set.seed(1234)
+n &lt;- 200
+ar.season &lt;- c(0.9,-0.9)
+Z&lt;-varima.sim(list(sar=ar.season,period=4),n=n,constant=0.8,innov.dist="t",dft=3)
+plot(Z)
+acf(Z)
+arima(Z,order=c(0,0,0),seasonal = list(order = c(2,0,0),period=4))
+#################################################################################
+# Simulate a bivariate white noise series from a multivariate t4-distribution   #
+# Then use the nonparametric bootstrap method to generate a seasonal SVARIMA    #
+# of order (0,d,0)*(0,0,1)_12 with d = c(1, 0), n= 250, k = 2, and              #
+# ma.season=array(c(0.5,0.4,0.1,0.3),dim=c(k,k,1))                           #
+#################################################################################
+set.seed(1234)
+Z1 &lt;- varima.sim(n=250,k=2,innov.dist="t",dft=4)
+ma.season=array(c(0.5,0.4,0.1,0.3),dim=c(2,2,1)) 
+Z2 &lt;- varima.sim(list(sma=ma.season,d=c(1,0)),n=250,k=2,
+                 innov=Z1,innov.dist="bootstrap")
+plot(Z2)
+#################################################################################
+# Simulate a bivariate VARIMA(2,d,1) process with length 300, where d=(1,2).    #
+# ar = array(c(0.5,0.4,0.1,0.5,0,0.3,0,0),dim=c(k,k,2)),                       #
+# ma = array(c(0,0.25,0,0), dim=c(k,k,1)).                                   #
+# innovations are generated from multivariate normal                            #
+# The process have mean zero and no deterministic terms.                        #
+# The variance covariance is sigma = matrix(c(1,0.71,0.71,2),2,2).              #
+# The series is truncated at default value: trunc.lag=ceiling(100/3)=34         #
+#################################################################################
+set.seed(1234)
+k &lt;- 2
+n &lt;- 300 
+ar &lt;-  array(c(0.5,0.4,0.1,0.5,0,0.3,0,0),dim=c(k,k,2))
+ma &lt;-  array(c(0,0.25,0,0),dim=c(k,k,1))
+d &lt;- c(1,2)
+sigma &lt;- matrix(c(1,0.71,0.71,2),k,k)
+Z &lt;- varima.sim(list(ma=ar,ma=ma,d=d),n=n,k=2,sigma=sigma)
+plot(Z)
+#################################################################################
+# Simulate a trivariate Vector SVARMA(1,0,0)*(1,0,0)_12 process with length 300 #
+# ar = array(c(0.5,0.4,0.1,0.5,0,0.3,0,0,0.1), dim=c(k,k,1)), where k =3       #
+# ar.season = array(c(0,0.25,0,0.5,0.1,0.4,0,0.25,0.6), dim=c(k,k,1)).         #
+# innovations are generated from multivariate normal distribution               #
+# The process have mean c(10, 0, 12),                                           #
+# Drift equation a + b * t, where a = c(2,1,5), and b = c(0.01,0.06,0)          #
+# The series is truncated at default value: trunc.lag=ceiling(100/3)=34         #
+#################################################################################
+set.seed(1234)
+k &lt;- 3
+n &lt;- 300
+ar &lt;-  array(c(0.5,0.4,0.1,0.5,0,0.3,0,0,0.1),dim=c(k,k,1))
+ar.season &lt;-  array(c(0,0.25,0,0.5,0.1,0.4,0,0.25,0.6),dim=c(k,k,1))
+constant &lt;- c(2,1,5)
+trend &lt;- c(0.01,0.06,0)
+demean &lt;- c(10,0,12)
+Z &lt;- varima.sim(list(ar=ar,sar=ar.season),n=n,k=3,constant=constant,
+trend=trend,demean=demean)
+plot(Z)
+acf(Z)
+</code></pre>
+
+
+</div>

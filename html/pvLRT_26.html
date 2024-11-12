@@ -1,0 +1,307 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pvlrt</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Pseudo Likelihood Ratio Test for determining significant AE-Drug pairs under
+Poisson and zero-inflated Poisson models for pharmacovigilance</h2>
+
+<h3>Description</h3>
+
+<p>Pseudo Likelihood Ratio Test for determining significant AE-Drug pairs under
+Poisson and zero-inflated Poisson models for pharmacovigilance
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pvlrt(
+  contin_table,
+  nsim = 10000,
+  omega_vec = NULL,
+  zi_prob = NULL,
+  no_zi_idx = NULL,
+  test_drug_idx = seq_len(max(ncol(contin_table) - 1, 0)),
+  drug_class_idx = list(test_drug_idx),
+  grouped_omega_est = FALSE,
+  test_zi = NULL,
+  test_omega = NULL,
+  pval_ineq_strict = FALSE,
+  parametrization = "rrr",
+  null_boot_type = "parametric",
+  is_zi_structural = TRUE,
+  return_overall_loglik = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>contin_table</code></td>
+<td>
+<p>IxJ contingency table showing pairwise counts of adverse
+events for I AE (along the rows) and J Drugs (along the columns)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsim</code></td>
+<td>
+<p>Number of simulated null contingency table to use for computing
+the p-value of the test</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zi_prob, omega_vec</code></td>
+<td>
+<p>Alias, determining zero inflation probabilities
+in the model. Can be a vector, providing different zero inflation
+probabilities for different drugs, or a scalar, providing the common zero
+inflation probability for all drugs. If NULL (default), then is estimated from the data. See also the
+description of the argument <code>grouped_omega_est</code>. If <code>omega_vec = rep(0, ncol(contin_table))</code>,
+then test reduces to an ordinary (non-zero inflated) Poisson test. NOTE: <code>zi_prob</code> and <code>omega_vec</code>
+are alias.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>no_zi_idx</code></td>
+<td>
+<p>List of pairs (i, j) where zero inflation is not allowed. To
+specify the entirety i-th row (or j-th column) use c(i, 0) (or c(0, j)). See examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test_drug_idx</code></td>
+<td>
+<p>integer (position) or character (names) vector indicating the columns
+(drugs indices or drug labels) of contin_table to be tested for signal using LRT.
+Defaults to all except the last columns (which is typically the column for "Other Drugs").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drug_class_idx</code></td>
+<td>
+<p>a list, with the h-th entry providing the h-th group/class
+of drugs. Relevant only for drugs used for testing (supplied through <code>test_drug_idx</code>).
+By default all drugs provided in <code>test_drug_idx</code> are included in the same class, which is
+ensured by supplying <code>drug_class_idx = list(test_drug_idx)</code>. If more than one drug is
+present in a class, an extended LRT is performed for the class (which ensures the correct
+Type I error rate is preserved). If <code>drug_class_idx</code> excludes any drug present in <code>test_drug_idx</code>,
+each remaining drug is made to form its own class. See examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grouped_omega_est</code></td>
+<td>
+<p>Logical. When performing a test with grouped drug classes (extended LRT),
+should the estimated zero-inflation parameter "omega" reflect
+the corresponding grouping? If TRUE, then the estimated omegas are obtained by combining
+columns from the same group, and if FALSE (default), then omegas are estimated separately for each drug (column)
+irrespective of the groups specified through  <code>drug_class_idx</code>. Ignored if <code>omega_vec</code> is
+supplied/non-<code>NULL</code> (i.e., not estimated).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test_zi, test_omega</code></td>
+<td>
+<p>logical indicators specifying whether to perform a
+pseudo likelihood ratio test for zero inflation. Defaults to FALSE. Ignored
+if <code>omega_vec</code> is supplied (is non-NULL). Defaults to FALSE.
+NOTE: <code>test_omega</code> and <code>test_zi</code> are aliases.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pval_ineq_strict</code></td>
+<td>
+<p>logical. Use a strict inequality in the definition of the p-values?  Defaults to FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parametrization</code></td>
+<td>
+<p>Type of parametrization to use in the LR test. Available choices are "rrr", "lambda", "rr",
+and "p-q". The relative reporting ratio (default) parametrization of the test is used when
+when <code>parametrization %in% c("rrr", "lambda")</code>, and the reporting rate parametrization is used
+otherwise. NOTE: zero inflation can be handled only for the relative reporting ratio parametrization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>null_boot_type</code></td>
+<td>
+<p>Type of bootstrap sampling to perform for generating null resamples.
+Available choices are "parametric" (default) and "non-parametric". NOTE: zero inflation is not
+handled properly in a non-parametric bootstrap resampling.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>is_zi_structural</code></td>
+<td>
+<p>logical. Do the inflated zeros correspond to structural
+zeros (indicating impossible AE-Drug combination)? This determines how the
+bootstrap null zero-inflation indicators are generated. If TRUE (default),
+then then the null zero-inflation random indicators are randomly generated using the
+(estimated) <em>conditional</em> probabilities of zero inflation given observed
+counts. If FALSE, then they are generated using the <em>marginal</em> (drug-specific)
+estimated probabilities of zero-inflation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_overall_loglik</code></td>
+<td>
+<p>logical. Return overall log-likelihood for the table? This is needed
+if <code>logLik</code> method is to be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments. Currently unused.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The function returns an S3 object of class <code>pvlrt</code> containing  test results. A <code>pvlrt</code>
+object is simply a re-classified matrix containing log likelihood ratio test statistics
+for cells in the input contingency table, with various other test and input data information (including
+p-values, estimated zero inflation parameters, overall log-likelihood etc.) embedded
+as attributes. The following S3 methods and functions are available for an <code>pvlrt</code> object:
+</p>
+<p>Various post processing methods for <code>pvlrt</code> objects are available. This includes:
+</p>
+
+<ul>
+<li> <p>bubbleplot_pvlrt
+</p>
+</li>
+<li> <p>extract_AE_names
+</p>
+</li>
+<li> <p>extract_Drug_names
+</p>
+</li>
+<li> <p>extract_lrstat_matrix
+</p>
+</li>
+<li> <p>extract_n_matrix
+</p>
+</li>
+<li> <p>extract_p_value_matrix
+</p>
+</li>
+<li> <p>extract_significant_pairs
+</p>
+</li>
+<li> <p>extract_zi_probability
+</p>
+</li>
+<li> <p>heatmap_pvlrt
+</p>
+</li>
+<li> <p>lrt_poisson
+</p>
+</li>
+<li> <p>lrt_vanilla_poisson
+</p>
+</li>
+<li> <p>lrt_zi_poisson
+</p>
+</li>
+<li> <p>r_contin_table_zip
+</p>
+</li>
+<li> <p>set_AE_names
+</p>
+</li>
+<li> <p>set_Drug_names
+</p>
+</li>
+<li> <p>print.pvlrt
+</p>
+</li>
+<li> <p>plot.pvlrt
+</p>
+</li>
+<li> <p>summary.pvlrt
+</p>
+</li>
+<li> <p>logLik.pvlrt
+</p>
+</li>
+<li> <p>as.matrix.pvlrt
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data("statin46")
+
+# 500 bootstrap iterations (nsim) in each example below
+# are for quick demonstration only --
+# we recommended setting nsim to 10000 (default) or bigger
+
+# no grouping -- each drug forms its own class,
+# default "rrr" (lambda) parametrization, possible zi,
+# null distribution evaluated using parametric bootstrap
+test1 &lt;- pvlrt(statin46, nsim = 500)
+test1
+## extract the observed LRT statistic
+extract_lrstat_matrix(test1)
+## extract the estimated omegas
+extract_zi_probability(test1)
+
+# grouped drugs --
+# group 1: drug 1, drug 2
+# group 2: drug 3, drug 4
+# drug 5, 6, in their own groups
+## 7 is not tested, so excluded from test_drug_idx (default)
+## if needed, include 7 in test_drug_idx
+drug_groups &lt;- list(c(1, 2), c(3, 4))
+## 5, 6 not present in drug_groups, so each will form their own groups
+set.seed(50)
+##
+test2 &lt;- pvlrt(statin46, drug_class_idx = drug_groups, nsim = 500)
+test2
+
+# instead of column positions column names can also be supplied
+# in drug_class_idx and/or test_drug_idx
+## column name version of drug_groups
+drug_groups_colnames &lt;- lapply(drug_groups, function(i) colnames(statin46)[i])
+test_drug_colnames &lt;- head(colnames(statin46), -1)
+set.seed(50)
+test20 &lt;- pvlrt(
+  statin46,
+  test_drug_idx = test_drug_colnames,
+  drug_class_idx = drug_groups_colnames,
+  nsim = 500
+)
+test20
+all.equal(test2, test20)
+
+
+# specify no zero inflation at the entirety of the last row and the last column
+no_zi_idx &lt;- list(c(nrow(statin46), 0), c(0, ncol(statin46)))
+test3 &lt;- pvlrt(statin46, no_zi_idx = no_zi_idx, nsim = 500)
+test3
+
+
+# use non-parametric bootstrap to evaluate the null distribution
+# takes longer, due to computational costs with non-parametric
+# contigency table generation
+test4 &lt;- pvlrt(statin46, null_boot_type = "non-parametric", nsim = 500)
+test4
+
+
+# test zi probabilities (omegas)
+test5 &lt;- pvlrt(statin46, test_omega = TRUE, nsim = 500)
+test5
+
+
+</code></pre>
+
+
+</div>

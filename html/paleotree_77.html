@@ -1,0 +1,387 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>inverseSurv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Inverse Survivorship Models in the Fossil Record</h2>
+
+<h3>Description</h3>
+
+<p>This function replicates the model-fitting procedure for forward and
+reverse survivorship curve data, described by Michael Foote in a series
+of papers (2001, 2003a, 2003b, 2005). These methods are discrete interval
+taxon ranges, as are used in many other functions in paleotree 
+(see function arguments). This function
+can implement the continuous time, pulsed interval and mixed models described
+in Foote (2003a and 2005).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">make_inverseSurv(
+  timeList,
+  groups = NULL,
+  p_cont = TRUE,
+  q_cont = TRUE,
+  PA_n = "fixed",
+  PB_1 = 0,
+  Nb = 1,
+  drop.extant = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>timeList</code></td>
+<td>
+<p>A two column matrix, with the first and last occurrences of taxa
+given in relative time intervals (i.e. ordered from first to last). If a list
+of <code>length = 2</code> is given for <code>timeData</code>, such as would be expected if the output 
+of <code>binTimeData</code> was used as the input, the second element is used. See details.
+Unsampled taxa (e.g. from a simulation of sampling in the fossil record,
+listed as <code>NA</code>s in the second matrix) are automatically dropped from the
+<code>timeList</code> and from <code>groups</code> simultaneously. Living taxa observed in the modern day
+are expected to be listed as last observed in a special interval (<code>c(0,0)</code>), i.e.
+begins and ends at zero (modern) time. This interval is always automatically removed prior
+to the calculation intermediary data for fitting likelihood functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groups</code></td>
+<td>
+<p>Either NULL (the default) or matrix with the number of rows equal
+to the number of taxa and the number of columns equal to the number of 'systems'
+of categories for taxa. Taxonomic membership in different groups is indicated
+by numeric values. 
+For example, a dataset could have a 'groups' matrix composed of a column representing
+thin and thick shelled taxa, coded <code>1</code> and <code>2</code> respectively,
+while the second column indicates whether taxa live in coastal,
+outer continental shelf, or deep marine settings, coded <code>1-3</code> respectively. 
+Different combinations of groups will be treated as having independent
+sampling and extinction parameters in the default analysis,
+for example, thinly-shelled deep marine species will have
+separate parameters from thinly-shelled coastal species. 
+Grouping systems could also represent temporal heterogeneity,
+for example, categorizing Paleozoic versus Mesozoic taxa.
+If groups are <code>NULL</code> (the default), all taxa are assumed to be of
+the same group with the same parameters. Unsampled taxa (e.g. from a simulation
+of sampling in the fossil record, listed as <code>NA</code>s in <code>timeData</code> or <code>timeList</code>)
+are automatically dropped from groupings and the time dataset (either <code>timeData</code>
+or <code>timeList</code>) and from groups simultaneously.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p_cont</code></td>
+<td>
+<p>If <code>TRUE</code> (the default), then origination is assumed to be a 
+continuous time process with an instantaneous rate. If <code>FALSE</code>, the origination
+is treated as a pulsed discrete-time process with a probability.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>q_cont</code></td>
+<td>
+<p>If <code>TRUE</code> (the default), then extinction is assumed to be a 
+continuous time process with an instantaneous rate. If <code>FALSE</code>, the extinction
+is treated as a pulsed discrete-time process with a probability.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>PA_n</code></td>
+<td>
+<p>The probability of sampling a taxon after the last interval 
+included in a survivorship study. Usually zero for extinct groups, 
+although more logically has the value of 1 when there are still extant
+taxa (i.e., if the last interval is the Holocene and the group is
+still alive, the probability of sampling them later is probably 1...).
+Should be either be (a) a numeric value between <code>0</code> and <code>1</code>, a <code>NULL</code> value,
+or can be simply be <code>"fixed"</code>, the default option.
+This default <code>PA_n = "fixed"</code> option allows <code>make_inverseSurv</code>
+to decide the value based on whether there is a modern interval 
+(i.e. an interval that is <code>c(0,0)</code>) or not: 
+if there is one, then <code>PA_n = 1</code>, if not, then <code>PA_n = 0</code>. 
+If <code>PA_n = NULL</code>, <code>PA_n</code> is treated as an additional free
+parameter in the output model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>PB_1</code></td>
+<td>
+<p>The probability of sampling a taxon before the first interval 
+included in a survivorship study. Should be a value of 0 to 1, or <code>NULL</code>. 
+If <code>NULL</code>, <code>PB_1</code> is treated as an additional free parameter in the output model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Nb</code></td>
+<td>
+<p>The number of taxa that enter an interval (the <code>b</code> is for 'bottom'). This
+is an arbitrary constant used to scale other values in these calculations and
+can be safely set to 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop.extant</code></td>
+<td>
+<p>Drops all extant taxa from a dataset before preceding.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The design of this function to handle mixed continuous and discrete time models
+means that parameters can mean very different things, dependent on how a
+model is defined. Users should carefully evaluate their function arguments
+and the discussion of parameter values as described in the Value section.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A function of class <code>paleotreeFunc</code>, which takes a vector equal to the number
+of parameters and returns the *negative* log likelihood 
+(for use with <code>optim</code> and
+similar optimizing functions, which attempt to minimize support values). 
+See the functions listed at <code>modelMethods</code> for manipulating and examining
+such functions and <code>constrainParPaleo</code> for constraining parameters.
+</p>
+<p>The function output will take the largest number of parameters possible with
+respect to groupings and time-intervals, which means the number of parameters
+may number in the hundreds. Constraining the function for optimization
+is recommended except when datasets are very large.
+</p>
+<p>Parameters in the output functions are named <code>p</code>, <code>q</code> and <code>r</code>, which are
+respectively the origination, extinction and sampling parameters. If the
+respective arguments <code>p_cont</code> and <code>q_cont</code> are <code>TRUE</code>, then <code>p</code> and <code>q</code> will
+represent the instantaneous per-capita origination and extinction rates
+(in units of per lineage time-units). When one of these arguments is given as <code>FALSE</code>,
+the respective parameter (<code>p</code> or <code>q</code>) will represent per-lineage-interval rates. 
+For <code>p</code>, this will be the per lineage-interval rate of a lineage producing
+another lineage (which can exceed 1 because diversity can more than double) and
+for <code>q</code>, this will be the per lineage-interval 'rate' of a lineage going extinct,
+which cannot be observed to exceed 1 
+(because the proportion of diversity that goes extinct <em>cannot</em> exceed 1). 
+To obtain the per lineage-interval rates from a
+set of per lineage-time unit rates, simply multiply the per lineage-time-unit
+rate by the duration of an interval (or divide, to do the reverse; see Foote,
+2003 and 2005). <code>r</code> is always the instantaneous per-capita sampling rate, in
+units per lineage-time units. 
+</p>
+<p>If <code>PA_n</code> or <code>PB_1</code> were given as <code>NULL</code> in the arguments, two additional parameters
+will be added, named respectively <code>PA_n</code> and <code>PB_1</code>, and listed separately for every
+additional grouping. These are the probability of a taxon occurring before the first
+interval in the dataset (<code>PB_1</code>) and the probability of a taxon occurring after
+the last interval in a dataset (<code>PA_n</code>). Theses will be listed as <code>PA_n.0</code> and <code>PB_1.0</code>
+to indicate that they are not related to any particular time-interval included
+in the analysis, unlike the <code>p</code>, <code>q</code>, and <code>r</code> parameters (see below).
+</p>
+<p>Groupings follow the parameter names, separated by periods; by default, the
+parameters will be placed in groups corresponding to the discrete intervals
+in the input <code>timeList</code>, such that <code>make_inverseSurv</code> will create a function with
+parameters <code>p.1</code>, <code>q.1</code> and <code>r.1</code> for interval 1; <code>p.2</code>, <code>q.2</code> and <code>r.2</code> for
+interval 2 and so on. Additional groupings given by the user are listed after 
+this first set (e.g. '<code>p.1.2.2</code>').
+</p>
+
+
+<h4>Calculating The Results of an Inverse Survivorship Model</h4>
+
+<p>Because of the complicated grouping and time interval scheme, combined with
+the probable preference of users to use constrained models rather that the
+full models, it may be difficult to infer what the rates for particular
+intervals and groups actually are in the final model, given the parameters
+that were found in the final optimization.
+</p>
+<p>To account for this, the function output by <code>inverseSurv</code> also contains
+an alternative mode which takes input rates and returns the final values along with
+a rudimentary plotting function. This allows users to output per-interval and per-group
+parameter estimates. To select these feature, the argument <code>altMode</code> must
+be <code>TRUE</code>. This function will invisibly return the rate values for each
+group and interval as a list of matrices, with each matrix composed of the
+<code>p</code>, <code>q</code> and <code>r</code> rates for each interval, for a specific grouping.
+</p>
+<p>This plotting is extremely primitive, and most users will probably find the
+invisibly returned rates to be of more interest. The function <code>layout</code> is
+used to play plots for different groupings in sequence, and this may lead to
+plots which are either hard to read or even cause errors (because of too many
+groupings, producing impossible plots). To repress this, the argument <code>plotPar</code>
+can be set to <code>FALSE</code>.
+</p>
+<p>This capability means the function has more arguments that just the
+usual <code>par</code> argument that accepts the vector of parameters for running an
+optimization. The first of these additional arguments, <code>altMode</code> enables
+this alternative mode, instead of trying to estimate the negative log-likelihood
+from the given parameters. The other arguments augment the calculation and plotting
+of rates.
+</p>
+<p>To summarize, a function output by <code>inverseSurv</code> has the following arguments:
+</p>
+
+<dl>
+<dt>par</dt>
+<dd>
+<p>A vector of parameters, the same length as the number of parameters needed.
+For plotting, can be obtained with optimization</p>
+</dd>
+<dt>altMode</dt>
+<dd>
+<p>If <code>FALSE</code> (the default) the function will work like ordinary model-fitting functions,
+returning a negative log-likelihood value for the input parameter values in <code>par</code>. If <code>TRUE</code>,
+however, the input parameters will instead be translated into the by-interval, by-group rates
+used for calculating the log-likelihoods, plotted (if <code>plotPar</code> is <code>TRUE</code>) and these final
+interval-specific rates will be returned invisibly as described above.</p>
+</dd>
+<dt>plotPar</dt>
+<dd>
+<p>If <code>TRUE</code> (the default) the calculated rates will be plotted, with each
+grouping given a separate plot. This can be repressed by setting <code>plotPar</code> to <code>FALSE</code>. As the only
+conceivable purpose for setting <code>plotPar</code> to <code>FALSE</code> is to get the calculated rates, these will not
+be returned invisibly if <code>plotPar</code> is <code>FALSE</code>.</p>
+</dd>
+<dt>ratesPerInt</dt>
+<dd>
+<p>If <code>FALSE</code>, the default option, the rates plotted and returned will
+be in units per lineage-time units, if those rates were being treated as rates for a
+continuous-time process (i.e. <code>p_cont = TRUE</code> and <code>q_cont = TRUE</code> for <code>p</code> and <code>q</code>, respectively,
+while r is always per lineage-time units). Otherwise, the respective rate will be in
+units per lineage-interval. If <code>ratesPerInt</code> is <code>TRUE</code> instead, then <em>all</em> rates, even
+rates modeled as continuous-time process, will be returned as per lineage-interval rates,
+even the sampling rate <code>r</code>.</p>
+</dd>
+<dt>logRates</dt>
+<dd>
+<p>If <code>FALSE</code> (the default) rates are plotted on a linear scale. If <code>TRUE</code>,
+rates are plotted on a vertical log axis.</p>
+</dd>
+<dt>jitter</dt>
+<dd>
+<p>If <code>TRUE</code> (default) the sampling rate and extinction rate will be plotted slightly
+ahead of the origination rate on the time axis, so the three rates can be easily differentiated. 
+If <code>FALSE</code>, this is repressed.</p>
+</dd>
+<dt>legendPoisition</dt>
+<dd>
+<p>The position of a legend indicating which line is
+which of the three rates on the resulting plot. This
+is given as the possible positions for argument <code>x</code> of the function 
+<code>legend</code>, and by default is <code>"topleft"</code>, which will be generally
+useful if origination and extinction rates are initially low. If 
+<code>legendPosition = NA</code>, then a legend will not be plotted.</p>
+</dd>
+</dl>
+<h3>Note</h3>
+
+<p>This function is an entirely new rewrite of the methodology derived and presented by Foote in
+his studies. Thus, whether it would give identical results cannot be assumed nor is it easy to test
+given differences in the way data is handled between our coded functions. Furthermore, there may be
+differences in the math due to mistakes in the derivations caught while this function was programmed.
+I have tested the function by applying it to the same Sepkoski genus-level dataset that Foote used in
+his 2003 and 2005 papers. Users can feel free to contact me for detailed figures from this analysis.
+Overall, it seems my function captured the overall pattern of origination and sampling rates, at least
+under a model where both origination and extinction are modeled as continuous-time processes. Extinction
+showed considerably more variability relative to the published figures in Foote (2005). Additional
+analyses are being run to identify the sources of this discrepancy, and the function is being released
+here in paleotree on a trial basis, so that it can be more easily loaded onto remote servers. Users should be
+thus forewarned of this essentially 'beta' status of this function.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David W. Bapst, with some advice from Michael Foote.
+</p>
+
+
+<h3>References</h3>
+
+<p>Foote, M. 2001. Inferring temporal patterns of preservation, origination, and 
+extinction from taxonomic survivorship analysis. <em>Paleobiology</em> 27(4):602-630.
+</p>
+<p>Foote, M. 2003a. Origination and Extinction through the Phanerozoic: A New
+Approach. <em>The Journal of Geology</em> 111(2):125-148.
+</p>
+<p>Foote, M. 2003b. Erratum: Origination and Extinction through the Phanerozoic:
+a New Approach. <em>The Journal of Geology</em> 111(6):752-753.
+</p>
+<p>Foote, M. 2005. Pulsed origination and extinction in the marine realm.
+<em>Paleobiology</em> 31(1):6-20.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>This function extensively relies on <code>footeValues</code>.
+</p>
+<p>A similar format for likelihood models can be seen in <code>durationFreq</code>.
+</p>
+<p>Also see <code>freqRat</code>, <code>sRate2sProb</code>,
+<code>qsRate2Comp</code> <code>sProb2sRate</code> and <code>qsProb2Comp</code>.
+</p>
+<p>For translating between sampling probabilities and sampling rates, see
+<code>SamplingConv</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+# let's simulate some taxon ranges from an imperfectly sampled fossil record
+set.seed(444)
+record &lt;- simFossilRecord(
+    p = 0.1, 
+    q = 0.1, 
+    nruns = 1,
+	   nTotalTaxa = c(30,40), 
+	   nExtant = 0
+	   )
+taxa &lt;- fossilRecord2fossilTaxa(record)
+rangesCont &lt;- sampleRanges(taxa, r = 0.5)
+
+#bin the ranges into discrete time intervals
+rangesDisc &lt;- binTimeData(rangesCont, int.length = 5)
+
+#apply make_inverseSurv
+likFun &lt;- make_inverseSurv(rangesDisc)
+
+#use constrainParPaleo to make the model time-homogeneous
+  	# match.all ~ match.all will match parameters
+  	# so only 2 parameters: p (= q) and r
+
+constrFun &lt;- constrainParPaleo(likFun, 
+   match.all~match.all)
+
+results &lt;- optim(parInit(constrFun), 
+                 constrFun,
+                 lower = parLower(constrFun), 
+                 upper = parUpper(constrFun),
+                 method = "L-BFGS-B", 
+                 control = list(maxit = 1000000)
+                 )
+results
+
+#plot the results
+constrFun(results$par, altMode = TRUE)
+
+
+## Not run: 
+#unconstrained function with ALL of the 225 possible parameters!!!
+    # this will take forever to converge	
+optim(parInit(likFun),
+      likFun,
+      lower = parLower(likFun), 
+      upper = parUpper(likFun),
+      method = "L-BFGS-B", 
+      control = list(maxit = 1000000)
+      )
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,177 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PolySet</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>PolySet Objects</h2>
+
+<h3>Description</h3>
+
+<p>A PolySet object comprises a data frame that defines a collection of
+polygonal contours (i.e., line segments joined at vertices). These contours
+can be open-ended (polylines) or closed (polygons).
+</p>
+<p><span class="pkg">PBSmapping</span> functions that expect PolySet's will accept properly
+formatted data frames in their place (see 'Details').
+</p>
+<p><code>as.PolySet</code> attempts to coerce a data frame to an object with
+class PolySet.
+</p>
+<p><code>is.PolySet</code> returns <code>TRUE</code> if its argument is of class
+PolySet.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">as.PolySet(x, projection = NULL, zone = NULL)
+is.PolySet(x, fullValidation = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>data frame to be coerced or tested.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>projection</code></td>
+<td>
+<p>optional <code>projection</code> attribute to add to
+the PolySet, possibly overwriting an existing attribute.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zone</code></td>
+<td>
+<p>optional <code>zone</code> attribute to add to the PolySet,
+possibly overwriting an existing attribute.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fullValidation</code></td>
+<td>
+<p>Boolean value; if <code>TRUE</code>, fully test
+<code>x</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In our software, a PolySet data frame defines a collection of polygonal
+contours (i.e., line segments joined at vertices), based on four or five
+numerical fields:
+</p>
+
+<ul>
+<li> <p><code>PID</code> - the primary identification number for a contour;
+</p>
+</li>
+<li> <p><code>SID</code> - optional, the secondary identification number for a
+contour;
+</p>
+</li>
+<li> <p><code>POS</code> - the position number associated with a vertex;
+</p>
+</li>
+<li> <p><code>X</code> - the horizontal coordinate at a vertex;
+</p>
+</li>
+<li> <p><code>Y</code> - the vertical coordinate at a vertex.
+</p>
+</li>
+</ul>
+<p>The simplest PolySet lacks an <code>SID</code> column, and each <code>PID</code>
+corresponds to a different contour. By analogy with a child's
+“follow the dots” game, the <code>POS</code> field enumerates the
+vertices to be connected by straight lines. Coordinates (<code>X</code>,
+<code>Y</code>) specify the location of each vertex. Thus, in familiar
+mathematical notation, a contour consists of <code class="reqn">n</code> points 
+(<code class="reqn">x_{i}, y_{i}</code>) with <code class="reqn">i = 1, ..., n</code>, where <code class="reqn">i</code> corresponds to the
+<code>POS</code> index. A PolySet has two potential interpretations. The first
+associates a line segment with each successive pair of points from 1 to
+<code class="reqn">n</code>, giving a <em>polyline</em> (in GIS terminology) composed of the
+sequential segments. The second includes a final line segment joining
+points <code class="reqn">n</code> and 1, thus giving a <em>polygon</em>.
+</p>
+<p>The secondary ID field allows us to define regions as composites of
+polygons. From this point of view, each primary ID identifies a
+collection of polygons distinguished by secondary IDs. For example, a
+single management area (<code>PID</code>) might consist of two fishing areas,
+each defined by a unique <code>SID</code>. A secondary polygon can also
+correspond to an inner boundary, like the hole in a doughnut. We adopt
+the convention that <code>POS</code> goes from 1 to <code class="reqn">n</code> along an outer
+boundary, but from <code class="reqn">n</code> to 1 along an inner boundary, regardless of
+rotational direction. This contrasts with other GIS software, such as
+ArcView (ESRI 1996), in which outer and inner boundaries correspond to
+clockwise and counter-clockwise directions, respectively.
+</p>
+<p>The SID field in a PolySet with secondary IDs must have integer values
+that appear in ascending order for a given <code>PID</code>. Furthermore,
+inner boundaries must follow the outer boundary that encloses them. The
+<code>POS</code> field for each contour (<code>PID</code>, <code>SID</code>) must
+similarly appear as integers in strictly increasing or decreasing order,
+for outer and inner boundaries respectively. If the <code>POS</code> field
+erroneously contains floating-point numbers, <code>fixPOS</code> can
+renumber them as sequential integers, thus simplifying the insertion of
+a new point, such as point 3.5 between points 3 and 4.
+</p>
+<p>A PolySet can have a <code>projection</code> attribute, which may be missing,
+that specifies a map projection. In the current version of PBS Mapping,
+projection can have character values <code>"LL"</code> or <code>"UTM"</code>,
+referring to “Longitude-Latitude” and “Universal
+Transverse Mercator”. We explain these projections more completely
+below. If projection is numeric, it specifies the aspect ratio <code class="reqn">r</code>,
+the number of <code class="reqn">x</code> units per <code class="reqn">y</code> unit. Thus, <code class="reqn">r</code> units of
+<code class="reqn">x</code> on the graph occupy the same distance as one unit of
+<code class="reqn">y</code>. Another optional attribute <code>zone</code> specifies the UTM zone
+(if <code>projection="UTM"</code>) or the preferred zone for conversion from
+Longitude-Latitude (if <code>projection="LL"</code>).
+</p>
+<p>A data frame's class attribute by default contains the string
+<code>"data.frame"</code>. Inserting the string <code>"PolySet"</code> as the class
+vector's first element alters the behaviour of some functions. For
+example, the <code>summary</code> function will print details specific
+to a PolySet. Also, when <code>PBSprint</code> is <code>TRUE</code>, the
+print function will display a PolySet's summary rather than the contents
+of the data frame.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The <code>as.PolySet</code> method returns an object with classes
+<code>"PolySet"</code> and <code>"data.frame"</code>, in that order.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p><a href="https://github.com/boersn/">Nicholas M. Boers</a>, Staff Software Engineer<br>
+Jobber, Edmonton AB<br>
+Last modified <code>Rd: 2022-09-06</code>
+</p>
+
+
+<h3>References</h3>
+
+<p>Environmental Systems Research Institute (ESRI). (1996) <em>ArcView GIS:
+The Geographic Information System for Everyone</em>. ESRI Press, Redlands,
+California. 340 pp.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>PolyData,
+EventData,
+LocationSet
+</p>
+
+
+</div>

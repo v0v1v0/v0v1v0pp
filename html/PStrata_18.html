@@ -1,0 +1,205 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PSFormula</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Set up a model formula for use in <span class="pkg">PStrata</span>
+</h2>
+
+<h3>Description</h3>
+
+<p>Set up a model formula for use in <span class="pkg">PStrata</span> package allowing users to specify
+the treatment indicator, the post-randomization confounding variables, the outcome variable, and possibly the covariates.
+For survival outcome, a censoring indicator is also specified.
+Users can also define (potentially non-linear) transforms of the covariates and include random effects for clusters.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PSFormula(formula, data)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>an object of class <code>formula</code> (or one that can be coerced to that class):
+a symbolic description of the model to be fitted. The details of model specification are given in 'Details'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a data frame containing the variables named in <code>formula</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Two models are required for the principal stratification analysis: the principal stratum model and the outcome model.
+</p>
+
+
+<h4>General formula structure</h4>
+
+<p>For the principal stratum model, the <code>formula</code> argument accepts formulas of the following syntax:
+</p>
+<p><code>treatment + postrand ~ terms</code>
+</p>
+<p>The <code>treatment</code> variable refers to the name of the binary treatment indicator.
+The <code>postrand</code> variable refers to the name of the binary post-randomization confounding variable.
+The <code>terms</code> part includes all of the predictors used for the principal stratum model.
+</p>
+<p>For the outcome model, the <code>formula</code> argument accepts formulas of the similar syntax:
+</p>
+<p><code>response [+ observed] ~ terms</code>
+</p>
+<p>The <code>response</code> variable refers to the name of the outcome variable.
+The <code>terms</code> part includes all of the predictors used for the outcome model. 
+The <code>observed</code> variable shall not be used for ordinary response.
+When the true response is subject to right censoring (also called survival outcome in relevant literature),
+the <code>response</code> variable should refer to the observed or censored response, and the <code>observed</code> variable should
+be an indicator of whether the true response is observed. 
+For example, suppose the true time for an event is <code class="reqn">T</code> and the time of censoring is <code class="reqn">C</code>,
+Then, the <code>response</code> variable should refer to <code class="reqn">\min(T, C)</code>, the actual time of the event or censoring, whichever comes earlier,
+and the indicator <code>observed</code> is 1 if <code class="reqn">T &lt; C</code> and 0 otherwise.
+</p>
+<p>The <code>terms</code> specified in the principal stratum model and the outcome model can be different.
+</p>
+
+
+
+<h4>Multiple post-randomization confounding variables</h4>
+
+<p>If multiple post-randomization confounding variables exist, one can specify all of them using 
+the following syntax:
+</p>
+<p><code>treatment + postrand_1 + postrand_2 + ... + postrand_n ~ terms</code>
+</p>
+<p>The post-randomization confounding variables are provided in place of <code>postrand_1</code> to
+<code>postrand_n</code>. Up to this version, all of these variables should be binary indicators.
+Note that the order of these post-randomization confounding variables will not
+affect the result of the estimation of the parameters, but it will be important
+in specifying other parameters, such as <code>strata</code> and <code>ER</code> (see <code>PStrata</code>).
+</p>
+
+
+
+<h4>Non-linear transformation of the predictors</h4>
+
+<p>The syntax for the predictors follow the conventions as used in <code>link{formula}</code>.
+The part <code>terms</code> consists of a series of terms concatenated by <code>+</code>, 
+each term being the name of a variable, or the interaction of several variables separated by <code>:</code>.
+</p>
+<p>Apart from <code>+</code> and <code>:</code>, a number of other operators are also useful.
+The <code>*</code> operator is a short-hand for factor crossing: 
+<code>a*b</code> is interpreted as <code>a + b + a:b</code>.
+The <code>^</code> operator means factor crossing to a specific degree. For example,
+<code>(a + b + c)^2</code> is interpreted as <code>(a + b + c) * (a + b + c)</code>,
+which is identical to <code>a + b + c + a:b + a:c + b:c</code>.
+The <code>-</code> operator removes specified terms, so that <code>(a + b + c)^2 - a:b</code> is
+identical to <code>a + b + c + a:c + b:c</code>.
+The <code>-</code> operator can be also used to remove the intercept term, such as 
+<code>x - 1</code>. One can also use <code>x + 0</code> to remove the intercept term.
+</p>
+<p>Arithmetic expressions such as <code>a + log(b)</code> are also legal.
+However, arithmetic expressions may contain special symbols that are defined for other use, such as <code>+</code>, <code>*</code>, <code>^</code> and <code>-</code>.
+To avoid confusion, the function <code>I()</code> can be used to bracket portions where the operators should be interpreted in arithmetic sense.
+For example, in <code>x + I(y + z)</code>, the term <code>y + z</code> is interpreted as the sum of <code>y</code> and <code>z</code>.
+</p>
+
+
+
+<h4>Group level random effect</h4>
+
+<p>When effects assumed to vary across grouping variables are considered, one can 
+specify such effects by adding terms in the form of <code>gterms | group</code>, where
+<code>group</code> refers to the group indicator (usually a <code>factor</code>), and
+<code>gterms</code> specifies the terms whose coefficients are group-specific, drawn 
+from a population normal distribution. 
+</p>
+<p>The most common situation for group level random effect is to include group-specific
+intercepts to account for unmeasured confounding. 
+For example, <code>x + y + (1 | g)</code> specifies a model with population predictors
+<code>x</code> and <code>y</code>, as well as random intercept for each level of <code>g</code>.
+</p>
+<p>For more complex random effect structures, refer to <code>lme4::lmer</code>.
+However, structures other than simple random intercepts and slopes may lead to unexpected behaviors.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p><code>PSFormula</code> returns an object of class <code>PSFormula</code>, 
+which is a <code>list</code> containing for following components.
+</p>
+
+<dl>
+<dt><code>full_formula</code></dt>
+<dd>
+<p>input formula as is</p>
+</dd>
+<dt><code>data</code></dt>
+<dd>
+<p>input data frame</p>
+</dd>
+<dt><code>fixed_eff_formula</code></dt>
+<dd>
+<p>input formula with only fixed effects</p>
+</dd>
+<dt><code>response_names</code></dt>
+<dd>
+<p>character vector with names of variables that appear on the left hand side of input formula</p>
+</dd>
+<dt><code>has_random_effect</code></dt>
+<dd>
+<p>logical indicating whether random effects are specified in the input formula</p>
+</dd>
+<dt><code>has_intercept</code></dt>
+<dd>
+<p>logical indicating whether the input formula has an intercept</p>
+</dd>
+<dt><code>fixed_eff_names</code></dt>
+<dd>
+<p>character vector with names of all variables included as fixed effects</p>
+</dd>
+<dt><code>fixed_eff_count</code></dt>
+<dd>
+<p>integer indicating the number of variables (factors are converted to and counted as dummy variables)</p>
+</dd>
+<dt><code>fixed_eff_matrix</code></dt>
+<dd>
+<p>fixed-effect design matrix</p>
+</dd>
+<dt><code>random_eff_list</code></dt>
+<dd>
+<p>a list containing information for each random effect. 
+Such information is a list with the corresponding design matrix, the term names and the factor levels.</p>
+</dd>
+</dl>
+<h3>See Also</h3>
+
+<p><code>formula</code>, <code>lmer</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">df &lt;- data.frame(
+  X = 1:10, 
+  Z = c(0,0,0,0,0,1,1,1,1,1),
+  D = c(0,0,0,1,1,1,0,0,1,1),
+  R = c(1,1,1,1,2,2,2,3,3,3)
+ )
+PSFormula(Z + D ~ X + I(X^2) + (1 | R), df)
+
+</code></pre>
+
+
+</div>

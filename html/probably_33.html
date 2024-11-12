@@ -1,0 +1,183 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cal_estimate_linear</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Uses a linear regression model to calibrate numeric predictions</h2>
+
+<h3>Description</h3>
+
+<p>Uses a linear regression model to calibrate numeric predictions
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cal_estimate_linear(
+  .data,
+  truth = NULL,
+  estimate = dplyr::matches("^.pred$"),
+  smooth = TRUE,
+  parameters = NULL,
+  ...,
+  .by = NULL
+)
+
+## S3 method for class 'data.frame'
+cal_estimate_linear(
+  .data,
+  truth = NULL,
+  estimate = dplyr::matches("^.pred$"),
+  smooth = TRUE,
+  parameters = NULL,
+  ...,
+  .by = NULL
+)
+
+## S3 method for class 'tune_results'
+cal_estimate_linear(
+  .data,
+  truth = NULL,
+  estimate = dplyr::matches("^.pred$"),
+  smooth = TRUE,
+  parameters = NULL,
+  ...
+)
+
+## S3 method for class 'grouped_df'
+cal_estimate_linear(
+  .data,
+  truth = NULL,
+  estimate = NULL,
+  smooth = TRUE,
+  parameters = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>.data</code></td>
+<td>
+<p>Am ungrouped  <code>data.frame</code> object, or <code>tune_results</code> object,
+that contains a prediction column.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>truth</code></td>
+<td>
+<p>The column identifier for the observed outcome data (that is
+numeric). This should be an unquoted column name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimate</code></td>
+<td>
+<p>Column identifier for the predicted values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>smooth</code></td>
+<td>
+<p>Applies to the linear models. It switches between a generalized
+additive model using spline terms when <code>TRUE</code>, and simple linear regression
+when <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parameters</code></td>
+<td>
+<p>(Optional)  An optional tibble of tuning parameter values
+that can be used to filter the predicted values before processing. Applies
+only to <code>tune_results</code> objects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed to the models or routines used to
+calculate the new predictions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.by</code></td>
+<td>
+<p>The column identifier for the grouping variable. This should be
+a single unquoted column name that selects a qualitative variable for
+grouping. Default to <code>NULL</code>. When <code>.by = NULL</code> no grouping will take place.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function uses existing modeling functions from other packages to create
+the calibration:
+</p>
+
+<ul>
+<li> <p><code>stats::glm()</code> is used when <code>smooth</code> is set to <code>FALSE</code>
+</p>
+</li>
+<li> <p><code>mgcv::gam()</code> is used when <code>smooth</code> is set to <code>TRUE</code>
+</p>
+</li>
+</ul>
+<p>These methods estimate the relationship in the unmodified predicted values
+and then remove that trend when <code>cal_apply()</code> is invoked.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><a href="https://www.tidymodels.org/learn/models/calibration/">https://www.tidymodels.org/learn/models/calibration/</a>,
+<code>cal_validate_linear()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(dplyr)
+library(ggplot2)
+
+head(boosting_predictions_test)
+
+# ------------------------------------------------------------------------------
+# Before calibration
+
+y_rng &lt;- extendrange(boosting_predictions_test$outcome)
+
+boosting_predictions_test %&gt;%
+  ggplot(aes(outcome, .pred)) +
+  geom_abline(lty = 2) +
+  geom_point(alpha = 1 / 2) +
+  geom_smooth(se = FALSE, col = "blue", linewidth = 1.2, alpha = 3 / 4) +
+  coord_equal(xlim = y_rng, ylim = y_rng) +
+  ggtitle("Before calibration")
+
+# ------------------------------------------------------------------------------
+# Smoothed trend removal
+
+smoothed_cal &lt;-
+  boosting_predictions_oob %&gt;%
+  # It will automatically identify the predicted value columns when the
+  # standard tidymodels naming conventions are used.
+  cal_estimate_linear(outcome)
+smoothed_cal
+
+boosting_predictions_test %&gt;%
+  cal_apply(smoothed_cal) %&gt;%
+  ggplot(aes(outcome, .pred)) +
+  geom_abline(lty = 2) +
+  geom_point(alpha = 1 / 2) +
+  geom_smooth(se = FALSE, col = "blue", linewidth = 1.2, alpha = 3 / 4) +
+  coord_equal(xlim = y_rng, ylim = y_rng) +
+  ggtitle("After calibration")
+
+</code></pre>
+
+
+</div>

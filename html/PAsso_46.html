@@ -1,0 +1,156 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>surrogate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Surrogate response</h2>
+
+<h3>Description</h3>
+
+<p>Simulate surrogate response values for cumulative link regression models
+using the latent method described in Liu and Zhang (2017).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">surrogate(
+  object,
+  method = c("latent", "uniform"),
+  jitter.uniform.scale = c("probability", "response"),
+  nsim = 1L,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>An object of class <code>clm</code>,
+<code>glm</code> <code>lrm</code>, <code>orm</code>,
+<code>polr</code>, or <code>vglm</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Character string specifying which method to use to generate the
+surrogate response values. Current options are <code>"latent"</code> and
+<code>"uniform"</code>. Default is <code>"latent"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>jitter.uniform.scale</code></td>
+<td>
+<p>Character string specifying the scale on which to perform
+the jittering whenever <code>method = "uniform"</code>. Current options are
+<code>"response"</code> and <code>"probability"</code>. Default is <code>"response"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsim</code></td>
+<td>
+<p>Integer specifying the number of bootstrap replicates to use.
+Default is <code>1L</code> meaning no bootstrap samples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional optional arguments. (Currently ignored.)</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A numeric vector of class <code>c("numeric", "surrogate")</code> containing
+the simulated surrogate response values. Additionally, if <code>nsim</code> &gt; 1,
+then the result will contain the attributes:
+</p>
+
+<dl>
+<dt><code>boot_reps</code></dt>
+<dd>
+<p>A matrix  with <code>nsim</code> columns, one for each
+bootstrap replicate of the surrogate values. Note, these are random and do
+not correspond to the original ordering of the data;</p>
+</dd>
+<dt><code>boot_id</code></dt>
+<dd>
+<p>A matrix  with <code>nsim</code> columns. Each column
+contains the observation number each surrogate value corresponds to in
+<code>boot_reps</code>. (This is used for plotting purposes.)</p>
+</dd>
+</dl>
+<h3>Note</h3>
+
+<p>Surrogate response values require sampling from a continuous distribution;
+consequently, the result will be different with every call to
+<code>surrogate</code>. The internal functions used for sampling from truncated
+distributions are based on modified versions of
+<code>truncdist:rtrunc</code> and <code>truncdist:qtrunc</code>.
+</p>
+<p>For <code>"glm"</code> objects, only the <code>binomial()</code> family is supported.
+</p>
+
+
+<h3>References</h3>
+
+<p>Liu, D., Li, S., Yu, Y., &amp; Moustaki, I. (2020). Assessing partial association between
+ordinal variables: quantification, visualization, and hypothesis testing. <em>Journal
+of the American Statistical Association</em>, 1-14. doi: <a href="https://doi.org/10.1080/01621459.2020.1796394">10.1080/01621459.2020.1796394</a>
+</p>
+<p>Liu, D., &amp; Zhang, H. (2018). Residuals and diagnostics for ordinal regression models:
+A surrogate approach. <em>Journal of the American Statistical Association</em>, 113(522), 845-854.
+doi: <a href="https://doi.org/10.1080/01621459.2017.1292915">10.1080/01621459.2017.1292915</a>
+</p>
+<p>Nadarajah, S., &amp; Kotz, S. (2006). R Programs for Truncated Distributions. <em>Journal
+of Statistical Software</em>, 16(Code Snippet 2), 1 - 8. doi: <a href="https://doi.org/10.18637/jss.v016.c02">10.18637/jss.v016.c02</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Generate data from a quadratic probit model
+set.seed(101)
+n &lt;- 2000
+x &lt;- runif(n, min = -3, max = 6)
+z &lt;- 10 + 3*x - 1*x^2 + rnorm(n)
+y &lt;- ifelse(z &lt;= 0, yes = 0, no = 1)
+
+# Scatterplot matrix
+pairs(~ x + y + z)
+
+# Setup for side-by-side plots
+par(mfrow = c(1, 2))
+
+# Misspecified mean structure
+fm1 &lt;- glm(y ~ x, family = binomial(link = "probit"))
+s1 &lt;- surrogate(fm1)
+scatter.smooth(x, s1 - fm1$linear.predictors,
+               main = "Misspecified model",
+               ylab = "Surrogate residual",
+               lpars = list(lwd = 3, col = "red2"))
+abline(h = 0, lty = 2, col = "blue2")
+
+# Correctly specified mean structure
+fm2 &lt;- glm(y ~ x + I(x ^ 2), family = binomial(link = "probit"))
+s2 &lt;- surrogate(fm2)
+scatter.smooth(x, s2 - fm2$linear.predictors,
+               main = "Correctly specified model",
+               ylab = "Surrogate residual",
+               lpars = list(lwd = 3, col = "red2"))
+abline(h = 0, lty = 2, col = "blue2")
+
+
+dev.off() # reset to defaults once finish
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,229 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fit.dnetwork</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fitting Network Distribution using ARD.</h2>
+
+<h3>Description</h3>
+
+<p><code>fit.dnetwork</code> computes the network distribution using the simulations from the posterior distribution of the
+ARD network formation model. The linking probabilities are also computed for individuals without ARD.
+The degrees and the gregariousness of the individuals without ARD are computed from the sample with ARD using a k-nearest neighbors method.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fit.dnetwork(
+  object,
+  X = NULL,
+  obsARD = NULL,
+  m = NULL,
+  burnin = NULL,
+  print = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p><code>estim.ARD</code> object returned by <code>mcmcARD</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>(required when ARD are available for a sample of individuals) is a matrix of variables describing individuals with ARD and those without ARD. This matrix will be used to compute distance between individuals
+in the k-nearest neighbors approach.
+This could be the matrix of traits (see details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obsARD</code></td>
+<td>
+<p>logical vector of length <code>nrow(X)</code> (number of individuals with and without ARD), where the i-th entry equal to <code>TRUE</code> if the i-th individual in <code>X</code> has ARD and <code>FALSE</code> otherwise.
+If missing, <code>obsARD = rep(c(TRUE, FALSE), n1, n2)</code>, where <code>n1</code> is the number of individuals with ARD (see details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m</code></td>
+<td>
+<p>number of neighbors used to compute the gregariousness and the degree for individuals without ARD (default value is <code>1</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>burnin</code></td>
+<td>
+<p>number of simulations from the posterior distribution used as burn-in. The network distribution will be computed
+used the simulation from the iteration <code>burnin + 1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>print</code></td>
+<td>
+<p>logical; if TRUE, the progression will be printed in the console.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The order of individuals provided through the arguments <code>traitARD</code> and <code>ARD</code> (when calling the function <code>mcmcARD</code>) should fit the order of individuals in
+<code>X</code> and <code>obsARD</code>. Especially, the i-th row of <code>X[obsARD,]</code> should correspond to the i-th row in <code>traitARD</code> or <code>ARD</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list consisting of:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>dnetwork</code></td>
+<td>
+<p>posterior mean of the network distribution.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>degree</code></td>
+<td>
+<p>posterior mean of the degree.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nu</code></td>
+<td>
+<p>posterior mean of the gregariousness, nu.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+set.seed(123)
+# GENERATE DATA
+# Sample size
+N  &lt;- 500 
+n  &lt;- 300
+
+# ARD parameters
+genzeta &lt;- 1
+mu      &lt;- -1.35
+sigma   &lt;- 0.37
+K       &lt;- 12    # number of traits
+P       &lt;- 3     # Sphere dimension 
+
+# Generate z (spherical coordinates)
+genz    &lt;- rvMF(N,rep(0,P))
+
+# Genetate nu  from a Normal distribution with parameters mu and sigma (The gregariousness)
+gennu   &lt;- rnorm(N,mu,sigma)
+
+# compute degrees
+gend &lt;- N*exp(gennu)*exp(mu+0.5*sigma^2)*exp(logCpvMF(P,0) - logCpvMF(P,genzeta))
+
+# Link probabilities
+Probabilities &lt;- sim.dnetwork(gennu,gend,genzeta,genz) 
+
+# Adjacency matrix
+G &lt;- sim.network(Probabilities)
+
+# Generate vk, the trait location
+genv &lt;- rvMF(K,rep(0,P))
+
+# set fixed some vk  distant
+genv[1,] &lt;- c(1,0,0)
+genv[2,] &lt;- c(0,1,0)
+genv[3,] &lt;- c(0,0,1)
+
+# eta, the intensity parameter
+geneta   &lt;-abs(rnorm(K,2,1))
+
+# Build traits matrix
+densityatz      &lt;- matrix(0,N,K)
+for(k in 1:K){
+  densityatz[,k] &lt;- dvMF(genz,genv[k,]*geneta[k])
+}
+
+trait       &lt;- matrix(0,N,K)
+NK          &lt;- floor(runif(K, 0.8, 0.95)*colSums(densityatz)/apply(densityatz, 2, max)) 
+for (k in 1:K) {
+  trait[,k]       &lt;- rbinom(N, 1, NK[k]*densityatz[,k]/sum(densityatz[,k]))
+}
+
+# print a percentage of people having a trait
+colSums(trait)*100/N
+
+# Build ARD
+ARD         &lt;- G %*% trait
+
+# generate b
+genb        &lt;- numeric(K)
+for(k in 1:K){
+  genb[k]   &lt;- sum(G[,trait[,k]==1])/sum(G)
+}
+
+############ ARD Posterior distribution ################### 
+# EXAMPLE 1: ARD observed for the entire population
+# initialization 
+d0     &lt;- exp(rnorm(N)); b0 &lt;- exp(rnorm(K)); eta0 &lt;- rep(1,K);
+zeta0  &lt;- 1; z0 &lt;- matrix(rvMF(N,rep(0,P)),N); v0 &lt;- matrix(rvMF(K,rep(0,P)),K)
+
+# We need to fix some of the vk and bk for identification (see Breza et al. (2020) for details).
+vfixcolumn      &lt;- 1:6
+bfixcolumn      &lt;- c(3, 5)
+b0[bfixcolumn]  &lt;- genb[bfixcolumn]
+v0[vfixcolumn,] &lt;- genv[vfixcolumn,]
+
+start  &lt;- list("z" = z0, "v" = v0, "d" = d0, "b" = b0, "eta" = eta0, "zeta" = zeta0)
+# MCMC ARD
+out    &lt;- mcmcARD(Y = ARD, traitARD = trait, start = start, fixv = vfixcolumn,
+                  consb = bfixcolumn, iteration = 5000)
+                  
+# fit network distribution
+dist   &lt;- fit.dnetwork(out)
+
+plot(rowSums(dist$dnetwork), gend)
+abline(0, 1, col = "red")
+
+# EXAMPLE 2: ARD observed for a sample of the population
+# observed sample
+selectARD   &lt;- sort(sample(1:N, n, FALSE))
+traitard    &lt;- trait[selectARD,]
+ARD         &lt;- ARD[selectARD,]
+logicalARD  &lt;- (1:N) %in% selectARD
+
+# initianalization 
+d0     &lt;- exp(rnorm(n)); b0 &lt;- exp(rnorm(K)); eta0 &lt;- rep(1,K);
+zeta0  &lt;- 1; z0 &lt;- matrix(rvMF(n,rep(0,P)),n); v0 &lt;- matrix(rvMF(K,rep(0,P)),K)
+
+# We need to fix some of the vk and bk for identification (see Breza et al. (2020) for details).
+vfixcolumn      &lt;- 1:6
+bfixcolumn      &lt;- c(3, 5)
+b0[bfixcolumn]  &lt;- genb[bfixcolumn]
+v0[vfixcolumn,] &lt;- genv[vfixcolumn,]
+
+start  &lt;- list("z" = z0, "v" = v0, "d" = d0, "b" = b0, "eta" = eta0, "zeta" = zeta0)
+# MCMC ARD
+out    &lt;- mcmcARD(Y = ARD, traitARD = traitard, start = start, fixv = vfixcolumn,
+                  consb = bfixcolumn, iteration = 5000)
+                  
+# fit network distribution
+dist   &lt;- fit.dnetwork(out, X = trait, obsARD = logicalARD, m = 1)
+
+library(ggplot2)
+ggplot(data.frame("etimated.degree" = dist$degree,
+                  "true.degree"     = gend,
+                  "observed"        = ifelse(logicalARD, TRUE, FALSE)),
+       aes(x = etimated.degree, y = true.degree, colour = observed)) +
+  geom_point()
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,244 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pmxparframe</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a <code>data.frame</code> of from outputs and metadata</h2>
+
+<h3>Description</h3>
+
+<p>This can be viewed as the first step in creating a nice-looking HTML table
+of model parameters. It combines the "raw" model outputs with metadata and
+produces and <code>data.frame</code>, conceived as an intermediate between the raw
+outputs and formatted table, but may also be useful in its own right. The
+decoupling of raw outputs from the final table is viewed as essential for
+flexibility.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pmxparframe(outputs, meta = get_metadata(outputs))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>outputs</code></td>
+<td>
+<p>A <code>list</code> of outputs from fitting the model (see Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>meta</code></td>
+<td>
+<p>A <code>list</code> of metadata (see Details).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>One of the key features of the approach taken in this package is
+that it decouples the "raw" outputs of the model from the presentation of
+results. A metadata description of the desired presentation of results is
+what links the two.  This allows, for example, parameters to be presented in
+a different order, or on a different scale, than they were specified in the
+model. Hence, it provides more flexibility and control over the presentation
+than other approaches.
+</p>
+<p><code>outputs</code> is a named <code>list</code>, with the following elements:
+</p>
+
+<ul>
+<li> <p><code>est</code>:       estimated values (i.e., point estimates)
+</p>
+</li>
+<li> <p><code>se</code>:        standard errors
+</p>
+</li>
+<li> <p><code>fixed</code>:     designates parameters that were fixed rather than estimated
+</p>
+</li>
+<li> <p><code>shrinkage</code>: for random effects, the estimated percent shrinkage
+</p>
+</li>
+</ul>
+<p><code>est</code>, <code>se</code> and <code>fixed</code> have essentially the same structure. They can be
+either flat named lists, or more structured named lists containing the following elements:
+</p>
+
+<ul>
+<li> <p><code>th</code>     : named list (or vector) of fixed effects
+</p>
+</li>
+<li> <p><code>om</code>     : named list (or vector) of individual-level random effects
+expressed as standard deviations
+</p>
+</li>
+<li> <p><code>om_cov</code> : individual-level random effects expressed as a
+variance-covariance matrix
+</p>
+</li>
+<li> <p><code>om_cor</code> : individual-level random effects expressed as a matrix of
+correlations (off-diagonal elements) and standard deviations (diagonal
+elements)
+</p>
+</li>
+<li> <p><code>sg</code>     : named list (or vector) of observation-level random effects
+expressed as standard deviations
+</p>
+</li>
+</ul>
+<p><code>meta</code> is a <code>list</code>. Each element of <code>meta</code> is a named (sub)list
+representing a parameter.  Each parameter is described by a series of
+attributes (not R <code>attributes</code>, but named list items). Of these, the only
+one that is required is <code>name</code>, which must match the name of the parameter
+used in <code>outputs</code> as it is used to make that association. The optional attributes include:
+</p>
+
+<ul>
+<li> <p><code>label</code>:     A descriptive label.
+</p>
+</li>
+<li> <p><code>units</code>:     Units, if applicable.
+</p>
+</li>
+<li> <p><code>type</code>:      Parameters can be grouped into sections by type. The standard types are:
+</p>
+
+<ul>
+<li> <p><code>Structural</code>:      Structural model parameters
+</p>
+</li>
+<li> <p><code>CovariateEffect</code>: Parameters that relate covariates to structural parameters
+</p>
+</li>
+<li> <p><code>IIV</code>:             Inter-individual (i.e., between-subject) variability
+</p>
+</li>
+<li> <p><code>IOV</code>:             Inter-occasion variability
+</p>
+</li>
+<li> <p><code>RUV</code>:             Residual unexplained variability
+</p>
+</li>
+</ul>
+</li>
+<li> <p><code>trans</code>:     Parameters can be presented on a (back)transformed scale (e.g.,
+antilog). Importantly, transformation are also applied to
+standard errors (by "propagation of errors", also known as
+the delta method) to preserve (asymptotic) correctness, and
+to the endpoints of confidence intervals (note: this
+typically leads to non-symmetric intervals). Only a small set
+of transformations are currently recognized and supported,
+which include:
+</p>
+
+<ul>
+<li> <p><code>identity</code>:  no transformation
+</p>
+</li>
+<li> <p><code style="white-space: pre;">⁠%⁠</code>,         percent-scale
+</p>
+</li>
+<li> <p><code>exp</code>:       antilog
+</p>
+</li>
+<li> <p><code>ilogit</code>:    inverse-logit
+</p>
+</li>
+<li> <p><code style="white-space: pre;">⁠CV%⁠</code>:       intended specifically for IIV parameters, where the
+associated structural parameter is log-normally
+distributed, transforms the standard deviation <code class="reqn">\omega</code>
+to percent coefficient of variation by the formula
+<code class="reqn">100\times\sqrt{\exp(\omega^2)-1}</code>
+</p>
+</li>
+<li> <p><code style="white-space: pre;">⁠SD (CV%)⁠</code>:  similar to the above, but the parameter remains on its original
+scale (i.e., standard deviation) with the percent coefficient
+of variation displayed in parentheses next to it (does not
+affect standard errors or confidence intervals).
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>A <code>data.frame</code> with a row for each parameter, and the following columns:
+</p>
+
+<ul>
+<li> <p><code>name</code>:      name of the parameter (<code>character</code>)
+</p>
+</li>
+<li> <p><code>fixed</code>:     fixed or estimated? (<code>logical</code>)
+</p>
+</li>
+<li> <p><code>est</code>:       estimated value (<code>numeric</code>)
+</p>
+</li>
+<li> <p><code>se</code>:        standard error (<code>numeric</code>)
+</p>
+</li>
+<li> <p><code>rse</code>:       percent relative standard error (<code>numeric</code>)
+</p>
+</li>
+<li> <p><code>lci95</code>:     lower bound of 95% confidence interval (<code>numeric</code>)
+</p>
+</li>
+<li> <p><code>uci95</code>:     upper bound of 95% confidence interval (<code>numeric</code>)
+</p>
+</li>
+<li> <p><code>pval</code>:      p-value for test of null hypothesis that value is zero (<code>numeric</code>)
+</p>
+</li>
+<li> <p><code>shrinkage</code>: percent shrinkage if applicable (<code>numeric</code>)
+</p>
+</li>
+</ul>
+<p>Other attributes from <code>meta</code> will also be preserved as columns. The order of
+the rows is determined by the order of the parameters in <code>meta</code> (the order
+in <code>outputs</code> is irrelevant).
+</p>
+
+
+<h3>See Also</h3>
+
+<p>pmxpartab
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">outputs &lt;- list(
+  est = list(
+    th = list(CL = 0.482334, VC = 0.0592686),
+    om = list(nCL = 0.315414, nVC = 0.536025),
+    sg = list(ERRP = 0.0508497)),
+  se = list(
+    th = list(CL = 0.0138646, VC = 0.00555121),
+    om = list(nCL = 0.0188891, nVC = 0.0900352),
+    sg = list(ERRP = 0.00182851)),
+  fixed = list(
+    th = list(CL = FALSE, VC = FALSE),
+    om = list(nCL = FALSE, nVC = FALSE),
+    sg = list(ERRP = FALSE)),
+  shrinkage = list(nCL = 9.54556, nVC = 47.8771))
+
+meta &lt;- list(
+  parameters = list(
+    list(name="CL", label="Clearance", units="L/h", type="Structural"),
+    list(name="VC", label="Volume", units="L", type="Structural", trans="exp"),
+    list(name="nCL", label="On Clearance", type="IIV", trans="SD (CV%)"),
+    list(name="nVC", label="On Volume", type="IIV"),
+    list(name="ERRP", label="Proportional Error", units="%", type="RUV", trans="%")))
+
+pmxparframe(outputs, meta)
+</code></pre>
+
+
+</div>

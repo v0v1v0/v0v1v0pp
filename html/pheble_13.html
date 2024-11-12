@@ -1,0 +1,281 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ph_train</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate predictions for phenotype ensemble.</h2>
+
+<h3>Description</h3>
+
+<p>The <code>ph_train</code> function automatically trains a set of binary or multi-class classification models to ultimately
+build a new dataset of predictions. The data preprocessing and hyperparameter tuning are handled internally to
+minimize user input and simplify the training.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ph_train(
+  train_df,
+  vali_df,
+  test_df,
+  class_col,
+  ctrl,
+  train_seed = 123,
+  n_cores = 2,
+  task = "multi",
+  methods = "all",
+  metric = ifelse(task == "multi", "Kappa", "ROC"),
+  tune_length = 10,
+  quiet = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>train_df</code></td>
+<td>
+<p>A <code>data.frame</code> containing a class column and the training data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vali_df</code></td>
+<td>
+<p>A <code>data.frame</code> containing a class column and the validation data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test_df</code></td>
+<td>
+<p>A <code>data.frame</code> containing a class column and the test d</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>class_col</code></td>
+<td>
+<p>A <code>character</code> value for the name of the class column shared across the train, validation, and test sets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ctrl</code></td>
+<td>
+<p>A <code>list</code> containing the resampling strategy (e.g., "boot") and other parameters for <code>trainControl</code>. Automatically create one via <code>ph_ctrl</code> or manually create it with <code>trainControl</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>train_seed</code></td>
+<td>
+<p>A <code>numeric</code> value to set the training seed and control the randomness of creating resamples: 123 (default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_cores</code></td>
+<td>
+<p>An <code>integer</code> value for the number of cores to include in the cluster: 2 (default). We highly recommend increasing this value to, e.g., parallel::detectCores() - 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>task</code></td>
+<td>
+<p>A <code>character</code> value for the type of classification <code>task</code>: "multi" (default), "binary".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>methods</code></td>
+<td>
+<p>A <code>character</code> value enumerating the names (at least two, unless "all") of the classification methods to ensemble: "all" (default).
+</p>
+
+<ul>
+<li>
+<p> If <code>task = "binary"</code>, there are 33 methods to choose from: "AdaBag", "AdaBoost.M1", "C5.0", "evtree", "glmnet", "hda", "kernelpls", "kknn", "lda", "loclda", "mda", "nb", "nnet", "pda", "pls", "qda", "rda", "rf", "sparseLDA", "stepLDA", "stepQDA", "treebag", "svmLinear", "svmPoly","svmRadial", "gaussprLinear" (slow), "gaussprPoly" (slow), "gaussprRadial" (slow), "bagEarthGCV", "cforest", "earth", "fda", "hdda".
+</p>
+</li>
+<li>
+<p> If <code>task = "multi"</code>, there are 30 methods to choose from:  "AdaBag", "AdaBoost.M1",  "C5.0", "evtree", "glmnet", "hda", "kernelpls", "kknn", "lda", "loclda", "mda", "nb", "nnet", "pda", "pls", "qda", "rda", "rf", "sparseLDA", "stepLDA", "stepQDA", "treebag", "svmLinear", "svmPoly", "svmRadial", "bagEarthGCV", "cforest", "earth", "fda", "hdda".
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>metric</code></td>
+<td>
+<p>A <code>character</code> value for which summary metric should be used to select the optimal model: "ROC" (default for "binary") and "Kappa" (default for "multi"). Other options include "logLoss", "Accuracy", "Mean_Balanced_Accuracy", and "Mean_F1".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tune_length</code></td>
+<td>
+<p>If <code>search = "random"</code> (default), this is an <code>integer</code> value for the maximum number of hyperparameter combinations to test for each training model in the ensemble; if <code>search = "grid"</code>, this is an <code>integer</code> value for the number of levels of each hyperparameter to test for each model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>A <code>logical</code> value for whether progress should be printed: TRUE (default), FALSE.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing the following components:</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+<code>train_models</code> </td>
+<td style="text-align: left;"> The <code>train</code> models for the ensemble. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>train_df</code> </td>
+<td style="text-align: left;"> The training data frame. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>vali_df</code> </td>
+<td style="text-align: left;"> The validation data frame. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>test_df</code> </td>
+<td style="text-align: left;"> The test data frame. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>task</code> </td>
+<td style="text-align: left;"> The type of classification task. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>ctrl</code> </td>
+<td style="text-align: left;"> A list of resampling parameters used in <code>trainControl</code>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>methods</code> </td>
+<td style="text-align: left;"> The names of the classification methods to ensemble. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>search</code> </td>
+<td style="text-align: left;"> The hyperparameter search strategy. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>n_cores</code> </td>
+<td style="text-align: left;"> The number of cores for parallel processing. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>metric</code> </td>
+<td style="text-align: left;"> The summary metric used to select the optimal model. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>tune_length</code> </td>
+<td style="text-align: left;"> The maximum number of hyperparameter combinations ("random") or individual hyperparameter depth ("grid").  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Import data.
+data(ph_crocs)
+
+## Remove anomalies with autoencoder.
+rm_outs &lt;- ph_anomaly(df = ph_crocs, ids_col = "Biosample",
+                      class_col = "Species", method = "ae")
+## Preprocess anomaly-free data frame into train, validation, and test sets
+## with PCs as predictors.
+pc_dfs &lt;- ph_prep(df = rm_outs$df, ids_col = "Biosample",
+                  class_col = "Species", vali_pct = 0.15,
+                  test_pct = 0.15, method = "pca")
+## Echo control object for train function.
+ctrl &lt;- ph_ctrl(ph_crocs$Species, resample_method = "boot")
+## Train all models for ensemble.
+## Note: Increasing n_cores will dramatically reduce train time.
+train_models &lt;- ph_train(train_df = pc_dfs$train_df,
+                         vali_df = pc_dfs$vali_df,
+                         test_df = pc_dfs$test_df,
+                         class_col = "Species",
+                         ctrl = ctrl,
+                         task = "multi",
+                         methods = "all",
+                         tune_length = 5,
+                         quiet = FALSE)
+## You can also train just a few, although more is preferable.
+## Note: Increasing n_cores will dramatically reduce train time.
+train_models &lt;- ph_train(train_df = pc_dfs$train_df,
+                         vali_df = pc_dfs$vali_df,
+                         test_df = pc_dfs$test_df,
+                         class_col = "Species",
+                         ctrl = ctrl,
+                         task = "multi",
+                         methods = c("lda", "mda",
+                         "nnet", "pda", "sparseLDA"),
+                         tune_length = 5,
+                         quiet = FALSE)
+
+</code></pre>
+
+
+</div>

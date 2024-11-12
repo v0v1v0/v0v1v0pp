@@ -1,0 +1,173 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Correction2Vect</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Correction on two vectors 
+</h2>
+
+<h3>Description</h3>
+
+<p>For the estimation of <code class="reqn">\tilde{\beta}</code> in  Zhu et al. (2022), this function keeps only the K1 largest values of prognostic biomarkers coefficients and the k2 largest value of the presictive biomarkers coefficients and set the others to the smallest value among the k1 (k2) largest of prognostic (predictive part). 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">Correction2Vect(X, Y, te=NULL, vector_prog, vector_pred, 
+top_grill.=c(1:length(vector_prog)), delta=0.95, toZero=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+
+<p>Design matrix
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+
+<p>Response vector
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>te</code></td>
+<td>
+
+<p>treatment effects
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vector_prog</code></td>
+<td>
+
+<p>Vector of prognostic biomarkers
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vector_pred</code></td>
+<td>
+
+<p>Vector of predictive biomarkers
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>top_grill.</code></td>
+<td>
+
+<p>grill of the thresholding</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>delta</code></td>
+<td>
+
+<p>parameter <code class="reqn">\delta</code> in the thresholding
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>toZero</code></td>
+<td>
+
+<p>should the threshold to 0 or not 
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>This function returns the thresholded vector.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Wencan Zhu, Celine Levy-Leduc, Nils Ternes
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">x1=sample(1:10,10)
+x2=sample(1:10,10)
+
+X=t(sapply(c(1:10),FUN=function(x) rnorm(20)))
+Y=rnorm(10)
+
+Correction2Vect(X=X, Y=Y, vector_prog=x1, vector_pred=x2)
+
+## The function is currently defined as
+function(X, Y, te=NULL, vector_prog, vector_pred, 
+top_grill.=c(1:length(vector_prog)), delta=0.95, toZero=FALSE){
+  
+    if(toZero){
+      matrix_top_fix &lt;- sapply(top_grill., top, vect=vector_prog)
+      matrix_top_opt &lt;- sapply(top_grill., top, vect=vector_pred)
+    } else {
+      matrix_top_fix &lt;- sapply(top_grill., top_thresh, vect=vector_prog)
+      matrix_top_opt &lt;- sapply(top_grill., top_thresh, vect=vector_pred)
+    }
+    
+    
+    opt_top_opt &lt;- mse_fix &lt;- c()
+    for(j in 1:length(top_grill.)){
+      fix_temp &lt;- matrix_top_fix[,j]
+      mse_temp &lt;- c()
+      yhat &lt;- X%*%c(te, fix_temp, matrix_top_opt[,1])
+
+      mse_temp[1] &lt;- sum((Y-yhat)^2)
+      for(m in 2:length(top_grill.)){
+        opt_temp &lt;- matrix_top_opt[,m]
+        threshed_vect &lt;- c(te, fix_temp, opt_temp)
+        yhat &lt;- X%*%threshed_vect
+        mse_temp[m] &lt;- sum((Y-yhat)^2)
+        ratio_mse &lt;- round(mse_temp[m]/mse_temp[m-1], 6)
+        if(ratio_mse &gt;= delta){
+          opt_top_opt[j] &lt;- top_grill.[m]
+          mse_fix[j] &lt;- mse_temp[m]
+          break
+        }
+      }
+      if(m==length(top_grill.)){
+        opt_top_opt[j] &lt;- top_grill.[m]
+        mse_fix[j] &lt;- mse_temp[m]
+      }
+      if(j==1){
+        ratio_final &lt;- 0
+      } else {
+        ratio_final &lt;- mse_fix[j]/mse_fix[j-1]
+      }
+      if(ratio_final &gt;= delta){
+        opt_fix &lt;- j
+        opt_opt &lt;- m
+        break
+      }
+    }
+    
+    if(exists("opt_fix")==FALSE){
+      opt_fix &lt;- ncol(matrix_top_fix)
+      opt_opt &lt;- ncol(matrix_top_opt)
+    }
+    
+
+    return(c(matrix_top_fix[,opt_fix], matrix_top_opt[,opt_opt]))
+
+}
+</code></pre>
+
+
+</div>

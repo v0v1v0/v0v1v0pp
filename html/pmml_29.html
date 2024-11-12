@@ -1,0 +1,190 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pmml.neighbr</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate PMML for a neighbr object from the <b>neighbr</b> package.</h2>
+
+<h3>Description</h3>
+
+<p>Generate PMML for a neighbr object from the <b>neighbr</b> package.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'neighbr'
+pmml(
+  model,
+  model_name = "kNN_model",
+  app_name = "SoftwareAG PMML Generator",
+  description = "K Nearest Neighbors Model",
+  copyright = NULL,
+  model_version = NULL,
+  transforms = NULL,
+  missing_value_replacement = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>A neighbr object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model_name</code></td>
+<td>
+<p>A name to be given to the PMML model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>app_name</code></td>
+<td>
+<p>The name of the application that generated the PMML.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>description</code></td>
+<td>
+<p>A descriptive text for the Header element of the PMML.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>copyright</code></td>
+<td>
+<p>The copyright notice for the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model_version</code></td>
+<td>
+<p>A string specifying the model version.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transforms</code></td>
+<td>
+<p>Data transformations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>missing_value_replacement</code></td>
+<td>
+<p>Value to be used as the 'missingValueReplacement' attribute for all MiningFields.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to or from other methods.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The model is represented in the PMML NearestNeighborModel format.
+</p>
+<p>The current version of this converter does not support transformations (<code>transforms</code>
+must be left as <code>NULL</code>), sets <code>categoricalScoringMethod</code> to "majorityVote", sets
+<code>continuousScoringMethod</code> to "average", and <code>isTransoformed</code> to "false".
+</p>
+
+
+<h3>Value</h3>
+
+<p>PMML representation of the neighbr object.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pmml</code>,
+<a href="http://dmg.org/pmml/v4-4-1/KNN.html">PMML KNN specification</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+
+# Continuous features with continuous target, categorical target,
+# and neighbor ranking:
+
+library(neighbr)
+data(iris)
+
+# Add an ID column to the data for neighbor ranking:
+iris$ID &lt;- c(1:150)
+
+# Train set contains all predicted variables, features, and ID column:
+train_set &lt;- iris[1:140, ]
+
+# Omit predicted variables and ID column from test set:
+test_set &lt;- iris[141:150, -c(4, 5, 6)]
+
+fit &lt;- knn(
+  train_set = train_set, test_set = test_set,
+  k = 3,
+  categorical_target = "Species",
+  continuous_target = "Petal.Width",
+  comparison_measure = "squared_euclidean",
+  return_ranked_neighbors = 3,
+  id = "ID"
+)
+
+fit_pmml &lt;- pmml(fit)
+
+
+# Logical features with categorical target and neighbor ranking:
+
+library(neighbr)
+data("houseVotes84")
+
+# Remove any rows with N/A elements:
+dat &lt;- houseVotes84[complete.cases(houseVotes84), ]
+
+# Change all {yes,no} factors to {0,1}:
+feature_names &lt;- names(dat)[!names(dat) %in% c("Class", "ID")]
+for (n in feature_names) {
+  levels(dat[, n])[levels(dat[, n]) == "n"] &lt;- 0
+  levels(dat[, n])[levels(dat[, n]) == "y"] &lt;- 1
+}
+
+# Change factors to numeric:
+for (n in feature_names) {
+  dat[, n] &lt;- as.numeric(levels(dat[, n]))[dat[, n]]
+}
+
+# Add an ID column for neighbor ranking:
+dat$ID &lt;- c(1:nrow(dat))
+
+# Train set contains features, predicted variable, and ID:
+train_set &lt;- dat[1:225, ]
+
+# Test set contains features only:
+test_set &lt;- dat[226:232, !names(dat) %in% c("Class", "ID")]
+
+fit &lt;- knn(
+  train_set = train_set, test_set = test_set,
+  k = 5,
+  categorical_target = "Class",
+  comparison_measure = "jaccard",
+  return_ranked_neighbors = 3,
+  id = "ID"
+)
+
+fit_pmml &lt;- pmml(fit)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

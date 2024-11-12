@@ -1,0 +1,172 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>bootEstimates</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Performance estimation using (e0 or .632) bootstrap 
+</h2>
+
+<h3>Description</h3>
+
+<p>This function obtains boostrap  estimates of
+performance  metrics for a given predictive task and method to solve
+it (i.e. a  workflow). The function is general in the sense that the
+workflow function that the user provides as the solution to the task,
+can implement or call whatever modeling technique the user wants.
+</p>
+<p>The function implements both e0 boostrap estimates as well as .632
+boostrap. The selection of the type of boostrap is done through the 
+<code>estTask</code> argument (check the help page of
+<code>Bootstrap</code>). 
+</p>
+<p>Please note that most of the times you will not call this function
+directly, though there is nothing wrong in doing it, but instead you
+will use the function <code>performanceEstimation</code>, that allows you to
+carry out performance estimation for multiple workflows on multiple tasks,
+using some estimation method like for instance boostrap. Still, when you
+simply want to have the boostrap estimate for one workflow on one task,
+you may use this function directly. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">bootEstimates(wf,task,estTask,cluster)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>wf</code></td>
+<td>
+
+<p>an object of the class <code>Workflow</code> representing the
+modeling approach to be evaluated on a certain task.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>task</code></td>
+<td>
+
+<p>an object of the class <code>PredTask</code> representing the
+prediction task to be used in the evaluation.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estTask</code></td>
+<td>
+
+<p>an object of the class <code>EstimationTask</code> indicating the metrics to
+be estimated and the boostrap settings to use.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cluster</code></td>
+<td>
+
+<p>an optional parameter that can either be <code>TRUE</code> or a
+<code>cluster</code>. In case of <code>TRUE</code> the function will run in
+parallel and will internally setup the parallel back-end (defaulting
+to using half of the cores in your local machine). You may also setup
+outside your parallel back-end (c.f. <code>makeCluster</code>) and
+then pass the resulting <code>cluster</code> object to this function using
+this parameter. In case no value is provided for this parameter the
+function will run sequentially.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The idea of this function is to carry out a bootstrap
+experiment with the goal of obtaining reliable estimates of the
+predictive performance of a certain modeling approach (denoted here as
+a <em>workflow</em>) on a given predictive task. Two 
+types of bootstrap estimates are implemented: i) e0 bootstrap and ii)
+.632 bootstrap.  Bootstrap
+estimates are obtained by averaging over a set of k scores each
+obtained in the following way: i) draw a random sample with replacement
+with the same size as the original data set; ii) obtain a model with
+this sample; iii) test it and obtain the estimates for this run on the
+observations of the original data set that were not used in the sample
+obtained in step i). This process is repeated k times and the average
+scores are the bootstrap estimates. The main difference between e0 and
+.632 bootstrap is the fact that the latter tries to integrate the e0
+estimate with the resubstitution estimate, i.e. when the model is
+learned and tested on the full available data sample.
+</p>
+<p>Parallel execution of the estimation experiment is only recommended
+for minimally large data sets otherwise you may actually increase the
+computation time due to communication costs between the processes.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The result of the function is an object of class <code>EstimationResults</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p> Luis Torgo <a href="mailto:ltorgo@dcc.fc.up.pt">ltorgo@dcc.fc.up.pt</a> </p>
+
+
+<h3>References</h3>
+
+<p> Torgo, L. (2014) <em>An Infra-Structure for Performance
+Estimation and Experimental Comparison of Predictive Models in R</em>. arXiv:1412.0436 [cs.MS]
+<a href="http://arxiv.org/abs/1412.0436">http://arxiv.org/abs/1412.0436</a>  
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>Bootstrap</code>,
+<code>Workflow</code>,
+<code>standardWF</code>,
+<code>PredTask</code>,
+<code>EstimationTask</code>,
+<code>performanceEstimation</code>,
+<code>hldEstimates</code>,
+<code>loocvEstimates</code>,  
+<code>cvEstimates</code>,
+<code>mcEstimates</code>,
+<code>EstimationResults</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+
+## Estimating the MSE of a SVM variant on the 
+##  swiss data, using 50 repetitions of .632 bootstrap
+library(e1071)
+data(swiss)
+
+## running the estimation experiment
+res &lt;- bootEstimates(
+  Workflow(wfID="svmC10G01",
+           learner="svm",learner.pars=list(cost=10,gamma=0.1)
+          ),
+  PredTask(Infant.Mortality ~ .,swiss),
+  EstimationTask("mse",method=Bootstrap(type=".632",nReps=50))
+  )
+
+## Check a summary of the results
+summary(res)
+
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,122 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plotCompare</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Plot a comparison results for fitted or validated subgroup identification models</h2>
+
+<h3>Description</h3>
+
+<p>Plots comparison of results for estimated subgroup treatment effects
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">plotCompare(
+  ...,
+  type = c("boxplot", "density", "interaction", "conditional"),
+  avg.line = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>the fitted (model or validation) objects to be plotted. Must be either
+objects returned from <code>fit.subgroup()</code> or <code>validate.subgroup()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>type of plot. <code>"density"</code> results in a density plot for the results
+across all observations (if <code>x</code> is from <code>fit.subgroup()</code>) or if <code>x</code> is from <code>validate.subgroup()</code>
+across iterations of either the bootstrap or training/test re-fitting. For the latter
+case the test results will be plotted. <code>"boxplot"</code> results in boxplots across all observations/iterations of either
+the bootstrap or training/test re-fitting. For the latter
+case the test results will be plotted. <code>"interaction"</code> creates an
+interaction plot for the different subgroups (crossing lines here means a meaningful subgroup).
+<code>"conditional"</code> plots smoothed (via a GAM smoother) means of the outcomes as a function of the estimated benefit score
+separately for the treated and untreated groups.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>avg.line</code></td>
+<td>
+<p>boolean value of whether or not to plot a line for the average
+value in addition to the density (only valid for <code>type = "density"</code>)</p>
+</td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+<p><code>fit.subgroup</code> for function which fits subgroup identification models and
+<code>validate.subgroup</code> for function which creates validation results.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(personalized)
+
+set.seed(123)
+n.obs  &lt;- 100
+n.vars &lt;- 15
+x &lt;- matrix(rnorm(n.obs * n.vars, sd = 3), n.obs, n.vars)
+
+
+# simulate non-randomized treatment
+xbetat   &lt;- 0.5 + 0.5 * x[,1] - 0.5 * x[,4]
+trt.prob &lt;- exp(xbetat) / (1 + exp(xbetat))
+trt01    &lt;- rbinom(n.obs, 1, prob = trt.prob)
+
+trt      &lt;- 2 * trt01 - 1
+
+# simulate response
+delta &lt;- 2 * (0.5 + x[,2] - x[,3] - x[,11] + x[,1] * x[,12])
+xbeta &lt;- x[,1] + x[,11] - 2 * x[,12]^2 + x[,13]
+xbeta &lt;- xbeta + delta * trt
+
+# continuous outcomes
+y &lt;- drop(xbeta) + rnorm(n.obs, sd = 2)
+
+# create function for fitting propensity score model
+prop.func &lt;- function(x, trt)
+{
+    # fit propensity score model
+    propens.model &lt;- cv.glmnet(y = trt,
+                               x = x, family = "binomial")
+    pi.x &lt;- predict(propens.model, s = "lambda.min",
+                    newx = x, type = "response")[,1]
+    pi.x
+}
+
+subgrp.model &lt;- fit.subgroup(x = x, y = y,
+                           trt = trt01,
+                           propensity.func = prop.func,
+                           loss   = "sq_loss_lasso",
+                           # option for cv.glmnet,
+                           # better to use 'nfolds=10'
+                           nfolds = 3)              # option for cv.glmnet
+
+
+subgrp.model.o &lt;- fit.subgroup(x = x, y = y,
+                           trt = trt01,
+                           propensity.func = prop.func,
+                           # option for cv.glmnet,
+                           # better to use 'nfolds=10'
+                           loss   = "owl_logistic_flip_loss_lasso",
+                           nfolds = 3)
+
+plotCompare(subgrp.model, subgrp.model.o)
+
+</code></pre>
+
+
+</div>

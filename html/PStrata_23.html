@@ -1,0 +1,167 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PStrataInfo</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create an object that defines the principal strata</h2>
+
+<h3>Description</h3>
+
+<p><code>PStrataInfo</code> is a class of object that defines all principal strata
+to be considered, by specifying the potential value of each post-randomization
+confounding variable under each treatment arm.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PStrataInfo(strata, ER = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>strata</code></td>
+<td>
+<p>a list or a vector defining all principal strata. Details of
+the syntax are given in 'Details' below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ER</code></td>
+<td>
+<p>a vector indicating on which strata exclusion restriction is assumed. Details are
+given in 'Details' below.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Since definition of the principal strata appears fundamental and essential in 
+principal stratification analyses, the creation of such an object is designed
+to be user-friendly - various ways are accommodated to create a <code>PStrataInfo</code>
+object, some possibly preferable over others under different settings.
+</p>
+<p>There are mainly two ways to easily create a <code>PStrataInfo</code> object.
+</p>
+
+
+<h4>By string</h4>
+
+<p>To define the principal strata by strings, the <code>strata</code> argument
+should receive a named vector, each component being the description of one strata
+with the name of that strata. The naming does not affect the actual inference,
+but informative names can be helpful for users to distinguish among strata.
+</p>
+<p>Each stratum is defined by the potential values of the post-randomization confounding
+variable <code class="reqn">D</code> under each treatment arm. By convention, assume that the K treatment arms are
+numbered from 0 to K-1. Then, each stratum is defined by the tuple <code class="reqn">(D(0), \ldots, D(K-1))</code>,
+which can be written compactly as a string. For example, under binary treatment,
+the never-takers (i.e. <code class="reqn">D(0) = D(1) = 0</code>) can be represented by string <code>"00"</code> and 
+the compliers (i.e. <code class="reqn">D(0) = 0, D(1) = 1</code>) can be represented by string <code>"01"</code>.
+Note that the value that the post-randomization confounding variable can take is limited between 0 to 9
+for the string to be parsed correctly. This should be more than enough in most of the applications, and
+in cases where a number above 10 is needed, please create the <code>PStrataInfo</code> object by matrix (see below).
+</p>
+<p>When multiple post-randomization confounding variables exist, the string for each confounding variable
+is concatenated with the symbol "<code>|</code>". For example, if <code class="reqn">D_0</code> and <code class="reqn">D_1</code> are both binary 
+post-randomization confounding variables, the stratum defined by <code class="reqn">D_0(0) = D_0(1) = 0, D_1(0) = 0, D_1(1) = 1</code>
+can be represented by string <code>"00|11"</code>. The order of these confounding variables should be the same
+as they appear in the <code>S.formula</code> parameter in <code>PSObject</code>.
+</p>
+<p>A common assumption in practice is the exclusion restriction (ER) assumption, which assumes that 
+the causal effect of the treatment on the outcome is totally realized through the post-randomization 
+confounding variables. For example, the ER assumption on the stratum of never-takers can be interpreted
+as the outcome is identically distributed across the treated and control group, because all causal effect
+of the treatment is realized through the post-randomization variable, which is the same (0) under both 
+treatment arms. To assume ER for some stratum, simply put an asterisk "<code>*</code>" at the end of the string,
+such as "00*" for the never-taker stratum. <em>Note that under the context of multiple post-randomization
+variables, the package treats all such variables as a unity. The outcome is assumed to be identical under
+different treatment arms only when all post-randomization variables remain the same under these treatment arms.</em>
+</p>
+<p>Another way to specify the stratum where ER is assumed is to use the <code>ER</code> argument. It either takes
+a logical vector of the same length of <code>strata</code> with <code>TRUE</code> indicating ER is assumed and <code>FALSE</code>
+otherwise, or takes a character vector with the names of all strata where ER is to be assumed upon.
+When names to the strata are not provided in <code>strata</code>, the strata can be referred to by their 
+canonical name, which is the string used to define the stratum with asterisks removed. For example, 
+the strata <code>"00|11*"</code> can be referred to with name "00|11".
+</p>
+
+
+
+<h4>By matrix</h4>
+
+<p>To define the principal strata by matrices, the <code>strata</code> argument
+should receive a named list, each component being a matrix. The number of rows matches the number
+of post-randomization variables, and the number of columns matches that of possible treatment arms.
+For any fixed row <code class="reqn">i</code>, column <code class="reqn">j</code> stores the potential value of the <code class="reqn">i</code>-th post-randomization
+variable under treatment arm <code class="reqn">j</code>.
+</p>
+<p>When this approach is used, there is no shorthand to specify ER assumption. The <code>ER</code> argument is 
+required to do this.
+</p>
+
+<p><b>Warning:</b> When ER assumption is specified in both <code>strata</code> and <code>ER</code> argument, the shorthand
+notation for ER in <code>strata</code> is ignored, and a warning is given regardless of whether the specification
+given by <code>strata</code> and <code>ER</code> actually match.
+</p>
+
+
+<h3>Value</h3>
+
+<p>an object of class <code>PSStrataInfo</code>, which is a list of the following components.
+</p>
+
+<dl>
+<dt>num_strata</dt>
+<dd>
+<p>number of principal strata defined</p>
+</dd>
+<dt>num_treatment</dt>
+<dd>
+<p>number of treatment arms</p>
+</dd>
+<dt>num_postrand_var</dt>
+<dd>
+<p>number of post-randomization variables</p>
+</dd>
+<dt>max_postrand_level</dt>
+<dd>
+<p>integer vector, the biggest number used by each post-randomization variable</p>
+</dd>
+<dt>strata_matrix</dt>
+<dd>
+<p>integer matrix, each row corresponding to one stratum and
+each column corresponding to one treatment arm.
+The matrix is designed only for internal use.
+</p>
+</dd>
+<dt>ER_list</dt>
+<dd>
+<p>logical vector, each component corresponding to one stratum, indicating whether 
+ER is assumed for the specific stratum</p>
+</dd>
+<dt>strata_names</dt>
+<dd>
+<p>character vector, the names of all strata</p>
+</dd>
+</dl>
+<h3>Examples</h3>
+
+<pre><code class="language-R">PStrataInfo(strata = c(n = "00*", c = "01", a = "11"))
+PStrataInfo(
+  strata = list(n = c(0, 0), c = c(0, 1), a = c(1, 1)), 
+  ER = c(TRUE, FALSE, FALSE)
+)
+PStrataInfo(
+  strata = list(n = c(0, 0), c = c(0, 1), a = c(1, 1)), 
+  ER = c("n")
+)
+
+</code></pre>
+
+
+</div>

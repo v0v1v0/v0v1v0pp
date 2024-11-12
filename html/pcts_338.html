@@ -1,0 +1,252 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sim_pc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulate periodically correlated ARMA series </h2>
+
+<h3>Description</h3>
+
+<p>Simulate a realization of a periodically correlated arma model
+or a continuation of an existing series.
+Initial values may be given too.
+
+
+
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sim_pc(model, n = NA, randgen = rnorm, seasonof1st = 1, nepochs = NA,
+              n.start = NA, x, eps, nmean = NULL, nintercept = NULL, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p> a list with elements
+<code>phi</code>, <code>theta</code>, <code>p</code>, <code>q</code>, <code>period</code>,
+<code>mean</code>, <code>intercept</code>,
+specifying the model. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p> length of the series. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>randgen</code></td>
+<td>
+<p> random number generator as required by
+<code>sim_pwn</code>. </p>
+</td>
+</tr>
+</table>
+<table>
+<tr style="vertical-align: top;">
+<td><code>seasonof1st</code></td>
+<td>
+<p> season of the first value. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nepochs</code></td>
+<td>
+
+<p>number of epochs; if <code>nepochs</code> is given, then <code>n</code> is
+computed as <code class="reqn">nepochs * period</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.start</code></td>
+<td>
+
+<p>burn-in number; generate <code class="reqn">\code{n.start + n}</code> observations and
+discard the first <code>n.start</code> of them, see Details.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><em>initial</em> or <em>before</em> values, see Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps</code></td>
+<td>
+<p>innovations, see Details. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nmean</code></td>
+<td>
+<p>a vector of length <code>n</code> of means, see Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nintercept</code></td>
+<td>
+
+<p>a vector of length <code>n</code> of intercepts, see Details.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>any additional arguments to be passed on to <code>sim_pwn</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Argument <code>x</code> can be used to specify two types of initialisation
+values - ‘before’ and ‘init’. They are used similarly in computations
+but ‘before’ values are not included in the result, while ‘init’
+values are (unless dropped due to <code>n.start</code>). ‘Before’ values
+provide a convenient way to simulate continuation trajectories for a
+time series, for example for simulation based prediction intervals.
+</p>
+<p>If <code>x</code> is <code>"numeric"</code>, it represents ‘before’
+values. Alternatively, <code>x</code> can be a list with components
+<code>"before"</code> and <code>"init"</code>.
+</p>
+<p>Innovations are usually generated with the random number generator
+specified by <code>randgen</code> (with default <code>rnorm</code>) and the
+<code>...</code> parameters by a call to the function <code>sim_pwn</code>, see
+the documentation for <code>sim_pwn</code> for various ways to control the
+distribution of the generated sequence.
+</p>
+<p>The innovations can also be generated in advance and supplied using
+argument <code>eps</code>. If <code>eps</code> is numeric, it is taken to
+represent the innovations. Alternatively, <code>eps</code> can be a list
+with the innovations in component <code>"main"</code>. This list may also
+contain components <code>"before"</code> and/or <code>"init"</code> specifying
+‘before’ or ‘initial’ values, with interpretation as for <code>x</code>.
+</p>
+<p><code>nintercept</code> can be used to specify trend representing the effect
+of time and/or covariates. As for <code>eps</code>, if it is numeric it is
+taken to represent the main values. It can also be a list with
+components <code>before</code>, <code>init</code>, and <code>main</code>. 
+</p>
+<p>To avoid ambiguity, let's reiterate that <em>before</em> values are past
+values of the corresponding quantity (before the start of the
+simulated series), while <em>init</em> values are "initial" values. In
+particular, if initial values are specified for <code>x</code>, these will
+form the start of the generated series (unless <code>n.start</code> leads to
+them being discarded).
+</p>
+<p>If <em>before</em> values are specified for the series and the
+innovations, then they play a role analogous to that of initial
+values, so it does not make much sense to supply also <em>initial</em>
+values.
+</p>
+<p>The function effectively does the following.
+<code>innov</code> is generated if not supplied,
+a vector of innovations is created
+<code>eps &lt;- c(innovbefore,innovinit,innov)</code>,
+a vector <code>x</code> is created of the same length as <code>eps</code>,
+and initialised with <code>xbefore</code> and <code>xinit</code>.
+If there are no initial or before values, these are assumed to be 0.
+The remaining values of <code>x</code> are filled using the pc-arma equations.
+Finally, the <code>xbefore</code> values are discarded as well as the first
+<code>n.start</code> values.
+</p>
+<p><code>n.start</code> should usually be a multiple of the period since
+otherwise the first observation in the returned vector will not
+correspond to <code>seasonof1st</code>.
+</p>
+<p><code>sim_pc</code> deals mainly with the interpretation of the parameters.
+The actual computations are done by <code>pc.filter</code>. Moreover,
+<code>sim_pc</code> does not look at the <code>model</code>. It knows only about
+<code>model$period</code> and uses it to compute <code>n</code> if <code>n</code> is not
+specified.
+(It probably should not care even about this.)
+</p>
+
+
+<h3>Value</h3>
+
+<p>numeric, the simulated time series
+</p>
+
+
+<h3>To do</h3>
+
+<p>option to return the innovation sequence;
+option to include the before values.
+</p>
+<p>option to return the season of the first value in the returned series
+(it may be different from seasonof1st due to <code>n.start</code>).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Georgi N. Boshnakov</p>
+
+
+<h3>See Also</h3>
+
+ <p><code>sim_pwn</code>, <code>pc.filter</code> </p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">m1 &lt;- rbind( c(1, 0.81, 0), c(1, 0.4972376, 0.4972376) )
+testphi &lt;- slMatrix( init = m1 )
+
+m2 &lt;- rbind( c(1, 0, 0), c(1, 0, 0) )
+testtheta &lt;- slMatrix( init = m2 )
+
+## phi and theta are slMatrix here.
+mo1 &lt;- list(phi = testphi, theta = testtheta, p = 2, q = 2, period = 2)
+set.seed(1234)
+a1 &lt;- sim_pc(mo1, 100)
+
+## phi and theta are ordinary matrices here.
+mo2 &lt;- list(phi = m1[ , 2:ncol(m1)], theta = m2[ , 2:ncol(m2)], p = 2, q = 2, period = 2)
+set.seed(1234)
+a2 &lt;- sim_pc(mo2, 100)
+identical(a1, a2)
+
+## Lina's PAR model
+parcoef    &lt;- rbind(c(0.5, -0.06), c(0.6, -0.08),
+                    c(0.7, -0.1),  c(0.2, 0.15) )
+picoef1    &lt;- c(0.8, 1.25, 2, 0.5)
+parcoef2   &lt;- pi1ar2par(picoef1, parcoef)
+
+picoef2    &lt;- c(4, 0.25, 5, 0.2)
+coefper2I2 &lt;- pi1ar2par(picoef2, parcoef2)
+
+#### specify the model using multi-companion approach
+mc2I2       &lt;- mcompanion::mc_from_filter(coefper2I2)
+co2I2       &lt;- eigen(mc2I2)$vectors
+co2I2
+m2I2 &lt;-  mcompanion::sim_pcfilter(period = 4, n.root = 4,
+                 eigabs = c(1, 0.036568887, 0.001968887),
+                 eigsign = c(1, 1, -1),
+                 len.block = c(2, 1, 1),
+                 type.eigval  =  c("r", "r", "r"),
+                 co = cbind(co2I2[ ,1], rep(NA, 4), co2I2[,3:4]))
+m2I2$pcfilter
+perunit2mc  &lt;- sim_pc(list(phi = m2I2$pcfilter, p = 4, q = 0, period = 4), 500)
+plot(perunit2mc)
+plot(perunit2mc, type = "p")
+
+# todo: give example with sigmat^2 !!!
+</code></pre>
+
+
+</div>

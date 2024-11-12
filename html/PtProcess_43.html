@@ -1,0 +1,130 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>simulate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulate a Point Process</h2>
+
+<h3>Description</h3>
+
+<p>Provides methods for the generic function <code>simulate</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'mpp'
+simulate(object, nsim=1, seed=NULL, max.rate=NA,
+         stop.condition=NULL, ...)
+## S3 method for class 'linksrm'
+simulate(object, nsim=1, seed=NULL, max.rate=NA,
+         stop.condition=NULL, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>an object with class <code>"mpp"</code> or <code>"linksrm"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsim</code></td>
+<td>
+<p>has no effect, and is only included for compatibility with the generic function <code>simulate</code>. See section “Length of Simulated Series” below for control information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>seed for the random number generator.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.rate</code></td>
+<td>
+<p>maximum rate, only used if the attribute of <code>object$gif</code> is <code>"bounded"</code>. It is the maximum value of <code>object$gif</code> on the simulation interval <code>object$TT</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stop.condition</code></td>
+<td>
+<p>a function returning a logical value. It is called after the addition of each simulated event. The simulation continues until either <code>object$TT[2]</code> is exceeded or <code>stopping.condition</code> returns <code>TRUE</code>. See section “Length of Simulated Series” below for further information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>other arguments.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <em>thinning method</em> (Ogata, 1981; Lewis &amp; Shedler, 1979) is used to simulate a point process with specified ground intensity function. The method involves calculating an upper bound for the intensity function, simulating a value for the time to the next <em>possible</em> event using a rate equal to this upper bound, and then calculating the intensity at this simulated point; hence these “events” are simulated too frequently. The ratio of this rate with the upper bound is compared with a uniform random number to randomly determine whether the simulated time is retained or not (i.e. thinned).
+</p>
+<p>The functions need to calculate an upper bound for the intensity function. The ground intensity functions will usually be discontinuous at event times, but may be monotonically increasing or decreasing at other times. The ground intensity functions have an attribute called <code>rate</code> with values of <code>"bounded"</code>, <code>"increasing"</code> or <code>"decreasing"</code>. This information is used to determine the required upper bounded.
+</p>
+<p>The function <code>simulate.linksrm</code> is currently only used in conjunction with <code>linksrm_gif</code>, or a variation of that function. It expects the <code>gif</code> function to have an attribute called <code>regions</code>, which may be an expression, being the number of regions. The method used by the function <code>simulate.linksrm</code> also assumes that the function is “increasing” (i.e. rate, summed over all regions, apart from discontinuous jumps), hence a positive tectonic input over the whole system.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The returned value is an object of the same class as <code>object</code>. It will contain all events prior to <code>object$TT[1]</code> in <code>object$data</code> and all subsequently simulated events. Variables (columns) in <code>object$data</code> will be restricted to <code>"time"</code> and those for which a mark is simulated.
+</p>
+
+
+<h3>Length of Simulated Series</h3>
+
+<p>The interval of time over which events are simulated is determined by <code>object$TT</code>. Simulation starts at <code>object$TT[1]</code> and stops at <code>object$TT[2]</code>. The “current” dataset will consist of all events prior to <code>object$TT[1]</code> in <code>object</code>, plus subsequently simulated events. A more complicated stopping condition can be formulated by using the argument <code>stop.condition</code>.
+</p>
+<p>The argument <code>stop.condition</code> can be assigned a function that returns a logical value. The assigned function is a function of the “current” dataset. It is executed near the bottom of <code>simulate.mpp</code> (check by printing the function). Simulation will then continue until either the stopping condition has been met or the current time exceeds <code>object$TT[2]</code>.
+</p>
+<p>For example, we may want to simulate until the first earthquake with a magnitude of 8. Assume that the current dataset contains a variable with name <code>"magnitude"</code> (untransformed). We would then assign <code>Inf</code> to <code>object$TT[2]</code>, and write this condition as a function:
+</p>
+<pre>
+    stop.cond &lt;- function(data){
+        n &lt;- nrow(data)
+        #   most recent event is the nth
+        return(data$magnitude[n] &gt;= 8)
+    }
+</pre>
+
+
+<h3>References</h3>
+
+<p>Cited references are listed on the PtProcess manual page.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">TT &lt;- c(0, 1000)
+bvalue &lt;- 1
+params &lt;- c(-2.5, 0.01, 0.8, bvalue*log(10))
+
+x &lt;- mpp(data=NULL,
+         gif=srm_gif,
+         marks=list(NULL, rexp_mark),
+         params=params,
+         gmap=expression(params[1:3]),
+         mmap=expression(params[4]),
+         TT=TT)
+x &lt;- simulate(x, seed=5)
+
+y &lt;- hist(x$data$magnitude, xlab="Magnitude", main="")
+
+#   overlay with an exponential density
+magn &lt;- seq(0, 3, length.out=100)
+points(magn, nrow(x$data)*(y$breaks[2]-y$breaks[1])*
+             dexp(magn, rate=1/mean(x$data$magnitude)),
+       col="red", type="l")
+</code></pre>
+
+
+</div>

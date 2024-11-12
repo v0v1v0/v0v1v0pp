@@ -1,0 +1,166 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>summ_interval</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Summarize distribution with interval</h2>
+
+<h3>Description</h3>
+
+<p>These functions summarize distribution with one interval based on method of
+choice.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">summ_interval(f, level = 0.95, method = "minwidth", n_grid = 10001)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>A pdqr-function representing distribution.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>level</code></td>
+<td>
+<p>A number between 0 and 1 representing a coverage degree of
+interval. Interpretation depends on <code>method</code> but the bigger is number, the
+wider is interval.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Method of interval computation. Should be on of "minwidth",
+"percentile", "sigma".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_grid</code></td>
+<td>
+<p>Number of grid elements to be used for "minwidth" method (see
+Details).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Method "minwidth" searches for an interval with total probability of
+<code>level</code> that has minimum width. This is done with grid search: <code>n_grid</code>
+possible intervals with <code>level</code> total probability are computed and the one
+with minimum width is returned (if there are several, the one with the
+smallest left end). Left ends of computed set of intervals are created as a
+grid from <code>0</code> to <code>1-level</code> quantiles with <code>n_grid</code> number of elements. Right
+ends are computed so that intervals have <code>level</code> total probability.
+</p>
+<p>Method "percentile" returns an interval with edges being <code>0.5*(1-level)</code> and
+<code>1 - 0.5*(1-level)</code> quantiles. Output has total probability equal to <code>level</code>.
+</p>
+<p>Method "sigma" computes an interval symmetrically centered at
+mean of distribution. Left and right edges are distant from
+center by the amount of standard deviation multiplied by
+<code>level</code>'s critical value. Critical value is computed using normal distribution as <code>qnorm(1 - 0.5*(1-level))</code>, which
+corresponds to a way of computing sample confidence interval with known
+standard deviation. The final output interval is possibly cut so that not to
+be out of <code>f</code>'s support.
+</p>
+<p><strong>Note</strong> that supported methods correspond to different ways of computing
+distribution's center. This idea is supported by the fact
+that when <code>level</code> is 0, "minwidth" method returns zero width interval at
+distribution's global mode, "percentile" method -
+median, "sigma" - mean.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A region with one row. That is a data frame with one row
+and the following columns:
+</p>
+
+<ul>
+<li> <p><strong>left</strong> <code style="white-space: pre;">⁠&lt;dbl&gt;⁠</code> : Left end of interval.
+</p>
+</li>
+<li> <p><strong>right</strong> <code style="white-space: pre;">⁠&lt;dbl&gt;⁠</code> : Right end of interval.
+</p>
+</li>
+</ul>
+<p>To return a simple numeric vector, call unlist() on
+<code>summ_interval()</code>'s output (see Examples).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>summ_hdr()</code> for computing of Highest Density Region, which can
+summarize distribution with multiple intervals.
+</p>
+<p>region_*() family of functions for working with <code>summ_interval()</code>
+output.
+</p>
+<p>Other summary functions: 
+<code>summ_center()</code>,
+<code>summ_classmetric()</code>,
+<code>summ_distance()</code>,
+<code>summ_entropy()</code>,
+<code>summ_hdr()</code>,
+<code>summ_moment()</code>,
+<code>summ_order()</code>,
+<code>summ_prob_true()</code>,
+<code>summ_pval()</code>,
+<code>summ_quantile()</code>,
+<code>summ_roc()</code>,
+<code>summ_separation()</code>,
+<code>summ_spread()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Type "discrete"
+d_dis &lt;- new_d(data.frame(x = 1:6, prob = c(3:1, 0:2) / 9), "discrete")
+summ_interval(d_dis, level = 0.5, method = "minwidth")
+summ_interval(d_dis, level = 0.5, method = "percentile")
+summ_interval(d_dis, level = 0.5, method = "sigma")
+
+## Visual difference between methods
+plot(d_dis)
+region_draw(summ_interval(d_dis, 0.5, method = "minwidth"), col = "blue")
+region_draw(summ_interval(d_dis, 0.5, method = "percentile"), col = "red")
+region_draw(summ_interval(d_dis, 0.5, method = "sigma"), col = "green")
+
+# Type "continuous"
+d_con &lt;- form_mix(
+  list(as_d(dnorm), as_d(dnorm, mean = 5)),
+  weights = c(0.25, 0.75)
+)
+summ_interval(d_con, level = 0.5, method = "minwidth")
+summ_interval(d_con, level = 0.5, method = "percentile")
+summ_interval(d_con, level = 0.5, method = "sigma")
+
+## Visual difference between methods
+plot(d_con)
+region_draw(summ_interval(d_con, 0.5, method = "minwidth"), col = "blue")
+region_draw(summ_interval(d_con, 0.5, method = "percentile"), col = "red")
+region_draw(summ_interval(d_con, 0.5, method = "sigma"), col = "green")
+
+# Output interval is always inside input's support. Formally, next code
+# should return interval from `-Inf` to `Inf`, but output is cut to be inside
+# support.
+summ_interval(d_con, level = 1, method = "sigma")
+
+# To get vector output, use `unlist()`
+unlist(summ_interval(d_con))
+</code></pre>
+
+
+</div>

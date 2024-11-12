@@ -1,0 +1,148 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>vcovDC</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Double-Clustering Robust Covariance Matrix Estimator</h2>
+
+<h3>Description</h3>
+
+<p>High-level convenience wrapper for double-clustering robust
+covariance matrix estimators <em>a la</em>
+Thompson (2011) and
+Cameron et al. (2011) for panel models.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">vcovDC(x, ...)
+
+## S3 method for class 'plm'
+vcovDC(x, type = c("HC0", "sss", "HC1", "HC2", "HC3", "HC4"), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>an object of class <code>"plm"</code> or <code>"pcce"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>the weighting scheme used, one of <code>"HC0"</code>, <code>"sss"</code>,
+<code>"HC1"</code>, <code>"HC2"</code>, <code>"HC3"</code>, <code>"HC4"</code>, see Details,</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>vcovDC</code> is a function for estimating a robust covariance matrix of
+parameters for a panel model with errors clustering along both dimensions.
+The function is a convenience wrapper simply summing a group- and a
+time-clustered covariance matrix and subtracting a diagonal one <em>a la</em>
+White.
+</p>
+<p>Weighting schemes specified by <code>type</code> are analogous to those in
+<code>sandwich::vcovHC()</code> in package <a href="https://CRAN.R-project.org/package=sandwich"><span class="pkg">sandwich</span></a> and are
+justified theoretically (although in the context of the standard
+linear model) by MacKinnon and White (1985) and
+Cribari–Neto (2004) (see Zeileis 2004).
+</p>
+<p>The main use of <code>vcovDC</code> (and the other variance-covariance estimators
+provided in the package <code>vcovHC</code>, <code>vcovBK</code>, <code>vcovNW</code>, <code>vcovSCC</code>) is to pass
+it to plm's own functions like <code>summary</code>, <code>pwaldtest</code>, and <code>phtest</code> or
+together with testing functions from the <code>lmtest</code> and <code>car</code> packages. All of
+these typically allow passing the <code>vcov</code> or <code>vcov.</code> parameter either as a
+matrix or as a function, e.g., for Wald–type testing: argument <code>vcov.</code> to
+<code>coeftest()</code>, argument <code>vcov</code> to <code>waldtest()</code> and other methods in the
+<a href="https://CRAN.R-project.org/package=lmtest"><span class="pkg">lmtest</span></a> package; and argument <code>vcov.</code> to
+<code>linearHypothesis()</code> in the <a href="https://CRAN.R-project.org/package=car"><span class="pkg">car</span></a> package (see the
+examples), see (see also Zeileis 2004), 4.1-2, and examples below.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"matrix"</code> containing the estimate of
+the covariance matrix of coefficients.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Giovanni Millo
+</p>
+
+
+<h3>References</h3>
+
+<p>Cameron AC, Gelbach JB, Miller DL (2011).
+“Robust inference with multiway clustering.”
+<em>Journal of Business &amp; Economic Statistics</em>, <b>29</b>(2).
+</p>
+<p>Cribari–Neto F (2004).
+“Asymptotic Inference Under Heteroskedasticity of Unknown Form.”
+<em>Computational Statistics &amp; Data Analysis</em>, <b>45</b>, 215–233.
+</p>
+<p>MacKinnon JG, White H (1985).
+“Some Heteroskedasticity–Consistent Covariance Matrix Estimators With Improved Finite Sample Properties.”
+<em>Journal of Econometrics</em>, <b>29</b>, 305–325.
+</p>
+<p>Thompson SB (2011).
+“Simple formulas for standard errors that cluster by both firm and time.”
+<em>Journal of Financial Economics</em>, <b>99</b>(1), 1–10.
+</p>
+<p>Zeileis A (2004).
+“Econometric Computing With HC and HAC Covariance Matrix Estimators.”
+<em>Journal of Statistical Software</em>, <b>11</b>(10), 1–17.
+<a href="https://www.jstatsoft.org/article/view/v011i10">https://www.jstatsoft.org/article/view/v011i10</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>sandwich::vcovHC()</code> from the <a href="https://CRAN.R-project.org/package=sandwich"><span class="pkg">sandwich</span></a>
+package for weighting schemes (<code>type</code> argument).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data("Produc", package="plm")
+zz &lt;- plm(log(gsp)~log(pcap)+log(pc)+log(emp)+unemp, data=Produc, model="pooling")
+## as function input to plm's summary method (with and without additional arguments):
+summary(zz, vcov = vcovDC)
+summary(zz, vcov = function(x) vcovDC(x, type="HC1", maxlag=4))
+## standard coefficient significance test
+library(lmtest)
+coeftest(zz)
+## DC robust significance test, default
+coeftest(zz, vcov.=vcovDC)
+## idem with parameters, pass vcov as a function argument
+coeftest(zz, vcov.=function(x) vcovDC(x, type="HC1", maxlag=4))
+## joint restriction test
+waldtest(zz, update(zz, .~.-log(emp)-unemp), vcov=vcovDC)
+## Not run: 
+## test of hyp.: 2*log(pc)=log(emp)
+library(car)
+linearHypothesis(zz, "2*log(pc)=log(emp)", vcov.=vcovDC)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

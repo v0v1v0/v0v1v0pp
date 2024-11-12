@@ -1,0 +1,295 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>add_linear_penalties</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add linear penalties</h2>
+
+<h3>Description</h3>
+
+<p>Add penalties to a conservation planning problem to penalize
+solutions that select planning units with higher values from a specific
+data source (e.g., anthropogenic impact). These penalties assume
+a linear trade-off between the penalty values and the primary
+objective of the conservation planning problem (e.g.,
+solution cost for minimum set problems; <code>add_min_set_objective()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S4 method for signature 'ConservationProblem,ANY,character'
+add_linear_penalties(x, penalty, data)
+
+## S4 method for signature 'ConservationProblem,ANY,numeric'
+add_linear_penalties(x, penalty, data)
+
+## S4 method for signature 'ConservationProblem,ANY,matrix'
+add_linear_penalties(x, penalty, data)
+
+## S4 method for signature 'ConservationProblem,ANY,Matrix'
+add_linear_penalties(x, penalty, data)
+
+## S4 method for signature 'ConservationProblem,ANY,Raster'
+add_linear_penalties(x, penalty, data)
+
+## S4 method for signature 'ConservationProblem,ANY,SpatRaster'
+add_linear_penalties(x, penalty, data)
+
+## S4 method for signature 'ConservationProblem,ANY,dgCMatrix'
+add_linear_penalties(x, penalty, data)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>problem()</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalty</code></td>
+<td>
+<p><code>numeric</code> penalty value that is used to scale the
+importance of not selecting planning units with high <code>data</code> values.
+Higher <code>penalty</code> values can be used to obtain solutions that
+are strongly averse to selecting places with high <code>data</code>
+values, and smaller <code>penalty</code> values can be used to obtain solutions
+that only avoid places with especially high <code>data</code> values.
+Note that negative
+<code>penalty</code> values can be used to obtain solutions that prefer places
+with high <code>data</code> values. Additionally, when adding these
+penalties to problems with multiple zones, the argument to <code>penalty</code>
+must have a value for each zone.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p><code>character</code>, <code>numeric</code>,
+<code>terra::rast()</code>, <code>matrix</code>, or <code>Matrix</code> object
+containing the values used to penalize solutions. Planning units that are
+associated with higher data values are penalized more strongly
+in the solution. See the Data format section for more information.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function penalizes solutions that have higher values according
+to the sum of the penalty values associated with each planning unit,
+weighted by status of each planning unit in the solution.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An updated <code>problem()</code> object with the penalties added to it.
+</p>
+
+
+<h3>Data format</h3>
+
+<p>The argument to <code>data</code> can be specified using the following formats.
+</p>
+
+<dl>
+<dt>
+<code>data</code> as <code>character</code> vector</dt>
+<dd>
+<p>containing column name(s) that
+contain penalty values for planning units. This format is only
+compatible if the planning units in the argument to <code>x</code> are a
+<code>sf::sf()</code> or <code>data.frame</code> object. The column(s) must have <code>numeric</code>
+values, and must not contain any missing (<code>NA</code>) values.
+For problems that contain a single zone, the argument to <code>data</code> must
+contain a single column name. Otherwise, for problems that
+contain multiple zones, the argument to <code>data</code> must
+contain a column name for each zone.</p>
+</dd>
+<dt>
+<code>data</code> as a <code>numeric</code> vector</dt>
+<dd>
+<p>containing values for
+planning units. These values must not contain any missing
+(<code>NA</code>) values. Note that this format is only available
+for planning units that contain a single zone.</p>
+</dd>
+<dt>
+<code>data</code> as a <code>matrix</code>/<code>Matrix</code> object</dt>
+<dd>
+<p>containing <code>numeric</code> values
+that specify data for each planning unit.
+Each row corresponds to a planning unit, each column corresponds to a
+zone, and each cell indicates the data for penalizing a planning unit
+when it is allocated to a given zone.</p>
+</dd>
+<dt>
+<code>data</code> as a <code>terra::rast()</code> object</dt>
+<dd>
+<p>containing values for planning
+units. This format is only
+compatible if the planning units in the argument to <code>x</code> are
+<code>sf::sf()</code>, or <code>terra::rast()</code> objects.
+If the planning unit data are a <code>sf::sf()</code> object,
+then the values are calculated by overlaying the
+planning units with the argument to <code>data</code> and calculating the sum of the
+values associated with each planning unit.
+If the planning unit data are a <code>terra::rast()</code> object, then the values
+are calculated by extracting the cell
+values (note that the planning unit data and the argument to <code>data</code> must
+have exactly the same dimensionality, extent, and missingness).
+For problems involving multiple zones, the argument to <code>data</code> must
+contain a layer for each zone.</p>
+</dd>
+</dl>
+<h3>Mathematical formulation</h3>
+
+<p>The linear penalties are implemented using the following
+equations.
+Let <code class="reqn">I</code> denote the set of planning units
+(indexed by <code class="reqn">i</code>), <code class="reqn">Z</code> the set of management zones (indexed by
+<code class="reqn">z</code>), and <code class="reqn">X_{iz}</code> the decision variable for allocating
+planning unit <code class="reqn">i</code> to zone <code class="reqn">z</code> (e.g., with binary
+values indicating if each planning unit is allocated or not). Also, let
+<code class="reqn">P_z</code> represent the penalty scaling value for zones
+<code class="reqn">z \in Z</code> (argument to <code>penalty</code>), and
+<code class="reqn">D_{iz}</code> the penalty data for allocating planning unit
+<code class="reqn">i \in I</code> to zones <code class="reqn">z \in Z</code> (argument to
+<code>data</code>, if supplied as a <code>matrix</code> object).
+</p>
+<p style="text-align: center;"><code class="reqn">
+\sum_{i}^{I} \sum_{z}^{Z} P_z \times D_{iz} \times X_{iz}
+</code>
+</p>
+
+<p>Note that when the problem objective is to maximize some measure of
+benefit and not minimize some measure of cost, the term <code class="reqn">P_z</code> is
+replaced with <code class="reqn">-P_z</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See penalties for an overview of all functions for adding penalties.
+</p>
+<p>Other penalties: 
+<code>add_asym_connectivity_penalties()</code>,
+<code>add_boundary_penalties()</code>,
+<code>add_connectivity_penalties()</code>,
+<code>add_feature_weights()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# set seed for reproducibility
+set.seed(600)
+
+# load data
+sim_pu_polygons &lt;- get_sim_pu_polygons()
+sim_features &lt;- get_sim_features()
+sim_zones_pu_raster &lt;- get_sim_zones_pu_raster()
+sim_zones_features &lt;- get_sim_zones_features()
+
+# add a column to contain the penalty data for each planning unit
+# e.g., these values could indicate the level of habitat
+sim_pu_polygons$penalty_data &lt;- runif(nrow(sim_pu_polygons))
+
+# plot the penalty data to visualise its spatial distribution
+plot(sim_pu_polygons[, "penalty_data"], axes = FALSE)
+
+# create minimal problem with minimum set objective,
+# this does not use the penalty data
+p1 &lt;-
+  problem(sim_pu_polygons, sim_features, cost_column = "cost") %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(0.1) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# print problem
+print(p1)
+
+# create an updated version of the previous problem,
+# with the penalties added to it
+p2 &lt;- p1 %&gt;% add_linear_penalties(100, data = "penalty_data")
+
+# print problem
+print(p2)
+
+# solve the two problems
+s1 &lt;- solve(p1)
+s2 &lt;- solve(p2)
+
+# create a new object with both solutions
+s3 &lt;- sf::st_sf(
+  tibble::tibble(
+    s1 = s1$solution_1,
+    s2 = s2$solution_1
+  ),
+  geometry = sf::st_geometry(s1)
+)
+
+
+# plot the solutions and compare them,
+# since we supplied a very high penalty value (i.e., 100), relative
+# to the range of values in the penalty data and the objective function,
+# the solution in s2 is very sensitive to values in the penalty data
+plot(s3, axes = FALSE)
+
+# for real conservation planning exercises,
+# it would be worth exploring a range of penalty values (e.g., ranging
+# from 1 to 100 increments of 5) to explore the trade-offs
+
+# now, let's examine a conservation planning exercise involving multiple
+# management zones
+
+# create targets for each feature within each zone,
+# these targets indicate that each zone needs to represent 10% of the
+# spatial distribution of each feature
+targ &lt;- matrix(
+  0.1, ncol = number_of_zones(sim_zones_features),
+  nrow = number_of_features(sim_zones_features)
+)
+
+# create penalty data for allocating each planning unit to each zone,
+# these data will be generated by simulating values
+penalty_raster &lt;- simulate_cost(
+  sim_zones_pu_raster[[1]],
+  n = number_of_zones(sim_zones_features)
+)
+
+# plot the penalty data, each layer corresponds to a different zone
+plot(penalty_raster, main = "penalty data", axes = FALSE)
+
+# create a multi-zone problem with the minimum set objective
+# and penalties for allocating planning units to each zone,
+# with a penalty scaling factor of 1 for each zone
+p4 &lt;-
+  problem(sim_zones_pu_raster, sim_zones_features) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(targ) %&gt;%
+  add_linear_penalties(c(1, 1, 1), penalty_raster) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# print problem
+print(p4)
+
+# solve problem
+s4 &lt;- solve(p4)
+
+# plot solution
+plot(category_layer(s4), main = "multi-zone solution", axes = FALSE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

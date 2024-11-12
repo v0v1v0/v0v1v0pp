@@ -1,0 +1,131 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>weigh</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Apply Weight to Matrix</h2>
+
+<h3>Description</h3>
+
+<p>Apply Weight to Matrix
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">weigh(.Object, ...)
+
+## S4 method for signature 'TermDocumentMatrix'
+weigh(.Object, method = "tfidf")
+
+## S4 method for signature 'DocumentTermMatrix'
+weigh(.Object, method = "tfidf")
+
+## S4 method for signature 'count'
+weigh(.Object, with)
+
+## S4 method for signature 'count_bundle'
+weigh(.Object, with, progress = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>.Object</code></td>
+<td>
+<p>A <code>matrix</code>, or a <code>count</code>-object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further parameters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>The kind of weight to apply.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>with</code></td>
+<td>
+<p>A <code>data.table</code> used to weigh p-attributes. A column 'weight' with term weights is
+required, and columns with the p-attributes of <code>.Object</code> for matching.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progress</code></td>
+<td>
+<p>Logical, whether to show a progress bar.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(data.table)
+if (require("zoo") &amp;&amp; require("devtools")){
+
+# Source in function 'get_sentiws' from a GitHub gist
+gist_url &lt;- path(
+  "gist.githubusercontent.com",
+  "PolMine",
+  "70eeb095328070c18bd00ee087272adf",
+  "raw",
+  "c2eee2f48b11e6d893c19089b444f25b452d2adb",
+  "sentiws.R"
+ )
+  
+devtools::source_url(sprintf("https://%s", gist_url))
+SentiWS &lt;- get_sentiws()
+
+# Do the statistical word context analysis
+use("GermaParl")
+options("polmineR.left" = 10L)
+options("polmineR.right" = 10L)
+df &lt;- context("GERMAPARL", query = "Islam", p_attribute = c("word", "pos")) %&gt;%
+  partition_bundle(node = FALSE) %&gt;% 
+  set_names(s_attributes(., s_attribute = "date")) %&gt;%
+  weigh(with = SentiWS) %&gt;%
+  summary()
+
+# Aggregate by year
+df[["year"]] &lt;- as.Date(df[["name"]]) %&gt;% format("%Y-01-01")
+df_year &lt;- aggregate(df[,c("size", "positive_n", "negative_n")], list(df[["year"]]), sum)
+colnames(df_year)[1] &lt;- "year"
+
+# Use shares instead of absolute counts 
+df_year$negative_share &lt;- df_year$negative_n / df_year$size
+df_year$positive_share &lt;- df_year$positive_n / df_year$size
+
+# Turn it into zoo object, and plot it
+Z &lt;- zoo(
+  x = df_year[, c("positive_share", "negative_share")],
+  order.by = as.Date(df_year[,"year"])
+)
+plot(
+  Z, ylab = "polarity", xlab = "year",
+  main = "Word context of 'Islam': Share of positive/negative vocabulary",
+  cex = 0.8,
+  cex.main = 0.8
+)
+
+# Note that we can uses the kwic-method to check for the validity of our findings
+words_positive &lt;- SentiWS[weight &gt; 0][["word"]]
+words_negative &lt;- SentiWS[weight &lt; 0][["word"]]
+kwic("GERMAPARL", query = "Islam", positivelist = c(words_positive, words_negative)) %&gt;%
+  highlight(lightgreen = words_positive, orange = words_negative) %&gt;%
+  tooltips(setNames(SentiWS[["word"]], SentiWS[["weight"]]))
+  
+}
+
+## End(Not run)
+</code></pre>
+
+
+</div>

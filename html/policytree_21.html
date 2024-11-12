@@ -1,0 +1,173 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>policy_tree</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit a policy with exact tree search</h2>
+
+<h3>Description</h3>
+
+<p>Finds the optimal (maximizing the sum of rewards) depth k tree by exhaustive search. If the optimal
+action is the same in both the left and right leaf of a node, the node is pruned.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">policy_tree(
+  X,
+  Gamma,
+  depth = 2,
+  split.step = 1,
+  min.node.size = 1,
+  verbose = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>The covariates used. Dimension <code class="reqn">N*p</code> where <code class="reqn">p</code> is the number of features.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Gamma</code></td>
+<td>
+<p>The rewards for each action. Dimension <code class="reqn">N*d</code> where <code class="reqn">d</code> is the number of actions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>depth</code></td>
+<td>
+<p>The depth of the fitted tree. Default is 2.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>split.step</code></td>
+<td>
+<p>An optional approximation parameter, the number of possible splits
+to consider when performing tree search. split.step = 1 (default) considers every possible split, split.step = 10
+considers splitting at every 10'th sample and may yield a substantial speedup for dense features.
+Manually rounding or re-encoding continuous covariates with very high cardinality in a
+problem specific manner allows for finer-grained control of the accuracy/runtime tradeoff and may in some cases
+be the preferred approach.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.node.size</code></td>
+<td>
+<p>An integer indicating the smallest terminal node size permitted. Default is 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Give verbose output. Default is TRUE.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Exact tree search is intended as a way to find shallow (i.e. depth 2 or 3) globally optimal
+tree-based polices on datasets of "moderate" size.
+The amortized runtime of exact tree search is <code class="reqn">O(p^k n^k (log n + d) + pnlog n)</code> where p is
+the number of features, n the number of distinct observations, d the number of treatments, and k &gt;= 1
+the tree depth. Due to the exponents in this expression, exact tree search will not scale to datasets
+of arbitrary size.
+</p>
+<p>As an example, the runtime of a depth two tree scales quadratically with the number of observations, implying
+that doubling the number of samples will quadruple the runtime.
+n refers to the number of distinct observations, substantial speedups can be gained
+when the features are discrete (with all binary features, the runtime will be ~ linear in n),
+and it is therefore beneficial to round down/re-encode very dense data to a lower cardinality
+(the optional parameter <code>split.step</code> emulates this, though rounding/re-encoding allow for finer-grained control).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A policy_tree object.
+</p>
+
+
+<h3>References</h3>
+
+<p>Athey, Susan, and Stefan Wager. "Policy Learning With Observational Data."
+Econometrica 89.1 (2021): 133-161.
+</p>
+<p>Sverdrup, Erik, Ayush Kanodia, Zhengyuan Zhou, Susan Athey, and Stefan Wager.
+"policytree: Policy learning via doubly robust empirical welfare maximization over trees."
+Journal of Open Source Software 5, no. 50 (2020): 2232.
+</p>
+<p>Zhou, Zhengyuan, Susan Athey, and Stefan Wager. "Offline multi-action policy learning:
+Generalization and optimization." Operations Research 71.1 (2023).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>hybrid_policy_tree</code> for building deeper trees.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Construct doubly robust scores using a causal forest.
+n &lt;- 10000
+p &lt;- 10
+# Discretizing continuous covariates decreases runtime for policy learning.
+X &lt;- round(matrix(rnorm(n * p), n, p), 2)
+colnames(X) &lt;- make.names(1:p)
+W &lt;- rbinom(n, 1, 1 / (1 + exp(X[, 3])))
+tau &lt;- 1 / (1 + exp((X[, 1] + X[, 2]) / 2)) - 0.5
+Y &lt;- X[, 3] + W * tau + rnorm(n)
+c.forest &lt;- grf::causal_forest(X, Y, W)
+
+# Retrieve doubly robust scores.
+dr.scores &lt;- double_robust_scores(c.forest)
+
+# Learn a depth-2 tree on a training set.
+train &lt;- sample(1:n, n / 2)
+tree &lt;- policy_tree(X[train, ], dr.scores[train, ], 2)
+tree
+
+# Evaluate the tree on a test set.
+test &lt;- -train
+
+# One way to assess the policy is to see whether the leaf node (group) the test set samples
+# are predicted to belong to have mean outcomes in accordance with the prescribed policy.
+
+# Get the leaf node assigned to each test sample.
+node.id &lt;- predict(tree, X[test, ], type = "node.id")
+
+# Doubly robust estimates of E[Y(control)] and E[Y(treated)] by leaf node.
+values &lt;- aggregate(dr.scores[test, ], by = list(leaf.node = node.id),
+                    FUN = function(dr) c(mean = mean(dr), se = sd(dr) / sqrt(length(dr))))
+print(values, digits = 1)
+
+# Take cost of treatment into account by, for example, offsetting the objective
+# with an estimate of the average treatment effect.
+ate &lt;- grf::average_treatment_effect(c.forest)
+cost.offset &lt;- ate[["estimate"]]
+dr.scores[, "treated"] &lt;- dr.scores[, "treated"] - cost.offset
+tree.cost &lt;- policy_tree(X, dr.scores, 2)
+
+# Predict treatment assignment for each sample.
+predicted &lt;- predict(tree, X)
+
+# If there are too many covariates to make tree search computationally feasible, then one
+# approach is to consider for example only the top features according to GRF's variable importance.
+var.imp &lt;- grf::variable_importance(c.forest)
+top.5 &lt;- order(var.imp, decreasing = TRUE)[1:5]
+tree.top5 &lt;- policy_tree(X[, top.5], dr.scores, 2, split.step = 50)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,162 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>within_intercept</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Overall Intercept for Within Models Along its Standard Error</h2>
+
+<h3>Description</h3>
+
+<p>This function gives an overall intercept for within models and its
+accompanying standard error or an within model with the overall intercept
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">within_intercept(object, ...)
+
+## S3 method for class 'plm'
+within_intercept(object, vcov = NULL, return.model = FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>object of class <code>plm</code> which must be a within
+model (fixed effects model),</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments (currently none).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vcov</code></td>
+<td>
+<p>if not <code>NULL</code> (default), a function to calculate a
+user defined variance–covariance matrix (function for robust
+vcov), only used if <code>return.model = FALSE</code>,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return.model</code></td>
+<td>
+<p>a logical to indicate whether only the overall intercept
+(<code>FALSE</code> is default) or a full model object (<code>TRUE</code>) is to be returned,</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The (somewhat artificial) intercept for within models (fixed
+effects models) was made popular by Stata of StataCorp
+(see Gould 2013), EViews of IHS, and gretl
+(see Cottrell and Lucchetti 2021, p. 200-201, listing 23.1), see for
+treatment in the literature,
+e.g., Greene (2012), Ch. 11.4.4, p. 364. It can
+be considered an overall intercept in the within model framework
+and is the weighted mean of fixed effects (see <strong>Examples</strong> for the
+relationship).
+</p>
+<p><code>within_intercept</code> estimates a new model which is
+computationally more demanding than just taking the weighted
+mean. However, with <code>within_intercept</code> one also gets the
+associated standard error and it is possible to get an overall
+intercept for two-way fixed effect models.
+</p>
+<p>Users can set argument <code>vcov</code> to a function to calculate a
+specific (robust) variance–covariance matrix and get the
+respective (robust) standard error for the overall intercept,
+e.g., the function <code>vcovHC()</code>, see examples for
+usage. Note: The argument <code>vcov</code> must be a function, not a
+matrix, because the model to calculate the overall intercept for
+the within model is different from the within model itself.
+</p>
+<p>If argument <code>return.model = TRUE</code> is set, the full model object is returned,
+while in the default case only the intercept is returned.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Depending on argument <code>return.model</code>:  If <code>FALSE</code> (default), a named
+<code>numeric</code> of length one: The overall intercept for the estimated within model
+along attribute "se" which contains the standard error for the intercept.
+If <code>return.model = TRUE</code>, the full model object, a within model with the
+overall intercept (NB: the model identifies itself as a pooling model, e.g.,
+in summary()).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Kevin Tappe
+</p>
+
+
+<h3>References</h3>
+
+<p>Cottrell A, Lucchetti R (2021).
+“Gretl User’s Guide.”
+<a href="https://gretl.sourceforge.net/">https://gretl.sourceforge.net/</a>.<br><br> Gould W (2013).
+“How can there be an intercept in the fixed-effects model estimated by xtreg, fe?”
+<a href="https://www.stata.com/support/faqs/statistics/intercept-in-fixed-effects-model/">https://www.stata.com/support/faqs/statistics/intercept-in-fixed-effects-model/</a>.<br><br> Greene WH (2012).
+<em>Econometric Analysis</em>, 7th edition.
+Prentice Hall.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>fixef()</code> to extract the fixed effects of a within model.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data("Hedonic", package = "plm")
+mod_fe &lt;- plm(mv ~ age + crim, data = Hedonic, index = "townid")
+overallint &lt;- within_intercept(mod_fe)
+attr(overallint, "se") # standard error
+
+# overall intercept is the weighted mean of fixed effects in the
+# one-way case
+weighted.mean(fixef(mod_fe), pdim(mod_fe)$Tint$Ti)
+
+### relationship of type="dmean", "level" and within_intercept
+## one-way balanced case
+data("Grunfeld", package = "plm")
+gi &lt;- plm(inv ~ value + capital, data = Grunfeld, model = "within")
+fx_level &lt;- fixef(gi, type = "level")
+fx_dmean &lt;- fixef(gi, type = "dmean")
+overallint &lt;- within_intercept(gi)
+all.equal(overallint + fx_dmean, fx_level, check.attributes = FALSE) # TRUE
+## two-ways unbalanced case
+gtw_u &lt;- plm(inv ~ value + capital, data = Grunfeld[-200, ], effect = "twoways")
+int_tw_u &lt;- within_intercept(gtw_u)
+fx_dmean_tw_i_u &lt;- fixef(gtw_u, type = "dmean", effect = "individual")[index(gtw_u)[[1L]]]
+fx_dmean_tw_t_u &lt;- fixef(gtw_u, type = "dmean", effect = "time")[index(gtw_u)[[2L]]]
+fx_level_tw_u &lt;- as.numeric(fixef(gtw_u, "twoways", "level"))
+fx_level_tw_u2 &lt;- int_tw_u + fx_dmean_tw_i_u + fx_dmean_tw_t_u
+all.equal(fx_level_tw_u, fx_level_tw_u2, check.attributes = FALSE) # TRUE
+
+## overall intercept with robust standard error
+within_intercept(gi, vcov = function(x) vcovHC(x, method="arellano", type="HC0"))
+
+## have a model returned
+mod_fe_int &lt;- within_intercept(gi, return.model = TRUE)
+summary(mod_fe_int)
+# replicates Stata's robust standard errors exactly as model is with intercept
+summary(mod_fe_int, vcov = function(x) vcovHC(x, type = "sss")) 
+</code></pre>
+
+
+</div>

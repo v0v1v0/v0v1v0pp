@@ -1,0 +1,210 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pspectrum</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Adaptive sine multitaper power spectral density estimation</h2>
+
+<h3>Description</h3>
+
+<p>This is the primary function to be used in this package: it returns
+power spectral density estimates of a timeseries, with
+an optimal number of tapers at each frequency based on iterative
+reweighted spectral derivatives. If the object given is a multicolumn
+object, the cross spectrum (multivariate PSD) will be calculated using the same
+iterative procedure.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pspectrum(x, ...)
+
+## S3 method for class 'ts'
+pspectrum(x, output_column = NULL, ...)
+
+## S3 method for class 'matrix'
+pspectrum(x, x.frqsamp, ...)
+
+## S3 method for class 'spec'
+pspectrum(x, ...)
+
+## Default S3 method:
+pspectrum(
+  x,
+  x.frqsamp = 1,
+  ntap.init = NULL,
+  niter = 3,
+  output_column = NULL,
+  AR = FALSE,
+  Nyquist.normalize = TRUE,
+  verbose = TRUE,
+  no.history = FALSE,
+  plot = FALSE,
+  ...
+)
+
+pspectrum_basic(x, ntap.init = 7, niter = 5, verbose = TRUE, ...)
+
+adapt_message(stage, dvar = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>vector; series to find PSD estimates for; if this is a multicolumn object, a cross spectrum will
+be calculated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Optional parameters passed to <code>riedsid2</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>output_column</code></td>
+<td>
+<p>scalar integer; If the series contains multiple columns,  specify
+which column contains the output.  
+The default assumes the last column is the output and the others are all inputs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x.frqsamp</code></td>
+<td>
+<p>scalar; the sampling rate (e.g. Hz) of the series <code>x</code>; equivalent to <code>frequency</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ntap.init</code></td>
+<td>
+<p>scalar; the number of sine tapers to use in the pilot spectrum estimation; if <code>NULL</code> then the
+default in <code>pilot_spec</code> is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>niter</code></td>
+<td>
+<p>scalar; the number of adaptive iterations to execute after the pilot spectrum is estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AR</code></td>
+<td>
+<p>logical; should the effects of an AR model be removed from the pilot spectrum?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Nyquist.normalize</code></td>
+<td>
+<p>logical; should the units be returned on Hz, rather than Nyquist?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical; Should messages be given?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>no.history</code></td>
+<td>
+<p>logical; Should the adaptive history <em>not</em> be saved?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>logical; Should the results be plotted?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stage</code></td>
+<td>
+<p>integer; the current adaptive stage (0 is pilot)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dvar</code></td>
+<td>
+<p>numeric; the spectral variance; see also <code>vardiff</code> etc</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>See the <strong>Adaptive estimation</strong> section in the description of
+the <code>psd-package</code> for details regarding adaptive estimation.
+</p>
+<p>NEW as of version 2.0: use <code>pspectrum</code> to calculate the
+cross spectrum if <code>x</code> is a multi-column array.
+</p>
+<p><code>pspectrum_basic</code> is a simplified implementation used mainly for
+testing.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Object with class 'spec', invisibly. It also assigns the object to
+<code>"final_psd"</code> in the working environment.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>A.J. Barbour adapted original by R.L. Parker
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>psdcore</code>, <code>pilot_spec</code>, <code>riedsid2</code>, <code>prewhiten</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: #REX
+library(psd)
+library(RColorBrewer)
+
+##
+## Adaptive multitaper PSD estimation
+## (see also the  "psd_overview"  vignette)
+##
+
+data(magnet)
+Xr &lt;- magnet$raw
+Xc &lt;- magnet$clean
+
+# adaptive psd estimation (turn off diagnostic plot)
+PSDr &lt;- pspectrum(Xr, plot=FALSE)
+PSDc &lt;- pspectrum(Xc, plot=FALSE)
+
+# plot them on the same scale
+plot(PSDc, log="dB",
+     main="Raw and cleaned Project MAGNET power spectral density estimates",
+     lwd=3, ci.col=NA, ylim=c(0,32), yaxs="i")
+plot(PSDr, log="dB", add=TRUE, lwd=3, lty=5)
+text(c(0.25,0.34), c(11,24), c("Clean","Raw"), cex=1)
+
+## Change sampling, and inspect the diagnostic plot
+plot(pspectrum(Xc, niter=1, x.frqsamp=10, plot=TRUE))
+
+## Say we forgot to assign the results: we can recover from the environment with:
+PSDc_recovered &lt;- psd_envGet("final_psd")
+plot(PSDc_recovered)
+
+
+## End(Not run)#REX
+</code></pre>
+
+
+</div>

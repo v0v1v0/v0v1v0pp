@@ -1,0 +1,139 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sets</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>R Set Comprehension</h2>
+
+<h3>Description</h3>
+
+<p>Set comprehension with the magrittr Pipe.
+Always use the basic syntax:
+</p>
+<p><code>.x %&gt;% that_for_all(.y) %&gt;% we_have_*(f(.x, .y))</code>,
+but see the examples for more detail.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">that_for_all(.x, .y)
+
+that_for_any(.x, .y)
+
+we_have(that_for, formula, result = "vector")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>.x</code></td>
+<td>
+<p>A set, represented as either an atomic vector or a list</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.y</code></td>
+<td>
+<p>A set to compare to <code>.x</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>that_for</code></td>
+<td>
+<p>A list passed to <code>we_have()</code>—can be ignored with proper syntax</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>A function, lambda, or formula. Must be understood by
+<code>rlang::as_function()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>result</code></td>
+<td>
+<p>Should the expression return a <code>vector</code> or an <code>Iterator</code>?</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>formula</code> can be anything that is recognized as a function by <code>rlang::as_function()</code>.
+See the examples for how to specify the end of a sequence when used with an <code>Iterator</code>.
+</p>
+<p>Handling missing values in these expressions is possible and sometimes desirable but
+potentially painful because <code>NA</code> values can't be compared with normal operators.
+See the README for a detailed example.
+</p>
+<p>Note that <code>.x %&gt;% that_for_all(.y)</code> is vacuously true if <code>.y</code> is empty, while
+<code>.x %&gt;% that_for_any(.y)</code> is vacuously false if <code>.y</code> is empty.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>that_for_all()</code> and <code>that_for_any()</code>, an object of S3 class that_for_all or that_for_any.
+For <code>we_have()</code>, a vector of the same type as <code>.x</code> if <code>return == 'vector'</code> and an Iterator object if <code>return == 'Iterator'</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>if <code>.y</code> is an numeric vector, you probably want a value obtained from
+<code>range(start, end)</code> rather than <code>start:end</code> or <code>seq.int(start,end)</code>,
+as when start is greater than end you want an empty vector rather than counting backwards.
+Note that <code>range()</code> views end as a supremum, not a maximum, thus <code>range(a,b)</code>
+is equivalent to the set <code>[</code>a,b) when a &lt; b or the empty set when b &gt;= a.
+</p>
+<p>Also note that there is some indirection in the way that <code>.x</code> and <code>.y</code> are referenced
+in the formula. In the function <code>we_have()</code>, the actual name of the two sets is <code>.x</code>
+and <code>.y</code>. That is what makes the function interface work,
+e.g. <code>function(.x, .y) .x - .y</code>. On the other hand, <code>purrr</code>-style lambda expressions,
+e.g. <code>~.x - .y</code>, use positional arguments, where <code>.x</code> is the first argument and <code>.y</code>
+is the second argument, no matter their names. Because those are actually their names,
+this difference should never matter.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>The implementation of these functions involves code adapted from <code>purrr::every()</code>
+and <code>purrr::some()</code>, by Lionel Henry, Hadley Wickham, and RStudio, available under the
+MIT license.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">2:100 %&gt;% that_for_all(range(2, .x)) %&gt;% we_have(function(.x, .y) .x %% .y != 0) #is the same as
+2:100 %&gt;% that_for_all(range(2, .x)) %&gt;% we_have(~.x %% .y) # 0 = F, (not 0) = T
+#c.f.
+primes &lt;- 2:100 %&gt;% that_for_all(range(2, .x)) %&gt;% we_have(~.x %% .y, "Iterator")
+yield_next(primes)
+primes2 &lt;- clone(primes)
+
+# Refer to the vector .x with `.x_vector` and the current index of that vector with `.i`
+# For example, to yield to the end of the sequence:
+yield_while(primes, .x_vector[.i] &lt;= length(.x_vector))
+# `.finished` is an alias for `.x_vector[.i] &gt; length(.x_vector)`
+# Equivalent to previous expression:
+yield_while(primes2, !.finished)
+{c("I", "Don't", "wan't", "chicken") %&gt;%
+             that_for_all("\'") %&gt;%
+             we_have(~grepl(.y, .x))}
+#Twin primes 1 through 100
+primes &lt;- 2:100 %&gt;% that_for_all(range(2, .x)) %&gt;% we_have(~.x %% .y)
+primes %&gt;% that_for_any(primes) %&gt;% we_have(~abs(.x - .y) == 2)
+#Prime numbers 1 through 100 that are two away from a square number
+(2:100 %&gt;% that_for_all(range(2, .x)) %&gt;% we_have(~.x %% .y)) %&gt;%
+    that_for_any(range(2, .x)) %&gt;% we_have(~sqrt(.x + 2) == .y | sqrt(.x - 2) == .y)
+
+</code></pre>
+
+
+</div>

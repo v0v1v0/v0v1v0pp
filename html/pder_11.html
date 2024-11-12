@@ -1,0 +1,130 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>GiantsShoulders</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Impact of Institutions on Cumulative Research</h2>
+
+<h3>Description</h3>
+
+<p>yearly observations of 216 articles from 1970 to 2001
+</p>
+<p><em>number of observations</em> : 4880
+</p>
+<p><em>number of  time-series </em> :  32 
+</p>
+<p><em>country</em> :  United States 
+</p>
+<p><em>package</em> : countpanel
+</p>
+<p><em>JEL codes: </em>D02, D83, I23, O30
+</p>
+<p><em>Chapter</em> : 08
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">data(GiantsShoulders)</code></pre>
+
+
+<h3>Format</h3>
+
+<p>A dataframe containing:
+</p>
+
+<dl>
+<dt>pair</dt>
+<dd>
+<p>the pair article index</p>
+</dd>
+<dt>article</dt>
+<dd>
+<p>the article index</p>
+</dd>
+<dt>brc</dt>
+<dd>
+<p>material of the article is deposit on a Biological Ressource Center</p>
+</dd>
+<dt>pubyear</dt>
+<dd>
+<p>publication year of the article</p>
+</dd>
+<dt>brcyear</dt>
+<dd>
+<p>year of the deposit in brc of the material related to the article</p>
+</dd>
+<dt>year</dt>
+<dd>
+<p>the year index</p>
+</dd>
+<dt>citations</dt>
+<dd>
+<p>the number of citations</p>
+</dd>
+</dl>
+<h3>Source</h3>
+
+<p>American Economic Association Data Archive : <a href="https://www.aeaweb.org/aer/">https://www.aeaweb.org/aer/</a></p>
+
+
+<h3>References</h3>
+
+<p>Furman, Jeffrey L. and Scott Stern (2011) “Climbing Atop the Shoulders of Giants: the Impact of Institutions on Cumulative Research”, <em>American Economic Review</em>, <b>101(5)</b>, 1933-1963, doi: <a href="https://doi.org/10.1257/aer.101.5.1933">10.1257/aer.101.5.1933</a>
+.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+#### Example 8-6
+
+## ------------------------------------------------------------------------
+## Not run: 
+data("GiantsShoulders", package = "pder")
+head(GiantsShoulders)
+
+## ------------------------------------------------------------------------
+
+if (requireNamespace("dplyr")){
+    library("dplyr")
+    GiantsShoulders &lt;- mutate(GiantsShoulders, age = year - pubyear)
+    cityear &lt;- summarise(group_by(GiantsShoulders, brc, age), 
+                         cit = mean(citations, na.rm = TRUE))
+    GiantsShoulders &lt;- mutate(GiantsShoulders,
+                              window = as.numeric( (brc == "yes") &amp; 
+                                                   abs(brcyear - year) &lt;= 1),
+                              post_brc = as.numeric( (brc == "yes") &amp; 
+                                                     year - brcyear &gt; 1),
+                              age = year - pubyear)
+    GiantsShoulders$age[GiantsShoulders$age == 31] &lt;- 0
+    #GiantsShoulders$year[GiantsShoulders$year 
+    #GiantsShoulders$year[GiantsShoulders$year 
+    GiantsShoulders$year[GiantsShoulders$year &lt; 1975] &lt;- 1970
+    GiantsShoulders$year[GiantsShoulders$year &gt;= 1975 &amp; GiantsShoulders$year &lt; 1980] &lt;- 1975
+
+    if (requireNamespace("pglm")){
+        library("pglm")
+        t3c1 &lt;- lm(log(1 + citations) ~ brc + window + post_brc + factor(age), 
+                   data = GiantsShoulders)
+        t3c2 &lt;- update(t3c1, . ~ .+  factor(pair) + factor(year))
+        t3c3 &lt;- pglm(citations ~ brc + window + post_brc + factor(age) + factor(year),
+                     data = GiantsShoulders, index = "pair", 
+                     effect = "individual", model = "within", family = negbin)
+        t3c4 &lt;- pglm(citations ~ window + post_brc + factor(age) + factor(year),
+                     data = GiantsShoulders, index = "article", 
+                     effect = "individual", model = "within", family = negbin)
+        ## screenreg(list(t3c2, t3c3, t3c4),
+        ##           custom.model.names = c("ols: age/year/pair-FE", 
+        ##                                  "NB:age/year/pair-FE", "NB: age/year/article-FE"),
+        ##           omit.coef="(factor)|(Intercept)", digits = 3)
+    }
+}
+
+## End(Not run)
+</code></pre>
+
+
+</div>

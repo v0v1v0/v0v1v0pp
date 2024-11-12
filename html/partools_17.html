@@ -1,0 +1,162 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>dbs</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Debugging aid for <span class="pkg">parallel</span> cluster code.
+</h2>
+
+<h3>Description</h3>
+
+<p>Aids in debugging of code written for the cluster operations in the
+<span class="pkg">parallel</span> package.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">dbs(nwrkrs,xterm=NULL,src=NULL,ftn=NULL)
+writemgrscreen(cmd)
+killdebug()
+dbsmsgstart(cls)
+dbsmsg(msg)
+dbsdump()
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>cls</code></td>
+<td>
+<p>A cluster for the <span class="pkg">parallel</span> package.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nwrkrs</code></td>
+<td>
+<p>Number of workers, i.e. size of the cluster.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xterm</code></td>
+<td>
+<p>The string "xterm" or name of compatible terminal.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>src</code></td>
+<td>
+<p>Name of the source file to be debugged.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ftn</code></td>
+<td>
+<p>Name of the function to be debugged.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cmd</code></td>
+<td>
+<p>R command to be executed in manager screen.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>msg</code></td>
+<td>
+<p>A message to write to the debugging record file. Can be
+either a character string or any expression that is printable by
+<code>cat</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>A major obstacle to debugging cluster-based <span class="pkg">parallel</span>
+applications is the lack of a terminal, thus precluding direct use of
+<code>debug</code> and <code>browser</code>.  This set of functions consists of
+two groups, one for “quick and dirty” debugging, that writes
+debugging information to disk files, and the other for more
+sophisticated work that deals with the terminal restriction.  For both
+methods, make sure <code>setclsinfo</code> has been called.
+</p>
+<p>For “quick and dirty” debugging, there is <code>dbsmsg</code>, which prints
+messages to files, invoked from within code running at the cluster
+nodes.  There is one file for each member of the cluster, e.g.
+<code>dbs.001</code>, <code>dbs.002</code> and so on, and <code>dbsmsg</code> writes to
+the file associated with the worker invoking it.  Initialize via
+<code>dbsmsgstart</code>.  
+</p>
+<p>Another quick approach is to call <code>dbsdump</code>, which will call R's
+<code>dump.frames</code>, making a separate output file for each cluster node.
+These can then be input to <code>debugger</code> to examine stack frames.
+</p>
+<p>The more elaborate debugging tool, <code>dbs</code>, is the only one in this
+<span class="pkg">partools</span> package requiring a Unix-family system (Linux, Mac).  To
+discuss it, suppose you wish to debug the function <code>f</code> in the file
+<code>x.R</code>.  Run, say, <code>dbs(2,xterm="xterm",src="x.R",ftn="f")</code>.
+Then three new terminal windows will be created, one for the cluster
+manager and two for the cluster workers.  The cluster will be named
+<code>cls</code>.  Automatically, the file <code>x.R</code> will be sourced by the
+worker windows, and <code>debug(f)</code> will be run in them.
+</p>
+<p>Then you simply debug as usual.  Go to the manager window, and run
+your <span class="pkg">parallel</span> application launch call in the usual way, say
+<code>clusterEvalQ(cls,f(5))</code>.  The function <code>f</code> will run in each
+worker window, with execution automatically entering browser mode.  You
+are now ready to single-step through them, or execute any other browser
+operation.
+</p>
+<p>If <code>xterm</code> is NULL, you will be prompted to create the terminal
+windows by hand (or use existing ones), and run <code>screen</code> there as
+instructed.  <code>Terminal</code> works on Macs; label the windows by hand,
+by clicking "Shell" then "Edit".
+</p>
+<p>When finished with the debugging session, run <code>killdebug</code> from the
+original window (the one from which you invoked <code>dbs</code>) to quit the
+various <code>screen</code> processes.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Norm Matloff
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# quick-and-dirty method
+cls &lt;- makeCluster(2) 
+setclsinfo(cls)
+# define 'buggy' function
+g &lt;- function(x,y) {u&lt;-x+y; v&lt;-x-y; dbsmsg(c(u,v)); u^2+v^2} 
+clusterExport(cls,"g") 
+# set x and y at cluster nodes
+clusterEvalQ(cls,{x &lt;- runif(1); y &lt;- runif(1)}) 
+# start debugging session
+dbsmsgstart(cls) 
+# run
+clusterEvalQ(cls,g(x,y)) 
+# files dbs.1 and dbs.2 created, each reporting u,v values
+
+# dbs() method
+# make a test file
+cat(c("f &lt;- function(x) {","   x &lt;- x + 1","   x^2","}"),file="x.R",sep="\n")
+dbs(2,src="x.R",ftn="f")
+# now type in manager window:
+clusterEvalQ(cls,f(5))
+# the 2 worker windows are now in the browser, ready for debugging
+
+stopCluster(cls)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,198 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mafc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Links for Binomial Family for m-alternative Forced-choice </h2>
+
+<h3>Description</h3>
+
+<p> These provide links for the binomial family for fitting
+m-alternative forced-choice psychophysical functions.  </p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mafc.logit( .m = 2 )
+mafc.probit( .m = 2 )
+mafc.cloglog( .m = 2 )
+mafc.weib( ... )
+mafc.cauchit( .m = 2 )
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+ <table>
+<tr style="vertical-align: top;">
+<td><code>.m</code></td>
+<td>
+<p>is the integer number (&gt;1) of choices (Default to
+2AFC).  For m = 1 (Yes/No paradigm), use one of the built-in links
+for the binomial family.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p> just to pass along the formals of <code>mafc.cloglog</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p> These
+functions provide links for fitting psychometric functions arising from
+an m-alternative forced-choice experiment.  The estimated coefficients
+of the linear predictor influence both the location and the slope of the
+psychometric function(s), but provide no means of estimating the upper
+aymptote which is constrained to approach 1.  If the upper asympotote
+must be estimated, it would be better to maximize directly the
+likelihood, either with a function like <code>optim</code> or <code>gnlr</code> from
+package <span class="pkg">gnlm</span> (available at
+<a href="https://www.commanster.eu/rcode.html">https://www.commanster.eu/rcode.html</a>). Alternatively,
+the function <code>probit.lambda</code> can be used with a known
+upper asymptote, or <code>glm.lambda</code> or <code>glm.WH</code>
+to estimate one, with a probit link.  <code>mafc.weib</code> is just an
+alias for <code>mafc.cloglog</code>.</p>
+
+
+<h3>Value</h3>
+
+<p> Each
+link returns a list containing functions required for relating the
+response to the linear predictor in generalized linear models and the
+name of the link.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>linkfun </code></td>
+<td>
+<p>The link function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>linkinv</code></td>
+<td>
+<p>The inverse link function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu.eta</code></td>
+<td>
+<p>The derivative of the inverse link </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>valideta</code></td>
+<td>
+<p>The domain over which the linear predictor is valid</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>link</code></td>
+<td>
+<p>A name to be used for the link </p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Kenneth Knoblauch</p>
+
+
+<h3>References</h3>
+
+ 
+<p>Williams J, Ramaswamy D and Oulhaj A (2006) 10 Hz flicker improves
+recognition memory in older people <em>BMC Neurosci.</em> 2006 5;7:21
+<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1434755/">https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1434755/</a>
+(for an example developed prior to this one, but for m = 2).
+</p>
+<p>Klein S. A. (2001) Measuring, estimating, and understanding the
+psychometric function: a commentary. <em>Percept Psychophys.</em>, <b>63(8)</b>, 1421–1455.
+</p>
+<p>Wichmann, F. A. and Hill, N. J. (2001) The psychometric function: I.Fitting,
+sampling, and goodness of fit. <em>Percept Psychophys.</em>,
+<b>63(8)</b>, 1293–1313.
+</p>
+<p>Yssaad-Fesselier, R. and Knoblauch, K. (2006) Modeling psychometric
+functions in R. <em> Behav Res Methods.</em>,  <b>38(1)</b>, 28–41. (for examples
+with <code>gnlr</code>).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>family</code>, <code>make.link</code>, <code>glm</code>,
+<code>optim</code>, <code>probit.lambda</code>, <code>glm.lambda</code>,
+<code>glm.WH</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#A toy example,
+b &lt;- 3.5
+g &lt;- 1/3
+d &lt;- 0.0
+a &lt;- 0.04
+p &lt;- c(a, b, g, d)
+num.tr &lt;- 160
+cnt &lt;- 10^seq(-2, -1, length = 6) # contrast levels
+
+#simulated observer responses
+truep &lt;- g + (1 - g - d) * pweibull(cnt, b, a)
+ny &lt;- rbinom(length(cnt), num.tr, truep)
+nn &lt;- num.tr - ny
+phat &lt;- ny/(ny + nn)
+resp.mat &lt;- matrix(c(ny, nn), ncol = 2)
+
+ddprob.glm &lt;- glm(resp.mat ~ cnt, family = binomial(mafc.probit(3)))
+ddlog.glm &lt;- glm(resp.mat ~ cnt, family = binomial(mafc.logit(3)))
+# Can fit a Weibull function, but use log contrast as variable
+ddweib.glm &lt;- glm(resp.mat ~ log(cnt), family = binomial(mafc.cloglog(3))) 
+ddcau.glm &lt;- glm(resp.mat ~ log(cnt), family = binomial(mafc.cauchit(3)))
+
+plot(cnt, phat, log = "x", cex = 1.5, ylim = c(0, 1))
+pcnt &lt;- seq(0.01, 0.1, len = 100)
+lines(pcnt, predict(ddprob.glm, data.frame(cnt = pcnt),
+			type = "response"), lwd = 2)
+lines(pcnt, predict(ddlog.glm, data.frame(cnt = pcnt),
+			type = "response"), lwd = 2, lty = 2)
+lines(pcnt, predict(ddweib.glm, data.frame(cnt = pcnt),
+			type = "response"), lwd = 3, col = "grey")
+lines(pcnt, predict(ddcau.glm, data.frame(cnt = pcnt),
+			type = "response"), lwd = 3, col = "grey", lty = 2)
+
+# Weibull parameters \alpha and \beta
+cc &lt;- coef(ddweib.glm)
+alph &lt;- exp(-cc[1]/cc[2])
+bet &lt;- cc[2]
+
+
+#More interesting example with data from Yssaad-Fesselier and Knoblauch
+data(ecc2)
+ecc2.glm &lt;- glm(cbind(Correct, Incorrect) ~ Contr * Size * task, 
+			family = binomial(mafc.probit(4)), data = ecc2)
+summary(ecc2.glm)
+ecc2$fit &lt;- fitted(ecc2.glm)
+library(lattice)
+xyplot(Correct/(Correct + Incorrect) ~ Contr | Size * task, data = ecc2,
+	subscripts = TRUE, ID = with(ecc2, Size + as.numeric(task)),
+	scale = list(x = list(log = TRUE), 
+				 y = list(limits = c(0, 1.05))),
+	xlab = "Contrast", ylab = "Proportion Correct Response",
+	aspect = "xy",
+	panel = function(x, y, subscripts, ID, ...) {
+		which = unique(ID[subscripts])
+		llines(x, ecc2$fit[which ==ID], col = "black", ...)
+		panel.xyplot(x, y, pch = 16, ...)
+		panel.abline(h = 0.25, lty = 2, ...)
+		}
+)
+
+</code></pre>
+
+
+</div>

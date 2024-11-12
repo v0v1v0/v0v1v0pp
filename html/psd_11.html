@@ -1,0 +1,207 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tapers-constraints</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Taper constraint methods</h2>
+
+<h3>Description</h3>
+
+<p>In the Riedel-Sidorenko recipe, the number of optimal tapers
+at each frequency is strongly dependent on the first and
+second derivatives of the spectrum. It is crucial to enforce
+constraints on the number of actual tapers applied; this is
+because the derivatives of "noisy" series can be bogus.
+</p>
+<p><code>constrain_tapers</code> refines the number of tapers at each frequency.
+</p>
+<p><code>minspan</code> sets bounds on the number of tapers at each frequency.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">constrain_tapers(tapvec, ...)
+
+## S3 method for class 'tapers'
+constrain_tapers(tapvec, ...)
+
+## Default S3 method:
+constrain_tapers(
+  tapvec,
+  tapseq = NULL,
+  constraint.method = c("simple.slope", "loess.smooth", "none"),
+  verbose = TRUE,
+  ...
+)
+
+minspan(tapvec, ...)
+
+## S3 method for class 'tapers'
+minspan(tapvec, ...)
+
+## Default S3 method:
+minspan(tapvec, Kmin = NULL, Kmax = NULL, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tapvec</code></td>
+<td>
+<p>integer or <code>'tapers'</code> object; the number of tapers at each frequency</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>optional arguments</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tapseq</code></td>
+<td>
+<p>numeric; positions or frequencies – necessary for smoother methods</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>constraint.method</code></td>
+<td>
+<p>character; method to use for constraints on tapers numbers</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical; should warnings and messages be given?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Kmin</code></td>
+<td>
+<p>numeric; the minimum to set; default is 1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Kmax</code></td>
+<td>
+<p>numeric; the maximum to set; default is the minimum of either (7/5 max value), or (1/2 series length)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The method by which <code>constrain_tapers</code> refines tapers is 
+set with the <code>constraint.method</code> argument:
+</p>
+
+<ul>
+<li> <p><code>'simple.slope'</code> use <code>ctap_simple</code>
+</p>
+</li>
+<li> <p><code>'loess.smooth'</code> uses <code>ctap_loess</code>
+</p>
+</li>
+<li> <p><code>'none'</code> returns unbounded tapers.
+</p>
+</li>
+</ul>
+<p><code>minspan</code> bounds the number of tapers to within
+the minimum of either the maximum number of tapers found in the object, 
+or the half-length of the series, which is necessary because 
+it would be nonsense to have more tapers than the length of the series. 
+</p>
+<p>Details of the constraint methods:
+</p>
+
+
+<h4>via first differencing (the default)</h4>
+
+<p><code>ctap_simple</code> is the preferred constraint method.
+The algorithm uses first-differencing to modify the number
+of tapers in the previous position.  Effectively, the constraint
+is based on a causal, 1st-order Finite Impulse-response Filter (FIR) 
+which makes the method sensitive to rapid changes in the number of tapers; 
+naturally, smoother spectra tend to produce less fluctuation in taper numbers, 
+which makes this well suited for adaptive processing. 
+</p>
+<p>This produces, generally, the most
+stable results, meaning repeatedly running the constraint will not change values
+other than on the first execution; the same cannot be said for the other
+methods, which are also considerably more expensive to use.
+</p>
+
+
+
+<h4>via LOESS smoothing</h4>
+
+<p><code>ctap_loess</code> uses <code>loess</code> to smooth the taper vector; is
+can be very slow thanks to quadratic scaling.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p><code>constrain_tapers</code>: an object with class <code>'tapers'</code>; <code>minspan</code>: a vector
+</p>
+
+
+<h3>Warning</h3>
+
+<p><code>ctap_loess</code> results tend to be strongly dependent on
+the tuning parameters given to <code>loess</code> (for obvious reasons); hence, 
+some effort should be given to understand their effect, and/or re-tuning them if needed.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>A.J. Barbour and R.L. Parker
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>riedsid</code>, <code>ctap_simple</code>, <code>ctap_loess</code>, <code>tapers</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: #REX
+library(psd)
+
+##
+## Taper constraint procedures
+##
+
+data(magnet)
+X &lt;- magnet$clean
+
+##
+## spectrum
+PSD &lt;- psdcore(X, ntaper=10, refresh=TRUE)
+## optimize tapers
+kopt &lt;- riedsid(PSD)
+kopt.loess  &lt;- riedsid(PSD, c.method="loess.smooth")
+# the preferred function:
+kopt2 &lt;- riedsid2(PSD)
+#
+plot(as.tapers(kopt2), ylim =c(0, 60))
+lines(as.tapers(kopt.loess), col='black')
+lines(as.tapers(kopt), col='black', lwd=2)
+
+##
+## To compare all the methods at once:
+demo("ctap")
+
+
+## End(Not run)#REX
+</code></pre>
+
+
+</div>

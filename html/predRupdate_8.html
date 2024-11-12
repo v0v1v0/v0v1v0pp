@@ -1,0 +1,183 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pred_predict</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Make predictions from an existing prediction model</h2>
+
+<h3>Description</h3>
+
+<p>Use an existing prediction model to estimate predicted risks of the outcome
+for each observation in a new dataset.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pred_predict(
+  x,
+  new_data,
+  binary_outcome = NULL,
+  survival_time = NULL,
+  event_indicator = NULL,
+  time_horizon = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>an object of class "<code>predinfo</code>" produced by calling
+<code>pred_input_info</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new_data</code></td>
+<td>
+<p>data.frame upon which predictions are obtained using the
+prediction model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>binary_outcome</code></td>
+<td>
+<p>Character variable giving the name of the column in
+<code>new_data</code> that represents the observed binary outcomes (should be
+coded 0 and 1 for non-event and event, respectively). Only relevant for
+<code>model_type</code>="logistic"; leave as <code>NULL</code> otherwise. Leave as
+<code>NULL</code> if <code>new_data</code> does not contain any outcomes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>survival_time</code></td>
+<td>
+<p>Character variable giving the name of the column in
+<code>new_data</code> that represents the observed survival times. Only relevant
+for <code>model_type</code>="survival"; leave as <code>NULL</code> otherwise. Leave as
+<code>NULL</code> if <code>new_data</code> does not contain any survival outcomes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>event_indicator</code></td>
+<td>
+<p>Character variable giving the name of the column in
+<code>new_data</code> that represents the observed survival indicator (1 for
+event, 0 for censoring). Only relevant for <code>model_type</code>="survival";
+leave as <code>NULL</code> otherwise. Leave as <code>NULL</code> if <code>new_data</code>
+does not contain any survival outcomes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time_horizon</code></td>
+<td>
+<p>for survival models, an integer giving the time horizon
+(post baseline) at which a prediction is required (i.e.
+the t at which P(T&lt;t) should be estimated). Currently, this must match a
+time in x$cum_hazard. If left as NULL, no predicted risks will be returned,
+just the linear predictor.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function takes the relevant information about the existing
+prediction model (as supplied by calling <code>pred_input_info</code>),
+and returns the linear predictor and predicted risks for each
+individual/observation in <code>new_data</code>.
+</p>
+<p>If the existing prediction model is based on logistic regression (i.e., if
+x$model_type == "logistic"), the predicted risks will be the predicted
+probability of the binary outcome conditional on the predictor variables in
+the new data (i.e., P(Y=1 | X)). If the existing prediction model is
+based on a time-to-event/survival model (i.e., if x$model_type ==
+"survival"), the predicted risks can only be calculated if a baseline
+cumulative hazard is provided; in this case, the predicted risks will be one
+minus the survival probability (i.e., 1 - S(T&gt;time horizon
+| X)).
+</p>
+<p><code>new_data</code> should be a data.frame, where each row should be an
+observation (e.g. patient) and each variable/column should be a predictor
+variable. The predictor variables need to include (as a minimum) all of the
+predictor variables that are included in the existing prediction model
+(i.e., each of the variable names supplied to
+<code>pred_input_info</code>, through the <code>model_info</code> parameter,
+must match the name of a variables in <code>new_data</code>).
+Any factor variables within <code>new_data</code> must be converted to dummy
+(0/1) variables before calling this function. <code>dummy_vars</code> can
+help with this. See examples.
+</p>
+<p><code>binary_outcome</code>, <code>survival_time</code> and <code>event_indicator</code> are
+used to specify the outcome variable(s) within <code>new_data</code> (use
+<code>binary_outcome</code> if <code>x$model_type</code> = "logistic", or use
+<code>survival_time</code> and <code>event_indicator</code> if <code>x$model_type</code> =
+"survival").
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>pred_predict</code> returns a list containing the following
+components: </p>
+ <ul>
+<li>
+<p>LinearPredictor = the linear predictor for each
+observation in the new data (i.e., the linear combination of the models
+predictor variables and their corresponding coefficients)
+</p>
+</li>
+<li>
+<p>PredictedRisk = the predicted risk for each observation in the new
+data </p>
+</li>
+<li>
+<p>TimeHorizon = for survival models, an integer giving the time
+horizon at which a prediction is made </p>
+</li>
+<li>
+<p>Outcomes = vector of
+outcomes/endpoints (if available). </p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>pred_input_info</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#Example 1 - logistic regression existing model - shows handling of factor variables
+coefs_table &lt;- data.frame("Intercept" = -3.4,
+                          "Sex_M" = 0.306,
+                          "Smoking_Status" = 0.628)
+existing_Logistic_Model &lt;- pred_input_info(model_type = "logistic",
+                                           model_info = coefs_table)
+new_df &lt;- data.frame("Sex" = as.factor(c("M", "F", "M", "M", "F", "F", "M")),
+                     "Smoking_Status" = c(1, 0, 0, 1, 1, 0, 1))
+#new_df has a factor variable, so needs indicator variables creating before pred_predict:
+new_df_indicators &lt;- dummy_vars(new_df)
+pred_predict(x = existing_Logistic_Model,
+             new_data = new_df_indicators)
+
+#Example 2 - survival model example; uses an example dataset within the
+#             package. Multiple existing models
+model2 &lt;- pred_input_info(model_type = "survival",
+                          model_info = SYNPM$Existing_TTE_models,
+                          cum_hazard = list(SYNPM$TTE_mod1_baseline,
+                                                SYNPM$TTE_mod2_baseline,
+                                                SYNPM$TTE_mod3_baseline))
+pred_predict(x = model2,
+             new_data = SYNPM$ValidationData[1:10,],
+             survival_time = "ETime",
+             event_indicator = "Status",
+             time_horizon = 5)
+
+</code></pre>
+
+
+</div>

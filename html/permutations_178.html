@@ -1,0 +1,231 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Ops.permutation</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Arithmetic Ops Group Methods for permutations</h2>
+
+<h3>Description</h3>
+
+<p>Allows arithmetic operators to be used for manipulation of permutation objects
+such as addition, multiplication, division, integer powers, etc.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'permutation'
+Ops(e1, e2)
+cycle_power(x,pow)
+cycle_power_single(x,pow)
+cycle_sum(e1,e2)
+cycle_sum_single(c1,c2)
+word_equal(e1,e2)
+word_prod(e1,e2)
+word_prod_single(e1,e2)
+permprod(x)
+vps(vec,pow)
+ccps(n,pow)
+helper(e1,e2)
+cycle_plus_integer_elementwise(x,y)
+conjugation(e1,e2)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x,e1,e2</code></td>
+<td>
+<p>Objects of class “<code>permutation</code>”</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>c1,c2</code></td>
+<td>
+<p>Objects of class <code>cycle</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pow</code></td>
+<td>
+<p>Integer vector of powers</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vec</code></td>
+<td>
+<p>In function <code>vps()</code>, a vector of integers
+corresponding to a cycle</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>In function <code>ccps()</code>, the integer power to which
+<code>cycle(seq_len(n))</code> is to be raised; may be positive or
+negative</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>In experimental function
+<code>cycle_plus_integer_elementwise()</code>, an integer</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Function <code>Ops.permutation()</code> passes binary arithmetic
+operators (“<code>+</code>”, “<code>*</code>”, “<code>/</code>”,
+“<code>^</code>”, and “<code>==</code>”) to the appropriate
+specialist function.
+</p>
+<p>Multiplication, as in <code>a*b</code>, is effectively
+<code>word_prod(a,b)</code>; it coerces its arguments to word form (because
+<code>a*b = b[a]</code>).
+</p>
+<p>Raising permutations to integer powers, as in <code>a^n</code>, is
+<code>cycle_power(a,n)</code>; it coerces <code>a</code> to cycle form and returns
+a cycle (even if <code class="reqn">n=1</code>).  Negative and zero values of <code>n</code>
+operate as expected.  Function <code>cycle_power()</code> is vectorized; it
+calls <code>cycle_power_single()</code>, which is not.  This calls
+<code>vps()</code> (“Vector Power Single”), which checks for simple
+cases such as <code>pow=0</code> or the identity permutation; and function
+<code>vps()</code> calls function <code>ccps()</code> which performs the actual
+number-theoretic manipulation to raise a cycle to a power.
+</p>
+<p>Group-theoretic conjugation is implemented: in package idiom,
+<code>a^b</code> gives <code>inverse(b)*a*b</code>.  The notation is motivated by
+the identities <code>x^(yz)=(x^y)^z</code> and <code>(xy)^z=x^z*y^z</code> [or
+<code class="reqn">x^{yz}=(x^y)^z</code> and <code class="reqn">(xy)^z=x^zy^z</code>].
+Internally, <code>conjugation()</code> is called.  The concept of conjugate
+<em>permutations</em> [that is, permutations with the same
+<code>shape()</code>] is discussed at conjugate.
+</p>
+<p>The <dfn>sum</dfn> of two permutations <code>a</code> and <code>b</code>, as in
+<code>a+b</code>, is defined if the cycle representations of the addends are
+disjoint.  The sum is defined as the permutation given by juxtaposing
+the cycles of <code>a</code> with those of <code>b</code>.  Note that this
+operation is commutative.  If <code>a</code> and <code>b</code> do not have
+disjoint cycle representations, an error is returned.  This is useful
+if you want to guarantee that two permutations commute (NB:
+permutation <code>a</code> commutes with <code>a^i</code> for <code>i</code> any
+integer, and in particular <code>a</code> commutes with itself.  But
+<code>a+a</code> returns an error: the operation checks for disjointness,
+not commutativity).
+</p>
+<p>Permutation “division”, as in <code>a/b</code>, is
+<code>a*inverse(b)</code>.  Note that <code>a/b*c</code> is evaluated left to
+right so is equivalent to <code>a*inverse(b)*c</code>.  See note.
+</p>
+<p>Function <code>helper()</code> sorts out recycling for binary functions, the
+behaviour of which is inherited from <code>cbind()</code>, which also
+handles the names of the returned permutation.
+</p>
+<p>Experimental functionality is provided to define the “sum” of a
+permutation and an integer.  If <code class="reqn">x</code> is a permutation in cycle
+form with <code class="reqn">x=(abc)</code>, say, and <code class="reqn">n</code> an integer, then
+<code class="reqn">x+n=(a+n,b+n,c+n)</code>: each element of each cycle of <code class="reqn">x</code>
+is increased by <code class="reqn">n</code>.  Note that this has associativity
+consequences.  For example, <code>x+(x+n)</code> might be defined but not
+<code>(x+x)+n</code>, as the two “<code>+</code>” operators have different
+interpretations.  Distributivity is similarly broken (see the
+examples).  Package idiom includes <code>x-n</code> [defined as <code>x +
+  (-n)</code>] and <code>n+x</code> but not <code>n-x</code> as inverses are defined
+multiplicatively.  The implementation is vectorised.
+</p>
+
+
+<h3>Value</h3>
+
+<p>None of these functions are really intended for the end user:
+use the ops as shown in the examples section.
+</p>
+
+
+<h3>Note</h3>
+
+<p>The class of the returned object is the appropriate one.
+</p>
+<p>Unary operators to invert a permutation are problematic in the
+package.  I do not like using “<code>id/x</code>” to represent a
+permutation inverse: the idiom introduces an utterly redundant
+object (“<code>id</code>”), and forces the use of a binary operator
+where a unary operator is needed.  Similar comments apply to
+“<code>x^-1</code>”, which again introduces a redundant object
+(<code>-1</code>) and uses a binary operator.
+</p>
+<p>Currently, “<code>-x</code>” returns the multiplicative inverse of
+<code>x</code>, but this is not entirely satisfactory either, as it uses
+additive notation: the rest of the package uses multiplicative
+notation.  Thus <code>x*-x == id</code>, which looks a little odd but OTOH
+noone has a problem with <code>x^-1</code> for inverses.
+</p>
+<p>I would like to follow APL and use “<code>/x</code>”,
+but this does not seem to be possible in R.  The natural
+unary operator would be the exclamation mark “<code>!x</code>”.
+However, redefining the exclamation mark to give permutation
+inverses, while possible, is not desirable because its precedence is
+too low.  One would like <code>!x*y</code> to return <code>inverse(x)*y</code>
+but instead standard precedence rules means that it returns
+<code>inverse(x*y)</code>.  Earlier versions of the package interpreted
+<code>!x</code> as <code>inverse(x)</code>, but it was a disaster: to implement
+the commutator <code class="reqn">[x,y]=x^{-1}y^{-1}xy</code>,
+for example, one would like to use <code>!x*!y*x*y</code>, but this is
+interpreted as <code>!(x*(!y*(x*y)))</code>; one has to use
+<code>(!x)*(!y)*x*y</code>.  I found myself having to use heaps of
+brackets everywhere.  This caused such severe cognitive dissonance
+that I removed exclamation mark for inverses from the package.  I
+might reinstate it in the future.  There does not appear to be a way
+to define a new unary operator due to the construction of the
+parser.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Robin K. S. Hankin</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+x &lt;- rperm(10,9) # word form
+y &lt;- rperm(10,9) # word form
+
+x*y  # products are given in word form but the print method coerces to cycle form
+print_word(x*y)
+
+x^5  # powers are given in cycle form
+
+x^as.cycle(1:5)  # conjugation (not integer power!); coerced to word.
+
+x*inverse(x) == id  # all TRUE
+
+
+# the 'sum' of two permutations is defined if their cycles are disjoint:
+as.cycle(1:4) + as.cycle(7:9)
+
+data(megaminx)
+megaminx[1] + megaminx[7:12] 
+
+rperm() + 100
+
+z &lt;- cyc_len(4)
+z
+z+100
+z + 0:5
+(z + 0:5)*z
+
+w &lt;- cyc_len(7) + 1
+(w+1)*(w-1)
+
+</code></pre>
+
+
+</div>

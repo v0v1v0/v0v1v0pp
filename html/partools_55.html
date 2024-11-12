@@ -1,0 +1,165 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>caclassfit,caclasspred,vote,re_code</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Software Alchemy for Machine Learning</h2>
+
+<h3>Description</h3>
+
+<p>Parallelization of machine learning algorithms. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">caclassfit(cls,fitcmd) 
+caclasspred(fitobjs,newdata,yidx=NULL,...)
+vote(preds)
+re_code(x)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>cls</code></td>
+<td>
+<p>A cluster run under the <span class="pkg">parallel</span> package.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fitcmd</code></td>
+<td>
+<p>A string containing a model-fitting command to be
+run on each cluster node.  This will typically include
+specification of the distributed data set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fitobjs</code></td>
+<td>
+<p>An R list of objects returned by the <code>fitcmd</code>
+calls.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>Data to be predicted from the fit computed by
+<code>caclassfit</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yidx</code></td>
+<td>
+<p>If provided, index of the true class values in
+<code>newdata</code>, typically in a cross-validation setting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments to be passed to the underlying prediction
+function for the given method, e.g. <code>predict.rpart</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>preds</code></td>
+<td>
+<p>A vector of predicted classes, from which the "winner"
+will be selected by voting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A vector of integers, in this context class codes.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This should work for almost any classification code that has a
+“fit” function and a <code>predict</code> method.
+</p>
+<p>The method assumes i.i.d. data.  If your data set had been stored in
+some sorted order, it must be randomized first, say using the
+<code>scramble</code> option in <code>distribsplit</code> or by calling
+<code>readnscramble</code>, depending on whether your data is already in
+memory or still in a file.
+</p>
+<p>It is assumed that class labels are 1,2,...  If not, use
+<code>re_code</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The <code>caclassfit</code> function returns an R list of objects as in
+<code>fitobjs</code> above.
+</p>
+<p>The <code>caclasspred</code> function returns an R list with these components:
+</p>
+
+<ul>
+<li> <p><code>predmat</code>, a matrix of predicted classes for
+<code>newdata</code>, one row per cluster node
+</p>
+</li>
+<li> <p><code>preds</code>, the final predicted classes, after using
+<code>vote</code> to resolve possible differences in predictions among
+nodes
+</p>
+</li>
+<li> <p><code>consensus</code>, the proportion of cases for which all
+nodes gave the same predictions (higher values indicating more
+stability)
+</p>
+</li>
+<li> <p><code>acc</code>, if <code>yidx</code> is non-NULL, the proportion of
+cases in which <code>preds</code> is correct
+</p>
+</li>
+<li> <p><code>confusion</code>, if <code>yidx</code> is non-NULL, the confusion matrix
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Norm Matloff
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# set up 'parallel' cluster
+cls &lt;- makeCluster(2)
+setclsinfo(cls)
+# data prep
+data(prgeng)
+prgeng$occ &lt;- re_code(prgeng$occ)
+prgeng$bs &lt;- as.integer(prgeng$educ == 13)
+prgeng$ms &lt;- as.integer(prgeng$educ == 14)
+prgeng$phd &lt;- as.integer(prgeng$educ == 15)
+prgeng$sex &lt;- prgeng$sex - 1
+pe &lt;- prgeng[,c(1,7,8,9,12,13,14,5)]
+pe$occ &lt;- as.factor(pe$occ)   # needed for rpart!
+# go
+distribsplit(cls,'pe')
+library(rpart)
+clusterEvalQ(cls,library(rpart))
+fit &lt;- caclassfit(cls,"rpart(occ ~ .,data=pe)")
+predout &lt;- caclasspred(fit,pe,8,type='class')
+predout$acc  # 0.36 
+
+stopCluster(cls)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

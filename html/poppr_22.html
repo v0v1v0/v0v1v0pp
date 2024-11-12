@@ -1,0 +1,303 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>bruvo.dist</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Bruvo's distance for microsatellites</h2>
+
+<h3>Description</h3>
+
+<p>Calculate the average Bruvo's distance over all loci in a population.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">bruvo.dist(pop, replen = 1, add = TRUE, loss = TRUE, by_locus = FALSE)
+
+bruvo.between(
+  query,
+  ref,
+  replen = 1,
+  add = TRUE,
+  loss = TRUE,
+  by_locus = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pop</code></td>
+<td>
+<p>a <code>genind</code> or <code>genclone</code> object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>replen</code></td>
+<td>
+<p>a <code>vector</code> of <code>integers</code> indicating the length of the
+nucleotide repeats for each microsatellite locus. E.g. a locus with a (CAT) 
+repeat would have a replen value of 3. (Also see <code>fix_replen</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add</code></td>
+<td>
+<p>if <code>TRUE</code>, genotypes with zero values will be treated under 
+the genome addition model presented in Bruvo et al. 2004. See the
+<strong>Note</strong> section for options.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loss</code></td>
+<td>
+<p>if <code>TRUE</code>, genotypes with zero values will be treated under 
+the genome loss model presented in Bruvo et al. 2004. See the
+<strong>Note</strong> section for options.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>by_locus</code></td>
+<td>
+<p>indicator to get the results per locus. The default setting
+is <code>by_locus = FALSE</code>, indicating that Bruvo's distance is to be
+averaged over all loci. When <code>by_locus = TRUE</code>, a list of distance
+matrices will be returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>query</code></td>
+<td>
+<p>a <code>genind</code> or <code>genclone</code> object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ref</code></td>
+<td>
+<p>a <code>genind</code> or <code>genclone</code> object</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Bruvo's distance between two alleles is calculated as 
+</p>
+<p style="text-align: center;"><code class="reqn">d = 1 - 2^{-\mid x \mid}</code>
+</p>
+<p>, where <strong>x</strong>
+is the number of repeat units between the two alleles (see the Algorithms 
+and Equations vignette for more details). These distances are calculated 
+over all combinations of alleles at a locus and then the minimum average
+distance between allele combinations is taken as the distance for that 
+locus. All loci are then averaged over to obtain the distance between two
+samples. Missing data is ignored (in the same fashion as 
+<code>mean(c(1:9, NA), na.rm = TRUE)</code>) if all alleles are missing. See the
+next section for other cases.
+</p>
+
+
+<h4>Polyploids</h4>
+
+<p>Ploidy is irrelevant with respect to calculation of Bruvo's 
+distance. However, since it makes a comparison between all alleles at a 
+locus, it only makes sense that the two loci need to have the same ploidy 
+level. Unfortunately for polyploids, it's often difficult to fully separate
+distinct alleles at each locus, so you end up with genotypes that appear to
+have a lower ploidy level than the organism.
+</p>
+<p>To help deal with these situations, Bruvo has suggested three methods for
+dealing with these differences in ploidy levels: </p>
+ <ul>
+<li>
+<p><strong>Infinite Model</strong> - The simplest way to deal with it is to count all
+missing alleles as infinitely large so that the distance between it and
+anything else is 1. Aside from this being computationally simple, it will
+tend to <strong>inflate distances between individuals</strong>. </p>
+</li>
+<li>
+<p><strong>Genome Addition Model</strong> - If it is suspected that the organism has
+gone through a recent genome expansion, <strong>the missing alleles will be
+replace with all possible combinations of the observed alleles in the
+shorter genotype</strong>. For example, if there is a genotype of [69, 70, 0, 0]
+where 0 is a missing allele, the possible combinations are: [69, 70, 69,
+69], [69, 70, 69, 70], [69, 70, 70, 69], and [69, 70, 70, 70]. The
+resulting distances are then averaged over the number of comparisons. </p>
+</li>
+<li>
+<p><strong>Genome Loss Model</strong> - This is similar to the genome addition model,
+except that it assumes that there was a recent genome reduction event and
+uses <strong>the observed values in the full genotype to fill the missing
+values in the short genotype</strong>. As with the Genome Addition Model, the
+resulting distances are averaged over the number of comparisons. </p>
+</li>
+<li>
+<p><strong>Combination Model</strong> - Combine and average the genome addition and
+loss models. </p>
+</li>
+</ul>
+<p>As mentioned above, the infinite model is biased, but it is not nearly as
+computationally intensive as either of the other models. The reason for
+this is that both of the addition and loss models requires replacement of
+alleles and recalculation of Bruvo's distance. The number of replacements
+required is equal to n^k where where <em>n</em> is the number of potential
+replacements and <em>k</em> is the number of alleles to be replaced.
+To reduce the number of calculations and assumptions otherwise, Bruvo's 
+distance will be calculated using the largest observed ploidy in pairwise 
+comparisons. This means that when comparing [69,70,71,0] and [59,60,0,0], 
+they will be treated as triploids.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>an object of class <code>dist</code> or a list of these objects if
+<code>by_locus = TRUE</code>
+</p>
+
+
+<h3>Functions</h3>
+
+
+<ul><li> <p><code>bruvo.between()</code>: Bruvo's distance between a query and a reference
+Only diferences between query individuals and reference individuals will be reported
+All other values are NaN
+</p>
+</li></ul>
+<h3>Note</h3>
+
+<p>Do not use missingno with this function.
+</p>
+
+
+<h4>Missing alleles and Bruvo's distance in <span class="pkg">poppr</span> versions &lt; 2.5</h4>
+
+<p>In earlier versions of <span class="pkg">poppr</span>, the authors had assumed that, because
+the calculation of Bruvo's distance does not rely on orderd sets of
+alleles, the imputation methods in the genome addition and genome loss
+models would also assume unordered alleles for creating the hypothetical
+genotypes. This means that the results from this imputation did not
+consider all possible combinations of alleles, resulting in either an over-
+or under- estimation of Bruvo's distance between two samples with two or
+more missing alleles. This version of <span class="pkg">poppr</span> considers all possible
+combinations when calculating Bruvo's distance for incomplete genotype with
+a negligable gain in computation time.
+</p>
+<p>If you want to see the effect of this change on your data, you can use the
+global <span class="pkg">poppr</span> option <code>old.bruvo.model</code>. Currently, this option is
+<code>FALSE</code> and you can set it by using 
+<code>options(old.bruvo.model = TRUE)</code>, but make sure to reset it to 
+<code>FALSE</code> afterwards.
+</p>
+
+
+
+<h4>Repeat Lengths (replen)</h4>
+
+<p>The <code>replen</code> argument is crucial for proper analysis of Bruvo's
+distance since the calculation relies on the knowledge of the number of
+steps between alleles. To calculate Bruvo's distance, your raw allele calls
+are first divided by the repeat lengths and then rounded. This can create a
+problem with repeat lengths of even size due to the IEC 60559 standard that
+says rounding at 0.5 is to the nearest even number, meaning that it is
+possible for two alleles that are one step apart may appear to be exactly
+the same. This can be fixed by subtracting a tiny number from the repeat
+length with the function <code>fix_replen</code>. Please consider using
+this before running Bruvo's distance.
+</p>
+
+
+
+<h4>Model Choice</h4>
+
+<p> The <code>add</code> and <code>loss</code> arguments 
+modify the model choice accordingly: </p>
+ <ul>
+<li> <p><strong>Infinite 
+Model:</strong>  <code>add = FALSE, loss = FALSE</code> </p>
+</li>
+<li> <p><strong>Genome Addition 
+Model:</strong>  <code>add = TRUE, loss = FALSE</code> </p>
+</li>
+<li> <p><strong>Genome Loss Model:</strong> 
+<code>add = FALSE, loss = TRUE</code> </p>
+</li>
+<li> <p><strong>Combination Model</strong>
+<em>(DEFAULT):</em>  <code>add = TRUE, loss = TRUE</code> </p>
+</li>
+</ul>
+<p> Details of each model
+choice are described in the <strong>Details</strong> section, above. Additionally,
+genotypes containing all missing values at a locus will return a value of
+<code>NA</code> and not contribute to the average across loci. </p>
+
+
+
+<h4>Repeat Lengths</h4>
+
+<p> If the user does not provide a vector of 
+appropriate length for <code>replen</code> , it will be estimated by taking the 
+minimum difference among represented alleles at each locus. IT IS NOT 
+RECOMMENDED TO RELY ON THIS ESTIMATION. </p>
+
+
+
+<h3>Author(s)</h3>
+
+<p>Zhian N. Kamvar
+</p>
+<p>David Folarin
+</p>
+
+
+<h3>References</h3>
+
+<p>Ruzica Bruvo, Nicolaas K. Michiels, Thomas G. D'Souza, and 
+Hinrich Schulenburg. A simple method for the calculation of microsatellite 
+genotype distances irrespective of ploidy level. Molecular Ecology, 
+13(7):2101-2106, 2004.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>fix_replen</code>, <code>test_replen</code>,
+<code>bruvo.boot</code>, <code>bruvo.msn</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Please note that the data presented is assuming that the nancycat dataset 
+# contains all dinucleotide repeats, it most likely is not an accurate
+# representation of the data.
+
+# Load the nancycats dataset and construct the repeat vector.
+data(nancycats)
+names(alleles(nancycats)) &lt;- locNames(nancycats) # small bug in this data set
+# Assume the alleles are all dinucleotide repeats.
+ssr &lt;- rep(2, nLoc(nancycats))
+test_replen(nancycats, ssr)         # Are the repeat lengths consistent?
+(ssr &lt;- fix_replen(nancycats, ssr)) # Nope. We need to fix them.
+
+# Analyze the first population in nancycats
+bruvo.dist(popsub(nancycats, 1), replen = ssr)
+
+## Not run: 
+
+# get the per locus estimates:
+bruvo.dist(popsub(nancycats, 1), replen = ssr, by_locus = TRUE)
+
+# View each population as a heatmap.
+sapply(popNames(nancycats), function(x) 
+heatmap(as.matrix(bruvo.dist(popsub(nancycats, x), replen = ssr)), symm=TRUE))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

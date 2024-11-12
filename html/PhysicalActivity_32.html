@@ -1,0 +1,210 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>wearingMarking</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Classify Wear and Nonwear Time for Accelerometer Data</h2>
+
+<h3>Description</h3>
+
+<p>This function classifies wear and nonwear time status for accelerometer
+data by epoch-by-epoch basis.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">wearingMarking(
+  dataset,
+  frame = 90,
+  perMinuteCts = 60,
+  TS = getOption("pa.timeStamp"),
+  cts = getOption("pa.cts"),
+  streamFrame = NULL,
+  allowanceFrame = 2,
+  newcolname = "wearing",
+  getMinuteMarking = FALSE,
+  dayStart = "00:00:00",
+  tz = "UTC",
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dataset</code></td>
+<td>
+<p>The source dataset, in dataframe format, which needs to be
+marked.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>frame</code></td>
+<td>
+<p>The size of time interval to be considered; Window 1 described
+in Choi <em>et al.</em> (2011). The default is 90.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>perMinuteCts</code></td>
+<td>
+<p>The number of data rows per minute. The default is 1-sec
+epoch (perMinuteCts = 60). For examples: for data with 10-sec epoch, set
+perMinuteCts = 6; for data with 1-min epoch, set perMinuteCts = 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>TS</code></td>
+<td>
+<p>The column name for timestamp. The default is “TimeStamp”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cts</code></td>
+<td>
+<p>The column name for counts. The default is “axis1”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>streamFrame</code></td>
+<td>
+<p>The size of time interval that the program will look back
+or forward if activity is detected; Window 2 described in Choi <em>et al.</em>
+(2011). The default is the half of the frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allowanceFrame</code></td>
+<td>
+<p>The size of time interval that zero counts are allowed;
+the artifactual movement interval described in Choi <em>et al.</em> (2011).
+The default is 2.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newcolname</code></td>
+<td>
+<p>The column name for classified wear and nonwear status. The
+default is “wearing”.  After the data is processed, a new field will 
+be added to the original dataframe. This new field is an indicator for the
+wearing (“w”) or nowwearing (“nw”).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>getMinuteMarking</code></td>
+<td>
+<p>Return minute data with wear and nonwear
+classification. If the source is not a minute dataset, the function will
+collapse it into minute data. The default is FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dayStart</code></td>
+<td>
+<p>Define the starting time of day. The default is the midnight,
+"00:00:00". It must be in the format of "hh:mm:ss".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tz</code></td>
+<td>
+<p>Local time zone, defaults to UTC.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Parameter settings that will be used in
+<code>dataCollapser</code> function.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>A detailed description of the algorithm implemented in this function is
+described in Choi <em>et al.</em> (2011).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data frame with the column for wear and nonwear classification
+indicator by epoch-by-epoch basis.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Warning: It will be very slow if accelerometer data with 1-sec epoch
+for many days are directly classified. We recommend to collapse a dataset
+with 1-sec epoch to 1-min epoch data using <code>dataCollapser</code> and
+then classify wear and nonwear status using a dataset with a larger epoch.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Leena Choi <a href="mailto:leena.choi@Vanderbilt.Edu">leena.choi@Vanderbilt.Edu</a>,
+Cole Beck <a href="mailto:cole.beck@vumc.org">cole.beck@vumc.org</a>,
+Zhouwen Liu <a href="mailto:zhouwen.liu@vumc.org">zhouwen.liu@vumc.org</a>,
+Charles E. Matthews <a href="mailto:Charles.Matthews2@nih.gov">Charles.Matthews2@nih.gov</a>, and
+Maciej S. Buchowski <a href="mailto:maciej.buchowski@Vanderbilt.Edu">maciej.buchowski@Vanderbilt.Edu</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Choi L, Liu Z, Matthews CE, Buchowski MS. 
+Validation of accelerometer wear and nonwear time classification algorithm.
+Med Sci Sports Exerc. 2011 Feb;43(2):357-64.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>readCountsData</code>, <code>sumVct</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(dataSec)
+
+## mark data with 1-min epoch
+mydata1m = dataCollapser(dataSec, TS = "TimeStamp", col = "counts", by = 60)
+
+data1m = wearingMarking(dataset = mydata1m,
+                       frame = 90, 
+                       perMinuteCts = 1,
+                       TS = "TimeStamp",
+                       cts = "counts", 
+                       streamFrame = NULL, 
+                       allowanceFrame= 2, 
+                       newcolname = "wearing")
+
+sumVct(data1m, id="dataid")
+
+## mark data with 1-sec epoch
+## Not run: 
+data1s = wearingMarking(dataset = dataSec,
+                       frame = 90, 
+                       perMinuteCts = 60,
+                       TS = "TimeStamp",
+                       cts = "counts", 
+                       streamFrame = NULL, 
+                       allowanceFrame= 2, 
+                       newcolname = "wearing",
+                       getMinuteMarking = FALSE)
+
+sumVct(data1s, id="dataid")
+sumVct(data1s, id="dataid", markingString = "nw")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

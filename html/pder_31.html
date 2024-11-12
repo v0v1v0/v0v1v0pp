@@ -1,0 +1,219 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>TobinQ</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>The Q Theory of Investment</h2>
+
+<h3>Description</h3>
+
+<p>yearly observations of 188 firms from 1951 to 1985
+</p>
+<p><em>number of observations</em> : 6580
+</p>
+<p><em>number of  time-series </em> :  35 
+</p>
+<p><em>country</em> :  United States 
+</p>
+<p><em>package</em> : panel
+</p>
+<p><em>Chapter</em> : 02
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">data(TobinQ)</code></pre>
+
+
+<h3>Format</h3>
+
+<p>A dataframe containing:
+</p>
+
+<dl>
+<dt>cusip</dt>
+<dd>
+<p>compustat's identifying number</p>
+</dd>
+<dt>year</dt>
+<dd>
+<p>year</p>
+</dd>
+<dt>isic</dt>
+<dd>
+<p>sic industry classification</p>
+</dd>
+<dt>ikb</dt>
+<dd>
+<p>investment divided by capital : broad definition</p>
+</dd>
+<dt>ikn</dt>
+<dd>
+<p>investment divided by capital : narrow definition</p>
+</dd>
+<dt>qb</dt>
+<dd>
+<p>Tobin's Q : broad definition</p>
+</dd>
+<dt>qn</dt>
+<dd>
+<p>Tobin's Q : narrow definition</p>
+</dd>
+<dt>kstock</dt>
+<dd>
+<p>capital stock</p>
+</dd>
+<dt>ikicb</dt>
+<dd>
+<p>investment divided by capital with imperfect competition : broad definition</p>
+</dd>
+<dt>ikicn</dt>
+<dd>
+<p>investment divided by capital with imperfect competition : narrow definition</p>
+</dd>
+<dt>omphi</dt>
+<dd>
+<p>one minus phi (see the article p. 320)</p>
+</dd>
+<dt>qicb</dt>
+<dd>
+<p>Tobin's Q with imperfect competition : broad definition</p>
+</dd>
+<dt>qicn</dt>
+<dd>
+<p>Tobin's Q with imperfect competition : narrow definition</p>
+</dd>
+<dt>sb</dt>
+<dd>
+<p>S (see equation 10 p. 320) : broad definition</p>
+</dd>
+<dt>sn</dt>
+<dd>
+<p>S (see equation 10 p. 320) : narrow definition</p>
+</dd>
+</dl>
+<h3>Source</h3>
+
+<p>Journal of Applied Econometrics Data Archive : <a href="http://qed.econ.queensu.ca/jae/">http://qed.econ.queensu.ca/jae/</a></p>
+
+
+<h3>References</h3>
+
+<p>Schaller, Huntley (1990) “A Re-examination of the Q Theory of Investment Using U.S. Firm Data”, <em>Journal of Applied Econometrics</em>, <b>5(4)</b>, 309–325, doi: <a href="https://doi.org/10.1002/jae.3950050402">10.1002/jae.3950050402</a>
+.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#### Example 2-1
+
+## ------------------------------------------------------------------------
+## Not run: 
+library("plm")
+data("TobinQ", package = "pder")
+
+## ------------------------------------------------------------------------
+pTobinQ &lt;- pdata.frame(TobinQ)
+pTobinQa &lt;- pdata.frame(TobinQ, index = 188)
+pTobinQb &lt;- pdata.frame(TobinQ, index = c('cusip'))
+pTobinQc &lt;- pdata.frame(TobinQ, index = c('cusip', 'year'))
+
+## ------------------------------------------------------------------------
+pdim(pTobinQ)
+
+## ----results = 'hide'----------------------------------------------------
+pdim(TobinQ, index = 'cusip')
+pdim(TobinQ)
+
+## ------------------------------------------------------------------------
+head(index(pTobinQ))
+
+## ------------------------------------------------------------------------
+Qeq &lt;- ikn ~ qn
+Q.pooling &lt;- plm(Qeq, pTobinQ, model = "pooling")
+Q.within &lt;- update(Q.pooling, model = "within")
+Q.between &lt;- update(Q.pooling, model = "between")
+
+## ------------------------------------------------------------------------
+Q.within
+summary(Q.within)
+
+## ------------------------------------------------------------------------
+head(fixef(Q.within))
+head(fixef(Q.within, type = "dfirst"))
+head(fixef(Q.within, type = "dmean"))
+
+## ------------------------------------------------------------------------
+head(coef(lm(ikn ~ qn + factor(cusip), pTobinQ)))
+
+
+#### Example 2-2
+
+## ------------------------------------------------------------------------
+Q.swar &lt;- plm(Qeq, pTobinQ, model = "random", random.method = "swar")
+Q.swar2 &lt;- plm(Qeq, pTobinQ, model = "random",
+               random.models = c("within", "between"),
+               random.dfcor = c(2, 2))
+summary(Q.swar)
+
+## ------------------------------------------------------------------------
+ercomp(Qeq, pTobinQ)
+ercomp(Q.swar)
+
+## ------------------------------------------------------------------------
+Q.walhus &lt;- update(Q.swar, random.method = "swar")
+Q.amemiya &lt;- update(Q.swar, random.method = "amemiya")
+Q.nerlove &lt;- update(Q.swar, random.method = "nerlove")
+Q.models &lt;- list(swar = Q.swar, walhus = Q.walhus,
+                 amemiya = Q.amemiya, nerlove = Q.nerlove)
+sapply(Q.models, function(x) ercomp(x)$theta)
+sapply(Q.models, coef)
+
+
+#### Example 2-3
+
+## ------------------------------------------------------------------------
+sapply(list(pooling = Q.pooling, within = Q.within,
+            between = Q.between, swar = Q.swar),
+       function(x) coef(summary(x))["qn", c("Estimate", "Std. Error")])
+
+## ------------------------------------------------------------------------
+summary(pTobinQ$qn)
+
+## ------------------------------------------------------------------------
+SxxW &lt;- sum(Within(pTobinQ$qn) ^ 2)
+SxxB &lt;- sum((Between(pTobinQ$qn) - mean(pTobinQ$qn)) ^ 2)
+SxxTot &lt;- sum( (pTobinQ$qn - mean(pTobinQ$qn)) ^ 2)
+pondW &lt;- SxxW / SxxTot
+pondW
+pondW * coef(Q.within)[["qn"]] +
+  (1 - pondW) * coef(Q.between)[["qn"]]
+
+## ------------------------------------------------------------------------
+T &lt;- 35
+N &lt;- 188
+smxt2 &lt;- deviance(Q.between) * T / (N - 2)
+sidios2 &lt;- deviance(Q.within) / (N * (T - 1) - 1)
+phi &lt;- sqrt(sidios2 / smxt2)
+
+## ------------------------------------------------------------------------
+pondW &lt;- SxxW / (SxxW + phi^2 * SxxB)
+pondW
+pondW * coef(Q.within)[["qn"]] +
+  (1 - pondW) * coef(Q.between)[["qn"]]
+
+#### Example 2-8
+
+## ------------------------------------------------------------------------
+Q.models2 &lt;- lapply(Q.models, function(x) update(x, effect = "twoways"))
+sapply(Q.models2, function(x) sqrt(ercomp(x)$sigma2))
+sapply(Q.models2, function(x) ercomp(x)$theta)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

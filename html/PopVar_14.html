@@ -1,0 +1,309 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pop.predict</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>A genome-wide procedure for predicting genetic variance and correlated response in bi-parental breeding populations</h2>
+
+<h3>Description</h3>
+
+<p><code>pop.predict</code> uses phenotypic and genotypic data from a set of individuals known as a training population (TP) and a set of candidate parents, which may or may not be included in the TP, to predict the mean (<code class="reqn">\mu</code>), genetic variance (<em>V_G</em>), and superior progeny values (<code class="reqn">\mu</code><em>_sp</em>) of the half-diallel, or a defined set of pairwise bi-parental crosses between parents. When multiple traits are provided <code>pop.predict</code> will also predict the correlated responses and correlation between all pairwise traits. See <cite>Mohammadi, Tiede, and Smith (2015)</cite> for further details.
+</p>
+<div class="sourceCode"><pre>         NOTE - \code{pop.predict} writes and reads files to disk so it is highly recommended to set your working directory
+</pre></div>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pop.predict(
+  G.in = NULL,
+  y.in = NULL,
+  map.in = NULL,
+  crossing.table = NULL,
+  parents = NULL,
+  tail.p = 0.1,
+  nInd = 200,
+  map.plot = FALSE,
+  min.maf = 0.01,
+  mkr.cutoff = 0.5,
+  entry.cutoff = 0.5,
+  remove.dups = TRUE,
+  impute = "EM",
+  nSim = 25,
+  frac.train = 0.6,
+  nCV.iter = 100,
+  nFold = NULL,
+  nFold.reps = 1,
+  nIter = 12000,
+  burnIn = 3000,
+  models = c("rrBLUP", "BayesA", "BayesB", "BayesC", "BL", "BRR"),
+  return.raw = FALSE,
+  saveAt = tempdir()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>G.in</code></td>
+<td>
+<p><code>Matrix</code> of genotypic data. First row contains marker names and the first column contains entry (taxa) names. Genotypes should be coded as follows: </p>
+
+<ul>
+<li> <p><code>1</code>: homozygous for minor allele
+</p>
+</li>
+<li> <p><code>0</code>: heterozygous
+</p>
+</li>
+<li> <p><code>-1</code>: homozygous for major allele
+</p>
+</li>
+<li> <p><code>NA</code>: missing data
+</p>
+</li>
+<li>
+<p> Imputed genotypes can be passed, see <code>impute</code> below for details
+</p>
+</li>
+</ul>
+<p>TIP - Set header=<code>FALSE</code> within <code>read.table</code> or <code>read.csv</code> when importing a tab-delimited file containing data for <code>G.in</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y.in</code></td>
+<td>
+<p><code>Matrix</code> of phenotypic data. First column contains entry (taxa) names found in <code>G.in</code>, regardless of whether the entry has a phenotype for any or all traits. Additional columns contain phenotypic data; column names should reflect the trait name(s). TIP - Set header=<code>TRUE</code> within <code>read.table</code> or <code>read.csv</code> when importing a tab-delimited file containing data for <code>y.in</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>map.in</code></td>
+<td>
+<p><code>Matrix</code> of genetic map data, three columns total. Column 1 contains marker names, column 2 contains chromosome number, and column 3 contains cM positions. TIP - Set header=<code>TRUE</code> within <code>read.table</code> or <code>read.csv</code> when importing a tab-delimited file contianing data for <code>map.in</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>crossing.table</code></td>
+<td>
+<p>Optional <code>matrix</code> specifying which crosses are to be simulated, two columns total. Column 1 contains the first parent of the cross (Par1) and column 2 contains the second parent of the cross (Par2).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parents</code></td>
+<td>
+<p>Optional <code>character vector</code>. If <code>parents="TP"</code> then only the entries (taxa) within the training population (i.e. are phenotyped for the trait) are considered as parents; all pairwise crosses will be simulated for these. User could otherwise provide a character vector of entry names; all pairwise crosses will be simulated for these.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tail.p</code></td>
+<td>
+<p>Optional <code>numeric</code> indicating the percentile of the simulated progeny to be included into the calculation of <code class="reqn">\mu</code><em>_sp</em> and correlated response. Default is <code>0.10</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nInd</code></td>
+<td>
+<p>Optional <code>integer</code> indicating the number of progeny simulated per cross, per iteration, using <code>sim.cross</code> in R/qtl (<em>Broman et al., 2003</em>). Default is <code>200</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>map.plot</code></td>
+<td>
+<p>Optional <code>logical</code>. If <code>TRUE</code> then a plot of the genetic map will be generated by <code>plot.map</code>. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.maf</code></td>
+<td>
+<p>Optional <code>numeric</code> indicating a minimum minor allele frequency (MAF) when filtering <code>G.in</code>. Markers with an MAF &lt; <code>min.maf</code> will be removed. Default is <code>0.01</code> to remove monomorphic markers. Set to <code>0</code> for no filtering.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mkr.cutoff</code></td>
+<td>
+<p>Optional <code>numeric</code> indicating the maximum missing data per marker when filtering <code>G.in</code>. Markers missing &gt; <code>mkr.cutoff</code> data will be removed. Default is <code>0.50</code>. Set to <code>1</code> for no filtering.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>entry.cutoff</code></td>
+<td>
+<p>Optional <code>numeric</code> indicating the maximum missing genotypic data per entry allowed when filtering <code>G.in</code>. Entries missing &gt; <code>entry.cutoff</code> marker data will be removed. Default is <code>0.50</code>. Set to <code>1</code> for no filtering.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>remove.dups</code></td>
+<td>
+<p>Optional <code>logical</code>. If <code>TRUE</code> duplicate entries in the genotype matrix, if present, will be removed. This step may be necessary for missing marker imputation (see <code>impute</code> below). Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>impute</code></td>
+<td>
+<p>Options include <code>c("EM", "mean", "pass")</code>. By default (i.e. <code>"EM"</code>), after filtering missing genotypic data will be imputed via the EM algorithm implemented in <code>rrBLUP-package</code> (<cite>Endelman, 2011</cite>; <cite>Poland et al., 2012</cite>). If <code>"mean"</code> missing genotypic data will be imputed via the 'marker mean' method, also implemented in <code>rrBLUP-package</code>. Enter <code>"pass"</code> if a pre-filtered and imputed genotype matrix is provided to <code>G.in</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nSim</code></td>
+<td>
+<p>Optional <code>integer</code> indicating the number of iterations a population should be simulated for each pairwise cross. Returned values are reported as means of parameters estimated in each of <code>nSim</code> simulations. Default is <code>25</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>frac.train</code></td>
+<td>
+<p>Optional <code>numeric</code> indicating the fraction of the TP that is used to estimate marker effects (i.e. the prediction set) under cross-validation (CV) method 1 (see <code>Details</code> in <code>x.val</code>). The remaining <code class="reqn">(1-frac.trait)</code> of the TP will then comprise the prediction set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nCV.iter</code></td>
+<td>
+<p>Optional <code>integer</code> indicating the number of times to iterate <em>CV method 1</em> (see <code>Details</code> in <code>x.val</code>). Default is <code>100</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nFold</code></td>
+<td>
+<p>Optional <code>integer</code>. If a number is provided, denoting the number of "folds", then CV will be conducted using <em>CV method 2</em> (see <code>Details</code> in <code>x.val</code>). Default is <code>NULL</code>, resulting in the default use of the <em>CV method 1</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nFold.reps</code></td>
+<td>
+<p>Optional <code>integer</code> indicating the number of times <em>CV method 2</em> is repeated. The CV accuracy returned is the average <em>r</em> of each rep. Default is <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nIter, burnIn</code></td>
+<td>
+<p>Optional <code>integer</code> arguments used by <code>BGLR</code> (<cite>de los Compos and Rodriguez, 2014</cite>) when fitting Bayesian models to estimate marker effects. The defaults are <code>12000</code> and <code>3000</code>, respectively. These values when conducting CV are fixed <code>1500</code> and <code>500</code>, respectively, for computational efficiency.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>models</code></td>
+<td>
+<p>Optional <code>Character vector</code> of the regression models to be used in CV and to estimate marker effects. Options include <code>rrBLUP, BayesA, BayesB, BayesC, BL, BRR</code>, one or more may be included at a time. CV will be conducted regardless of how many models are included. By default all models are tested.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return.raw</code></td>
+<td>
+<p>Optional <code>logical</code>. If <code>TRUE</code> then <code>pop.predict</code> will return the results of each simulation in addition to the summarized dataframe. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>saveAt</code></td>
+<td>
+<p>When using models other than "rrBLUP" (i.e. Bayesian models), this is a path and prefix for saving temporary files
+the are produced by the <code>BGLR</code> function.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>pop.predict</code> can be used to predict the mean (<code class="reqn">\mu</code>), genetic variance (<em>V_G</em>), superior progeny values (<code class="reqn">\mu</code><code class="reqn">_sp</code>), as well as the predicted correlated response and correlations between all pairwise traits. The methodology and procedure to do so has been described in <cite>Bernardo (2014)</cite> and <cite>Mohammadi, Tiede, and K.P. Smith (2015)</cite>. Users familiar with genome-wide prediction, association mapping, and/or linkage mapping will be familiar with the
+required inputs of <code>pop.predict</code>. <code>G.in</code> includes all of the entries (taxa) in the TP as well as additional entries to be considered as parent candidates. Entries included in <code>G.in</code> that do have a phenotype for any or all traits in <code>y.in</code> are considered TP entries for those respective traits. <code>G.in</code> is filtered according to <code>min.maf</code>, <code>mkr.cutoff</code>, <code>entry.cutoff</code>, and <code>remove.dups</code>;
+remaining missing marker data is imputed using the EM algorithm (<cite>Poland et al., 2012</cite>) when possible, and the marker mean otherwise, both implemented in <code>rrBLUP-package</code>. For each trait, the TP (i.e. entries with phenotype) is used to: </p>
+
+<ol>
+<li>
+<p> Perform CV to select a regression model. NOTE - Using the model with the highest CV accuracy is expected to result in the most accurate marker effect estimates (<cite>Bernardo, 2014</cite>). This expectation, however, is yet to be empirically validated and the user is encouraged to investigate the various models in order to make an educated decision about which one to ultimately use.
+</p>
+</li>
+<li>
+<p> Estimate marker effects using the model resulting in the highest CV accuracy
+</p>
+</li>
+</ol>
+<p>Models include ridge regression BLUP implemented in <code>rrBLUP-package</code> (<cite>Endelman, 2011</cite>) and BayesA, BayesB, BayesC<code class="reqn">\pi</code>, Bayesian lasso (BL), and Bayesian ridge regression (BRR) implemented in <code>BGLR</code> (<cite>de los Compos and Rodriguez, 2014</cite>).
+Information from the <code>map.in</code> is then used to simulate chromosomal recombination expected in a recombinant inbred line (i.e. <em>F-infinity</em>) (<cite>Broman et al., 2003</cite>) population (size=<code>nInd</code>). A function then converts the recombined chromosomal segments of the generic RIL population to the chromosomal segments of the population's respective parents and GEBVs of the simulated progeny are calculated.
+The simulation and conversion process is repeated <em>s</em> times, where <em>s</em> = <code>nSim</code>, to calculate dispersion statistics for <code class="reqn">\mu</code> and <em>V_G</em>; the remainder of the values in the <code>predictions</code> output are means of the <em>s</em> simulations.  During each iteration the correlation (<em>r</em>) and correlated response of each pairwise combination of traits is also calculated and their mean across <em>n</em> simulations is returned.
+The correlated response of trait.B when predicting trait.A is the mean of trait.B for the (<code class="reqn">\mu</code><code class="reqn">_sp</code>) of trait.A, and vice-versa; a correlated response for the bottom <code>tail.p</code> and upper <code class="reqn">1-tail.p</code> is returned for each trait.
+</p>
+<div class="sourceCode"><pre>     A dataset \code{\link{think_barley.rda}} is provided as an example of the proper formatting of input files and also for users to become familiar with \code{pop.predict}.
+</pre></div>
+
+
+<h3>Value</h3>
+
+<p>A <code>list</code> containing: </p>
+
+<ul>
+<li> <p><code>predictions</code> A <code>list</code> of dataframes containing predictions of (<code class="reqn">\mu</code>), (<em>V_G</em>), and (<code class="reqn">\mu</code><em>_sp</em>). When multiple traits are provided the correlated responses and correlation between all pairwise traits is also included. More specifically, for a given trait pair the correlated response of the secondary trait with both the high and low superior progeny of the primary trait is returned since the favorable values cannot be known by <code>PopVar</code>.
+</p>
+</li>
+<li> <p><code>preds.per.sim</code> If return.raw is <code>TRUE</code> then a <code>dataframe</code> containing the results of each simulation is returned. This is useful for calculating dispersion statistics for traits not provided in the standard <code>predictions</code> dataframe.
+</p>
+</li>
+<li> <p><code>CVs</code> A <code>dataframe</code> of CV results for each trait/model combination specified.
+</p>
+</li>
+<li> <p><code>models.chosen</code> A <code>matrix</code> listing the statistical model chosen for each trait.
+</p>
+</li>
+<li> <p><code>markers.removed</code> A <code>vector</code> of markers removed during filtering for MAF and missing data.
+</p>
+</li>
+<li> <p><code>entries.removed</code> A <code>vector</code> of entries removed during filtering for missing data and duplicate entries.
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<div class="sourceCode"><pre> Bernardo, R. 2014. Genomewide Selection of Parental Inbreds: Classes of Loci and Virtual Biparental Populations. Crop Sci. 55:2586-2595.
+ 
+ Broman, K. W., H. Wu, S. Sen and G.A. Churchill. 2003. R/qtl: QTL mapping in experimental crosses. Bioinformatics 19:889-890.
+ 
+ Endelman, J. B. 2011. Ridge regression and other kernels for genomic selection with R package rrBLUP. Plant Genome 4:250-255. doi: 10.3835/plantgenome2011.08.0024
+
+ Gustavo de los Campos and Paulino Perez Rodriguez, (2014). BGLR: Bayesian Generalized Linear Regression. R package version 1.0.3. http://CRAN.R-project.org/package=BGLR
+ 
+ Mohammadi M., T. Tiede, and K.P. Smith. 2015. PopVar: A genome-wide procedure for predicting genetic variance and correlated response in bi-parental breeding populations. Crop Sci. \emph{Accepted}.
+ 
+ Munoz-Amatriain, M., M. J. Moscou, P. R. Bhat, J. T. Svensson, J. Bartos, P. Suchankova, H. Simkova, T. R. Endo, R. D. Fenton, S. Lonardi, A. M. Castillo, S. Chao, L. Cistue, A. Cuesta-Marcos, K. L. Forrest, M. J. Hayden, P. M. Hayes, R. D. Horsley, K. Makoto, D. Moody, K. Sato, M. P. Valles, B. B. H. Wulff, G. J. Muehlbauer, J. Dolezel, and T. J. Close. 2011 An improved consensus linkage map of barley based on flow-sorted chromosomes and single nucleotide polymorphism markers. Plant Gen. 4:238-249.
+ 
+ Poland, J., J. Endelman, J. Dawson, J. Rutkoski, S. Wu, Y. Manes, S. Dreisigacker, J. Crossa, H. Sanches-Villeda, M. Sorrells, and J.-L. Jannink. 2012. Genomic Selection in Wheat Breeding using Genotyping-by-Sequencing. Plant Genome 5:103-113.
+</pre></div>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Not run: 
+
+# Load data
+data("think_barley")
+
+## Ex. 1 - Predict a defined set of crosses
+## This example uses CV method 1 (see Details of x.val() function)
+ex1.out &lt;- pop.predict(G.in = G.in_ex, y.in = y.in_ex, 
+   map.in = map.in_ex, crossing.table = cross.tab_ex,
+   nSim=5, nCV.iter=2)
+ex1.out$predictions  ## Predicted parameters
+ex1.out$CVs          ## CV results
+               
+## Ex. 2 - Predict all pairwise crosses between a list of parents
+## This example uses CV method 2 (see Details of x.val() function)
+par.list &lt;- sample(y.in_ex[,1], size = 10, replace = FALSE)
+ex2.out &lt;- pop.predict(G.in = G.in_ex, y.in = y.in_ex,
+   map.in = map.in_ex, parents = par.list, 
+   nSim=5, nFold=5, nFold.reps=2)
+       
+## Ex. 3 - Use only rrBLUP and Bayesian lasso (BL) models
+ex3.out &lt;- pop.predict(G.in = G.in_ex, y.in = y.in_ex,
+   map.in = map.in_ex, crossing.table = cross.tab_ex,
+   models = c("rrBLUP", "BL"), nSim=5, nCV.iter=10)  
+
+## Ex. 4 - Same as Ex. 3, but return all raw SNP and prediction data for each simulated population
+ex4.out &lt;- pop.predict(G.in = G.in_ex, y.in = y.in_ex,
+   map.in = map.in_ex, crossing.table = cross.tab_ex,
+   models = c("rrBLUP", "BL"), nSim=5, nCV.iter=2, return.raw = TRUE)  
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

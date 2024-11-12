@@ -1,0 +1,170 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>I_optim</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Interface of unified optimization functions.</h2>
+
+<h3>Description</h3>
+
+<p><span class="pkg">optimx</span> speed is not satisfied. So <code>I_optim</code> is present.
+</p>
+
+<ul>
+<li> <p><code>I_optim</code>: Interface of unified optimization functions.
+</p>
+</li>
+<li> <p><code>I_optimx</code>: deprecated, which is about 10 times slower than <code>I_optim</code>.
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">I_optim(prior, FUN, y, t, method = "BFGS", ..., use.cpp = FALSE)
+
+I_optimx(prior, FUN, y, t, method, verbose = FALSE, ..., use.cpp = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>prior</code></td>
+<td>
+<p>A vector of initial values for the parameters for which optimal
+values are to be found. <code>prior</code> is suggested giving a column name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FUN</code></td>
+<td>
+<p>Fine curve fitting function for goal function <code>f_goal()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Numeric vector, vegetation index time-series</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t</code></td>
+<td>
+<p>Numeric vector, <code>Date</code> variable</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p><code>method</code> can be some of <code style="white-space: pre;">⁠'BFGS','CG','Nelder-Mead', 'L-BFGS-B', 'nlm', 'nlminb', 'ucminf'⁠</code>. <br>
+For <code>I_optimx</code>, other methods are also supported,
+e.g. <code style="white-space: pre;">⁠'spg','Rcgmin','Rvmmin', 'newuoa','bobyqa','nmkb','hjkb'⁠</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>other parameters passed to <code>I_optim()</code> or <code>I_optimx()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use.cpp</code></td>
+<td>
+<p>(unstable, not used) boolean, whether to use c++ defined fine
+fitting function? If <code>FALSE</code>, R version will be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If <code>TRUE</code>, all optimization methods in
+<code>optimx::optimx()</code> are used, and print optimization information
+of all methods.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+
+<ul>
+<li> <p><code>convcode</code>: An integer code. 0 indicates successful convergence.
+Various methods may or may not return sufficient information to allow all
+the codes to be specified. An incomplete list of codes includes
+</p>
+
+<ul>
+<li> <p><code>1</code>: indicates that the iteration limit <code>maxit</code> had been reached.
+</p>
+</li>
+<li> <p><code>20</code>: indicates that the initial set of parameters is inadmissible,
+that is, that the function cannot be computed or returns an infinite,
+NULL, or NA value.
+</p>
+</li>
+<li> <p><code>21</code>: indicates that an intermediate set of parameters is inadmissible.
+</p>
+</li>
+<li> <p><code>10</code>: indicates degeneracy of the Nelder–Mead simplex.
+</p>
+</li>
+<li> <p><code>51</code>: indicates a warning from the <code>"L-BFGS-B"</code> method; see component
+<code>message</code> for further details.
+</p>
+</li>
+<li> <p><code>52</code>: indicates an error from the <code>"L-BFGS-B"</code> method; see component
+<code>message</code> for further details.
+</p>
+</li>
+<li> <p><code>9999</code>: error
+</p>
+</li>
+</ul>
+</li>
+<li> <p><code>value</code>: The value of fn corresponding to par
+</p>
+</li>
+<li> <p><code>par</code>: The best parameter found
+</p>
+</li>
+<li> <p><code>nitns</code>: the number of iterations
+</p>
+</li>
+<li> <p><code>fevals</code>: The number of calls to <code>objective</code>.
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>stats::optim()</code>, <code>stats::nlminb()</code>,
+<code>stats::nlm()</code>, <code>optimx::optimx()</code>,
+<code>ucminf::ucminf()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># simulate vegetation time-series
+FUN  = doubleLog_Beck
+par  = c( mn  = 0.1 , mx  = 0.7 , sos = 50 , rsp = 0.1 , eos = 250, rau = 0.1)
+par0 = c( mn  = 0.15, mx  = 0.65, sos = 100, rsp = 0.12, eos = 200, rau = 0.12)
+
+t &lt;- seq(1, 365, 8)
+y &lt;- FUN(par, t)
+
+methods = c("BFGS", "ucminf", "nlm", "nlminb")
+opt1 &lt;- I_optim (par0, FUN, y, t, methods)
+opt2 &lt;- I_optimx(par0, FUN, y, t, methods)
+
+# \dontrun{
+# microbenchmark::microbenchmark(
+#     opt1 = I_optim (par0, FUN, y, t, methods),
+#     opt2 = I_optimx(par0, FUN, y, t, methods),
+#     times = 2
+# )
+# }
+</code></pre>
+
+
+</div>

@@ -1,0 +1,117 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>withProgressShiny</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Use Progressr in Shiny Apps: Plug-in Backward-Compatible Replacement for shiny::withProgress()</h2>
+
+<h3>Description</h3>
+
+<p>A plug-in, backward-compatible replacement for <code>shiny::withProgress()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">withProgressShiny(
+  expr,
+  ...,
+  message = NULL,
+  detail = NULL,
+  inputs = list(message = NULL, detail = "message"),
+  env = parent.frame(),
+  quoted = FALSE,
+  handlers = c(shiny = handler_shiny, progressr::handlers(default = NULL))
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>expr, ..., env, quoted</code></td>
+<td>
+<p>Arguments passed to <code>shiny::withProgress()</code> as is.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>message, detail</code></td>
+<td>
+<p>(character string) The message and the detail message to be passed to <code>shiny::withProgress()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inputs</code></td>
+<td>
+<p>(named list) Specifies from what sources the Shiny progress
+elements 'message' and 'detail' should be updated.  Valid sources are
+<code>"message"</code>, <code>"sticky_message"</code> and <code>"non_sticky_message"</code>, where
+<code>"message"</code> is short for <code>c("non_sticky_message", "sticky_message")</code>. For
+example, <code>inputs = list(message = "sticky_message", detail = "message")</code>
+will update the Shiny 'message' component from sticky messages only,
+whereas the 'detail' component is updated using any message.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>handlers</code></td>
+<td>
+<p>Zero or more progression handlers used to report on progress.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The value of shiny::withProgress.
+</p>
+
+
+<h3>Requirements</h3>
+
+<p>This function requires the <span class="pkg">shiny</span> package and will use the
+<code>handler_shiny()</code> <strong>progressr</strong> handler internally to report on updates.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(shiny)
+library(progressr)
+
+app &lt;- shinyApp(
+  ui = fluidPage(
+    plotOutput("plot")
+  ),
+
+  server = function(input, output) {
+    output$plot &lt;- renderPlot({
+      X &lt;- 1:15
+      withProgressShiny(message = "Calculation in progress",
+                        detail = "Starting ...",
+                        value = 0, {
+        p &lt;- progressor(along = X)
+        y &lt;- lapply(X, FUN=function(x) {
+          Sys.sleep(0.25)
+          p(sprintf("x=%d", x))
+        })
+      })
+      
+      plot(cars)
+
+      ## Terminate the Shiny app
+      Sys.sleep(1.0)
+      stopApp(returnValue = invisible())
+    })
+  }
+)
+
+local({
+  oopts &lt;- options(device.ask.default = FALSE)
+  on.exit(options(oopts))
+  if (interactive()) print(app)
+})
+</code></pre>
+
+
+</div>

@@ -1,0 +1,504 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>alleleCorrelations</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Assign Alleles to Isoloci Based on Distribution of Genotypes
+</h2>
+
+<h3>Description</h3>
+
+<p>Where a single locus represents two or more independent isoloci (as in
+an allopolyploid, or a diploidized autopolyploid), these two functions
+can be used in sequence to assign alleles to isoloci.
+<code>alleleCorrelations</code> uses K-means and UPGMA clustering of pairwise p-values
+from Fisher's exact test to make initial groupings of alleles into
+putative isoloci.  <code>testAlGroups</code> is then used to check those
+groupings against individual genotypes, and adjust the assignments if necessary.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">alleleCorrelations(object, samples = Samples(object), locus = 1,
+                   alpha = 0.05, n.subgen = 2, n.start = 50)
+
+testAlGroups(object, fisherResults, SGploidy=2, samples=Samples(object),
+             null.weight=0.5, tolerance=0.05, swap = TRUE,
+             R = 100, rho = 0.95, T0 = 1, maxreps = 100)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+
+<p>A <code>"genambig"</code> or <code>"genbinary"</code>
+object containing the data to analyze.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>samples</code></td>
+<td>
+
+<p>An optional character or numeric vector indicating which samples to analyze.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>locus</code></td>
+<td>
+
+<p>A single character string or integer indicating which locus to analyze.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+
+<p>The significance threshold, before multiple correction, for determining
+whether two alleles are significantly correlated.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.subgen</code></td>
+<td>
+
+<p>The number of subgenomes (number of isoloci) for this locus.  This would
+be <code>2</code> for an allotetraploid or <code>3]</code> for an allohexaploid.  For an 
+allo-octoploid, the value would be <code>2</code> if there were two tetraploid 
+subgenomes, or <code>4</code> if there were four diploid subgenomes.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.start</code></td>
+<td>
+
+<p>Integer, passed directly to the <code>nstart</code> argument of the R base
+function <code>kmeans</code>.  Lowering this number will speed up computation
+time, whereas increasing it will improve the probability of finding the
+correct allele assignments.  The default value of 50 should work well in
+most cases.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fisherResults</code></td>
+<td>
+
+<p>A list output from <code>alleleCorrelations</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SGploidy</code></td>
+<td>
+
+<p>The ploidy of each subgenome (each isolocus).  This is <code>2</code> for an
+allotetraploid, an allohexaploid, or an allo-octoploid with four tetraploid 
+subgenomes, or <code>4</code> for an allo-octoploid with
+two tetraploid genomes.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>null.weight</code></td>
+<td>
+
+<p>Numeric, indicating how genotypes with potential null alleles should
+be counted when looking for signs of homoplasy.  <code>null.weight</code>
+should be <code>0</code> if null
+alleles are expected to be common, and <code>1</code> if there are no null
+alleles in the dataset.  The default of <code>0.5</code> was chosen to reflect
+the fact that the presence of null alleles is generally unknown.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tolerance</code></td>
+<td>
+
+<p>The proportion of genotypes that are allowed to be in disagreement
+with the allele assignments.  This is the proportion of genotypes
+that are expected to have meiotic error or scoring error.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>swap</code></td>
+<td>
+
+<p>Boolean indicating whether or not to use the allele swapping algorithm
+before checking for homoplasy.  TRUE will yield more accurate results
+in most cases, but FALSE may be preferable for loci with null or 
+homoplasious alleles at high frequency.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+
+<p>Simulated annealing parameter for the allele swapping algorithm.
+Indicates how many swaps to attempt in each rep (<em>i.e.</em> how many
+swaps to attempt before changing the temperature).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+
+<p>Simulated annealing parameter for the allele swapping algorithm.
+Factor by which to reduce the temperature at the end of each rep.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>T0</code></td>
+<td>
+
+<p>Simulated annealing parameter for the allele swapping algorithm.
+Starting temperature.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxreps</code></td>
+<td>
+
+<p>Simulated annealing parameter for the allele swapping algorithm.
+Maximum number of reps if convergence is not achieved.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>These functions implement a novel methodology, introduced in
+<span class="pkg">polysat</span> version 1.4 and updated in version 1.6, for cases where 
+one pair of microsatellite
+primers amplifies alleles at two or more independently-segregating loci
+(referred to here as isoloci).  This is not typically the case with new
+autopolyploids, in which all copies of a locus have equal chances of
+pairing with each other at meiosis.  It is, however, frequently the case
+with allopolyploids, in which there are two homeologous subgenomes that
+do not pair (or infrequently pair) at meiosis, or ancient
+autopolyploids, in which duplicated chromosomes have diverged to the
+point of no longer pairing at meiosis.
+</p>
+<p>Within the two functions there are four major steps:
+</p>
+
+<ol>
+<li> <p><code>alleleCorrelations</code> checks to see if there are any alleles
+that are present in every genotype in the dataset.  Such invariable
+alleles are assumed to be fixed at one isolocus (which is not
+necessarily true, but may be corrected by
+<code>testAlGroups</code> in steps 4 and 5).
+If present, each invariable allele is assigned to its own isolocus.
+If there are more invariable alleles than isoloci, the function throws
+an error.  If only one isolocus remains, all remaining (variable) alleles are
+assigned to that isolocus.  If there are as many invariable alleles as
+isoloci, all remaining (variable) alleles are assigned to all isoloci
+(<em>i.e.</em> they are considered homoplasious because they cannot be
+assigned).
+</p>
+</li>
+<li>
+<p> If, after step 1, two or more isoloci remain
+without alleles assigned to them, correlations between alleles are
+tested by <code>alleleCorrelations</code>.  The dataset is converted
+to <code>"genbinary"</code> if not
+already in that format, and a Fisher's exact test, with negative
+association (odds ratio being less than one) as the alternative
+hypothesis, is performed between
+each pair of columns (alleles) in the genotype matrix.  The p-value of
+this test between each pair of alleles is stored in a square matrix,
+and zeros are inserted into the diagonal of the matrix.  K-means
+clustering and UPGMA are then performed on the square matrix of
+p-values, and the
+clusters that are produced represent initial assignments of alleles
+to isoloci.  
+</p>
+</li>
+<li>
+<p> The output of <code>alleleCorrelations</code> is then passed to
+<code>testAlGroups</code>.  If the results of K-means clustering and UPGMA
+were not identical, <code>testAlGroups</code> checks both sets of
+assignments against all genotypes in the dataset.  For a genotype to
+be consistent with a set of assignments, it should have at least one
+allele and no more than <code>SGploidy</code> alleles belonging to each
+isolocus.  The set of assignments that is consistent with the greatest
+number of genotypes is chosen, or in the case of a tie, the set of
+assignments produced by K-means clustering.
+</p>
+</li>
+<li>
+<p> If <code>swap = TRUE</code> and the assignments chosen in the previous 
+step are inconsistent with some genotypes, <code>testAlGroups</code> attempts
+to swap the isoloci of single alleles, using a simulated annealing 
+(Bertsimas and Tsitsiklis 1993) algorithm to search for a new set of 
+assignments that is consistent with as many genotypes as possible.
+At each step, an allele is chosen at random to be moved to a different
+isolocus (which is also chosen at random if there are more than two
+isoloci).  If the new set of allele assignments is consistent with an equal or 
+greater number of genotypes than the previous set of assignments, the new
+set is retained.  If the new set is consistent with fewer genotypes than
+the old set, there is a small probability of retaining the new set, 
+dependent on how much worse the new set of assignments is and what the
+current “temperature” of the algorithm is.  After <code>R</code> allele
+swapping attempts, the temperature is lowered, reducing the probability 
+of retaining a set of allele assignments that is worse than the previous set.
+A new rep of <code>R</code> swapping attempts then begins.
+If a set of allele assignments is found that is consistent with all genotypes,
+the algorithm stops immediately.  Otherwise it stops if no changes are made
+during an entire rep of <code>R</code> swap attempts, or if <code>maxreps</code> reps
+are performed.
+</p>
+</li>
+<li> <p><code>testAlGroups</code> then checks through all genotypes to look
+for signs of homoplasy, meaning single alleles that should be assigned
+to more than one isolocus.  For each genotype, there should be no more
+than <code>SGploidy</code> alleles assigned to each isolocus.  Additionally,
+if there are no null alleles, each genotype should have at least one
+allele belonging to each isolocus.  Each time a genotype is
+encountered that does not meet these criteria, the a score is
+increased for all alleles that might be homoplasious.  (The second
+criterion is not checked if <code>null.weight = 0</code>.)  This score
+starts at zero and is increased by 1 if there are too many alleles per
+isolocus or by <code>null.weight</code> if an isolocus has no alleles.  Once
+all genotypes have been checked, the allele with the highest score is
+considered to be homoplasious and is added to the other isolocus.  (In
+a hexaploid or higher, which isolocus the allele is added to depends on the
+genotypes that were found to be inconsistent with the allele
+assignments, and which isolocus or isoloci the allele could have
+belonged to in order to fix the assignment.)  Allele scores are reset
+to zero and all alleles are then
+checked again with the new set of allele assignments.  The process is
+repeated until the proportion of genotypes that are inconsistent with
+the allele assignments is at or below <code>tolerance</code>.
+</p>
+</li>
+</ol>
+<h3>Value</h3>
+
+<p>Both functions return lists.  For <code>alleleCorrelations</code>:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>locus </code></td>
+<td>
+<p>The name of the locus that was analyzed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clustering.method </code></td>
+<td>
+<p>The method that was ultimately used to
+produce <code>value$Kmeans.groups</code> and <code>value$UPGMA.groups</code>.
+Either <code>"K-means and UPGMA"</code> or <code>"fixed alleles"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>significant.neg </code></td>
+<td>
+<p>Square matrix of logical values indicating
+whether there was significant negative correlation between each pair
+of alleles, after multiple testing correction by Holm-Bonferroni.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>significant.pos </code></td>
+<td>
+<p>Square matrix of logical values indicating
+whether there was significant positive correlation between each pair
+of alleles, after multiple testing correction by Holm-Bonferroni.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.values.neg </code></td>
+<td>
+<p>Square matrix of p-values from Fisher's exact test
+for negative correlation between each pair of alleles.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.values.pos </code></td>
+<td>
+<p>Square matrix of p-values from Fisher's exact test
+for positive correlation between each pair of alleles.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>odds.ratio </code></td>
+<td>
+<p>Square matrix of the odds ratio estimate from
+Fisher's exact test for each pair of alleles.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Kmeans.groups </code></td>
+<td>
+<p>Matrix with <code>n.subgen</code> rows, and as many
+columns as there are alleles in the dataset.  <code>1</code> indicates that
+a given allele belongs to a given isolocus, and <code>0</code> indicates
+that it does not.  These are the groupings determined by K-means
+clustering.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>UPGMA.groups </code></td>
+<td>
+<p>Matrix in the same format as
+<code>value$Kmeans.groups</code>, showing groupings determined by UPGMA.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>heatmap.dist </code></td>
+<td>
+<p>Square matrix like <code>value$p.values.neg</code> but
+with zeros inserted on the diagonal.  This is the matrix that was used
+for K-means clustering and UPGMA.  This matrix can be passed to the
+<code>heatmap</code> function in R to visualize the clusters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>totss </code></td>
+<td>
+<p>Total sums of squares output from K-means clustering.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>betweenss </code></td>
+<td>
+<p>Sums of squares between clusters output from K-means
+clustering.  <code>value$betweenss/value$totss</code> can be used as an
+indication of clustering quality.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gentable </code></td>
+<td>
+<p>The table indicating presence/absence of each allele in
+each genotype.</p>
+</td>
+</tr>
+</table>
+<p>For <code>testAlGroups</code>:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>locus </code></td>
+<td>
+<p>Name of the locus that was tested.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SGploidy </code></td>
+<td>
+<p>The ploidy of each subgenome, taken from the
+<code>SGploidy</code> argument that was passed to <code>testAlGroups</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>assignments </code></td>
+<td>
+<p>Matrix with as many rows as there are isoloci, and as many
+columns as there are alleles in the dataset.  <code>1</code> indicates that
+a given allele belongs to a given isolocus, and <code>0</code> indicates
+that it does not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>proportion.inconsistent.genotypes </code></td>
+<td>
+<p>A number ranging from zero to one 
+indicating the proportion of genotypes from the dataset that are inconsistent
+with <code>assignments</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p><code>alleleCorrelations</code> will print a warning to the console or to the
+standard output stream if a significant positive correlation is found
+between any pair of alleles.  (This is not a “warning” in the
+technical sense usually used in R, because it can occur by random
+chance and I did not want it to cause <span class="pkg">polysat</span> to fail package
+checks.)  You can see which allele pair(s) caused this warning by
+looking at <code>value$significant.pos</code>.  If you receive this warning for
+many loci, consider that there may be population structure in your
+dataset, and that you might split the dataset into multiple
+populations to test seperately.  If it happens at just a few loci,
+check to make sure there are not scoring problems such as stutter
+peaks being miscalled as alleles.  If it only happens at one locus and
+you can't find any evidence of scoring problems, two alleles may have
+been positively correlated simply from random chance, and the warning
+can be ignored.
+</p>
+<p><code>alleleCorrelations</code> can also produce an actual warning stating
+“Quick-TRANSfer stage steps exceeded maximum”.  This warning
+is produced internally by <code>kmeans</code> and may occur if many
+genotypes are similar, as in mapping populations.  It can be safely
+ignored.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>References</h3>
+
+<p>Clark, L. V. and Drauch Schreier, A. (2017) Resolving microsatellite genotype ambiguity in
+populations of allopolyploid and diploidized autopolyploid organisms
+using negative correlations between allelic variables. <em>Molecular Ecology Resources</em>, 
+<b>17</b>, 1090–1103.  DOI: 10.1111/1755-0998.12639.
+</p>
+<p>Bertsimas, D. and Tsitsiklis, J.(1993) Simulated annealing. <em>Statistical Science</em>
+<b>8</b>, 10–15.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>recodeAllopoly</code>, <code>mergeAlleleAssignments</code>,
+<code>catalanAlleles</code>, <code>processDatasetAllo</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># randomly generate example data for an allotetraploid
+mydata &lt;- simAllopoly(n.alleles=c(5,5), n.homoplasy=1)
+viewGenotypes(mydata)
+
+# test allele correlations
+# n.start is lowered in this example to speed up computation time
+myCorr &lt;- alleleCorrelations(mydata, n.subgen=2, n.start=10)
+myCorr$Kmeans.groups
+myCorr$clustering.method
+if(!is.null(myCorr$heatmap.dist)) heatmap(myCorr$heatmap.dist)
+
+# check individual genotypes 
+# (low maxreps used in order to speed processing time for this example)
+myRes &lt;- testAlGroups(mydata, myCorr, SGploidy=2, maxreps = 5)
+myRes$assignments
+myRes2 &lt;- testAlGroups(mydata, myCorr, SGploidy=2, swap = FALSE)
+myRes2$assignments
+</code></pre>
+
+
+</div>

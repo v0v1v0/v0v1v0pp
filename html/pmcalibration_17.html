@@ -1,0 +1,203 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pmcalibration</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a calibration curve</h2>
+
+<h3>Description</h3>
+
+<p>Assess calibration of clinical prediction models (agreement between predicted and observed probabilities) via different smooths. Binary and time-to-event outcomes are supported.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pmcalibration(
+  y,
+  p,
+  smooth = c("none", "ns", "bs", "rcs", "gam", "lowess", "loess"),
+  time = NULL,
+  ci = c("sim", "boot", "pw", "none"),
+  n = 1000,
+  transf = NULL,
+  eval = 100,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>a binary or a right-censored time-to-event outcome. Latter must be an object created via <code>survival::Surv</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>predicted probabilities from a clinical prediction model. For a time-to-event object <code>time</code> must be specified and <code>p</code> are predicted probabilities of the outcome happening by <code>time</code> units of time follow-up.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>smooth</code></td>
+<td>
+<p>what smooth to use. Available options:
+</p>
+
+<ul>
+<li>
+<p>'rcs' = restricted cubic spline using <code>rms::rcs</code>. Optional arguments for this smooth are <code>nk</code> (number of knots; defaults to 5) and <code>knots</code> (knot positions; set by <code>Hmisc::rcs.eval</code> if not specified) 
+</p>
+</li>
+<li>
+<p>'ns' = natural spline using <code>splines::ns</code>. Optional arguments are <code>df</code> (default = 6), <code>knots</code>, <code>Boundary.knots</code> (see <code>?splines::ns</code>) 
+</p>
+</li>
+<li>
+<p>'bs' = B-spline using <code>splines::bs</code>. Optional arguments are <code>df</code> (default = 6), <code>knots</code>, <code>Boundary.knots</code> (see <code>?splines::bs</code>) 
+</p>
+</li>
+<li>
+<p>'gam' = generalized additive model via <code>mgcv::gam</code> and <code>mgcv::s</code>. Optional arguments are <code>bs</code>, <code>k</code>, <code>fx</code>, <code>method</code> (see <code>?mgcv::gam</code> and  <code>?mgcv::s</code>) 
+</p>
+</li>
+<li>
+<p>'lowess' = uses <code>lowess(x, y, iter = 0)</code> based on <code>rms::calibrate</code>. Only for binary outcomes.
+</p>
+</li>
+<li>
+<p>'loess' = uses <code>loess</code> with all defaults. Only for binary outcomes. 
+</p>
+</li>
+<li>
+<p>'none' = logistic or Cox regression with single predictor variable (for binary outcome performs logistic calibration when <code>transf = "logit"</code>). See <code>logistic_cal</code> 
+</p>
+</li>
+</ul>
+<p>'rcs', 'ns', 'bs', and 'none' are fit via <code>glm</code> or <code>survival::coxph</code> and 'gam' is fit via <code>mgcv::gam</code> with <code>family = Binomial(link="logit")</code> for a binary outcome or <code>mgcv::cox.ph</code> when <code>y</code> is time-to-event.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>what follow up time do the predicted probabilities correspond to? Only used if <code>y</code> is a <code>Surv</code> object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ci</code></td>
+<td>
+<p>what kind of confidence intervals to compute?
+</p>
+
+<ul>
+<li>
+<p>'sim' = simulation based inference. Note this is currently only available for binary outcomes. <code>n</code> samples are taken from a multivariate normal distribution with mean vector = coef(mod) and variance covariance = vcov(model).
+</p>
+</li>
+<li>
+<p>'boot' = bootstrap resampling with <code>n</code> replicates. <code>y</code> and <code>p</code> are sampled with replacement and the calibration curve is reestimated. If <code>knots</code> are specified the same knots are used for each resample (otherwise they are calculated using resampled <code>p</code> or transformation thereof)
+</p>
+</li>
+<li>
+<p>'pw' = pointwise confidence intervals calculated via the standard errors produced by relevant <code>predict</code> methods. Only for plotting curves; if selected, CIs are not produced for metrics (not available for smooth = 'lowess')
+</p>
+</li>
+</ul>
+<p>Calibration metrics are calculated using each simulation or boot sample. For both options percentile confidence intervals are returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>number of simulations or bootstrap resamples</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transf</code></td>
+<td>
+<p>transformation to be applied to <code>p</code> prior to fitting calibration curve. Valid options are 'logit', 'cloglog', 'none', or a function (must retain order of <code>p</code>). If unspecified defaults to 'logit' for binary outcomes and 'cloglog' (complementary log-log) for time-to-event outcomes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eval</code></td>
+<td>
+<p>number of points (equally spaced between <code>min(p)</code> and <code>max(p)</code>) to evaluate for plotting (0 or NULL = no plotting). Can be a vector of probabilities.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments for particular smooths. For ci = 'boot' the user is able to run samples in parallel (using the <code>parallel</code> package) by specifying a <code>cores</code> argument</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a <code>pmcalibration</code> object containing calibration metrics and values for plotting
+</p>
+
+
+<h3>References</h3>
+
+<p>Austin P. C., Steyerberg E. W. (2019) The Integrated Calibration Index (ICI) and related metrics for quantifying the calibration of logistic regression models. <em>Statistics in Medicine</em>. 38, pp. 1–15. https://doi.org/10.1002/sim.8281
+</p>
+<p>Van Calster, B., Nieboer, D., Vergouwe, Y., De Cock, B., Pencina M., Steyerberg E.W. (2016). A calibration hierarchy for risk models was defined: from utopia to empirical data. <em>Journal of Clinical Epidemiology</em>, 74, pp. 167-176. https://doi.org/10.1016/j.jclinepi.2015.12.005
+</p>
+<p>Austin, P. C., Harrell Jr, F. E., &amp; van Klaveren, D. (2020). Graphical calibration curves and the integrated calibration index (ICI) for survival models. <em>Statistics in Medicine</em>, 39(21), 2714-2742. https://doi.org/10.1002/sim.8570
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># binary outcome -------------------------------------
+library(pmcalibration)
+# simulate some data
+n &lt;- 500
+dat &lt;- sim_dat(N = n, a1 = .5, a3 = .2)
+head(dat)
+# predictions
+p &lt;- with(dat, invlogit(.5 + x1 + x2 + x1*x2*.1))
+
+# fit calibration curve
+cal &lt;- pmcalibration(y = dat$y, p = p, smooth = "gam", k = 20, ci = "pw")
+
+summary(cal)
+
+plot(cal)
+
+# time to event outcome -------------------------------------
+library(pmcalibration)
+if (requireNamespace("survival", quietly = TRUE)){
+library(survival)
+
+data('transplant', package="survival")
+transplant &lt;- na.omit(transplant)
+transplant = subset(transplant, futime &gt; 0)
+transplant$ltx &lt;- as.numeric(transplant$event == "ltx")
+
+# get predictions from coxph model at time = 100
+# note that as we are fitting and evaluating the model on the same data
+# this is internal calibration (see vignette("internal-validation", package = "pmcalibration"))
+cph &lt;- coxph(Surv(futime, ltx) ~ age + sex + abo + year, data = transplant)
+
+time &lt;- 100
+newd &lt;- transplant; newd$futime &lt;- time; newd$ltx &lt;- 1
+p &lt;- 1 - exp(-predict(cph, type = "expected", newdata=newd))
+y &lt;- with(transplant, Surv(futime, ltx))
+
+cal &lt;- pmcalibration(y = y, p = p, smooth = "rcs", nk=5, ci = "pw", time = time)
+
+summary(cal)
+
+plot(cal)
+
+}
+</code></pre>
+
+
+</div>

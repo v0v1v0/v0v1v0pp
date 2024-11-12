@@ -1,0 +1,366 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>segmentByPairedPSCBS</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Segment total copy numbers and allele B fractions using the Paired PSCBS method</h2>
+
+<h3>Description</h3>
+
+<p>Segment total copy numbers and allele B fractions using the Paired PSCBS method [1].
+This method requires matched normals.
+This is a low-level segmentation method.
+It is intended to be applied to one tumor-normal sample at the time.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## Default S3 method:
+segmentByPairedPSCBS(CT, thetaT=NULL, thetaN=NULL, betaT=NULL, betaN=NULL, muN=NULL,
+  rho=NULL, chromosome=0, x=NULL, alphaTCN=0.009, alphaDH=0.001, undoTCN=0, undoDH=0,
+  ..., avgTCN=c("mean", "median"), avgDH=c("mean", "median"),
+  flavor=c("tcn&amp;dh", "tcn,dh", "sqrt(tcn),dh", "sqrt(tcn)&amp;dh", "tcn"), tbn=is.null(rho),
+  joinSegments=TRUE, knownSegments=NULL, dropMissingCT=TRUE, seed=NULL, verbose=FALSE,
+  preserveScale=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>CT</code></td>
+<td>
+<p>A <code>numeric</code> <code>vector</code> of J tumor total copy number (TCN)
+ratios in [0,+<code>Inf</code>) (due to noise, small negative values are
+also allowed).  The TCN ratios are typically scaled such that
+copy-neutral diploid loci have a mean of two.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thetaT, thetaN</code></td>
+<td>
+<p>(alternative) As an alternative to specifying
+tumor TCN <em>ratios</em> relative to the match normal by
+argument <code>CT</code>, on may specify total tumor and normal
+signals seperately, in which case the TCN ratios <code>CT</code> are
+calculated as <code class="reqn">CT = 2*thetaT/thetaN</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>betaT</code></td>
+<td>
+<p>A <code>numeric</code> <code>vector</code> of J tumor allele B fractions (BAFs)
+in [0,1] (due to noise, values may be slightly outside as well)
+or <code>NA</code> for non-polymorphic loci.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>betaN</code></td>
+<td>
+<p>A <code>numeric</code> <code>vector</code> of J matched normal BAFs in [0,1]
+(due to noise, values may be slightly outside as well) or <code>NA</code>
+for non-polymorphic loci.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>muN</code></td>
+<td>
+<p>An optional <code>numeric</code> <code>vector</code> of J genotype calls in
+{0,1/2,1} for AA, AB, and BB, respectively,
+and <code>NA</code> for non-polymorphic loci.
+If not given, they are estimated from the normal BAFs using
+<code>callNaiveGenotypes</code> as described in [2].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+<p>(alternative to <code>betaT</code> and <code>betaN</code>/<code>muN</code>)
+A <code>numeric</code> <code>vector</code> of J decrease-of-heterozygosity signals (DHs)
+in [0,1] (due to noise, values may be slightly larger than one
+as well).  By definition, DH should be <code>NA</code> for homozygous loci
+and for non-polymorphic loci.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chromosome</code></td>
+<td>
+<p>(Optional) An <code>integer</code> scalar (or a <code>vector</code> of length J),
+which can be used to specify which chromosome each locus belongs to
+in case multiple chromosomes are segments.
+This argument is also used for annotation purposes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Optional <code>numeric</code> <code>vector</code> of J genomic locations.
+If <code>NULL</code>, index locations <code>1:J</code> are used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alphaTCN, alphaDH</code></td>
+<td>
+<p>The significance levels for segmenting total
+copy numbers (TCNs) and decrease-in-heterozygosity signals (DHs),
+respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>undoTCN, undoDH</code></td>
+<td>
+<p>Non-negative <code>numeric</code>s.  If greater than 0,
+then a cleanup of segmentions post segmentation is done.
+See argument <code>undo</code> of <code>segmentByCBS</code>() for more
+details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>avgTCN, avgDH</code></td>
+<td>
+<p>A <code>character</code> string specifying how to calculating
+segment mean levels <em>after</em> change points have been
+identified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed to <code>segmentByCBS</code>().</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flavor</code></td>
+<td>
+<p>A <code>character</code> specifying what type of segmentation and
+calling algorithm to be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tbn</code></td>
+<td>
+<p>If <code>TRUE</code>, <code>betaT</code> is normalized before segmentation
+using the TumorBoost method [2], otherwise not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>joinSegments</code></td>
+<td>
+<p>If <code>TRUE</code>, there are no gaps between neighboring
+segments.
+If <code>FALSE</code>, the boundaries of a segment are defined by the support
+that the loci in the segments provides, i.e. there exist a locus
+at each end point of each segment.  This also means that there
+is a gap between any neighboring segments, unless the change point
+is in the middle of multiple loci with the same position.
+The latter is what <code>DNAcopy::segment()</code> returns.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>knownSegments</code></td>
+<td>
+<p>Optional <code>data.frame</code> specifying
+<em>non-overlapping</em> known segments.  These segments must
+not share loci.  See <code>findLargeGaps</code>() and <code>gapsToSegments</code>().</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dropMissingCT</code></td>
+<td>
+<p>If <code>TRUE</code>, loci for which 'CT' is missing
+are dropped, otherwise not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>An (optional) <code>integer</code> specifying the random seed to be
+set before calling the segmentation method.  The random seed is
+set to its original state when exiting.  If <code>NULL</code>, it is not set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>See <code>Verbose</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>preserveScale</code></td>
+<td>
+<p><em>Defunct - gives an error is specified.</em></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Internally <code>segmentByCBS</code>() is used for segmentation.
+The Paired PSCBS segmentation method does <em>not</em> support weights.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns the segmentation results as a <code>PairedPSCBS</code> object.
+</p>
+
+
+<h3>Reproducibility</h3>
+
+<p>The "DNAcopy::segment" implementation of CBS uses approximation
+through random sampling for some estimates.  Because of this,
+repeated calls using the same signals may result in slightly
+different results, unless the random seed is set/fixed.
+</p>
+
+
+<h3>Whole-genome segmentation is preferred</h3>
+
+<p>Although it is possible to segment each chromosome independently
+using Paired PSCBS, we strongly recommend to segment whole-genome
+(TCN,BAF) data at once.  The reason for this is that downstream
+CN-state calling methods, such as the AB and the LOH callers,
+performs much better on whole-genome data.  In fact, they may
+fail to provide valid calls if done chromosome by chromosome.
+</p>
+
+
+<h3>Missing and non-finite values</h3>
+
+<p>The total copy number signals as well as any optional positions
+must not contain missing values, i.e. <code>NA</code>s or <code>NaN</code>s.
+If there are any, an informative error is thrown.
+Allele B fractions may contain missing values, because such are
+interpreted as representing non-polymorphic loci.
+</p>
+<p>None of the input signals may have infinite values, i.e. -<code>Inf</code> or +<code>Inf</code>.
+If so, an informative error is thrown.
+</p>
+
+
+<h3>Paired PSCBS with only genotypes</h3>
+
+<p>If allele B fractions for the matched normal (<code>betaN</code>) are
+not available, but genotypes (<code>muN</code>) are, then it is possible
+to run a version of Paired PSCBS where TumorBoost normalization
+of the tumor allele B fractions is skipped.  In order for this
+to work, argument <code>tbn</code> must be set to <code>FALSE</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Henrik Bengtsson</p>
+
+
+<h3>References</h3>
+
+<p>[1] A.B. Olshen, H. Bengtsson, P. Neuvial, P.T. Spellman, R.A. Olshen, V.E. Seshan, <em>Parent-specific copy number in paired tumor-normal studies using circular binary segmentation</em>, Bioinformatics, 2011
+<br>
+[2] H. Bengtsson, P. Neuvial and T.P. Speed, <em>TumorBoost: Normalization of allele-specific tumor copy numbers from a single pair of tumor-normal genotyping microarrays</em>, BMC Bioinformatics, 2010
+<br></p>
+
+
+<h3>See Also</h3>
+
+<p>Internally, <code>callNaiveGenotypes</code> is used to
+call naive genotypes, <code>normalizeTumorBoost</code> is
+used for TumorBoost normalization, and <code>segmentByCBS</code>() is used
+to segment TCN and DH separately.
+</p>
+<p>To segment tumor total copy numbers and allele B fractions
+<em>without</em> a matched normal, see <code>segmentByNonPairedPSCBS</code>().
+</p>
+<p>To segment total copy-numbers, or any other unimodal signals,
+see <code>segmentByCBS</code>().
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">verbose &lt;- R.utils::Arguments$getVerbose(-10*interactive(), timestamp=TRUE)
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Load SNP microarray data
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+data &lt;- PSCBS::exampleData("paired.chr01")
+str(data)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Paired PSCBS segmentation
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Drop single-locus outliers
+dataS &lt;- dropSegmentationOutliers(data)
+
+# Speed up example by segmenting fewer loci
+dataS &lt;- dataS[seq(from=1, to=nrow(data), by=10),]
+
+str(dataS)
+
+R.oo::attachLocally(dataS)
+
+# Paired PSCBS segmentation
+fit &lt;- segmentByPairedPSCBS(CT, betaT=betaT, betaN=betaN,
+                            chromosome=chromosome, x=x,
+                            seed=0xBEEF, verbose=verbose)
+print(fit)
+
+# Plot results
+plotTracks(fit)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Bootstrap segment level estimates
+# (used by the AB caller, which, if skipped here,
+#  will do it automatically)
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fit &lt;- bootstrapTCNandDHByRegion(fit, B=100, verbose=verbose)
+print(fit)
+plotTracks(fit)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Calling segments in allelic balance (AB)
+# NOTE: Ideally, this should be done on whole-genome data
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Explicitly estimate the threshold in DH for calling AB
+# (which be done by default by the caller, if skipped here)
+deltaAB &lt;- estimateDeltaAB(fit, flavor="qq(DH)", verbose=verbose)
+print(deltaAB)
+## [1] 0.1657131
+
+fit &lt;- callAB(fit, delta=deltaAB, verbose=verbose)
+print(fit)
+plotTracks(fit)
+
+# Even if not explicitly specified, the estimated
+# threshold parameter is returned by the caller
+stopifnot(fit$params$deltaAB == deltaAB)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Calling segments in loss-of-heterozygosity (LOH)
+# NOTE: Ideally, this should be done on whole-genome data
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Explicitly estimate the threshold in C1 for calling LOH
+# (which be done by default by the caller, if skipped here)
+deltaLOH &lt;- estimateDeltaLOH(fit, flavor="minC1|nonAB", verbose=verbose)
+print(deltaLOH)
+## [1] 0.625175
+
+fit &lt;- callLOH(fit, delta=deltaLOH, verbose=verbose)
+print(fit)
+plotTracks(fit)
+
+# Even if not explicitly specified, the estimated
+# threshold parameter is returned by the caller
+stopifnot(fit$params$deltaLOH == deltaLOH)
+</code></pre>
+
+
+</div>

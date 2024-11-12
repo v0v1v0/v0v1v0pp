@@ -1,0 +1,223 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>SPC.cv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Perform cross-validation on sparse principal component analysis</h2>
+
+<h3>Description</h3>
+
+<p>Selects tuning parameter for the sparse principal component analysis method
+of Witten, Tibshirani, and Hastie (2008), which involves applying PMD to a
+data matrix with lasso ($L_1$) penalty on the columns and no penalty on the
+rows. The tuning parameter controls the sum of absolute values - or $L_1$
+norm - of the elements of the sparse principal component.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">SPC.cv(
+  x,
+  sumabsvs = seq(1.2, 5, len = 10),
+  nfolds = 5,
+  niter = 5,
+  v = NULL,
+  trace = TRUE,
+  orth = FALSE,
+  center = TRUE,
+  vpos = FALSE,
+  vneg = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Data matrix of dimension $n x p$, which can contain NA for missing
+values. We are interested in finding sparse principal components of
+dimension $p$.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sumabsvs</code></td>
+<td>
+<p>Range of sumabsv values to be considered in
+cross-validation. Sumabsv is the sum of absolute values of elements of v. It
+must be between 1 and square root of number of columns of data. The smaller
+it is, the sparser v will be.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nfolds</code></td>
+<td>
+<p>Number of cross-validation folds performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>niter</code></td>
+<td>
+<p>How many iterations should be performed. By default, perform
+only 5 for speed reasons.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p>The first right singular vector(s) of the data. (If missing data is
+present, then the missing values are imputed before the singular vectors are
+calculated.) v is used as the initial value for the iterative PMD($L_1$,
+$L_1$) algorithm. If x is large, then this step can be time-consuming;
+therefore, if PMD is to be run multiple times, then v should be computed
+once and saved.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace</code></td>
+<td>
+<p>Print out progress as iterations are performed? Default is
+TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>orth</code></td>
+<td>
+<p>If TRUE, then use method of Section 3.2 of Witten, Tibshirani
+and Hastie (2008) to obtain multiple sparse principal components. Default is
+FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>Subtract out mean of x? Default is TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vpos</code></td>
+<td>
+<p>Constrain elements of v to be positive? Default is FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vneg</code></td>
+<td>
+<p>Constrain elements of v to be negative? Default is FALSE.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This method only performs cross-validation for the first sparse principal
+component. It does so by performing the following steps nfolds times: (1)
+replace a fraction of the data with missing values, (2) perform SPC on this
+new data matrix using a range of tuning parameter values, each time getting
+a rank-1 approximationg $udv'$ where $v$ is sparse, (3) measure the mean
+squared error of the rank-1 estimate of the missing values created in step
+1.
+</p>
+<p>Then, the selected tuning parameter value is that which resulted in the
+lowest average mean squared error in step 3.
+</p>
+<p>In order to perform cross-validation for the second sparse principal
+component, apply this function to $X-udv'$ where $udv'$ are the output of
+running SPC on the raw data $X$.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>cv</code></td>
+<td>
+<p>Average sum of squared errors that results for each tuning
+parameter value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv.error</code></td>
+<td>
+<p>Standard error of the average sum of
+squared error that results for each tuning parameter value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bestsumabsv</code></td>
+<td>
+<p>Value of sumabsv that resulted in lowest CV error.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nonzerovs</code></td>
+<td>
+<p>Average number of non-zero elements of v for each candidate
+value of sumabsvs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v.init</code></td>
+<td>
+<p>Initial value of v that was passed in. Or,
+if that was NULL, then first right singular vector of X.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bestsumabsv1se</code></td>
+<td>
+<p>The smallest value of sumabsv that is within 1
+standard error of smallest CV error.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Witten D. M., Tibshirani R.,  and Hastie, T. (2009)
+<em>A penalized matrix decomposition, with applications to sparse principal components and canonical correlation analysis</em>, <em>Biostatistics, Gol 10 (3), 515-534, Jul 2009</em><br></p>
+
+
+<h3>See Also</h3>
+
+<p>SPC, PMD, PMD.cv
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+#NOT RUN
+## A simple simulated example
+#set.seed(1)
+#u &lt;- matrix(c(rnorm(50), rep(0,150)),ncol=1)
+#v &lt;- matrix(c(rnorm(75),rep(0,225)), ncol=1)
+#x &lt;- u%*%t(v)+matrix(rnorm(200*300),ncol=300)
+## Perform Sparse PCA - that is, decompose a matrix w/o penalty on rows
+## and w/ L1 penalty on columns
+## First, we perform sparse PCA and get 4 components, but we do not
+## require subsequent components to be orthogonal to previous components
+#cv.out &lt;- SPC.cv(x, sumabsvs=seq(1.2, sqrt(ncol(x)), len=6))
+#print(cv.out)
+#plot(cv.out)
+#out &lt;- SPC(x,sumabsv=cv.out$bestsumabs, K=4) # could use
+## cv.out$bestsumabvsv1se instead
+#print(out,verbose=TRUE)
+## Now, we do sparse PCA using method in Section 3.2 of WT&amp;H(2008) for getting
+## multiple components - that is, we require components to be orthogonal
+#cv.out &lt;- SPC.cv(x, sumabsvs=seq(1.2, sqrt(ncol(x)), len=6), orth=TRUE)
+#print(cv.out)
+#plot(cv.out)
+#out.orth &lt;- SPC(x,sumabsv=cv.out$bestsumabsv, K=4, orth=TRUE)
+#print(out.orth,verbose=TRUE)
+#par(mfrow=c(1,1))
+#plot(out$u[,1], out.orth$u[,1], xlab="", ylab="")
+#
+#
+</code></pre>
+
+
+</div>

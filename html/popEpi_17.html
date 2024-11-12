@@ -1,0 +1,185 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>direct_standardization</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Direct Adjusting in <span class="pkg">popEpi</span> Using Weights</h2>
+
+<h3>Description</h3>
+
+<p>Several functions in <span class="pkg">popEpi</span> have support for direct standardization
+of estimates. This document explains the usage of weighting with those
+functions.
+</p>
+
+
+<h3>Details</h3>
+
+<p>Direct standardization is performed by computing estimates of
+<code>E</code>
+by the set of adjusting variables <code>A</code>, to which a set of weights 
+<code>W</code> is applicable. The weighted average over <code>A</code> is then the
+direct-adjusted estimate of <code>E</code> (<code>E*</code>).
+</p>
+<p>To enable both quick and easy as well as more rigorous usage of direct
+standardization with weights, the weights arguments in <span class="pkg">popEpi</span>
+can be supplied in several ways. Ability to use the different
+ways depends on the number of adjusting variables.
+</p>
+<p>The weights are always handled internally to sum to 1, so they do not
+need to be scaled in this manner when they are supplied. E.g.
+counts of subjects in strata may be passed.
+</p>
+
+
+<h3>Basic usage - one adjusting variable</h3>
+
+<p>In the simple case where we are adjusting by only one variable 
+(e.g. by age group), one can simply supply a vector of weights:
+</p>
+<p><code>FUN(weights = c(0.1, 0.25, 0.25, 0.2, 0.2))</code>
+</p>
+<p>which may be stored in advance:
+</p>
+<p><code>w &lt;- c(0.1, 0.25, 0.25, 0.2, 0.2)</code>
+</p>
+<p><code>FUN(weights = w)</code>
+</p>
+<p>The order of the weights matters. <span class="pkg">popEpi</span> functions with direct
+adjusting enabled match the supplied weights to the adjusting variables
+as follows: If the adjusting variable is a <code>factor</code>, the order
+of the levels is used. Otherwise, the alphabetic order of the unique
+values is used (try <code>sort</code> to see how it works). For clarity
+and certainty we recommend using <code>factor</code> or <code>numeric</code> variables
+when possible. <code>character</code> variables should be avoided: to see why,
+try <code>sort(15:9)</code> and <code>sort(as.character(15:9))</code>.
+</p>
+<p>It is also possible to supply a <code>character</code> string corresponding
+to one of the age group standardization schemes integrated into <span class="pkg">popEpi</span>:
+</p>
+
+<ul>
+<li> <p><code>'europe_1976_18of5'</code> - European std. population (1976), 18 age groups
+</p>
+</li>
+<li> <p><code>'nordic_2000_18of5'</code> - Nordic std. population (2000), 18 age groups
+</p>
+</li>
+<li> <p><code>'world_1966_18of5'</code> - world standard (1966), 18 age groups
+</p>
+</li>
+<li> <p><code>'world_2000_18of5'</code> - world standard (2000), 18 age groups
+</p>
+</li>
+<li> <p><code>'world_2000_20of5'</code> - world standard (2000), 20 age groups 
+</p>
+</li>
+<li> <p><code>'world_2000_101of1'</code> - world standard (2000), 101 age groups
+</p>
+</li>
+</ul>
+<p>Additionally, <code>ICSS</code> contains international weights used in 
+cancer survival analysis, but they are not currently usable by passing
+a string to <code>weights</code> and must be supplied by hand.
+</p>
+<p>You may also supply <code>weights = "internal"</code> to use internally
+computed weights, i.e. usually simply the counts of subjects / person-time
+experienced in each stratum. E.g.
+</p>
+<p><code>FUN(weights = "world_2000_18of5")</code>
+</p>
+<p>will use the world standard population from 2000 as 
+weights for 18 age groups, that your adjusting variable is 
+assumed to contain. The adjusting variable must be coded in this case as 
+a numeric variable containing <code>1:18</code> or as a <code>factor</code> with
+18 levels (coded from the youngest to the oldest age group).
+</p>
+
+
+<h3>More than one adjusting variable</h3>
+
+<p>In the case that you employ more than one adjusting variable, separate
+weights should be passed to match to the levels of the different adjusting
+variables. When supplied correctly, "grand" weights are formed based on
+the variable-specific weights by multiplying over the variable-specific
+weights (e.g. if men have <code>w = 0.5</code> and the age group 0-4 has 
+<code>w = 0.1</code>, the "grand" weight for men aged 0-4 is <code>0.5*0.1</code>).
+The "grand" weights are then used for adjusting after ensuring they
+sum to one.
+</p>
+<p>When using multiple adjusting variables, you
+are allowed to pass either a named <code>list</code> of 
+weights or a <code>data.frame</code> of weights. E.g.
+</p>
+<p><code>WL &lt;- list(agegroup = age_w, sex = sex_w)</code>
+</p>
+<p><code>FUN(weights = WL)</code>
+</p>
+<p>where <code>age_w</code> and <code>sex_w</code> are numeric vectors. Given the 
+conditions explained in the previous section are satisfied, you may also do
+e.g.
+</p>
+<p><code>WL &lt;- list(agegroup = "world_2000_18of", sex = sex_w)</code>
+</p>
+<p><code>FUN(weights = WL)</code>
+</p>
+<p>and the world standard pop is used as weights for the age groups as outlined
+in the previous section.
+</p>
+<p>Sometimes using a <code>data.frame</code> can be clearer (and it is fool-proof
+as well). To do this, form a <code>data.frame</code> that repeats the levels
+of your adjusting variables by each level of every other adjusting variable,
+and assign the weights as a column named <code>"weights"</code>. E.g.
+</p>
+<p><code>wdf &lt;- data.frame(sex = rep(0:1, each = 18), agegroup = rep(1:18, 2))</code>
+</p>
+<p><code>wdf$weights &lt;- rbinom(36, size = 100, prob = 0.25)</code>
+</p>
+<p><code>FUN(weights = wdf)</code>
+</p>
+<p>If you want to use the counts of subjects in strata as the weights,
+one way to do this is by e.g.
+</p>
+<p><code>wdf &lt;- as.data.frame(x$V1, x$V2, x$V3)</code>
+<code>names(wdf) &lt;- c("V1", "V2", "V3", "weights")</code>
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Joonas Miettinen
+</p>
+
+
+<h3>References</h3>
+
+<p>Source of the Nordic standard population in 5-year age groups 
+(also contains European &amp; 1966 world standards):
+<a href="https://www-dep.iarc.fr/NORDCAN/english/glossary.htm">https://www-dep.iarc.fr/NORDCAN/english/glossary.htm</a>
+</p>
+<p>Source of the 1976 European standard population: 
+</p>
+<p>Waterhouse, J.,Muir, C.S.,Correa, P.,Powell, J., eds (1976). 
+Cancer Incidence in Five Continents, Vol. III. 
+IARC Scientific Publications, No. 15, Lyon, IARC.
+ISBN: 9789283211150
+</p>
+<p>Source of 2000 world standard population in 1-year age groups:
+<a href="https://seer.cancer.gov/stdpopulations/stdpop.singleages.html">https://seer.cancer.gov/stdpopulations/stdpop.singleages.html</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other weights: 
+<code>ICSS</code>,
+<code>stdpop101</code>,
+<code>stdpop18</code>
+</p>
+<p>Other popEpi argument evaluation docs: 
+<code>flexible_argument</code>
+</p>
+
+
+</div>

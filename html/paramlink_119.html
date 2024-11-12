@@ -1,0 +1,183 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pedParts</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Pedigree subsets</h2>
+
+<h3>Description</h3>
+
+<p>Utility functions for 'linkdat' objects, mainly for extracting various
+pedigree information.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">offspring(x, id, original.id = TRUE)
+
+spouses(x, id, original.id = TRUE)
+
+related.pairs(
+  x,
+  relation = c("parents", "siblings", "grandparents", "nephews_nieces", "cousins",
+    "spouses", "unrelated"),
+  available = F,
+  interfam = c("none", "founders", "all"),
+  ...
+)
+
+unrelated(x, id, original.id = TRUE)
+
+leaves(x)
+
+parents(x, id, original.id = TRUE)
+
+grandparents(x, id, degree = 2, original.id = TRUE)
+
+siblings(x, id, half = NA, original.id = TRUE)
+
+cousins(x, id, degree = 1, removal = 0, half = NA, original.id = TRUE)
+
+nephews_nieces(x, id, removal = 1, half = NA, original.id = TRUE)
+
+ancestors(x, id)
+
+descendants(x, id, original.id = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a <code>linkdat</code> object. In <code>related.pairs</code> possibly a
+list of <code>linkdat</code> objects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>a numerical ID label.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>original.id</code></td>
+<td>
+<p>a logical indicating whether 'id' refers to the original
+ID label or the internal labeling.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>relation</code></td>
+<td>
+<p>one of the words (possibly truncated) <code>parents</code>,
+<code>siblings</code>, <code>grandparents</code>, <code>nephews_nieces</code>,
+<code>cousins</code>, <code>spouses</code>, <code>unrelated</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>available</code></td>
+<td>
+<p>a logical, if TRUE only pairs of available individuals are
+returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interfam</code></td>
+<td>
+<p>one of the words (possibly truncated) <code>none</code>,
+<code>founders</code> or <code>all</code>, specifying which interfamiliar pairs should
+be included as unrelated in the case where <code>x</code> is a list of several
+pedigrees. If <code>none</code>, only intrafamiliar pairs are considered; if
+<code>founders</code> all interfamiliar pairs of (available) founders are
+included; if <code>all</code>, all interfamiliar (available) pairs are included.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further parameters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>degree</code></td>
+<td>
+<p>a non-negative integer.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>half</code></td>
+<td>
+<p>a logical or NA. If TRUE (resp FALSE), only half (resp. full)
+siblings/cousins/nephews/nieces are returned. If NA, both categories are
+included.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>removal</code></td>
+<td>
+<p>a non-negative integer</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>For <code>ancestors(x,id)</code>, a vector containing the ID's of all
+ancestors of the individual <code>id</code>.  For <code>descendants(x,id)</code>, a
+vector containing the ID's of all descendants (i.e. children,
+grandchildren, a.s.o.) of individual <code>id</code>.
+</p>
+<p>The functions <code>cousins</code>, <code>grandparents</code>, <code>nephews_nieces</code>,
+<code>offspring</code>, <code>parents</code>, <code>siblings</code>, <code>spouses</code>,
+<code>unrelated</code>, each returns an integer vector containing the ID's of all
+pedigree members having the specified relationship with <code>id</code>.
+</p>
+<p>For <code>related.pairs</code> a matrix with two columns. Each row gives of a
+pair of pedigree members with the specified relation. If the input is a
+list of multiple pedigrees, the matrix entries are characters of the form
+'X-Y' where X is the family ID and Y the individual ID of the person.
+</p>
+<p>For <code>leaves</code>, a vector of IDs containing all pedigree members without
+children.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+p = cbind(ID=2:9, FID=c(0,0,2,0,4,4,0,2), MID=c(0,0,3,0,5,5,0,8),
+        SEX=c(1,2,1,2,1,2,2,2), AFF=c(2,1,2,1,2,1,1,2))
+x = linkdat(p)
+stopifnot(setequal(spouses(x, 2), c(3,8)),
+          setequal(offspring(x, 2), c(4,9)),
+          setequal(descendants(x, 2), c(4,6,7,9)),
+          setequal(leaves(x), c(6,7,9)))
+
+# Creating a loop and detecting it with 'pedigreeLoops'
+# (note that we get two loops, one for each inbred child):
+loopx = addOffspring(x, father=4, mother=9, noffs=2)
+lps = pedigreeLoops(loopx)
+stopifnot(lps[[1]]$top == 2, setequal(sapply(lps, '[[', 'bottom'), 10:11))
+
+# We add genotypes for a single SNP marker and compute a LOD score under a dominant model.
+loopx = setMarkers(loopx, cbind(1,c(2,1,2,1,2,1,1,2,1,1)))
+loopx = setModel(loopx, 1)
+
+# Loops are automatically broken in lod():
+LOD1 = lod(loopx, theta=0.1)
+stopifnot(round(LOD1, 3) == 1.746)
+
+# Or we can break the loop manually before computing the LOD:
+loopfree = breakLoops(loopx, loop_breaker=4)
+LOD2 = lod(loopfree, theta=0.1)
+stopifnot(all.equal(loopx, tieLoops(loopfree)))
+stopifnot(all.equal(LOD1, LOD2))
+
+</code></pre>
+
+
+</div>

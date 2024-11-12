@@ -1,0 +1,101 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PeakSegFPOP_vec</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>PeakSeg penalized solver for integer vector</h2>
+
+<h3>Description</h3>
+
+<p>Convert integer data vector to run-length encoding,
+then run <code>PeakSegFPOP_df</code>.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PeakSegFPOP_vec(count.vec, 
+    pen.num)</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>count.vec</code></td>
+<td>
+<p>integer vector, noisy non-negatve count data to segment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pen.num</code></td>
+<td>
+<p>Non-negative numeric scalar.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>List of solver results, same as <code>PeakSegFPOP_dir</code>.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Toby Dylan Hocking &lt;toby.hocking@r-project.org&gt; [aut, cre]</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Simulate a sequence of Poisson data.
+sim.seg &lt;- function(seg.mean, size.mean=15){
+  seg.size &lt;- rpois(1, size.mean)
+  rpois(seg.size, seg.mean)
+}
+set.seed(1)
+seg.mean.vec &lt;- c(1.5, 3.5, 0.5, 4.5, 2.5)
+z.list &lt;- lapply(seg.mean.vec, sim.seg)
+z.rep.vec &lt;- unlist(z.list)
+
+## Plot the simulated data.
+if(require(ggplot2)){
+  count.df &lt;- data.frame(
+    position=seq_along(z.rep.vec),
+    count=z.rep.vec)
+  gg.count &lt;- ggplot()+
+    geom_point(aes(
+      position, count),
+      shape=1,
+      data=count.df)
+  print(gg.count)
+  ## Plot the true changepoints.
+  n.segs &lt;- length(seg.mean.vec)
+  seg.size.vec &lt;- sapply(z.list, length)
+  seg.end.vec &lt;- cumsum(seg.size.vec)
+  change.vec &lt;- seg.end.vec[-n.segs]+0.5
+  change.df &lt;- data.frame(
+    changepoint=change.vec)
+  gg.change &lt;- gg.count+
+    geom_vline(aes(
+      xintercept=changepoint),
+      data=change.df)
+  print(gg.change)
+  ## Fit a peak model and plot it.
+  fit &lt;- PeakSegDisk::PeakSegFPOP_vec(z.rep.vec, 10.5)
+  print(
+    gg.change+
+      geom_segment(aes(
+        chromStart+0.5, mean, xend=chromEnd+0.5, yend=mean),
+        color="green",
+        data=fit$segments)
+  )
+  ## A pathological data set.
+  z.slow.vec &lt;- 1:length(z.rep.vec)
+  fit.slow &lt;- PeakSegDisk::PeakSegFPOP_vec(z.slow.vec, 10.5)
+  rbind(fit.slow$loss, fit$loss)
+}
+
+</code></pre>
+
+
+</div>

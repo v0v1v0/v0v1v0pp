@@ -1,0 +1,279 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>opt1D</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Parallelized repeated tuning of Lasso or Ridge penalty parameter
+</h2>
+
+<h3>Description</h3>
+
+<p>This function is a wrapper to the optL1 and optL2 functions of the
+penalized R package, useful for parallelized repeated tuning of the
+penalty parameters.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">opt1D(nsim = 50, nprocessors = 1, setpen = "L1", cl = NULL, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>nsim</code></td>
+<td>
+
+<p>Number of times to repeat the simulation (around 50 is suggested)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nprocessors</code></td>
+<td>
+
+<p>An integer number of processors to use.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>setpen</code></td>
+<td>
+
+<p>Either "L1" (Lasso) or "L2" (Ridge) penalty
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cl</code></td>
+<td>
+
+<p>Optional cluster object created with the makeCluster() function of
+the parallel package.  If this is not set, pensim calls
+makeCluster(nprocessors, type="SOCK").   Setting this parameter
+can enable parallelization in more diverse scenarios than multi-core
+desktops; see the documentation for the parallel package.  Note that if
+cl is user-defined, this function will not automatically run
+parallel::stopCluster() to shut down the cluster.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>arguments passed on to optL1 or optL2 function of the penalized R package
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function sets up a SNOW (Simple Network of Workstations) "sock"
+cluster to parallelize the task of repeated tunings the L1 or L2 penalty
+parameter.  Tuning of the penalty parameters is done by the optL1 or
+optL2 functions of the penalized R package.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a matrix with the following columns:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>L1 (or L2)</code></td>
+<td>
+<p>optimized value of the penalty parameter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cvl</code></td>
+<td>
+<p>optimized cross-validated likelihood</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coef_1, coef_2, ..., coef_n</code></td>
+<td>
+<p>argmax coefficients for the model
+with this value of the tuning parameter</p>
+</td>
+</tr>
+</table>
+<p>The matrix contains one row for each repeat of the regression.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Depends on the R packages: penalized, parallel, rlecuyer
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Levi Waldron et al.
+</p>
+
+
+<h3>References</h3>
+
+<p>Waldron L, Pintilie M, Tsao M-S, Shepherd FA, Huttenhower C*, Jurisica
+I*: Optimized application of penalized regression methods to diverse
+genomic data. Bioinformatics 2011, 27:3399-3406.  (*equal contribution)
+</p>
+
+
+<h3>See Also</h3>
+
+<p>optL1, optL2
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(beer.exprs)
+data(beer.survival)
+
+##select just 100 genes to speed computation:
+set.seed(1)
+beer.exprs.sample &lt;- beer.exprs[sample(1:nrow(beer.exprs), 100),]
+
+gene.quant &lt;- apply(beer.exprs.sample, 1, quantile, probs = 0.75)
+dat.filt &lt;- beer.exprs.sample[gene.quant &gt; log2(100),]
+gene.iqr &lt;- apply(dat.filt, 1, IQR)
+dat.filt &lt;- as.matrix(dat.filt[gene.iqr &gt; 0.5,])
+dat.filt &lt;- t(dat.filt)
+
+##define training and test sets
+set.seed(1)
+trainingset &lt;- sample(rownames(dat.filt), round(nrow(dat.filt) / 2))
+testset &lt;-
+  rownames(dat.filt)[!rownames(dat.filt) %in% trainingset]
+
+dat.training &lt;- data.frame(dat.filt[trainingset, ])
+pheno.training &lt;- beer.survival[trainingset, ]
+
+library(survival)
+surv.training &lt;- Surv(pheno.training$os, pheno.training$status)
+
+dat.test &lt;- data.frame(dat.filt[testset, ])
+all.equal(colnames(dat.training), colnames(dat.test))
+pheno.test &lt;- beer.survival[testset, ]
+surv.test &lt;- Surv(pheno.test$os, pheno.test$status)
+
+##ideally nsim should be on the order of 50,  but this slows computation
+##50x without parallelization.
+set.seed(1)
+output &lt;-
+  pensim::opt1D(
+    nsim = 1,
+    nprocessors = 1,
+    setpen = "L2",
+    response = surv.training,
+    penalized = dat.training,
+    fold = 3,
+    positive = FALSE,
+    standardize = TRUE,
+    minlambda2 = 1,
+    maxlambda2 = 100
+  )
+
+cc &lt;- output[which.max(output[, "cvl"]),-(1:2)]  #coefficients
+sum(abs(cc) &gt; 0)  #count non-zero coefficients
+
+preds.training &lt;- as.matrix(dat.training) %*% cc
+preds.training.median &lt;- median(preds.training)
+preds.training.dichot &lt;-
+  ifelse(preds.training &gt; preds.training.median, "high risk", "low risk")
+preds.training.dichot &lt;-
+  factor(preds.training.dichot[, 1], levels = c("low risk", "high risk"))
+preds.test &lt;- as.matrix(dat.test) %*% cc
+preds.test.dichot &lt;-
+  ifelse(preds.test &gt; preds.training.median, "high risk", "low risk")
+preds.test.dichot &lt;-
+  factor(preds.test.dichot[, 1], levels = c("low risk", "high risk"))
+
+coxphfit.training &lt;- coxph(surv.training ~ preds.training.dichot)
+survfit.training &lt;- survfit(surv.training ~ preds.training.dichot)
+summary(coxphfit.training)
+coxphfit.test &lt;- coxph(surv.test ~ preds.test.dichot)
+survfit.test &lt;- survfit(surv.test ~ preds.test.dichot)
+summary(coxphfit.test)
+
+(p.training &lt;-
+    signif(summary(coxphfit.training)$logtest[3], 2))  #likelihood ratio test
+(hr.training &lt;- signif(summary(coxphfit.training)$conf.int[1], 2))
+(hr.lower.training &lt;- summary(coxphfit.training)$conf.int[3])
+(hr.upper.training &lt;- summary(coxphfit.training)$conf.int[4])
+par(mfrow = c(1, 2))
+plot(
+  survfit.training,
+  col = c("black", "red"),
+  conf.int = FALSE,
+  xlab = "Months",
+  main = "TRAINING",
+  ylab = "Overall survival"
+)
+xmax &lt;- par("usr")[2] - 50
+text(
+  x = xmax,
+  y = 0.4,
+  lab = paste("HR=", hr.training),
+  pos = 2
+)
+text(
+  x = xmax,
+  y = 0.3,
+  lab = paste("p=", p.training, "", sep = ""),
+  pos = 2
+)
+tmp &lt;- summary(preds.training.dichot)
+text(
+  x = c(xmax, xmax),
+  y = c(0.2, 0.1),
+  lab = paste(tmp, names(tmp)),
+  col = 1:2,
+  pos = 2
+)
+(p.test &lt;-
+    signif(summary(coxphfit.test)$logtest[3], 2))  #likelihood ratio test
+(hr.test &lt;- signif(summary(coxphfit.test)$conf.int[1], 2))
+(hr.lower.test &lt;- summary(coxphfit.test)$conf.int[3])
+(hr.upper.test &lt;- summary(coxphfit.test)$conf.int[4])
+plot(
+  survfit.test,
+  col = c("black", "red"),
+  conf.int = FALSE,
+  xlab = "Months",
+  main = "TEST"
+)
+text(
+  x = xmax,
+  y = 0.4,
+  lab = paste("HR=", hr.test),
+  pos = 2
+)
+text(
+  x = xmax,
+  y = 0.3,
+  lab = paste("p=", p.test, "", sep = ""),
+  pos = 2
+)
+tmp &lt;- summary(preds.test.dichot)
+text(
+  x = c(xmax, xmax),
+  y = c(0.2, 0.1),
+  lab = paste(tmp, names(tmp)),
+  col = 1:2,
+  pos = 2
+)
+</code></pre>
+
+
+</div>

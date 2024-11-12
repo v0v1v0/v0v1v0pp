@@ -1,0 +1,268 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>project</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Projection onto submodel(s)</h2>
+
+<h3>Description</h3>
+
+<p>Project the posterior of the reference model onto the parameter space of a
+single submodel consisting of a specific combination of predictor terms or
+(after variable selection) onto the parameter space of a single or multiple
+submodels of specific sizes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">project(
+  object,
+  nterms = NULL,
+  solution_terms = predictor_terms,
+  predictor_terms = NULL,
+  refit_prj = TRUE,
+  ndraws = 400,
+  nclusters = NULL,
+  seed = NA,
+  verbose = getOption("projpred.verbose_project", TRUE),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>An object which can be used as input to <code>get_refmodel()</code> (in
+particular, objects of class <code>refmodel</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nterms</code></td>
+<td>
+<p>Only relevant if <code>object</code> is of class <code>vsel</code> (returned by
+<code>varsel()</code> or <code>cv_varsel()</code>). Ignored if <code>!is.null(predictor_terms)</code>.
+Number of terms for the submodel (the corresponding combination of
+predictor terms is taken from <code>object</code>). If a numeric vector, then the
+projection is performed for each element of this vector. If <code>NULL</code> (and
+<code>is.null(predictor_terms)</code>), then the value suggested by <code>suggest_size()</code>
+is taken (with default arguments for <code>suggest_size()</code>, implying that this
+suggested size is based on the ELPD). Note that <code>nterms</code> does not count the
+intercept, so use <code>nterms = 0</code> for the intercept-only model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>solution_terms</code></td>
+<td>
+<p>Deprecated. Please use argument <code>predictor_terms</code>
+instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predictor_terms</code></td>
+<td>
+<p>If not <code>NULL</code>, then this needs to be a character
+vector of predictor terms for the submodel onto which the projection will
+be performed. Argument <code>nterms</code> is ignored in that case. For an <code>object</code>
+which is not of class <code>vsel</code>, <code>predictor_terms</code> must not be <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refit_prj</code></td>
+<td>
+<p>A single logical value indicating whether to fit the
+submodels (again) (<code>TRUE</code>) or—if <code>object</code> is of class <code>vsel</code>—to re-use
+the submodel fits from the full-data search that was run when creating
+<code>object</code> (<code>FALSE</code>). For an <code>object</code> which is not of class <code>vsel</code>,
+<code>refit_prj</code> must be <code>TRUE</code>. See also section "Details" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ndraws</code></td>
+<td>
+<p>Only relevant if <code>refit_prj</code> is <code>TRUE</code>. Number of posterior
+draws to be projected. Ignored if <code>nclusters</code> is not <code>NULL</code> or if the
+reference model is of class <code>datafit</code> (in which case one cluster is used).
+If both (<code>nclusters</code> and <code>ndraws</code>) are <code>NULL</code>, the number of posterior
+draws from the reference model is used for <code>ndraws</code>. See also section
+"Details" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nclusters</code></td>
+<td>
+<p>Only relevant if <code>refit_prj</code> is <code>TRUE</code>. Number of clusters
+of posterior draws to be projected. Ignored if the reference model is of
+class <code>datafit</code> (in which case one cluster is used). For the meaning of
+<code>NULL</code>, see argument <code>ndraws</code>. See also section "Details" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Pseudorandom number generation (PRNG) seed by which the same
+results can be obtained again if needed. Passed to argument <code>seed</code> of
+<code>set.seed()</code>, but can also be <code>NA</code> to not call <code>set.seed()</code> at all. If not
+<code>NA</code>, then the PRNG state is reset (to the state before calling
+<code>project()</code>) upon exiting <code>project()</code>. Here, <code>seed</code> is used for clustering
+the reference model's posterior draws (if <code>!is.null(nclusters)</code>) and for
+drawing new group-level effects when predicting from a multilevel submodel
+(however, not yet in case of a GAMM) and having global option
+<code>projpred.mlvl_pred_new</code> set to <code>TRUE</code>. (Such a prediction takes place when
+calculating output elements <code>dis</code> and <code>ce</code>.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A single logical value indicating whether to print out
+additional information during the computations. More precisely, this gets
+passed as <code>verbose_divmin</code> to the divergence minimizer function of the
+<code>refmodel</code> object. For the built-in divergence minimizers, this only has an
+effect in case of sequential computations (not in case of parallel
+projection, which is described in projpred-package).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments passed to <code>get_refmodel()</code> (if <code>get_refmodel()</code> is
+actually used; see argument <code>object</code>) as well as to the divergence
+minimizer (if <code>refit_prj</code> is <code>TRUE</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Arguments <code>ndraws</code> and <code>nclusters</code> are automatically truncated at
+the number of posterior draws in the reference model (which is <code>1</code> for
+<code>datafit</code>s). Using less draws or clusters in <code>ndraws</code> or <code>nclusters</code> than
+posterior draws in the reference model may result in slightly inaccurate
+projection performance. Increasing these arguments affects the computation
+time linearly.
+</p>
+<p>If <code>refit_prj = FALSE</code> (which is only possible if <code>object</code> is of class
+<code>vsel</code>), <code>project()</code> retrieves the submodel fits from the full-data search
+that was run when creating <code>object</code>. Usually, the search relies on a rather
+coarse clustering or thinning of the reference model's posterior draws (by
+default, <code>varsel()</code> and <code>cv_varsel()</code> use <code>nclusters = 20</code>). Consequently,
+<code>project()</code> with <code>refit_prj = FALSE</code> then inherits this coarse clustering
+or thinning.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If the projection is performed onto a single submodel (i.e.,
+<code>length(nterms) == 1 || !is.null(predictor_terms)</code>), an object of class
+<code>projection</code> which is a <code>list</code> containing the following elements:
+</p>
+
+<dl>
+<dt><code>dis</code></dt>
+<dd>
+<p>Projected draws for the dispersion parameter.</p>
+</dd>
+<dt><code>ce</code></dt>
+<dd>
+<p>The cross-entropy part of the Kullback-Leibler (KL)
+divergence from the reference model to the submodel. For some families,
+this is not the actual cross-entropy, but a reduced one where terms which
+would cancel out when calculating the KL divergence have been dropped. In
+case of the Gaussian family, that reduced cross-entropy is further
+modified, yielding merely a proxy.</p>
+</dd>
+<dt><code>wdraws_prj</code></dt>
+<dd>
+<p>Weights for the projected draws.</p>
+</dd>
+<dt><code>predictor_terms</code></dt>
+<dd>
+<p>A character vector of the submodel's predictor
+terms.</p>
+</dd>
+<dt><code>outdmin</code></dt>
+<dd>
+<p>A <code>list</code> containing the submodel fits (one fit per
+projected draw). This is the same as the return value of the
+<code>div_minimizer</code> function (see <code>init_refmodel()</code>), except if <code>project()</code>
+was used with an <code>object</code> of class <code>vsel</code> based on an L1 search as well
+as with <code>refit_prj = FALSE</code>, in which case this is the output from an
+internal <em>L1-penalized</em> divergence minimizer.</p>
+</dd>
+<dt><code>cl_ref</code></dt>
+<dd>
+<p>A numeric vector of length equal to the number of
+posterior draws in the reference model, containing the cluster indices of
+these draws.</p>
+</dd>
+<dt><code>wdraws_ref</code></dt>
+<dd>
+<p>A numeric vector of length equal to the number of
+posterior draws in the reference model, giving the weights of these
+draws. These weights should be treated as not being normalized (i.e.,
+they don't necessarily sum to <code>1</code>).</p>
+</dd>
+<dt><code>const_wdraws_prj</code></dt>
+<dd>
+<p>A single logical value indicating whether the
+projected draws have constant weights (<code>TRUE</code>) or not (<code>FALSE</code>).</p>
+</dd>
+<dt><code>refmodel</code></dt>
+<dd>
+<p>The reference model object.</p>
+</dd>
+</dl>
+<p>If the projection is performed onto more than one submodel, the output from
+above is returned for each submodel, giving a <code>list</code> with one element for
+each submodel.
+</p>
+<p>The elements of an object of class <code>projection</code> are not meant to be
+accessed directly but instead via helper functions (see the main vignette
+and projpred-package; see also <code>as_draws_matrix.projection()</code>, argument
+<code>return_draws_matrix</code> of <code>proj_linpred()</code>, and argument
+<code>nresample_clusters</code> of <code>proj_predict()</code> for the intended use of the
+weights stored in element <code>wdraws_prj</code>).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Data:
+dat_gauss &lt;- data.frame(y = df_gaussian$y, df_gaussian$x)
+
+# The `stanreg` fit which will be used as the reference model (with small
+# values for `chains` and `iter`, but only for technical reasons in this
+# example; this is not recommended in general):
+fit &lt;- rstanarm::stan_glm(
+  y ~ X1 + X2 + X3 + X4 + X5, family = gaussian(), data = dat_gauss,
+  QR = TRUE, chains = 2, iter = 500, refresh = 0, seed = 9876
+)
+
+# Run varsel() (here without cross-validation, with L1 search, and with small
+# values for `nterms_max` and `nclusters_pred`, but only for the sake of
+# speed in this example; this is not recommended in general):
+vs &lt;- varsel(fit, method = "L1", nterms_max = 3, nclusters_pred = 10,
+             seed = 5555)
+
+# Projection onto the best submodel with 2 predictor terms (with a small
+# value for `nclusters`, but only for the sake of speed in this example;
+# this is not recommended in general):
+prj_from_vs &lt;- project(vs, nterms = 2, nclusters = 10, seed = 9182)
+
+# Projection onto an arbitrary combination of predictor terms (with a small
+# value for `nclusters`, but only for the sake of speed in this example;
+# this is not recommended in general):
+prj &lt;- project(fit, predictor_terms = c("X1", "X3", "X5"), nclusters = 10,
+               seed = 9182)
+
+</code></pre>
+
+
+</div>

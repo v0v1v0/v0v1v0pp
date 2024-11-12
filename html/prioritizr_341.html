@@ -1,0 +1,641 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>problem</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Conservation planning problem</h2>
+
+<h3>Description</h3>
+
+<p>Create a systematic conservation planning problem. This function is used to
+specify the basic data used in a spatial prioritization problem: the
+spatial distribution of the planning units and their costs, as well as
+the features (e.g., species, ecosystems) that need to be conserved. After
+constructing this object, it can be
+customized to meet specific goals using objectives,
+targets, constraints, and
+penalties. After building the problem, the
+<code>solve()</code> function can be used to identify solutions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">problem(x, features, ...)
+
+## S4 method for signature 'SpatRaster,SpatRaster'
+problem(x, features, run_checks, ...)
+
+## S4 method for signature 'SpatRaster,ZonesSpatRaster'
+problem(x, features, run_checks, ...)
+
+## S4 method for signature 'data.frame,character'
+problem(x, features, cost_column, ...)
+
+## S4 method for signature 'data.frame,ZonesCharacter'
+problem(x, features, cost_column, ...)
+
+## S4 method for signature 'data.frame,data.frame'
+problem(x, features, rij, cost_column, zones, ...)
+
+## S4 method for signature 'numeric,data.frame'
+problem(x, features, rij_matrix, ...)
+
+## S4 method for signature 'matrix,data.frame'
+problem(x, features, rij_matrix, ...)
+
+## S4 method for signature 'sf,SpatRaster'
+problem(x, features, cost_column, run_checks, ...)
+
+## S4 method for signature 'sf,ZonesSpatRaster'
+problem(x, features, cost_column, run_checks, ...)
+
+## S4 method for signature 'sf,character'
+problem(x, features, cost_column, ...)
+
+## S4 method for signature 'sf,ZonesCharacter'
+problem(x, features, cost_column, ...)
+
+## S4 method for signature 'Raster,Raster'
+problem(x, features, run_checks, ...)
+
+## S4 method for signature 'Raster,ZonesRaster'
+problem(x, features, run_checks, ...)
+
+## S4 method for signature 'Spatial,Raster'
+problem(x, features, cost_column, run_checks, ...)
+
+## S4 method for signature 'Spatial,ZonesRaster'
+problem(x, features, cost_column, run_checks, ...)
+
+## S4 method for signature 'Spatial,character'
+problem(x, features, cost_column, ...)
+
+## S4 method for signature 'Spatial,ZonesCharacter'
+problem(x, features, cost_column, ...)
+
+## S4 method for signature 'sf,Raster'
+problem(x, features, cost_column, run_checks, ...)
+
+## S4 method for signature 'sf,ZonesRaster'
+problem(x, features, cost_column, run_checks, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>terra::rast()</code>, <code>sf::st_sf()</code>, <code>data.frame</code>, <code>matrix</code>, or
+<code>numeric</code> vector specifying the planning units to use in the reserve
+design exercise and their corresponding cost. It may be desirable to
+exclude some planning units from the analysis, for example those outside
+the study area. To exclude planning units, set the cost for those raster
+cells to <code>NA</code>, or use the <code>add_locked_out_constraints()</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>features</code></td>
+<td>
+<p>The feature data can be specified in a variety of ways.
+The specific formats that can be used depend on the cost data format (i.e.,
+argument to <code>x</code>) and whether the problem should have a single zone or
+multiple zones. If the problem should have a single zone, then the feature
+data can be specified following:
+</p>
+
+<dl>
+<dt><strong><code>x</code> has <code>terra::rast()</code> or <code>sf::st_sf()</code> planning units</strong></dt>
+<dd>
+<p>The argument to <code>features</code> can be a <code>terra::rast()</code>
+object showing the distribution of conservation features. Missing
+values (i.e., <code>NA</code> values) can be used to indicate the absence of
+a feature in a particular cell instead of explicitly setting these
+cells to zero. Note that this argument type for <code>features</code> can
+only be used to specify data for problems involving a single zone.</p>
+</dd>
+<dt><strong><code>x</code> has <code>sf::st_sf()</code> or <code>data.frame</code> planning units</strong></dt>
+<dd>
+<p>The argument to <code>features</code> can be a <code>character</code> vector
+with column names (from <code>x</code>) that correspond to the abundance or
+occurrence of different features in each planning unit. Note that
+this argument type can only be used to create problems involving a
+single zone.</p>
+</dd>
+<dt><strong><code>x</code> has <code>data.frame</code>, <code>matrix</code>, or <code>numeric</code> vector planning
+units</strong></dt>
+<dd>
+<p>The argument to <code>features</code> can be a <code>data.frame</code> object
+containing the names of the features. Note that if this
+type of argument is supplied to <code>features</code> then the argument
+<code>rij</code> or <code>rij_matrix</code> must also be supplied. This type of
+argument should follow the conventions used by <em>Marxan</em>, wherein
+each row corresponds to a different feature. It must also contain the
+following columns:
+</p>
+
+<dl>
+<dt>id</dt>
+<dd>
+<p><code>integer</code> unique identifier for each feature
+These identifiers are used in the argument to <code>rij</code>.</p>
+</dd>
+<dt>name</dt>
+<dd>
+<p><code>character</code> name for each feature.</p>
+</dd>
+<dt>prop</dt>
+<dd>
+<p><code>numeric</code> relative target for each feature
+(optional).</p>
+</dd>
+<dt>amount</dt>
+<dd>
+<p><code>numeric</code> absolute target for each
+feature (optional).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>If the problem should have multiple zones, then the feature
+data can be specified following:
+</p>
+
+<dl>
+<dt><strong><code>x</code> has <code>terra::rast()</code> or <code>sf::st_sf()</code> planning units</strong></dt>
+<dd>
+<p>The argument to <code>features</code> can be a <code>ZonesRaster</code>
+object showing the distribution of conservation features in multiple
+zones. As above, missing values (i.e., <code>NA</code> values) can be used to
+indicate the absence of a feature in a particular cell instead of
+explicitly setting these cells to zero.</p>
+</dd>
+<dt><strong><code>x</code> has <code>sf::st_sf()</code> or <code>data.frame</code> planning units</strong></dt>
+<dd>
+<p>The argument to <code>features</code> can be a <code>ZonesCharacter</code>
+object with column names (from <code>x</code>) that correspond to the abundance or
+occurrence of different features in each planning unit in different
+zones.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>not used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>run_checks</code></td>
+<td>
+<p><code>logical</code> flag indicating whether checks should be
+run to ensure the integrity of the input data. These checks are run by
+default; however, for large datasets they may increase run time. If it is
+taking a prohibitively long time to create the prioritization problem,
+try setting <code>run_checks</code> to <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cost_column</code></td>
+<td>
+<p><code>character</code> name or <code>integer</code> indicating the
+column(s) with the cost data. This argument must be supplied when the
+argument to <code>x</code> is a <code>sf::st_sf()</code> or
+<code>data.frame</code> object. This argument should contain the name of each
+column containing cost data for each management zone when creating
+problems with multiple zones. To create a problem with a single zone, then
+set the argument to <code>cost_column</code> as a single column name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rij</code></td>
+<td>
+<p><code>data.frame</code> containing information on the amount of
+each feature in each planning unit assuming each management zone. Similar
+to <code>data.frame</code> arguments for <code>features</code>, the <code>data.frame</code>
+objects must follow the conventions used by <em>Marxan</em>. Note that the
+<code>"zone"</code> column is not needed for problems involving a single
+management zone. Specifically, the argument should contain the following
+columns:
+</p>
+
+<dl>
+<dt>pu</dt>
+<dd>
+<p><code>integer</code> planning unit identifier.</p>
+</dd>
+<dt>species</dt>
+<dd>
+<p><code>integer</code> feature identifier.</p>
+</dd>
+<dt>zone</dt>
+<dd>
+<p><code>integer</code> zone identifier (optional for
+problems involving a single zone).</p>
+</dd>
+<dt>amount</dt>
+<dd>
+<p><code>numeric</code> amount of the feature in the
+planning unit.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zones</code></td>
+<td>
+<p><code>data.frame</code> containing information on the zones. This
+argument is only used when argument to <code>x</code> and <code>features</code> are
+both <code>data.frame</code> objects and the problem being built contains
+multiple zones. Following conventions used in <code>MarZone</code>, this
+argument should contain the following columns:
+columns:
+</p>
+
+<dl>
+<dt>id</dt>
+<dd>
+<p><code>integer</code> zone identifier.</p>
+</dd>
+<dt>name</dt>
+<dd>
+<p><code>character</code> zone name.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rij_matrix</code></td>
+<td>
+<p><code>list</code> of <code>matrix</code> or <code>dgCMatrix</code>
+objects specifying the amount of each feature (rows) within each planning
+unit (columns) for each zone. The <code>list</code> elements denote
+different zones, matrix rows denote features, and matrix columns denote
+planning units. For convenience, the argument to
+<code>rij_matrix</code> can be a single <code>matrix</code> or
+<code>dgCMatrix</code> when specifying a problem with a
+single management zone. This argument is only used when the argument
+to <code>x</code> is a <code>numeric</code> or <code>matrix</code> object.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>A systematic conservation planning exercise leverages data to help inform
+conservation decision making. To help ensure that the
+data – and resulting prioritizations – are relevant to the over-arching
+goals of the exercise, you should decide on the management action
+(or set of actions) that need be considered in the exercise.
+For example, these actions could include establishing protected areas,
+selecting land for conservation easements, restoring habitat,
+planting trees for carbon sequestration, eradicating invasive
+species, or some combination of the previous actions.
+If the exercise involves multiple different actions, they can
+be incorporated by using multiple zones
+(see the Management Zones vignette for details). After deciding
+on the management action(s), you can compile the following data.
+</p>
+<p>First, you will need to create a set of planning units
+(i.e., discrete spatial areas) to inform decision making.
+Planning units are often created by subdividing a study region
+into a set of square or hexagonal cells. They can also be created using
+administrative boundaries (e.g., provinces), land management boundaries
+(e.g., property boundaries derived from cadastral data), or
+ecological boundaries (e.g., based on ecosystem classification data).
+The size (i.e., spatial grain) of the planning units is often determined
+based on a compromise between the scale needed to inform decision making, the
+spatial accuracy (resolution) of available datasets, and
+the computational resources available for generating prioritizations
+(e.g., RAM and number of CPU cores on your computer).
+</p>
+<p>Second, you will need data to quantify the cost of implementing
+each management action within each planning unit.
+Critically, the cost data should reflect the management action(s)
+considered in the exercise.
+For example, costs are often specified using data that reflect economic
+expenditure (e.g., land acquisition cost),
+socioeconomic conditions (e.g., human population density),
+opportunity costs of foregone commercial activities
+(e.g., logging or agriculture), or
+opportunity costs of foregone recreational activities
+(e.g., recreational fishing).
+In some cases – depending on the management action(s) considered –
+it can make sense to use a constant cost value
+(e.g., all planning units are assigned a cost value equal to one)
+or use a cost value based on spatial extent
+(e.g., each planning unit is assigned a cost value based on its total area).
+Also, in most cases, you want to avoid negative cost values.
+This is because a negative value means that a place is <em>desirable</em>
+for implementing a management action, and such places will almost
+always be selected for prioritization even if they provide no benefit.
+</p>
+<p>Third, you will need data to quantify the benefits of implementing
+management actions within planning units.
+To achieve this, you will need to select a set of conservation features
+that relate to the over-arching goals of the exercise.
+For example, conservation features often include
+species (e.g., Clouded Leopard), habitats (e.g., mangroves or
+cloud forest), or ecosystems.
+The benefit that each feature derives from a planning unit
+can take a variety of forms, but is typically occupancy (i.e.,
+presence or absence), area of occurrence within each planning unit
+(e.g., based on species' geographic range data), or
+a measure of habitat suitability (e.g., estimated using a statistical model).
+After compiling these data, you have the minimal data needed to generate
+a prioritization.
+</p>
+<p>A systematic conservation planning exercise involves prioritizing a set of
+management actions to be implemented within certain planning units.
+Critically, this prioritization should ideally optimize the trade-off
+between benefits and costs.
+To accomplish this, the <span class="pkg">prioritizr</span> package uses input data
+to formulate optimization problems (see Optimization section for details).
+Broadly speaking, the goal of an optimization problem is to minimize
+(or maximize) an objective function over a set of
+decision variables, subject to a series of constraints.
+Here, an objective function specifies the metric for evaluating
+conservation plans. The decision variables are what we control, and usually
+there is one binary variable for each planning unit to specify whether that
+unit is selected or not (but other approaches are available, see
+decisions). The constraints can be thought of as rules that must be
+followed. For example, constraints can be used to ensure a prioritization
+must stay within a certain budget. These constraints can also leverage
+additional data to help ensure that prioritizations meet the over-arching
+goals of the exercise. For example, to account for existing conservation
+efforts, you could obtain data delineating the extent of existing protected
+areas and use constraints to lock in planning units that are covered by them
+(see add_locked_in_constraints).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A new <code>problem()</code> (<code>ConservationProblem</code>) object.
+</p>
+
+
+<h3>Optimization</h3>
+
+<p>The <span class="pkg">prioritizr</span> package uses exact algorithms to solve reserve design
+problems (see solvers for details).
+To achieve this, it internally formulates mathematical optimization problems
+using mixed integer linear programming (MILP). The general form of
+such problems can be expressed in matrix notation using
+the following equation.
+</p>
+<p style="text-align: center;"><code class="reqn">\mathit{Minimize} \space \mathbf{c}^{\mathbf{T}}\mathbf{x} \space
+\mathit{subject \space to} \space
+\mathbf{Ax}\geq= or\leq \mathbf{b}</code>
+</p>
+
+<p>Here, <code class="reqn">x</code> is a vector of decision variables, <code class="reqn">c</code> and <code class="reqn">b</code> are
+vectors of known coefficients, and <code class="reqn">A</code> is the constraint
+matrix. The final term specifies a series of structural
+constraints where relational operators for the constraint can be either
+<code class="reqn">\ge</code>, <code class="reqn">=</code>, or <code class="reqn">\le</code> the coefficients. For example, in the
+minimum set cover problem, <code class="reqn">c</code> would be a vector of costs for each
+planning unit, <code class="reqn">b</code> a vector of targets for each conservation feature,
+the relational operator would be <code class="reqn">\ge</code> for all features, and <code class="reqn">A</code>
+would be the representation matrix with <code class="reqn">A_{ij}=r_{ij}</code>, the
+representation level of feature <code class="reqn">i</code> in planning unit <code class="reqn">j</code>.
+If you wish to see exactly how a conservation planning problem is
+formulated as mixed integer linear programming problem, you can use
+the <code>write_problem()</code> function to save the optimization problem
+to a plain-text file on your computer and then view it using a standard
+text editor (e.g., Notepad).
+</p>
+<p>Please note that this function internally computes the amount of each
+feature in each planning unit when this data is not supplied (using the
+<code>rij_matrix()</code> function). As a consequence, it can take a while to
+initialize large-scale conservation planning problems that involve
+millions of planning units.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See <code>solve()</code> for details on solving a problem to generate solutions.
+Also, see objectives, penalties, targets, constraints,
+decisions, portfolios, solvers for information on customizing problems.
+Additionally, see summaries and importance for information on
+evaluating solutions.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# load data
+sim_pu_raster &lt;- get_sim_pu_raster()
+sim_pu_polygons &lt;- get_sim_pu_polygons()
+sim_pu_points &lt;- get_sim_pu_points()
+sim_pu_lines &lt;- get_sim_pu_lines()
+sim_features &lt;- get_sim_features()
+sim_zones_pu_raster &lt;- get_sim_zones_pu_raster()
+sim_zones_pu_polygons &lt;- get_sim_zones_pu_polygons()
+sim_zones_features &lt;- get_sim_zones_features()
+
+# create problem using raster planning unit data
+p1 &lt;-
+  problem(sim_pu_raster, sim_features) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(0.2) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# create problem using polygon planning unit data
+p2 &lt;-
+  problem(sim_pu_polygons, sim_features, "cost") %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(0.2) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# create problem using line planning unit data
+p3 &lt;-
+  problem(sim_pu_lines, sim_features, "cost") %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(0.2) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# create problem using point planning unit data
+p4 &lt;-
+  problem(sim_pu_points, sim_features, "cost") %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(0.2) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# since geo-processing can be slow for large spatial vector datasets
+# (e.g., polygons, lines, points), it can be worthwhile to pre-process the
+# planning unit data so that it contains columns indicating the amount of
+# each feature inside each planning unit
+# (i.e., each column corresponds to a different feature)
+
+# calculate the amount of each species within each planning unit
+pre_proc_data &lt;- rij_matrix(sim_pu_polygons, sim_features)
+
+# add extra columns to the polygon planning unit data
+# to indicate the amount of each species within each planning unit
+pre_proc_data &lt;- as.data.frame(t(as.matrix(pre_proc_data)))
+names(pre_proc_data) &lt;- names(sim_features)
+sim_pu_polygons &lt;- cbind(sim_pu_polygons, pre_proc_data)
+
+# create problem using the polygon planning unit data
+# with the pre-processed columns
+p5 &lt;-
+  problem(sim_pu_polygons, features = names(pre_proc_data), "cost") %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(0.2) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# in addition to spatially explicit data, pre-processed aspatial data
+# can also be used to create a problem
+# (e.g., data created using external spreadsheet software)
+costs &lt;- sim_pu_polygons$cost
+features &lt;- data.frame(
+  id = seq_len(terra::nlyr(sim_features)),
+  name = names(sim_features)
+)
+rij_mat &lt;- rij_matrix(sim_pu_polygons, sim_features)
+p6 &lt;-
+  problem(costs, features, rij_matrix = rij_mat) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(0.2) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve problems
+s1 &lt;- solve(p1)
+s2 &lt;- solve(p2)
+s3 &lt;- solve(p3)
+s4 &lt;- solve(p4)
+s5 &lt;- solve(p5)
+s6 &lt;- solve(p6)
+
+# plot solutions for problems associated with spatial data
+plot(s1, main = "raster data", axes = FALSE)
+plot(s2[, "solution_1"], main = "polygon data")
+plot(s3[, "solution_1"], main = "line data")
+plot(s4[, "solution_1"], main = "point data")
+plot(s5[, "solution_1"], main = "preprocessed data (polygon data)")
+
+# show solutions for problems associated with aspatial data
+str(s6)
+
+# create some problems with multiple zones
+
+# first, create a matrix containing the targets for multi-zone problems
+# here each row corresponds to a different feature, each
+# column corresponds to a different zone, and values correspond
+# to the total (absolute) amount of a given feature that needs to be secured
+# in a given zone
+targets &lt;- matrix(
+  rpois(15, 1),
+  nrow = number_of_features(sim_zones_features),
+  ncol = number_of_zones(sim_zones_features),
+  dimnames = list(
+    feature_names(sim_zones_features), zone_names(sim_zones_features)
+  )
+)
+
+# print targets
+print(targets)
+
+# create a multi-zone problem with raster data
+p7 &lt;-
+  problem(sim_zones_pu_raster, sim_zones_features) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_absolute_targets(targets) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve problem
+s7 &lt;- solve(p7)
+
+# plot solution
+# here, each layer/panel corresponds to a different zone and pixel values
+# indicate if a given planning unit has been allocated to a given zone
+par(mfrow = c(1, 1))
+plot(s7, main = c("zone 1", "zone 2", "zone 3"), axes = FALSE)
+
+# alternatively, the category_layer function can be used to create
+# a new raster object containing the zone ids for each planning unit
+# in the solution (note this only works for problems with binary decisions)
+par(mfrow = c(1, 1))
+plot(category_layer(s7), axes = FALSE)
+
+# create a multi-zone problem with polygon data
+p8 &lt;-
+  problem(
+    sim_zones_pu_polygons, sim_zones_features,
+    cost_column = c("cost_1", "cost_2", "cost_3")
+  ) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_absolute_targets(targets) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve problem
+s8 &lt;- solve(p8)
+
+# create column containing the zone id for which each planning unit was
+# allocated to in the solution
+s8$solution &lt;- category_vector(sf::st_drop_geometry(
+ s8[, c("solution_1_zone_1", "solution_1_zone_2", "solution_1_zone_3")]
+))
+s8$solution &lt;- factor(s8$solution)
+
+# plot solution
+plot(s8[, "solution"], axes = FALSE)
+
+# create a multi-zone problem with polygon planning unit data
+# and where columns correspond to feature abundances
+
+# to begin with, we will add columns to the planning unit data
+# that indicate the amount of each feature in each zone
+sim_zones_pu_polygons$spp1_z1 &lt;- rpois(nrow(sim_zones_pu_polygons), 1)
+sim_zones_pu_polygons$spp2_z1 &lt;- rpois(nrow(sim_zones_pu_polygons), 1)
+sim_zones_pu_polygons$spp3_z1 &lt;- rpois(nrow(sim_zones_pu_polygons), 1)
+sim_zones_pu_polygons$spp1_z2 &lt;- rpois(nrow(sim_zones_pu_polygons), 1)
+sim_zones_pu_polygons$spp2_z2 &lt;- rpois(nrow(sim_zones_pu_polygons), 1)
+sim_zones_pu_polygons$spp3_z2 &lt;- rpois(nrow(sim_zones_pu_polygons), 1)
+
+# create problem with polygon planning unit data and use column names
+# to indicate feature data
+# additionally, to make this example slightly more interesting,
+# the problem will have proportion-type decisions such that
+# a proportion of each planning unit can be allocated to each of the
+# two management zones
+p9 &lt;-
+  problem(
+    sim_zones_pu_polygons,
+    zones(
+      c("spp1_z1", "spp2_z1", "spp3_z1"),
+      c("spp1_z2", "spp2_z2", "spp3_z2"),
+      zone_names = c("z1", "z2")
+    ),
+    cost_column = c("cost_1", "cost_2")
+  ) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_absolute_targets(targets[1:3, 1:2]) %&gt;%
+  add_proportion_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve problem
+s9 &lt;- solve(p9)
+
+# plot solution
+plot(s9[, c("solution_1_z1", "solution_1_z2")], axes = FALSE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

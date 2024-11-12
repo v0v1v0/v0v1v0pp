@@ -1,0 +1,120 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>board_azure</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Use an Azure storage container as a board</h2>
+
+<h3>Description</h3>
+
+<p>Pin data to a container in Azure storage using the AzureStor package.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">board_azure(
+  container,
+  path = "",
+  n_processes = 10,
+  versioned = TRUE,
+  cache = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>container</code></td>
+<td>
+<p>An azure storage container created by
+<code>AzureStor::blob_container()</code> or similar.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path</code></td>
+<td>
+<p>Path to the directory in the container to store pins. Will be
+created if it doesn't already exist. The equivalent of a <code>prefix</code> for AWS
+S3 storage.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_processes</code></td>
+<td>
+<p>Maximum number of processes used for parallel
+uploads/downloads.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>versioned</code></td>
+<td>
+<p>Should this board be registered with support for versions?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cache</code></td>
+<td>
+<p>Cache path. Every board requires a local cache to avoid
+downloading files multiple times. The default stores in a standard
+cache location for your operating system, but you can override if needed.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>You can create a board in any of the services that AzureStor supports: blob
+storage, file storage and Azure Data Lake Storage Gen2 (ADLSgen2).
+</p>
+<p>Blob storage is the classic storage service that is most familiar to people,
+but is relatively old and inefficient. ADLSgen2 is a modern replacement API
+for working with blobs that is much faster when working with directories.
+You should consider using this rather than the classic blob API where
+possible; see the examples below.
+</p>
+<p><code>board_azure()</code> is powered by the AzureStor package, which is a suggested
+dependency of pins (not required for pins in general). If you run into errors
+when deploying content to a server like <a href="https://www.shinyapps.io">https://www.shinyapps.io</a> or
+<a href="https://posit.co/products/enterprise/connect/">Connect</a>, add
+<code>requireNamespace("AzureStor")</code> to your app or document for <a href="https://docs.posit.co/connect/user/troubleshooting/#render-missing-r-package">automatic dependency discovery</a>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">if (requireNamespace("AzureStor")) {
+  # Public access board
+  url &lt;- "https://pins.blob.core.windows.net/public-data"
+  container &lt;- AzureStor::blob_container(url)
+  board &lt;- board_azure(container)
+  board %&gt;% pin_read("mtcars")
+}
+
+## Not run: 
+# To create a board that you can write to, you'll need to supply one
+# of `key`, `token`, or `sas` to AzureStor::blob_container()
+# First, we create a board using the classic Azure blob API
+url &lt;- "https://myaccount.blob.core.windows.net/mycontainer"
+container &lt;- AzureStor::blob_container(url, sas = "my-sas")
+board &lt;- board_azure(container, "path/to/board")
+board %&gt;% pin_write(iris)
+
+# ADLSgen2 is a modern, efficient way to access blobs
+# - Use 'dfs' instead of 'blob' in the account URL to use the ADLSgen2 API
+# - Use the 'storage_container' generic instead of the service-specific
+#   'blob_container'
+# - We reuse the board created via the blob API above
+adls_url &lt;- "https://myaccount.dfs.core.windows.net/mycontainer"
+container &lt;- AzureStor::storage_container(adls_url, sas = "my-sas")
+board &lt;- board_azure(container, "path/to/board")
+board %&gt;% pin_list()
+board %&gt;% pin_read("iris")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

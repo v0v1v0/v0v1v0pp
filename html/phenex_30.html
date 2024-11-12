@@ -1,0 +1,325 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>NDVI-class</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Class <code>"NDVI"</code>
+</h2>
+
+<h3>Description</h3>
+
+<p>Class ‘NDVI’ provides functions to smooth NDVI (Normalized Difference Vegetation Index) 
+timeseries obtained from satellite observations.
+</p>
+
+
+<h3>Objects from the Class</h3>
+
+<p>NDVI-Objects can be created by calls of the form <code>modelNDVI(ndvi.values, ...)</code>.
+These objects contain the timeserie as given by ‘ndvi.values’, smoothed values due 
+to the performed correction (see also <code>modelNDVI</code>, parameter 'correction') 
+and modelled values due to the chosen method (see also <code>modelNDVI</code>, parameter ‘method’).
+Furthermore, the year of the timeserie can be stored as integer value.
+</p>
+
+
+<h3>Slots</h3>
+
+
+<dl>
+<dt>
+<code>year</code>:</dt>
+<dd>
+<p>The year of the timeseries as integer value or ‘NA’.</p>
+</dd>
+<dt>
+<code>seasons</code>:</dt>
+<dd>
+<p>Season start positions of the timeseries.</p>
+</dd>
+<dt>
+<code>values</code>:</dt>
+<dd>
+<p>A vector of NDVI-values (between minus one and one as numeric) of length 365 or 
+366 (respective to length of the year).</p>
+</dd>
+<dt>
+<code>correctedValues</code>:</dt>
+<dd>
+<p>A vector of corrected NDVI-values. Is set after use of correction methods ‘bise’ or ‘runningAvg’.</p>
+</dd>
+<dt>
+<code>modelledValues</code>:</dt>
+<dd>
+<p>A vector of corrected NDVI-values. Is set after use of method ‘modelValues’.</p>
+</dd>
+</dl>
+<h3>Methods</h3>
+
+
+<dl>
+<dt>bise</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: Best index slope extraction after <em>Viovy et. al</em> (1992). 
+Second interpretation of algorithm.
+</p>
+<p>This routine tries to restore the temporal NDVI profile, 
+i.e. separate true observations from noise. The sliding period default of BISE-algorithm 
+is 40 days, optimised for the area of Central Europe. This might has to be modified 
+when vegetation dynamics of other climates/habitats are analysed.
+An maximum increase threshold is defined via parameter ‘growthFactorThreshold’ with 
+default to 0.1 (10 percent increase per day allowed).
+The timeserie is cycled via parameter ‘cycleValues’, which is a 
+boolean value determining whether the end of the ndvi timeserie 
+is combined with its beginning or not (default value is true). If false, gaps or low ndvi 
+values at the beginning of timeserie influence the result.
+</p>
+<p>This method is used by function <code>modelNDVI</code> if parameter correction is set to “bise”.</p>
+</dd>
+<dt>checkLength</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: Checks the length of the timeserie respective 
+to the length of the year (365 days or 366 for leap years).</p>
+</dd>
+<dt>correctedValues&lt;-</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: Replacement method for slot <code>correctedValues</code>.</p>
+</dd>
+<dt>correctedValues</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: Acessor method for slot <code>correctedValues</code>. </p>
+</dd>
+<dt>isLeapYear</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: Checks whether the year of the NDVI-object is a leap year.</p>
+</dd>
+<dt>seasons&lt;-</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: Replacement method for slot <code>seasons</code>. </p>
+</dd>
+<dt>seasons</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: Acessor method for slot <code>seasons</code>. </p>
+</dd>
+<dt>modelledValues&lt;-</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: Replacement method for slot <code>modelledValues</code>. </p>
+</dd>
+<dt>modelledValues</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: Acessor method for slot <code>modelledValues</code>. </p>
+</dd>
+<dt>modelValues</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: Fits a suite of functions/models to corrected NDVI-timeserie (if the 
+corrected timeserie is not available, the raw one out of ‘values’ will be used). 
+Parameter ‘method’ determines the used model:
+</p>
+<p>“<b>LinIP</b>”: A linear interpolation is performed. For interpolation, the end of 
+timeserie is connected to the beginning (e.g. after day 365 follows day 1). 
+Applied in <em>Badeck et. al</em> (2004) and <em>Doktor et. al</em> (2009).
+</p>
+<p>“<b>Spline</b>”: A spline interpolation is performed. For interpolation, the end of 
+timeserie is connected to the beginning (e.g. after day 365 follows day 1).
+</p>
+<p>“<b>DSig</b>”: Fits a double sigmoidal function to NDVI values (according to <em>Zhang et. al</em> (2003)).
+</p>
+<p>“<b>DSigC</b>”: Fits another double sigmoidal function (own C implementation) to NDVI values.
+</p>
+<p>“<b>DLogistic</b>”: Fits a double logistic function after <em>Fischer, Alberte</em> (1994) to NDVI values.
+</p>
+<p>“<b>Gauss</b>”: Fits a symmetric or asymmetric (determined by boolean parameter ‘asym’) gaussian 
+function to NDVI values (own C implementation after <em>Press, W.H.</em> (1992)).
+</p>
+<p>“<b>GaussMix</b>”: Fits a mixture of gaussian functions to NDVI values (own C implementation after <em>Press, W.H.</em> (1992)).
+The number of components is determined by parameter ‘components’. If multiple components are given, 
+the algorithm checks which number performs best.
+</p>
+<p>“<b>Growth</b>”: Fits a growth model after <em>Richter et. al</em> (1991) to NDVI values.
+</p>
+<p>“<b>FFT</b>”: Smoothes the corrected or raw NDVI values with fast fourier transfusion (implemented in R). 
+The smoothing intensity can be controlled with parameter ‘filter.threshold’ with default to 3.
+</p>
+<p>“<b>SavGol</b>”: Smoothes the corrected or raw NDVI values with a Savitzky-Golay 
+filter (own C implementation after <em>Press, W.H.</em> (1992)). 
+The smoothing algorithm can be modified with parameters 
+‘window.sav’ (window size of filter, default to 7),
+‘degree’ (degree of fitting polynomial, default to 2) 
+and ‘smoothing’ (repetition quantity, default to 10).
+</p>
+<p>This method is used by function <code>modelNDVI</code> with modelling method respective to parameter ‘method’.</p>
+</dd>
+<dt>phenoPhase</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: Extracts the start of phenological phases out of the modelled NDVI values. 
+Parameter ‘phase’ determines which phase is extracted:
+</p>
+<p>“<b>max</b>”: Day of the year with highest NDVI value is returned.
+</p>
+<p>“<b>min</b>”: Day of the year with lowest NDVI value is returned. 
+</p>
+<p>“<b>greenup</b>”: Day of the year at which greenup takes place is returned. 
+This day refers to the point where the function of modelled NDVI 
+values exceeds a certain threshold.
+</p>
+<p>“<b>senescence</b>”: Day of the year at which senescence takes place is returned. 
+This day refers to the point where the function of modelled NDVI 
+values exceeds a certain threshold.
+</p>
+<p>Parameter ‘method’ determines whether a global or local threshold is used for
+greenup and senescence extraction:
+</p>
+<p>With “<b>global</b>” threshold, the day of the year is returned, 
+where NDVI values are first equal or higher as the value of ‘threshold’. 
+If the threshold is higher than the values of the timeseries, ‘-1’ will be returned.
+</p>
+<p>With “<b>local</b>” threshold, the day of the year is returned, for which NDVI values first reach the value of
+‘threshold’ (interpreted as percentage) between lowest and highest NDVI value of timeserie. 
+The lowest NDVI value is chosen depending on phase selected. For “greenup”, 
+the lowest value before day of maximum NDVI value is used. For “senescence”, 
+the lowest value after day of maximum NDVI value is used.
+</p>
+<p>The ‘threshold’ for local or global greenup/senescence-extraction method
+should have numerical value between ‘0’ and ‘1’. Global thresholds 
+refer to a fix NDVI value independent of actual NDVI magnitudes. 
+Local thresholds are based on (max - min) * e.g. 0.55. Hence, the respective 
+NDVI value will vary dependent on e.g. land-cover.
+</p>
+</dd>
+<dt>plot</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: Plots raw data as black dots (slot 'values'), 
+corrected values as red dots (slot ‘correctedValues’) and 
+modelled values as blue line (slot ‘modelledValues’).</p>
+</dd>
+<dt>runningAvg</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: This routine performes an averaging with a 
+running window on NDVI values. Default window size is 7 and can be modified by parameter ‘window’.
+</p>
+<p>This method is used by function <code>modelNDVI</code> if parameter correction is set to “ravg”.
+See also <code>runningAvg</code>.</p>
+</dd>
+<dt>values&lt;-</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: Replacement method for slot <code>values</code>. </p>
+</dd>
+<dt>values</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: Acessor method for slot <code>values</code>. </p>
+</dd>
+<dt>year&lt;-</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: Replacement method for slot <code>year</code>. </p>
+</dd>
+<dt>year</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: Acessor method for slot <code>year</code>. </p>
+</dd>
+<dt>rsquare</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: Calculates the squared Pearson correlation coefficient out of 
+corrected (if the corrected timeserie is not available, the raw one out of 
+‘values’ will be used) and modelled timeserie. </p>
+</dd>
+<dt>integrateTimeserie</dt>
+<dd>
+<p><code>signature(x = "NDVI")</code>: Calculates the integral of the timeserie between the bounds ‘start’ and ‘end’.</p>
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p>Lange, Maximilian and Doktor, Daniel</p>
+
+
+<h3>References</h3>
+
+<p>Badeck, F.W., Bondeau, A., Boettcher, K., Doktor, D., Lucht, W., Schaber, J. and Sitch, S. (2004). Responses of spring phenology to climate change. <em>New Phytologist</em>, <b>162</b>, 295-309. 
+</p>
+<p>Doktor, D., Bondeau, A., Koslowski, D. and Badeck, F.W. (2009). Influence of heterogeneous landscapes on computed green-up dates based on daily AVHRR NDVI observations. <em>Remote Sensing of Environment</em>, <b>113</b>, 2618-2632
+</p>
+<p>Fischer, Alberte (1994). A Model for the Seasonal Variations of Vegetation Indices in Coarse Resolution Data and Its Inversion to Extract Crop Parameters. <em>Remote Sensing of Environment</em>, <b>48</b>, 220-230.
+</p>
+<p>Press, W.H. (1992). Numerical recipes in C: The Art of Scientific Computing, vol. 1. Cambridge University Press, Cambridge, 2nd edn.
+</p>
+<p>Richter, O., Spickermann, U. and Lenz, F. (1991). A new model for plant-growth. <em>Gartenbauwissenschaft</em>, <b>56</b>, 99-106.
+</p>
+<p>Viovy, N., Arino, O. and Belward, A.S. (1992). The Best Index Slope Extraction (BISE) - a method for reducing noise in NDVI time-series. <em>International Journal of Remote Sensing</em>, <b>13</b>, 1585-1590.
+</p>
+<p>Zhang, X.Y., Friedl, M.A., Schaaf, C.B., Strahler, A.H., Hodges, J.C.F., Gao, F., Reed, B.C. and Huete, A. (2003). Monitoring vegetation phenology using MODIS. <em>Remote Sensing of Environment</em>, <b>84</b>, 471-475.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>bise</code>, <code>runningAvg</code>, <code>modelNDVI</code>, <code>phenoPhase</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">	 ##first example
+	# load data
+	data(avhrr)
+	data(modis)
+
+	# create NDVI object
+	ndvi1 &lt;- new("NDVI", values=avhrr.ndvi/10000, year=as.integer(1995))
+	ndvi2 &lt;- new("NDVI", values=modis.ndvi/10000, year=as.integer(1995))
+
+	# correct values (bise)
+	ndvi1.bise &lt;- bise(ndvi1)
+	ndvi2.bise &lt;- bise(ndvi2)
+
+	# or running Average
+	ndvi1.ravg &lt;- runningAvg(ndvi1)
+	ndvi2.ravg &lt;- runningAvg(ndvi2)
+
+	# model Values
+	res1 &lt;- modelValues(ndvi1.bise, method="LinIP")
+	res2 &lt;- modelValues(ndvi1.ravg, method="FFT", filter.threshold=7)
+	res3 &lt;- modelValues(ndvi2.bise, method="LinIP")
+	res4 &lt;- modelValues(ndvi2.bise, method="FFT", filter.threshold=7)
+
+	# plot Values
+	plot(res1)
+	plot(res2)
+	plot(res3)
+	plot(res4)
+
+	# extract greenup date
+	greenup &lt;- phenoPhase(res1, phase="greenup", method="local", threshold=0.55, n=1000)
+	# extract date with highest ndvi
+	max.ndvi &lt;- phenoPhase(res1, phase="max", n=1000)
+
+	## or simpler
+	data(avhrr)
+	data(modis)
+	
+	# create NDVI objects, correct and model values
+	ndvi.list1 &lt;- modelNDVI(ndvi.values=cbind(avhrr.ndvi/10000, modis.ndvi/10000),
+			year.int=1995, correction="bise", method="LinIP", MARGIN=2,
+			doParallel=FALSE, slidingperiod=40)
+	ndvi.list2 &lt;- modelNDVI(ndvi.values=cbind(avhrr.ndvi/10000, modis.ndvi/10000),
+			year.int=1995, correction="ravg", method="FFT", MARGIN=2,
+			doParallel=FALSE, filter.threshold=7)
+
+	# plot Values
+	for (ndvi.ob in ndvi.list1){ plot(ndvi.ob) }
+	for (ndvi.ob in ndvi.list2){ plot(ndvi.ob) }
+	
+	# extract greenup date
+	greenup &lt;- phenoPhase(ndvi.list1[[1]], phase="greenup", 
+			method="local", threshold=0.55, n=1000)
+	# extract senescence date
+	senescence &lt;- phenoPhase(ndvi.list1[[1]], phase="senescence", 
+			method="local", threshold=0.55, n=1000)
+	# extract date with highest NDVI
+	max.ndvi &lt;- phenoPhase(ndvi.list1[[1]], phase="max", n=1000)
+
+	# calculate green season integrated vegetation index
+	gsivi &lt;- integrateTimeserie(ndvi.list1[[1]], start=greenup, end=senescence, n=1000)
+</code></pre>
+
+
+</div>

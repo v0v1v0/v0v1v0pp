@@ -1,0 +1,197 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>buildPeds</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Build a list of pedigrees</h2>
+
+<h3>Description</h3>
+
+<p>Build all pedigrees between a set of individuals, subject to given
+restrictions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">buildPeds(
+  labs,
+  sex = 1,
+  extra = "parents",
+  age = NULL,
+  knownPO = NULL,
+  knownSub = NULL,
+  allKnown = FALSE,
+  notPO = NULL,
+  noChildren = NULL,
+  connected = TRUE,
+  maxInbreeding = 1/16,
+  linearInb = FALSE,
+  sexSymmetry = TRUE,
+  verbose = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>labs</code></td>
+<td>
+<p>A character vector of ID labels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sex</code></td>
+<td>
+<p>A vector of the same length as <code>labs</code>, with entries 1 (male) or 2
+(female).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extra</code></td>
+<td>
+<p>Either the word "parents" (default), or a non-negative integer.
+See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>age</code></td>
+<td>
+<p>A numeric or character vector. If numeric, and <code>age[i] &lt; age[j]</code>,
+then individual <code>i</code> will not be an ancestor of individual <code>j</code>. The numbers
+themselves are irrelevant, only the partial ordering. (No inference is made
+about individuals of equal age.) Alternatively, for finer control, <code>age</code>
+may be a character vector of inequalities, e.g., <code>age = c("1&gt;2", "1&gt;3")</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>knownPO</code></td>
+<td>
+<p>A list of vectors of length 2, containing the ID labels of
+pairs known to be parent-offspring. By default, both directions are
+considered; use <code>age</code> to force a specific direction.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>knownSub</code></td>
+<td>
+<p>A <code>ped</code> object involving a subset of the <code>labs</code> individuals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allKnown</code></td>
+<td>
+<p>A logical. If TRUE, no other pairs than <code>knownPO</code> will be
+assigned as parent-offspring. If FALSE (default), all pairs except those in
+<code>notPO</code> are treated as potential parent-offspring.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>notPO</code></td>
+<td>
+<p>A list of vectors of length 2, containing the ID labels of pairs
+known <em>not</em> to be parent-offspring.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>noChildren</code></td>
+<td>
+<p>A vector of ID labels, indicating individuals without
+children of their own.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>connected</code></td>
+<td>
+<p>A logical. If TRUE (default), only connected pedigrees are
+returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxInbreeding</code></td>
+<td>
+<p>A single numeric indicating the highest permitted
+inbreeding coefficient. Default: 1/16 (as with first-cousin parents.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>linearInb</code></td>
+<td>
+<p>A parameter controlling the maximum separation of linearly
+related spouses. Either TRUE (allow all linear inbreeding), FALSE (disallow
+all) or a non-negative integer. For example, <code>linearInb = 1</code> allows
+parent/child mating, but not grandparent/grandchild or more distant linear
+relatives. Default: FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sexSymmetry</code></td>
+<td>
+<p>A logical. If TRUE (default), pedigrees which are equal
+except for the gender distribution of the <em>added</em> parents, are regarded as
+equivalent, and only one of each equivalence class is returned. Example:
+paternal vs. maternal half sibs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A logical.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The parameter <code>extra</code> controls which of two algorithms are used to create the
+pedigree list.
+</p>
+<p>If <code>extra</code> is a nonnegative integer, it determines the number of extra
+individuals allowed in the iterative pedigree construction. These extras
+start off with undetermined sex, meaning that both males and females are
+used. It should be noted that the final pedigrees may contain additional
+extras, since missing parents are added at the end.
+</p>
+<p>If <code>extra</code> is the word "parents", the algorithm is not iterative. It first
+generates all directed acyclic graphs between the original individuals. Then
+their parents are added and merged in all possible ways. This option has the
+advantage of not requiring an explicit/ad hoc number of "extras", but works
+best in smaller cases.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list of (possibly disconnected) pedigrees.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Two individuals + 1 extra
+plist = buildPeds(1:2, extra = 1, age = "1&gt;2")
+plot(plist)
+
+# Allow disconnected
+plist2 = buildPeds(1:2, extra = 1, age = "1&gt;2", connected = FALSE)
+plot(plist2, frames = TRUE)
+
+# Note that full sibs require 2 extras
+plist3 = buildPeds(1:2, extra = 2, age = "1&gt;2")
+plot(plist3)
+
+# With 2 extras, allowing any inbreeding
+plist4 = buildPeds(1:2, extra = 2, age = "1&gt;2", maxInbreeding = 1)
+plot(plist4)
+
+# Full sibs are also included when `extra = "parents"`
+plist5 = buildPeds(1:2, extra = "parents", age = "1&gt;2")
+plot(plist5)
+
+
+</code></pre>
+
+
+</div>

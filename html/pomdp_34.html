@@ -1,0 +1,210 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>MDP</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Define an MDP Problem</h2>
+
+<h3>Description</h3>
+
+<p>Defines all the elements of a finite state-space MDP problem.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">MDP(
+  states,
+  actions,
+  transition_prob,
+  reward,
+  discount = 0.9,
+  horizon = Inf,
+  start = "uniform",
+  info = NULL,
+  name = NA
+)
+
+is_solved_MDP(x, stop = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>states</code></td>
+<td>
+<p>a character vector specifying the names of the states.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>actions</code></td>
+<td>
+<p>a character vector specifying the names of the available
+actions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transition_prob</code></td>
+<td>
+<p>Specifies the transition probabilities between
+states.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reward</code></td>
+<td>
+<p>Specifies the rewards dependent on action, states and
+observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>discount</code></td>
+<td>
+<p>numeric; discount rate between 0 and 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>horizon</code></td>
+<td>
+<p>numeric; Number of epochs. <code>Inf</code> specifies an infinite
+horizon.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start</code></td>
+<td>
+<p>Specifies in which state the MDP starts.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>info</code></td>
+<td>
+<p>A list with additional information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>a string to identify the MDP problem.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a <code>MDP</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stop</code></td>
+<td>
+<p>logical; stop with an error.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Markov decision processes (MDPs) are discrete-time stochastic control
+process with completely observable states. We implement here
+MDPs with a finite state space. similar to POMDP
+models, but without the observation model. The <code>'observations'</code> column in
+the the reward specification is always missing.
+</p>
+<p><code>make_partially_observable()</code> reformulates an MDP as a POMDP by adding an observation
+model with one observation per state
+that reveals the current state. This is achieved by adding identity
+observation probability matrices.
+</p>
+<p>More details on specifying the model components can be found in the documentation
+for POMDP.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function returns an object of class MDP which is list with
+the model specification. <code>solve_MDP()</code> reads the object and adds a list element called
+<code>'solution'</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Michael Hahsler
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other MDP: 
+<code>MDP2POMDP</code>,
+<code>MDP_policy_functions</code>,
+<code>accessors</code>,
+<code>actions()</code>,
+<code>add_policy()</code>,
+<code>gridworld</code>,
+<code>reachable_and_absorbing</code>,
+<code>regret()</code>,
+<code>simulate_MDP()</code>,
+<code>solve_MDP()</code>,
+<code>transition_graph()</code>,
+<code>value_function()</code>
+</p>
+<p>Other MDP_examples: 
+<code>Cliff_walking</code>,
+<code>Maze</code>,
+<code>Windy_gridworld</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Michael's Sleepy Tiger Problem is like the POMDP Tiger problem, but
+# has completely observable states because the tiger is sleeping in front
+# of the door. This makes the problem an MDP.
+
+STiger &lt;- MDP(
+  name = "Michael's Sleepy Tiger Problem",
+  discount = .9,
+
+  states = c("tiger-left" , "tiger-right"),
+  actions = c("open-left", "open-right", "do-nothing"),
+  start = "uniform",
+
+  # opening a door resets the problem
+  transition_prob = list(
+    "open-left" =  "uniform",
+    "open-right" = "uniform",
+    "do-nothing" = "identity"),
+
+  # the reward helper R_() expects: action, start.state, end.state, observation, value
+  reward = rbind(
+    R_("open-left",  "tiger-left",  v = -100),
+    R_("open-left",  "tiger-right", v =   10),
+    R_("open-right", "tiger-left",  v =   10),
+    R_("open-right", "tiger-right", v = -100),
+    R_("do-nothing",                v =    0)
+  )
+)
+
+STiger
+
+sol &lt;- solve_MDP(STiger)
+sol
+
+policy(sol)
+plot_value_function(sol)
+
+# convert the MDP into a POMDP and solve
+STiger_POMDP &lt;- make_partially_observable(STiger)
+sol2 &lt;- solve_POMDP(STiger_POMDP)
+sol2
+
+policy(sol2)
+plot_value_function(sol2, ylim = c(80, 120))
+</code></pre>
+
+
+</div>

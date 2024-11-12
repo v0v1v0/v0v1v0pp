@@ -1,0 +1,189 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>board_s3</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Use an S3 bucket as a board</h2>
+
+<h3>Description</h3>
+
+<p>Pin data to an S3 bucket, such as on Amazon's S3 service or MinIO, using the
+paws.storage package.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">board_s3(
+  bucket,
+  prefix = NULL,
+  versioned = TRUE,
+  access_key = NULL,
+  secret_access_key = NULL,
+  session_token = NULL,
+  credential_expiration = NULL,
+  profile = NULL,
+  region = NULL,
+  endpoint = NULL,
+  cache = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>bucket</code></td>
+<td>
+<p>Bucket name. You can only write to an existing bucket.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prefix</code></td>
+<td>
+<p>Prefix within this bucket that this board will occupy.
+You can use this to maintain multiple independent pin boards within
+a single S3 bucket. Will typically end with <code>/</code> to take advantage of
+S3's directory-like handling.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>versioned</code></td>
+<td>
+<p>Should this board be registered with support for versions?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>access_key, secret_access_key, session_token, credential_expiration</code></td>
+<td>
+<p>Manually control authentication. See documentation below for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>profile</code></td>
+<td>
+<p>Role to use from AWS shared credentials/config file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>region</code></td>
+<td>
+<p>AWS region. If not specified, will be read from <code>AWS_REGION</code>,
+or AWS config file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>endpoint</code></td>
+<td>
+<p>Endpoint to use; usually generated automatically for AWS
+from <code>region</code>. For MinIO, use the full URL (including scheme like
+<code style="white-space: pre;">⁠https://⁠</code>) of your MinIO endpoint.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cache</code></td>
+<td>
+<p>Cache path. Every board requires a local cache to avoid
+downloading files multiple times. The default stores in a standard
+cache location for your operating system, but you can override if needed.</p>
+</td>
+</tr>
+</table>
+<h3>Authentication</h3>
+
+<p><code>board_s3()</code> is powered by the paws package which provides a wide range
+of authentication options, as documented at
+<a href="https://github.com/paws-r/paws/blob/main/docs/credentials.md">https://github.com/paws-r/paws/blob/main/docs/credentials.md</a>.
+In brief, there are four main options that are tried in order:
+</p>
+
+<ul>
+<li>
+<p> The <code>access_key</code> and <code>secret_access_key</code> arguments to this function.
+If you have a temporary session token, you'll also need to supply
+<code>session_token</code> and <code>credential_expiration</code>.
+(Not recommended since your <code>secret_access_key</code> will be recorded
+in <code>.Rhistory</code>)
+</p>
+</li>
+<li>
+<p> The <code>AWS_ACCESS_KEY_ID</code> and <code>AWS_SECRET_ACCESS_KEY</code> env vars.
+(And <code>AWS_SESSION_TOKEN</code> and <code>AWS_CREDENTIAL_EXPIRATION</code> env vars if you
+have a temporary session token)
+</p>
+</li>
+<li>
+<p> The AWS shared credential file, <code style="white-space: pre;">⁠~/.aws/credentials⁠</code>:
+</p>
+<div class="sourceCode"><pre>[profile-name]
+aws_access_key_id=your AWS access key
+aws_secret_access_key=your AWS secret key
+</pre></div>
+<p>The "default" profile will be used if you don't supply the access key
+and secret access key as described above. Otherwise you can use the
+<code>profile</code> argument to use a profile of your choice.
+</p>
+</li>
+<li>
+<p> Automatic authentication from EC2 instance or container IAM role.
+</p>
+</li>
+</ul>
+<p>See the paws documentation for more unusual options including getting
+credentials from a command line process, picking a role when running inside
+an EC2 instance, using a role from another profile, and using multifactor
+authentication.
+</p>
+
+
+<h3>Details</h3>
+
+
+<ul>
+<li>
+<p> The functions in pins do not create a new bucket. You can create
+a new bucket from R with paws.
+</p>
+</li>
+<li>
+<p> Some functions like <code>pin_list()</code> will work for an S3 board, but don't
+return useful output.
+</p>
+</li>
+<li>
+<p> You can pass arguments for paws.storage::s3_put_object such as <code>Tagging</code>
+and <code>ServerSideEncryption</code> through the dots of <code>pin_write()</code>. (Note that
+these are separate from <code>pin_write()</code> arguments like <code>tags</code>.)
+</p>
+</li>
+<li> <p><code>board_s3()</code> is powered by the paws.storage package, which is a
+suggested dependency of pins (not required for pins in general). If
+you run into errors when deploying content to a server like
+<a href="https://www.shinyapps.io">https://www.shinyapps.io</a> or <a href="https://posit.co/products/enterprise/connect/">Connect</a>,
+add <code>requireNamespace("paws.storage")</code> to your app or document for <a href="https://docs.posit.co/connect/user/troubleshooting/#render-missing-r-package">automatic dependency discovery</a>.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+board &lt;- board_s3("pins-test-hadley", region = "us-east-2")
+board %&gt;% pin_write(mtcars)
+board %&gt;% pin_read("mtcars")
+
+# A prefix allows you to have multiple independent boards in the same pin.
+board_sales &lt;- board_s3("company-pins", prefix = "sales/")
+board_marketing &lt;- board_s3("company-pins", prefix = "marketing/")
+# You can make the hierarchy arbitrarily deep.
+
+# Pass S3 arguments like `Tagging` through the dots of `pin_write`:
+board %&gt;% pin_write(mtcars, Tagging = "key1=value1&amp;key2=value2")
+
+
+## End(Not run)
+</code></pre>
+
+
+</div>

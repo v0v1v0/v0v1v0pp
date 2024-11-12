@@ -1,0 +1,208 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mgtdhid</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Get ground temperature</h2>
+
+<h3>Description</h3>
+
+<p>Get the undisturbed (median) value of ground temperature at different depths
+at a specified time leveraging <em>Modified Ground Temperature Double Harmonic Model</em>
+(<em>MGTDH</em>-model).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mgtdhid(id, tau = 1440L, depth = 2.4)
+
+mgtdhidt(tau, id = 28434L, depth = 2.4)
+
+mgtdhgeo(lat, lon, tau = 1440L, depth = 2.4, use_cluster = FALSE)
+
+mgtdhgeot(tau, lat = 57, lon = 57, depth = 2.4)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>weather station unique identifier. Only identifiers from <code>meteos</code> dataset are accepted.
+Type: <code>assert_integer</code>. For <code>mgtdhidt</code> acceptable length is <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau</code></td>
+<td>
+<p>time point for which it is necessary to obtain the value of the soil
+temperature; it can be specified as an integer, representing the 
+number of hours that have passed since the beginning of the year, or 
+as a value of <code>POSIXct</code> type. 
+Type: <code>assert_count</code>, or <code>assert_posixct</code>. 
+For <code>mgtdhid</code> acceptable length is <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>depth</code></td>
+<td>
+<p>depth at which the ground temperature is calculated, [<em>m</em>]. Type: <code>assert_number</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lat</code></td>
+<td>
+<p>latitude of the geographical location where the value of soil temperature needs to be determined, [<em>DD</em>].
+Type: <code>assert_double</code>. For <code>mgtdhgeot</code> acceptable length is <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lon</code></td>
+<td>
+<p>longitude of the geographical location where the value of soil temperature needs to be determined, [<em>DD</em>].
+Type: <code>assert_double</code>. For <code>mgtdhgeot</code> acceptable length is <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_cluster</code></td>
+<td>
+<p>utilize functionality of parallel processing on multi-core CPU.
+Type: <code>assert_flag</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <em>MGTDH</em>-model is a modified solution of the thermal conductivity equation for soil
+and can be expressed by the formula
+</p>
+<p style="text-align: center;"><code class="reqn">t\left( \tau, d \right) = \beta e^{r_1} \cdot A_1 \cos(2 \pi \omega \tau + r_1 - P_1) + \beta r_2^{A_2 \cdot d} \cos(4 \pi \omega \tau + r_2 - P_2)</code>
+</p>
+
+<p>where 
+</p>
+
+<dl>
+<dt><code class="reqn">t\left( \tau, d \right)</code></dt>
+<dd>
+<p>undisturbed (median) ground temperature [<em>°C</em>] at specified depth <code class="reqn">d</code> [<em>m</em>], and time <code class="reqn">\tau</code> [<em>hour</em>].</p>
+</dd>
+<dt><code class="reqn">\tau</code></dt>
+<dd>
+<p>time point (<code>tau</code>) calculated in hours since the beginning of the year, [<em>hour</em>].</p>
+</dd>
+<dt><code class="reqn">d</code></dt>
+<dd>
+<p>depth (<code>depth</code>) at which the ground temperature should be calculated, [<em>m</em>].</p>
+</dd>
+<dt><code class="reqn">\beta = -1</code></dt>
+<dd>
+<p>shift constant, [].</p>
+</dd>
+<dt>
+<code class="reqn">r_1(d) = -1000 d \sqrt{\frac{\pi \omega}{\alpha_s D}}</code>, <code class="reqn">r_2(d) = r_1(d) \sqrt{2}</code>
+</dt>
+<dd>
+<p>temperature diffusivity factors, [].</p>
+</dd>
+<dt><code class="reqn">\omega = \frac{1}{8760}</code></dt>
+<dd>
+<p>rate of rotation of the <em>Earth</em>, expressed with an accuracy equal to the inverse of an hour, [<em>1/hour</em>].</p>
+</dd>
+<dt><code class="reqn">\alpha_s</code></dt>
+<dd>
+<p>soil diffusivity, [<em>mm^2/s</em>].</p>
+</dd>
+<dt><code class="reqn">D = 86400</code></dt>
+<dd>
+<p>constant that represents the number of seconds in one day, [<em>s/day</em>].</p>
+</dd>
+<dt>
+<code class="reqn">A_1</code>, <code class="reqn">A_2</code>
+</dt>
+<dd>
+<p>harmonic temperature amplitudes, [<em>°C</em>].</p>
+</dd>
+<dt>
+<code class="reqn">P_1</code>, <code class="reqn">P_2</code>
+</dt>
+<dd>
+<p>phase shifts, depending on the geographical location, [].</p>
+</dd>
+</dl>
+<p>Soil diffusivity, <code class="reqn">\alpha_s</code>, harmonic temperature amplitudes, <code class="reqn">A_1</code>, <code class="reqn">A_2</code>, 
+and phase shifts <code class="reqn">P_1</code>, <code class="reqn">P_2</code> are geographically dependant parameters which values 
+were established for each weather station listed in <code>meteos</code>-dataset.
+</p>
+<p>For the convenience of using the <em>MGTDH</em>-model, several interface 
+functions have been provided. Each function generates a vector of type
+<code>assert_double</code> as an output. 
+</p>
+<p>The <code>mgtdhid</code> and <code>mgtdhidt</code> functions are used to obtain 
+ground temperature data from specific meteorological stations. 
+</p>
+<p>The functions <code>mgtdhgeo</code> and <code>mgtdhgeot</code> provide ground temperatures
+at any geographical location, but note that their usage is primarily limited
+to the Northern Asian part of <em>Eurasia</em>, as most meteorological stations
+and parameters for the <em>MGTDH</em>-model are established there. Ground temperature
+at the specified location is obtained by linear interpolation using barycentric
+coordinates formed in the system of the three nearest meteorological stations.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Undisturbed (median) ground temperature value calculated with 
+the <em>MGTDH</em>-model, specifically for the location of the 
+user-specified meteorological station, at specified depth, and time, [<em>°C</em>].
+Type: <code>assert_double</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Lu Xing &amp; Jeffrey D. Spitler (2017) <em>Prediction of undisturbed ground temperature using analytical and numerical modeling. Part I: Model development and experimental validation</em>.
+Science and Technology for the Built Environment, 23:5, 787-808, <a href="https://doi.org/10.1080/23744731.2016.1258371">doi:10.1080/23744731.2016.1258371</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>geodist</code> and <code>geoarea</code> for calculating geographical metrics.
+</p>
+<p>Other utils: 
+<code>geoarea()</code>,
+<code>meteos()</code>,
+<code>wth_d()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"> # Let consider the next geographical positions:
+ lat &lt;- c(s28434 = 56.65, s28418 = 56.47, s23711 = 62.70, ControlPoint = 57)
+ lon &lt;- c(s28434 = 57.78, s28418 = 53.73, s23711 = 56.20, ControlPoint = 57)
+ 
+ # * ground temperatures at first three locations on 02 March 2023 at depth 3 m:
+ mgtdhgeo(head(lat, 3), head(lon, 3), tau = as.POSIXct("2023-03-02"), depth = 3)
+
+ # * it is the same as obtaining ground temperatures from weather stations:
+ mgtdhid(id = c(28434L, 28418L, 23711L), tau = as.POSIXct("2023-03-02"), depth = 3)
+
+ # * undisturbed ground temperature plot at Control Point:
+ days &lt;- as.POSIXct("2023-01-01") + 3600*24*(seq.int(1, 365) - 1)
+ plot(
+   days, 
+   mgtdhgeot(days, lat[["ControlPoint"]], lon[["ControlPoint"]]), 
+   type = "l", 
+   ylab = "Temperature, °C"
+ )
+
+</code></pre>
+
+
+</div>

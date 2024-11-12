@@ -1,0 +1,108 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plotPerformanceVsParams</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Plot performance of portfolio function vs choice of parameters</h2>
+
+<h3>Description</h3>
+
+<p>Portfolio functions usually contain some parameters that can be tuned. 
+After generating multiple versions of a portfolio function with randomly chosen parameters
+with the function <code>genRandomFuns</code> and doing the backtesting, this function
+can be used to plot the performance vs choice of parameters.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">plotPerformanceVsParams(
+  bt_all_portfolios,
+  params_subset = NULL,
+  name_performance = "Sharpe ratio",
+  summary_fun = median
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>bt_all_portfolios</code></td>
+<td>
+<p>Backtest results as produced by the function <code>portfolioBacktest</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params_subset</code></td>
+<td>
+<p>List of named parameters with a subset of the values to be considered. By 
+default all the possible values will be considered.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name_performance</code></td>
+<td>
+<p>String with the name of the performance measure to be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>summary_fun</code></td>
+<td>
+<p>Summary function to be employed (e.g., median or mean). Defult is median.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Daniel P. Palomar and Rui Zhou
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>genRandomFuns</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(portfolioBacktest)
+
+# define GMVP with parameters "delay", "lookback", and "regularize"
+GMVP_portfolio_fun &lt;- function(dataset, ...) {
+  prices &lt;- tail(lag(dataset$adjusted, delay), lookback)
+  X &lt;- diff(log(prices))[-1]
+  Sigma &lt;- cov(X)
+  if (regularize)
+    Sigma &lt;- Sigma + 0.01*diag(ncol(Sigma))
+  # design GMVP
+  w &lt;- solve(Sigma, rep(1, ncol(Sigma)))
+  return(w/sum(w))
+}
+
+# generate the functions with random parameters
+portfolio_list &lt;- genRandomFuns(portfolio_fun = GMVP_portfolio_fun, 
+                                params_grid = list(lookback = c(100, 120, 140, 160),
+                                                   delay = c(0, 5, 10, 15, 20),
+                                                   regularize = c(FALSE, TRUE)),
+                                name = "GMVP", 
+                                N_funs = 40)
+                                
+# backtest portfolios
+bt &lt;- portfolioBacktest(portfolio_list, dataset10)
+
+# plot
+plotPerformanceVsParams(bt)
+plotPerformanceVsParams(bt, params_subset = list(regularize = TRUE))
+plotPerformanceVsParams(bt, params_subset = list(delay = 5))
+plotPerformanceVsParams(bt, params_subset = list(delay = 5, regularize = TRUE))
+
+
+</code></pre>
+
+
+</div>

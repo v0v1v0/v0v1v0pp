@@ -1,0 +1,175 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>only_F_estimate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Estimating node fitnesses in isolation   
+</h2>
+
+<h3>Description</h3>
+
+<p>This function estimates node fitnesses <code class="reqn">\eta_i</code> assusming either <code class="reqn">A_k = k</code> (i.e. linear preferential attachment) or <code class="reqn">A_k = 1</code> (i.e. no preferential attachment). The method has a hyper-parameter <code class="reqn">s</code>. It first performs a cross-validation to select the optimal parameter <code class="reqn">s</code> for the prior of <code class="reqn">\eta_i</code>, then estimates <code class="reqn">eta_i</code> with the full data (Ref. 1).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">only_F_estimate(net_object                             , 
+               net_stat    = get_statistics(net_object), 
+               p           = 0.75                      ,
+               stop_cond   = 10^-8                     , 
+               model_A     = "Linear"                  ,
+               ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>net_object</code></td>
+<td>
+
+<p>an object of class <code>PAFit_net</code> that contains the network.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>net_stat</code></td>
+<td>
+
+<p>An object of class <code>PAFit_data</code> which contains summerized statistics needed in estimation. This object is created by the function <code>get_statistics</code>. The default value is <code>get_statistics(net_object)</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>Numeric. This is the ratio of the number of new edges in the learning data to that of the full data. The data is then divided into two parts: learning data and testing data based on <code>p</code>. The learning data is used to learn the node fitnesses and the testing data is then used in cross-validation. Default value is <code>0.75</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stop_cond</code></td>
+<td>
+<p>Numeric. The iterative algorithm stops when <code class="reqn">abs(h(ii) - h(ii + 1)) / (abs(h(ii)) + 1) &lt; stop.cond</code> where <code class="reqn">h(ii)</code> is the value of the objective function at iteration <code class="reqn">ii</code>. We recommend to choose <code>stop.cond</code> at most equal to <code class="reqn">10^(- number of digits of h - 2)</code>, in order to ensure that when the algorithm stops, the increase in posterior probability is less than 1% of the current posterior probability. Default is <code>10^-8</code>. This threshold is good enough for most applications.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model_A</code></td>
+<td>
+<p>String. Indicates which attachment function <code class="reqn">A_k</code> we assume:
+</p>
+
+<ul>
+<li> <p><code>"Linear"</code>: We assume <code class="reqn">A_k = k</code>, i.e. the Bianconi-Barabási model (Ref. 2).
+</p>
+</li>
+<li> <p><code>"Constant"</code>: We assume <code class="reqn">A_k = 1</code>, i.e. the Caldarelli model (Ref. 3).
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Other arguments to pass to the underlying algorithm.
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Outputs a <code>Full_PAFit_result</code> object, which is a list containing the following fields:
+</p>
+
+<ul>
+<li> <p><code>cv_data</code>: a <code>CV_Data</code> object which contains the cross-validation data. Normally the user does not need to pay attention to this data.
+</p>
+</li>
+<li> <p><code>cv_result</code>: a <code>CV_Result</code> object which contains the cross-validation result. Normally the user does not need to pay attention to this data.
+</p>
+</li>
+<li> <p><code>estimate_result</code>: this is a <code>PAFit_result</code> object which contains the estimated node fitnesses and their confidence intervals. In particular, the important fields are:      
+</p>
+
+<ul>
+<li> <p><code>shape</code>: this is the selected value for the hyper-parameter <code class="reqn">s</code>.
+</p>
+</li>
+<li> <p><code>g</code>: the number of bins used.
+</p>
+</li>
+<li> <p><code>f</code>: the estimated node fitnesses.
+</p>
+</li>
+<li> <p><code>var_f</code>: the estimated variance of <code class="reqn">\eta_i</code>.
+</p>
+</li>
+<li> <p><code>upper_f</code>: the estimated upper value of the interval of two standard deviations around <code class="reqn">\eta_i</code>.
+</p>
+</li>
+<li> <p><code>lower_f</code>: the estimated lower value of the interval of two standard deviations around <code class="reqn">\eta_i</code>.
+</p>
+</li>
+<li> <p><code>objective_value</code>: values of the objective function over iterations in the final run with the full data.
+</p>
+</li>
+<li> <p><code>diverge_zero</code>: logical value indicates whether the algorithm diverged in the final run with the full data.
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Thong Pham <a href="mailto:thongphamthe@gmail.com">thongphamthe@gmail.com</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>1. Pham, T., Sheridan, P. &amp; Shimodaira, H. (2016). Joint Estimation of Preferential Attachment and Node Fitness in Growing Complex Networks. Scientific Reports 6, Article number: 32558. (<a href="https://doi.org/10.1038/srep32558">doi:10.1038/srep32558</a>).
+</p>
+<p>2. Bianconni, G. &amp; Barabási, A. (2001). Competition and multiscaling in evolving networks. Europhys. Lett., 54, 436 (<a href="https://doi.org/10.1209/epl/i2001-00260-6">doi:10.1209/epl/i2001-00260-6</a>).
+</p>
+<p>3. Caldarelli, G., Capocci, A. , De Los Rios, P. &amp; Muñoz, M.A. (2002). Scale-Free Networks from Varying Vertex Intrinsic Fitness. Phys. Rev. Lett., 89, 258702 (<a href="https://doi.org/10.1103/PhysRevLett.89.258702">doi:10.1103/PhysRevLett.89.258702</a>).
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See <code>get_statistics</code> for how to create summerized statistics needed in this function.
+</p>
+<p>See <code>joint_estimate</code> for the method to jointly estimate the attachment function <code class="reqn">A_k</code> and node fitnesses <code class="reqn">\eta_i</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+  library("PAFit")
+  set.seed(1)
+  # size of initial network = 100
+  # number of new nodes at each time-step = 100
+  # Ak = k; inverse variance of the distribution of node fitnesse = 10
+  net        &lt;- generate_BB(N        = 1000 , m             = 50 , 
+                            num_seed = 100  , multiple_node = 100,
+                            s        = 10)
+                            
+  net_stats  &lt;- get_statistics(net)
+  
+  # estimate node fitnesses in isolation, assuming Ak = k
+  result     &lt;- only_F_estimate(net, net_stats)
+ 
+  # plot the estimated node fitnesses and true node fitnesses
+  plot(result, net_stats, true = net$fitness, plot = "true_f")
+  
+## End(Not run)
+</code></pre>
+
+
+</div>

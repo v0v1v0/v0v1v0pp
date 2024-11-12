@@ -1,0 +1,137 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pensynth</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Penalized synthetic control estimator</h2>
+
+<h3>Description</h3>
+
+<p>For a given set of variable weights (v) this function estimates
+the unit weights for a synthetic control with penalization
+according to Abadie &amp; L'Hour (2021). This function deals with only a
+single treated unit.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pensynth(
+  X1,
+  X0,
+  v = 1,
+  lambda = 0,
+  opt_pars = clarabel::clarabel_control(),
+  standardize = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X1</code></td>
+<td>
+<p><code style="white-space: pre;">⁠N_covars by 1 matrix⁠</code> of treated unit covariates</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X0</code></td>
+<td>
+<p><code style="white-space: pre;">⁠N_covars by N_donors matrix⁠</code> of donor unit covariates</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p><code style="white-space: pre;">⁠N_covars vector⁠</code> of variable weights (default 1)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p><code>numeric</code> penalization parameter</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt_pars</code></td>
+<td>
+<p><code>clarabel</code> settings using <code>clarabel::clarabel_control()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardize</code></td>
+<td>
+<p><code>boolean</code> whether to standardize the input matrices (default TRUE)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This routine uses the same notation of the original <code>Synth::synth()</code> implementation
+but uses a different, faster quadratic program solver (namely, <code>clarabel::clarabel()</code>).
+Additionally, it implements the penalization procedure described in Abadie &amp; L'Hour (2021),
+such that the loss function is as in equation 5 of that paper (but for a single treated unit).
+</p>
+<p>Variable weights are not optimized by this function, meaning they need to be pre-specified.
+This is by design.
+</p>
+<p>The original synthetic control method can be recovered by setting lambda = 0. For determining
+lambda based on data, see <code>cv_pensynth()</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with two values: <code>w</code>, the estimated weights; and
+<code>solution</code>, the result of the optimization.
+</p>
+
+
+<h3>References</h3>
+
+<p>Abadie, A., &amp; L’Hour, J. (2021).
+A penalized synthetic control estimator for disaggregated data.
+<em>Journal of the American Statistical Association, 116</em>(536), 1817-1834.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>cv_pensynth()</code>, <code>placebo_test()</code>, <code>simulate_data()</code>, <code>Synth::synth()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># generate some data
+X0 &lt;- matrix(
+  c(1, 1.3,
+    0.5, 1.8,
+    1.1, 2.4,
+    1.8, 1.8,
+    1.3, 1.8), 2)
+X1 &lt;- matrix(c(0.8, 1.65), 2)
+
+# run classic synthetic control (no penalization)
+res &lt;- pensynth(X1, X0)
+
+# plot donor units in covariate space
+plot(t(X0), asp = 1, xlab = "X1", ylab = "X2",
+     main = "Covariate space plot")
+# add the treated unit
+points(t(X1), pch = 2)
+# add the synthetic control
+points(t(X0%*%res$w), pch = 3)
+
+# run synthetic control with penalty
+res &lt;- pensynth(X1, X0, lambda = 0.5)
+# the resulting synthetic control is
+# biased towards its closest neighbours
+points(t(X0 %*% res$w), pch = 4)
+</code></pre>
+
+
+</div>

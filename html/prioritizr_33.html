@@ -1,0 +1,285 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>add_contiguity_constraints</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add contiguity constraints</h2>
+
+<h3>Description</h3>
+
+<p>Add constraints to a conservation planning problem to ensure
+that all selected planning units are spatially connected with each other
+and form a single contiguous unit.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S4 method for signature 'ConservationProblem,ANY,ANY'
+add_contiguity_constraints(x, zones, data)
+
+## S4 method for signature 'ConservationProblem,ANY,data.frame'
+add_contiguity_constraints(x, zones, data)
+
+## S4 method for signature 'ConservationProblem,ANY,matrix'
+add_contiguity_constraints(x, zones, data)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>problem()</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zones</code></td>
+<td>
+<p><code>matrix</code> or <code>Matrix</code> object describing the
+connection scheme for different zones. Each row and column corresponds
+to a different zone in the argument to <code>x</code>, and cell values must
+contain binary <code>numeric</code> values (i.e., one or zero) that indicate
+if connected planning units (as specified in the argument to
+<code>data</code>) should be still considered connected if they are allocated to
+different zones. The cell values along the diagonal
+of the matrix indicate if planning units should be subject to
+contiguity constraints when they are allocated to a given zone. Note
+arguments to <code>zones</code> must be symmetric, and that a row or column has
+a value of one then the diagonal element for that row or column must also
+have a value of one. The default argument to <code>zones</code> is an identity
+matrix (i.e., a matrix with ones along the matrix diagonal and zeros
+elsewhere), so that planning units are only considered connected if they
+are both allocated to the same zone.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p><code>NULL</code>, <code>matrix</code>, <code>Matrix</code>, <code>data.frame</code>
+object showing which planning units are connected with each
+other. The argument defaults to <code>NULL</code> which means that the
+connection data is calculated automatically using the
+<code>adjacency_matrix()</code> function.
+See the Data format section for more information.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function uses connection data to identify solutions that
+form a single contiguous unit. It was inspired by the
+mathematical formulations detailed in Önal and Briers (2006).
+</p>
+
+
+<h3>Value</h3>
+
+<p>An updated <code>problem()</code> object with the constraints added to it.
+</p>
+
+
+<h3>Data format</h3>
+
+<p>The argument to <code>data</code> can be specified using the following formats.
+</p>
+
+<dl>
+<dt>
+<code>data</code> as a <code>NULL</code> value</dt>
+<dd>
+<p>indicating that connection data should be
+calculated automatically using the <code>adjacency_matrix()</code> function.
+This is the default argument.
+Note that the connection data must be manually defined
+using one of the other formats below when the planning unit data
+in the argument to <code>x</code> is not spatially referenced (e.g.,
+in <code>data.frame</code> or <code>numeric</code> format).</p>
+</dd>
+<dt>
+<code>data</code> as a <code>matrix</code>/<code>Matrix</code> object</dt>
+<dd>
+<p>where rows and columns represent
+different planning units and the value of each cell indicates if the
+two planning units are connected or not. Cell values should be binary
+<code>numeric</code> values (i.e., one or zero). Cells that occur along the
+matrix diagonal have no effect on the solution at all because each
+planning unit cannot be a connected with itself.</p>
+</dd>
+<dt>
+<code>data</code> as a <code>data.frame</code> object</dt>
+<dd>
+<p>containing columns that are named
+<code>"id1"</code>, <code>"id2"</code>, and <code>"boundary"</code>. Here, each row
+denotes the connectivity between two planning units following the
+<em>Marxan</em> format. The <code>"boundary"</code> column should contain
+binary <code>numeric</code> values that indicate if the two planning units
+specified in the <code>"id1"</code> and <code>"id2"</code> columns are connected
+or not. This data can be used to describe symmetric or
+asymmetric relationships between planning units. By default,
+input data is assumed to be symmetric unless asymmetric data is
+also included (e.g., if data is present for planning units 2 and 3, then
+the same amount of connectivity is expected for planning units 3 and 2,
+unless connectivity data is also provided for planning units 3 and 2).</p>
+</dd>
+</dl>
+<h3>Notes</h3>
+
+<p>In early versions, this function was named as the
+<code>add_connected_constraints()</code> function.
+</p>
+
+
+<h3>References</h3>
+
+<p>Önal H and Briers RA (2006) Optimal selection of a connected
+reserve network. <em>Operations Research</em>, 54: 379–388.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See constraints for an overview of all functions for adding constraints.
+</p>
+<p>Other constraints: 
+<code>add_feature_contiguity_constraints()</code>,
+<code>add_linear_constraints()</code>,
+<code>add_locked_in_constraints()</code>,
+<code>add_locked_out_constraints()</code>,
+<code>add_mandatory_allocation_constraints()</code>,
+<code>add_manual_bounded_constraints()</code>,
+<code>add_manual_locked_constraints()</code>,
+<code>add_neighbor_constraints()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# load data
+sim_pu_raster &lt;- get_sim_pu_raster()
+sim_features &lt;- get_sim_features()
+sim_zones_pu_raster &lt;- get_sim_zones_pu_raster()
+sim_zones_features &lt;- get_sim_zones_features()
+
+# create minimal problem
+p1 &lt;-
+  problem(sim_pu_raster, sim_features) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(0.2) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# create problem with added connected constraints
+p2 &lt;- p1 %&gt;% add_contiguity_constraints()
+
+# solve problems
+s1 &lt;- c(solve(p1), solve(p2))
+names(s1) &lt;- c("basic solution", "connected solution")
+
+# plot solutions
+plot(s1, axes = FALSE)
+
+# create minimal problem with multiple zones, and limit the solver to
+# 30 seconds to obtain solutions in a feasible period of time
+p3 &lt;-
+  problem(sim_zones_pu_raster, sim_zones_features) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(matrix(0.2, ncol = 3, nrow = 5)) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(time_limit = 30, verbose = FALSE)
+
+# create problem with added constraints to ensure that the planning units
+# allocated to each zone form a separate contiguous unit
+z4 &lt;- diag(3)
+print(z4)
+p4 &lt;- p3 %&gt;% add_contiguity_constraints(z4)
+
+# create problem with added constraints to ensure that the planning
+# units allocated to each zone form a separate contiguous unit,
+# except for planning units allocated to zone 3 which do not need
+# form a single contiguous unit
+z5 &lt;- diag(3)
+z5[3, 3] &lt;- 0
+print(z5)
+p5 &lt;- p3 %&gt;% add_contiguity_constraints(z5)
+
+# create problem with added constraints that ensure that the planning
+# units allocated to zones 1 and 2 form a contiguous unit
+z6 &lt;- diag(3)
+z6[1, 2] &lt;- 1
+z6[2, 1] &lt;- 1
+print(z6)
+p6 &lt;- p3 %&gt;% add_contiguity_constraints(z6)
+
+# solve problems
+s2 &lt;- lapply(list(p3, p4, p5, p6), solve)
+s2 &lt;- lapply(s2, category_layer)
+s2 &lt;- terra::rast(s2)
+names(s2) &lt;- c("basic solution", "p4", "p5", "p6")
+
+# plot solutions
+plot(s2, axes = FALSE)
+
+# create a problem that has a main "reserve zone" and a secondary
+# "corridor zone" to connect up import areas. Here, each feature has a
+# target of 50% of its distribution. If a planning unit is allocated to the
+# "reserve zone", then the prioritization accrues 100% of the amount of
+# each feature in the planning unit. If a planning unit is allocated to the
+# "corridor zone" then the prioritization accrues 40% of the amount of each
+# feature in the planning unit. Also, the cost of managing a planning unit
+# in the "corridor zone" is 30% of that when it is managed as the
+# "reserve zone". Finally, the problem has constraints which
+# ensure that all of the selected planning units form a single contiguous
+# unit, so that the planning units allocated to the "corridor zone" can
+# link up the planning units allocated to the "reserve zone"
+
+# create planning unit data
+pus &lt;- sim_zones_pu_raster[[c(1, 1)]]
+pus[[2]] &lt;- pus[[2]] * 0.3
+print(pus)
+
+# create biodiversity data
+fts &lt;- zones(
+  sim_features, sim_features * 0.4,
+  feature_names = names(sim_features),
+  zone_names = c("reserve zone", "corridor zone")
+)
+print(fts)
+
+# create targets
+targets &lt;- tibble::tibble(
+  feature = names(sim_features),
+  zone = list(zone_names(fts))[rep(1, 5)],
+  target = terra::global(sim_features, "sum", na.rm = TRUE)[[1]] * 0.5,
+  type = rep("absolute", 5)
+)
+print(targets)
+
+# create zones matrix
+z7 &lt;- matrix(1, ncol = 2, nrow = 2)
+print(z7)
+
+# create problem
+p7 &lt;-
+  problem(pus, fts) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_manual_targets(targets) %&gt;%
+  add_contiguity_constraints(z7) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve problems
+s7 &lt;- category_layer(solve(p7))
+
+# plot solutions
+plot(s7, main = "solution", axes = FALSE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

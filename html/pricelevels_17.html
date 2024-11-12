@@ -1,0 +1,132 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>gerardi</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Gerardi index</h2>
+
+<h3>Description</h3>
+
+<p>Calculation of regional price levels using the multilateral Gerardi index (Eurostat, 1978).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">gerardi(p, r, n, q, w=NULL, base=NULL, simplify=TRUE, settings=list())
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>A numeric vector of prices.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r, n</code></td>
+<td>
+<p>A character vector or factor of regional entities <code>r</code> and products <code>n</code>, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>q, w</code></td>
+<td>
+<p>A numeric vector of non-negative quantities <code>q</code> or expenditure share weights <code>w</code> (see details). If both <code>q</code> and <code>w</code> are provided, <code>q</code> will be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>base</code></td>
+<td>
+<p>A character specifying the base region to which all price levels are expressed. When <code>NULL</code>, they refer to the (unweighted) regional average.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simplify</code></td>
+<td>
+<p>A logical indicating whether a named vector of estimated regional price levels (<code>TRUE</code>) should be returned, or also the average product prices.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>settings</code></td>
+<td>
+<p>A list of control settings to be used. The following settings are supported:
+</p>
+
+<ul>
+<li> <p><code>chatty</code> : A logical specifying if warnings and info messages should be printed or not. The default is <code>getOption("pricelevels.chatty")</code>.
+</p>
+</li>
+<li> <p><code>connect</code> : A logical specifying if the data should be checked for connectedness or not. The default is <code>getOption("pricelevels.connect")</code>. If the data are not connected, price levels are computed within the biggest block of connected regions or the block of regions to which the <code>base</code> region belongs. See also <code>connect()</code>.
+</p>
+</li>
+<li> <p><code>plot</code> : A logical specifying if the calculated price levels should be plotted or not. If <code>TRUE</code>, the price ratios of each region are displayed as boxplots and the price levels are added as colored points. The default is <code>getOption("pricelevels.plot")</code>.
+</p>
+</li>
+<li> <p><code>variant</code> : for <code>original</code>, the international prices are calculated as unweighted geometric means. This is the original approach. With <code>adjusted</code>, the international prices are calculated as weighted geometric means.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Before calculations start, missing values are excluded and duplicated observations for <code>r</code> and <code>n</code> are aggregated, that is, duplicated prices <code>p</code> and weights <code>w</code> are averaged and duplicated quantities <code>q</code> added up.
+</p>
+<p>The weights <code>w</code> must represent expenditure shares defined as <code class="reqn">w_i^r = p_i^r q_i^r / \sum_{j=1}^{N} p_j^r q_j^r</code>. They are internally (re-)normalized such that they add up to 1 for each region <code>r</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>simplify=TRUE</code>, a named vector of regional price levels. Otherwise, for <code>simplify=FALSE</code>, a list containing the named vector of international product prices and regional price levels.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Sebastian Weinand</p>
+
+
+<h3>References</h3>
+
+<p>Balk, B. M. (1996). A comparison of ten methods for multilateral international
+price and volume comparisons. <em>Journal of Official Statistics</em>, 12 (1), 199-222.
+</p>
+<p>Eurostat (1978), <em>Comparison in real values of the aggregates of ESA 1975</em>, Publications Office, Luxembourg.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">require(data.table)
+
+# example data:
+set.seed(123)
+dt1 &lt;- rdata(R=3, B=1, N=5)
+
+# Gerardi price index:
+dt1[, gerardi(p=price, q=quantity, r=region, n=product)]
+
+# add price data:
+dt2 &lt;- rdata(R=4, B=1, N=4)
+dt2[, "region":=factor(region, labels=4:7)]
+dt2[, "product":=factor(product, labels=6:9)]
+dt &lt;- rbind(dt1, dt2)
+dt[, is.connected(r=region, n=product)] # non-connected now
+
+# compute expenditure share weights:
+dt[, "share" := price*quantity/sum(price*quantity), by="region"]
+
+# Gerardi index with quantites or expenditure share weights:
+dt[, gerardi(p=price, q=quantity, r=region, n=product)]
+dt[, gerardi(p=price, w=share, r=region, n=product)]
+</code></pre>
+
+
+</div>

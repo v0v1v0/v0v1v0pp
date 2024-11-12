@@ -1,0 +1,347 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>logit.spls</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Classification procedure for binary response based on a logistic model, 
+solved by a combination of the Ridge Iteratively Reweighted Least Squares 
+(RIRLS) algorithm and the Adaptive Sparse PLS (SPLS) regression</h2>
+
+<h3>Description</h3>
+
+<p>The function <code>logit.spls</code> performs compression and variable selection 
+in the context of binary classification (with possible prediction) 
+using Durif et al. (2018) algorithm based on Ridge IRLS and sparse PLS.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">logit.spls(
+  Xtrain,
+  Ytrain,
+  lambda.ridge,
+  lambda.l1,
+  ncomp,
+  Xtest = NULL,
+  adapt = TRUE,
+  maxIter = 100,
+  svd.decompose = TRUE,
+  center.X = TRUE,
+  scale.X = FALSE,
+  weighted.center = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Xtrain</code></td>
+<td>
+<p>a (ntrain x p) data matrix of predictor values. 
+<code>Xtrain</code> must be a matrix. Each row corresponds to an observation 
+and each column to a predictor variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Ytrain</code></td>
+<td>
+<p>a (ntrain) vector of (continuous) responses. <code>Ytrain</code> 
+must be a vector or a one column matrix, and contains the response variable 
+for each observation. <code>Ytrain</code> should take values in {0,1}.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.ridge</code></td>
+<td>
+<p>a positive real value. <code>lambda.ridge</code> is the Ridge 
+regularization parameter for the RIRLS algorithm (see details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.l1</code></td>
+<td>
+<p>a positive real value, in [0,1]. <code>lambda.l1</code> is the 
+sparse penalty parameter for the dimension reduction step by sparse PLS 
+(see details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncomp</code></td>
+<td>
+<p>a positive integer. <code>ncomp</code> is the number of 
+PLS components. If <code>ncomp=0</code>,then the Ridge regression is performed 
+without any dimension reduction (no SPLS step).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xtest</code></td>
+<td>
+<p>a (ntest x p) matrix containing the predictor values for the 
+test data set. <code>Xtest</code> may also be a vector of length p 
+(corresponding to only one test observation). Default value is NULL, 
+meaning that no prediction is performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adapt</code></td>
+<td>
+<p>a boolean value, indicating whether the sparse PLS selection 
+step sould be adaptive or not (see details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxIter</code></td>
+<td>
+<p>a positive integer. <code>maxIter</code> is the maximal number of 
+iterations in the Newton-Raphson parts in the RIRLS algorithm (see details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>svd.decompose</code></td>
+<td>
+<p>a boolean parameter. <code>svd.decompose</code> indicates 
+wether or not the predictor matrix <code>Xtrain</code> should be decomposed by 
+SVD (singular values decomposition) for the RIRLS step (see details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center.X</code></td>
+<td>
+<p>a boolean value indicating whether the data matrices 
+<code>Xtrain</code> and <code>Xtest</code> (if provided) should be centered or not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale.X</code></td>
+<td>
+<p>a boolean value indicating whether the data matrices 
+<code>Xtrain</code> and <code>Xtest</code> (if provided) should be scaled or not 
+(<code>scale.X=TRUE</code> implies <code>center.X=TRUE</code>) in the spls step.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weighted.center</code></td>
+<td>
+<p>a boolean value indicating whether the centering 
+should take into account the weighted l2 metric or not in the SPLS step.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The columns of the data matrices <code>Xtrain</code> and <code>Xtest</code> may 
+not be standardized, since standardizing can be performed by the function 
+<code>logit.spls</code> as a preliminary step.
+</p>
+<p>The procedure described in Durif et al. (2018) is used to compute
+latent sparse components that are used in a logistic regression model.
+In addition, when a matrix <code>Xtest</code> is supplied, the procedure 
+predicts the response associated to these new values of the predictors.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>logit.spls</code> with the following attributes
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>Coefficients</code></td>
+<td>
+<p>the (p+1) vector containing the linear coefficients 
+associated to the predictors and intercept in the logistic model 
+explaining the response Y.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hatY</code></td>
+<td>
+<p>the (ntrain) vector containing the estimated response value on 
+the train set <code>Xtrain</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hatYtest</code></td>
+<td>
+<p>the (ntest) vector containing the predicted labels 
+for the observations from <code>Xtest</code> (if provided).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>DeletedCol</code></td>
+<td>
+<p>the vector containing the indexes of columns with null 
+variance in <code>Xtrain</code> that were skipped in the procedure.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>A</code></td>
+<td>
+<p>the active set of predictors selected by the procedures. 
+<code>A</code> is a subset of 1:p.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Anames</code></td>
+<td>
+<p>Vector of selected predictor names, i.e. the names of the 
+columns from <code>Xtrain</code> that are in <code>A</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>converged</code></td>
+<td>
+<p>a {0,1} value indicating whether the RIRLS algorithm did
+converge in less than <code>maxIter</code> iterations or not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X.score</code></td>
+<td>
+<p>a (n x ncomp) matrix being the observations coordinates or 
+scores in the new component basis produced by the SPLS step (sparse PLS). 
+Each column t.k of <code>X.score</code> is a SPLS component.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X.weight</code></td>
+<td>
+<p>a (p x ncomp) matrix being the coefficients of predictors 
+in each components produced by sparse PLS. Each column w.k of 
+<code>X.weight</code> verifies t.k = Xtrain x w.k (as a matrix product).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xtrain</code></td>
+<td>
+<p>the design matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sXtrain</code></td>
+<td>
+<p>the scaled predictor matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Ytrain</code></td>
+<td>
+<p>the response observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sPseudoVar</code></td>
+<td>
+<p>the scaled pseudo-response produced by the RIRLS
+algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.ridge</code></td>
+<td>
+<p>the Ridge hyper-parameter used to fit the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.l1</code></td>
+<td>
+<p>the sparse hyper-parameter used to fit the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncomp</code></td>
+<td>
+<p>the number of components used to fit the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>V</code></td>
+<td>
+<p>the (ntrain x ntrain) matrix used to weight the metric in the 
+sparse PLS step. <code>V</code> is the inverse of the covariance matrix of the 
+pseudo-response produced by the RIRLS step.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>proba</code></td>
+<td>
+<p>the (ntrain) vector of estimated probabilities for the 
+observations in code <code>Xtrain</code>, that are used to estimate the 
+<code>hatY</code> labels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>proba.test</code></td>
+<td>
+<p>the (ntest) vector of predicted probabilities for the 
+new observations in <code>Xtest</code>, that are used to predict the 
+<code>hatYtest</code> labels.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Ghislain Durif (<a href="https://gdurif.perso.math.cnrs.fr/">https://gdurif.perso.math.cnrs.fr/</a>).
+</p>
+
+
+<h3>References</h3>
+
+<p>Durif, G., Modolo, L., Michaelsson, J., Mold, J.E., Lambert-Lacroix, S., 
+Picard, F., 2018. High dimensional classification with combined 
+adaptive sparse PLS and logistic regression. Bioinformatics 34, 
+485–493. <a href="https://doi.org/10.1093/bioinformatics/btx571">doi:10.1093/bioinformatics/btx571</a>.
+Available at <a href="http://arxiv.org/abs/1502.05933">http://arxiv.org/abs/1502.05933</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>spls</code>, <code>logit.spls.cv</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+### load plsgenomics library
+library(plsgenomics)
+
+### generating data
+n &lt;- 100
+p &lt;- 100
+sample1 &lt;- sample.bin(n=n, p=p, kstar=20, lstar=2, 
+                      beta.min=0.25, beta.max=0.75, 
+                      mean.H=0.2, sigma.H=10, sigma.F=5)
+X &lt;- sample1$X
+Y &lt;- sample1$Y
+
+### splitting between learning and testing set
+index.train &lt;- sort(sample(1:n, size=round(0.7*n)))
+index.test &lt;- (1:n)[-index.train]
+
+Xtrain &lt;- X[index.train,]
+Ytrain &lt;- Y[index.train,]
+Xtest &lt;- X[index.test,]
+Ytest &lt;- Y[index.test,]
+
+### fitting the model, and predicting new observations
+model1 &lt;- logit.spls(Xtrain=Xtrain, Ytrain=Ytrain, lambda.ridge=2, 
+                     lambda.l1=0.5, ncomp=2, Xtest=Xtest, adapt=TRUE, 
+                     maxIter=100, svd.decompose=TRUE)
+                     
+str(model1)
+
+### prediction error rate
+sum(model1$hatYtest!=Ytest) / length(index.test)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,459 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>m325tracebw</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Minenergo-325. Massively trace backwards thermal-hydraulic regime for
+district heating network</h2>
+
+<h3>Description</h3>
+
+<p>Trace values of thermal-hydraulic regime (temperature, pressure,
+flow rate, and other) in the bunched pipeline against the flow direction using norms
+of heat loss values prescribed by
+<a href="https://docs.cntd.ru/document/902148459">Minenergo Order 325</a>.
+</p>
+<p>Algorithm also suits for partially measurable district heating network with
+massive data lack conditions, when there are no temperature and pressure
+sensor readings on the majority of terminal nodes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">m325tracebw(
+  sender = 6,
+  acceptor = 7,
+  temperature = 70,
+  pressure = pipenostics::mpa_kgf(6),
+  flow_rate = 20,
+  d = 100,
+  len = 72.446,
+  year = 1986,
+  insulation = 0,
+  laying = "tunnel",
+  beta = FALSE,
+  exp5k = TRUE,
+  roughness = 0.001,
+  inlet = 0.5,
+  outlet = 1,
+  method = "romeo",
+  opinion = "median",
+  verbose = TRUE,
+  csv = FALSE,
+  file = "m325tracebw.csv"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>sender</code></td>
+<td>
+<p>identifier of the node which heat carrier flows out.
+Type: any type that can be painlessly coerced to character by
+<code>as.character</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>acceptor</code></td>
+<td>
+<p>identifier of the node which heat carrier flows in. According to topology
+of test bench considered this identifier should be unique for every row.
+Type: any type that can be painlessly coerced to character by
+<code>as.character</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>temperature</code></td>
+<td>
+<p>Sensor-measured temperature of heat carrier (water) sensor-measured on 
+the terminal acceptor node, [<em>°C</em>].
+Use <code>NA_float_</code>s for (terminal) nodes without temperature sensor.
+Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pressure</code></td>
+<td>
+<p>Sensor-measured
+<a href="https://en.wikipedia.org/wiki/Pressure_measurement#Absolute">absolute pressure</a>
+of heat carrier (water) inside the pipe (i.e. acceptor's incoming edge),
+[<em>MPa</em>].
+Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flow_rate</code></td>
+<td>
+<p>Sensor-measured amount of heat carrier (water) on terminal node that is
+transferred by pipe (i.e. acceptor's incoming edge) during a period, [<em>ton/hour</em>]. 
+Type: <code>assert_double</code>.
+Use <code>NA_float_</code>s for nodes without flow rate sensor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>internal diameter of pipe (i.e.diameter of acceptor's incoming edge),
+[<em>mm</em>].
+Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>len</code></td>
+<td>
+<p>pipe length (i.e. length of acceptor's incoming edge), [<em>m</em>].
+Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>year</code></td>
+<td>
+<p>year when the pipe (i.e. acceptor's incoming edge) is put in operation
+after laying or total overhaul.
+Type: <code>assert_integerish</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>insulation</code></td>
+<td>
+<p>identifier of insulation that covers the exterior of pipe (i.e. acceptor's
+incoming edge):
+</p>
+
+<dl>
+<dt><code>0</code></dt>
+<dd>
+<p>no insulation</p>
+</dd>
+<dt><code>1</code></dt>
+<dd>
+<p>foamed polyurethane or analogue</p>
+</dd>
+<dt><code>2</code></dt>
+<dd>
+<p>polymer concrete</p>
+</dd>
+</dl>
+<p>Type: <code>assert_subset</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>laying</code></td>
+<td>
+<p>type of pipe laying depicting the position of pipe in space. Only five
+types of pipe laying are considered:
+</p>
+
+<ul>
+<li> <p><code>air</code>,
+</p>
+</li>
+<li> <p><code>channel</code>,
+</p>
+</li>
+<li> <p><code>room</code>,
+</p>
+</li>
+<li> <p><code>tunnel</code>,
+</p>
+</li>
+<li> <p><code>underground</code>.
+</p>
+</li>
+</ul>
+<p>Type: <code>assert_subset</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>logical indicator: should they consider additional heat loss of fittings
+located on this pipe (i.e. acceptor's incoming edge)?
+Type: <code>assert_logical</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exp5k</code></td>
+<td>
+<p>logical indicator for regime of pipe (i.e. acceptor's incoming edge): if
+<code>TRUE</code> pipe is operated more that <code>5000</code> hours per year.
+Type: <code>assert_logical</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>roughness</code></td>
+<td>
+<p>roughness of internal wall of pipe (i.e. acceptor's incoming edge), [<em>m</em>].
+Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inlet</code></td>
+<td>
+<p>elevation of pipe inlet, [<em>m</em>]. Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outlet</code></td>
+<td>
+<p>elevation of pipe outlet, [<em>m</em>]. Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>method of determining <em>Darcy friction factor</em>:
+</p>
+
+<ul>
+<li> <p><code>romeo</code>
+</p>
+</li>
+<li> <p><code>vatankhan</code>
+</p>
+</li>
+<li> <p><code>buzelli</code>
+</p>
+</li>
+</ul>
+<p>Type: <code>assert_choice</code>.
+For more details see <code>dropp</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opinion</code></td>
+<td>
+<p>method for aggregating values of regime parameters on each node for the
+next tracing step:
+</p>
+
+<dl>
+<dt><code>mean</code></dt>
+<dd>
+<p>values of parameter are averaged before the next
+tracing step</p>
+</dd>
+<dt><code>median</code></dt>
+<dd>
+<p>median of parameter values are used for the next
+tracing step</p>
+</dd>
+</dl>
+<p>Type: <code>assert_choice</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical indicator: should they watch tracing process on console?
+Type: <code>assert_flag</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>csv</code></td>
+<td>
+<p>logical indicator: should they incrementally dump results to <em>csv</em>-
+file while tracing?
+Type: <code>assert_flag</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+<p>name of <em>csv</em>-file which they dump results to.
+Type: <code>assert_character</code> of length 1 that can be used safely
+to create a file and write to it.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>They consider the topology of district heating network represented by
+<code>m325testbench</code>:
+</p>
+<p><img src="../help/figures/m325tracebw0.png" alt="m325tracebw0.png"></p>
+<p>The network may be partially sensor-equipped too:
+</p>
+<p><img src="../help/figures/m325tracebwp.png" alt="m325tracebwp.png"></p>
+<p>In latter case no more than two nodes must be equipped with pressure and temperature
+sensors whereas for other nodes only flow rate sensors must be installed.
+</p>
+<p>Tracing starts from sensor-equipped nodes and goes backwards, i.e against
+the flow direction.
+</p>
+<p>Though some input arguments are natively vectorized their individual values
+all relate to common part of district heating network, i.e. associated with
+common object. It is due to isomorphism between vector representation and
+directed graph of this network. For more details of isomorphic topology
+description see <code>m325testbench</code>.
+</p>
+<p>Before tracing starts for the next node, previously calculated values of
+thermal-hydraulic parameters are aggregated by either averaging or
+by median. The latter seems more robust for avoiding strong influence of
+possible outliers which may come from actual heating transfer anomalies,
+erroneous sensor readings or wrong pipeline specifications.
+</p>
+<p>Aggregation for values of flow rate at the node is always <code>sum</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>data.frame</code> containing results (detailed log) of tracing in
+<a href="https://en.wikipedia.org/wiki/Wide_and_narrow_data">narrow format</a>:
+</p>
+
+<dl>
+<dt><code>node</code></dt>
+<dd>
+<p><em>Tracing job</em>. Identifier of the node which regime parameters is
+calculated for. Values in this vector are identical to those in
+argument <code>acceptor</code>. 
+Type: <code>assert_character</code>.
+</p>
+</dd>
+<dt><code>tracing</code></dt>
+<dd>
+<p><em>Tracing job</em>. Identifiers of nodes from which regime parameters
+are traced for the given node. Identifier <code>sensor</code> is used when
+values of regime parameters for the node are sensor readings.
+Type: <code>assert_character</code>.
+</p>
+</dd>
+<dt><code>backward</code></dt>
+<dd>
+<p><em>Tracing job</em>. Identifier of tracing direction. It constantly
+equals to <code>TRUE</code>. 
+Type: <code>assert_logical</code>.
+</p>
+</dd>
+<dt><code>aggregation</code></dt>
+<dd>
+<p><em>Tracing job</em>. Identifier of aggregation method: <em>span</em>, <em>median</em>, <em>mean</em>, or <em>identity</em>. Type: <code>assert_character</code>.
+</p>
+</dd>
+<dt><code>loss</code></dt>
+<dd>
+<p><em>Traced thermal hydraulic regime</em>. Normative specific heat loss power of adjacent pipe, [<em>kcal/m/h</em>]. Type: <code>assert_double</code>.
+</p>
+</dd>
+<dt><code>flux</code></dt>
+<dd>
+<p><em>Traced thermal hydraulic regime</em>. Normative heat flux of adjacent pipe, [<em>W/m^2</em>]. Type: <code>assert_double</code>.
+</p>
+</dd>
+<dt><code>Q</code></dt>
+<dd>
+<p><em>Traced thermal hydraulic regime</em>. Normative heat loss of adjacent pipe per day, [<em>kcal</em>]. 
+Type: <code>assert_character</code>.
+</p>
+</dd>
+<dt><code>temperature</code></dt>
+<dd>
+<p><em>Traced thermal hydraulic regime</em>. Traced temperature of heat
+carrier (water) that is associated with the node, [<em>°C</em>].
+Type: <code>assert_double</code>.
+</p>
+</dd>
+<dt><code>pressure</code></dt>
+<dd>
+<p><em>Traced thermal hydraulic regime</em>. Traced pressure of heat
+carrier (water) that is associated with the node, [<em>MPa</em>].
+Type: <code>assert_double</code>.
+</p>
+</dd>
+<dt><code>flow_rate</code></dt>
+<dd>
+<p><em>Traced thermal hydraulic regime</em>. Traced flow rate of heat
+carrier (water) that is associated with the node, [<em>ton/hour</em>].
+Type: <code>assert_double</code>.
+</p>
+</dd>
+<dt><code>job</code></dt>
+<dd>
+<p><em>Tracing job</em>. Value of tracing job counter. 
+Type: <code>assert_count</code>.
+</p>
+</dd>
+</dl>
+<p>Type: <code>assert_data_frame</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Regime tracing: 
+<code>m325tracefw()</code>,
+<code>m325traceline()</code>,
+<code>tracebw()</code>,
+<code>tracefw()</code>,
+<code>traceline()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(pipenostics)
+
+## It is possible to run without specification of argument values:
+m325tracebw()
+
+## Consider isomorphic representation of District Heating Network graph:
+DHN &lt;- pipenostics::m325testbench
+DHN$d &lt;- 1e3*DHN$d  # convert [m] to [mm]
+
+## When tracing large network graphs put screen log to file
+output &lt;- do.call("m325tracebw", c(as.list(DHN), verbose = TRUE))
+
+## Distinct options for opinion aggregation lead to distinct traced
+## temperature and pressure:
+
+## * When aggregation is by mean:
+output_mean &lt;- do.call(
+  "m325tracebw", c(as.list(DHN), verbose = FALSE, opinion = "mean")
+)
+
+## * When aggregation is by median:
+output_median &lt;- do.call(
+  "m325tracebw", c(as.list(DHN), verbose = FALSE, opinion = "median")
+)
+
+## The differences between aggregations should be:
+aggregation_differences &lt;- c(delta_t = 0.03732, delta_p = 0.00139, delta_g = 0)
+print(aggregation_differences)
+
+## Check:
+stopifnot(
+  round(
+    subset(
+      output_mean,
+      node == 13 &amp; aggregation == "median",
+      c("temperature", "pressure", "flow_rate")
+    ) - subset(
+      output_median,
+      node == 13 &amp; aggregation == "median",
+      c("temperature", "pressure", "flow_rate")
+    ),
+    5
+    # difference between aggregation options
+  ) == aggregation_differences
+)
+
+## It is possible to process partially measurable District Heating Network:
+
+## * Simulate lack of temperature and pressure sensors:
+DHN[c(7, 10, 21, 24), c("temperature", "pressure")] &lt;- NA_real_
+
+## Trace thermal-hydraulic regime
+output &lt;- do.call("m325tracebw", c(as.list(DHN)))
+print(output)
+
+</code></pre>
+
+
+</div>

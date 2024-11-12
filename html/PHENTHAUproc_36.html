@@ -1,0 +1,351 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>phenthau</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate PHENTHAUproc model</h2>
+
+<h3>Description</h3>
+
+<p>"phenthau" implements the early warning system PHENTHAUproc created by
+Halbig et al. 2024 in R.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">phenthau(x, params = NULL, def_hatch = "first", budswelling = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>SpatRaster list/SpatRaster/data.frame - numeric - with time
+attribute/date column (see Details for Input requirements)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params</code></td>
+<td>
+<p>list with parameter (see Details for Input requirements)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>def_hatch</code></td>
+<td>
+<p>"first" or "mean": PHENTHAUproc has three hatch models
+integrated (for details see: Custers 2003, Wagenhoff et al. 2014, Meurisse et
+al. 2012). With "first" (Default) the first hatch-model which predicts hatch,
+with "mean", the mean day of all hatch-models will be used for further
+calculations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>budswelling</code></td>
+<td>
+<p>SpatRaster/numeric with DOY (Day of year) - If budswelling
+is provided, internal calculation of budswelling will be replaced. For raster
+input provide a raster with same extend and crs as x.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><strong>Overview</strong>
+</p>
+<p>phenthau function combines multiple phenology models:
+</p>
+
+<ul>
+<li>
+<p> bud swelling &amp; leaf unfolding of <em>Quercus robur</em> or
+<em>Quercus petraea</em>(still in development)
+</p>
+</li>
+<li>
+<p> hatch of oak processionary moth using 3 different hatch models
+(Custers 2003, Wagenhoff et al. 2014 and Meurisse et al. 2012)
+</p>
+</li>
+<li>
+<p> development stages of OPM (0 egg - 8 adult)
+</p>
+</li>
+</ul>
+<p><strong>Input requirements</strong>
+</p>
+<p>For different input type different parameter sets are needed. If params is
+not provided it will be selected dependent on datatype and names(x) so follow
+the name convention!
+</p>
+<p>daily raster input with tmean, tmin and tmax:
+</p>
+
+<ul>
+<li>
+<p> a list of 3 named objects: "tmean", "tmin" and "tmax"
+</p>
+</li>
+<li>
+<p> each object is a SpatRaster with one layer per day
+</p>
+</li>
+<li>
+<p> terra::time for each SpatRaster has to be set to Date
+-&gt; parameter("dailymeanminmax", year)
+</p>
+</li>
+</ul>
+<p>daily raster input with tmean:
+</p>
+
+<ul>
+<li>
+<p> a SpatRaster
+</p>
+</li>
+<li>
+<p> one layer per day
+</p>
+</li>
+<li>
+<p> terra::time has to be set to Date
+</p>
+</li>
+<li>
+<p> params has to be set manually!
+-&gt; parameter("dailymean", year)
+</p>
+</li>
+</ul>
+<p>hourly raster input:
+</p>
+
+<ul>
+<li>
+<p> a SpatRaster
+</p>
+</li>
+<li>
+<p> one layer per hour
+</p>
+</li>
+<li>
+<p> terra::time has to be set to Date
+-&gt; parameter("hour", year)
+</p>
+</li>
+</ul>
+<p>daily data.frame input with tmean, tmin and tmax:
+</p>
+
+<ul>
+<li>
+<p> a data.frame with 4 columns: "date", "tmean", "tmin", "tmax"
+</p>
+</li>
+<li>
+<p> one row per day
+-&gt; parameter("dailymeanminmax", year)
+</p>
+</li>
+</ul>
+<p>daily data.frame input with tmean:
+</p>
+
+<ul>
+<li>
+<p> a data.frame with 2 columns: "date", "tmean"
+</p>
+</li>
+<li>
+<p> one row per day
+</p>
+</li>
+<li>
+<p> "date" column is.Date
+-&gt; parameter("dailymean", year)
+</p>
+</li>
+</ul>
+<p>hourly data.frame input:
+</p>
+
+<ul>
+<li>
+<p> a data.frame with 2 columns: "date", "hour", "tmean"
+</p>
+</li>
+<li>
+<p> 24 rows per day
+</p>
+</li>
+<li>
+<p> "date" column is.Date
+-&gt; parameter("hour", year)
+</p>
+</li>
+</ul>
+<p><strong>Parametrisation</strong>
+</p>
+<p>Additional parametrization is provided but has not yet been tested.
+</p>
+<p>Use parameter() to return a data.frame with all possible parametrization
+options or choose a model.
+The default is "dailymeanminmax" and not dependent on the data input anymore.
+</p>
+
+<ul>
+<li>
+<p> "dailymean": Regional PHENTHAUproc how described in Halbig et al. 2024 for
+daily mean temperature data
+</p>
+</li>
+<li>
+<p> "hour": Local PHENTHAUproc how described in Halbig et al. 2024 for hourly
+temperature data
+</p>
+</li>
+<li>
+<p> "dailymeanminmax": PHENTHAUproc for daily mean, max and min temperature
+data adapted to open access DWD raster data
+</p>
+</li>
+</ul>
+<p><strong>Output</strong>
+</p>
+<p>Regional Output: <br>
+A list with all model calculations as SpatRaster objects:
+</p>
+
+<ul>
+<li>
+<p> stages: SpatRaster with one layer per day - numeric - values from 0-8
+(0 egg stage - 8 adult stage).
+-&gt; use get_legend("stages") to show id/cover/colors
+</p>
+</li>
+<li>
+<p> custers/wagenhoff/meurisse - one layer per day - logical - TRUE/FALSE for
+hatch or no hatch
+</p>
+</li>
+<li>
+<p> budswelling: one layer per day - logical - TRUE/FALSE for budswelling or no
+budswelling
+</p>
+</li>
+<li>
+<p> leafunfolding: one layer per day - logical - TRUE/FALSE for leafunfolding
+or no leafunfolding
+-&gt; plot the first day of a logical SpatRaster with plot_date()
+</p>
+</li>
+<li>
+<p> mortality: one layer - integer - mortality in %
+</p>
+</li>
+<li>
+<p> ppa_biocide: one layer per day - numeric - 0 application of plant
+protection agents (PPA) and biocides not yet effective, 1 application
+effective, 2 appliaction not effective anymore
+</p>
+</li>
+</ul>
+<p>Local Output: <br>
+A data.frame with two columns:
+</p>
+
+<ul>
+<li>
+<p> model: name of model
+</p>
+</li>
+<li>
+<p> date: date of first appearing of event
+</p>
+</li>
+</ul>
+<p><strong>Presentation</strong>
+</p>
+<p>Regional Output:
+</p>
+
+<ul>
+<li>
+<p> plot_stages is a wrapper around terra::plot to preset legend, names, colors
+and day to plot.
+</p>
+</li>
+<li>
+<p> plot_date is a wrapper around terra::plot to plot the date of first TRUE in
+multiple layered SpatRaster
+</p>
+</li>
+</ul>
+<p>Local Output:
+</p>
+
+<ul><li>
+<p> plot_station_step is for local weather station data and creates a stepwise
+graph for the development stages
+</p>
+</li></ul>
+<h3>Value</h3>
+
+<p>data.frame or list of SpatRaster with all PHENTHAUproc model outputs
+(see Details)
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Bachfischer Lorenz, Department of Forest Protection FVA (2024)
+<a href="mailto:lorenz.bachfischer@posteo.de">lorenz.bachfischer@posteo.de</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Halbig et al. 2024: Halbig, P., Stelzer, A. S., Baier, P., Pennerstorfer, J.,
+Delb, H., &amp; Schopf, A. (2024). PHENTHAUproc–An early warning and decision
+support system for hazard assessment and control of oak processionary moth
+(Thaumetopoea processionea). Forest Ecology and Management, 552, 121525 <br>
+Custers 2003: Custers, C. (2003). Climate change and trophic synchronisation.
+English Wageningen UR, Chairgroup Environmental Systems Analysis.<br>
+Wagenhoff et al. 2014: Wagenhoff, E., Wagenhoff, A., Blum, R., Veit, H.,
+Zapf, D., &amp; Delb, H. (2014). Does the prediction of the time of egg hatch of
+Thaumetopoea processionea (Lepidoptera: Notodontidae) using a frost
+day/temperature sum model provide evidence of an increasing temporal mismatch
+between the time of egg hatch and that of budburst of Quercus robur due to
+recent global warming?. European Journal of Entomology, 111(2).<br>
+Meurisse et al. 2012: Meurisse, N., Hoch, G., Schopf, A., Battisti, A.,
+&amp; Grégoire, J. C. (2012). Low temperature tolerance and starvation ability
+of the oak processionary moth: implications in a context of increasing
+epidemics. Agricultural and forest entomology, 14(3), 239-250.<br></p>
+
+
+<h3>See Also</h3>
+
+<p>Other Main: 
+<code>get_legend()</code>,
+<code>mortality()</code>,
+<code>parameter()</code>,
+<code>phenology()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+srl &lt;- load_test()
+phen &lt;- phenthau(srl)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,444 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>checkF1</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Identify the best-fitting F1 segregation types</h2>
+
+<h3>Description</h3>
+
+<p>For a given set of F1 and parental samples, this function
+finds the best-fitting segregation type using either discrete or probabilistic input data. 
+It can also perform a dosage shift prior to selecting the segregation type.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">checkF1(
+  input_type = "discrete",
+  dosage_matrix,
+  probgeno_df,
+  parent1,
+  parent2,
+  F1,
+  ancestors = character(0),
+  polysomic,
+  disomic,
+  mixed,
+  ploidy,
+  ploidy2,
+  outfile = "",
+  critweight = c(1, 0.4, 0.4),
+  Pvalue_threshold = 1e-04,
+  fracInvalid_threshold = 0.05,
+  fracNA_threshold = 0.25,
+  shiftmarkers,
+  parentsScoredWithF1 = TRUE,
+  shiftParents = parentsScoredWithF1,
+  showAll = FALSE,
+  append_shf = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>input_type</code></td>
+<td>
+<p>Can be either one of 'discrete' or 'probabilistic'. For the former (default), a <code>dosage_matrix</code> must be supplied,
+while for the latter a <code>probgeno_df</code> must be supplied.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dosage_matrix</code></td>
+<td>
+<p>An integer matrix with markers in rows and individuals in columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>probgeno_df</code></td>
+<td>
+<p>A data frame as read from the scores file produced by function
+<code>saveMarkerModels</code> of R package <code>fitPoly</code>, or alternatively, a data frame containing the following columns:
+</p>
+
+<dl>
+<dt>SampleName</dt>
+<dd>
+<p>Name of the sample (individual)
+</p>
+</dd>
+<dt>MarkerName</dt>
+<dd>
+<p>Name of the marker
+</p>
+</dd>
+<dt>P0</dt>
+<dd>
+<p>Probabilities of dosage score '0'
+</p>
+</dd>
+<dt>P1...</dt>
+<dd>
+<p>Probabilities of dosage score '1' etc. (up to max dosage, e.g. P4 for tetraploid population)
+</p>
+</dd>
+<dt>maxP</dt>
+<dd>
+<p>Maximum genotype probability identified for a particular individual and marker combination
+</p>
+</dd>
+<dt>maxgeno</dt>
+<dd>
+<p>Most probable dosage for a particular individual and marker combination
+</p>
+</dd>
+<dt>geno</dt>
+<dd>
+<p>Most probable dosage for a particular individual and marker combination, if <code>maxP</code> exceeds a user-defined threshold (e.g. 0.9), otherwise <code>NA</code>
+</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parent1</code></td>
+<td>
+<p>character vector with the sample names of parent 1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parent2</code></td>
+<td>
+<p>character vector with the sample names of parent 2</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>F1</code></td>
+<td>
+<p>character vector with the sample names of the F1 individuals</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ancestors</code></td>
+<td>
+<p>character vector with the sample names of any other
+ancestors or other samples of interest. The dosages of these samples will
+be shown in the output (shifted if shiftParents <code>TRUE</code>) but they are not used
+in the selection of the segregation type.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>polysomic</code></td>
+<td>
+<p>if <code>TRUE</code> at least all polysomic segtypes are considered;
+if <code>FALSE</code> these are not specifically selected (but if e.g. disomic is <code>TRUE</code>,
+any polysomic segtypes that are also disomic will still be considered)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>disomic</code></td>
+<td>
+<p>if <code>TRUE</code> at least all disomic segtypes are considered (see
+<code>polysomic</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mixed</code></td>
+<td>
+<p>if <code>TRUE</code> at least all mixed segtypes are considered (see
+<code>polysomic</code>). A mixed segtype occurs when inheritance in one parent is
+polysomic (random chromosome pairing) and in the other parent disomic (fully
+preferential chromosome pairing)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ploidy</code></td>
+<td>
+<p>The ploidy of parent 1 (must be even, 2 (diploid) or larger).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ploidy2</code></td>
+<td>
+<p>The ploidy of parent 2. If omitted it is
+assumed to be equal to ploidy.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outfile</code></td>
+<td>
+<p>the tab-separated text file to write the output to; if NA a temporary file
+checkF1.tmp is created in the current working directory and deleted at end</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>critweight</code></td>
+<td>
+<p>NA or a numeric vector containing the weights of three quality
+criteria; do not need to sum to 1. If NA, the output will not contain a
+column qall_weights. Else the weights specify how qall_weights will be
+calculated from quality parameters q1, q2 and q3.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Pvalue_threshold</code></td>
+<td>
+<p>a minimum threshold value for the Pvalue of the
+bestParentfit segtype (with a smaller Pvalue the q1 quality parameter will
+be set to 0)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fracInvalid_threshold</code></td>
+<td>
+<p>a maximum threshold for the fracInvalid of the
+bestParentfit segtype (with a larger fraction of invalid dosages in the F1
+the q1 quality parameter will be set to 0)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fracNA_threshold</code></td>
+<td>
+<p>a maximum threshold for the fraction of unscored F1
+samples (with a larger fraction of unscored samples in the F1
+the q3 quality parameter will be set to 0)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shiftmarkers</code></td>
+<td>
+<p>if specified, shiftmarkers must be a data frame with
+columns MarkerName and shift; for the markernames that match exactly
+(upper/lowercase etc) those in the input (either <code>dosage_matrix</code> or <code>probgeno_df</code>), the dosages are increased by the
+amount specified in column shift,
+e.g. if shift is -1, dosages 2..ploidy are converted to 1..(ploidy-1)
+and dosage 0 is a combination of old dosages 0 and 1, for all samples.
+The segregation check is then performed with the shifted dosages.
+A shift=NA is allowed, these markers will not be shifted.
+The sets of markers in the input (either <code>dosage_matrix</code> or <code>probgeno_df</code>) and shiftmarkers
+may be different, but markers may occur only once in shiftmarkers.
+A column shift is added at the end of the returned data frame.<br>
+If parameter shiftParents is <code>TRUE</code>, the parental and ancestor scores are
+shifted as the F1 scores, if <code>FALSE</code> they are not shifted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parentsScoredWithF1</code></td>
+<td>
+<p><code>TRUE</code> if parents are scored in the same experiment
+and the same <code>fitPoly</code> run as the F1, else <code>FALSE</code>.
+If <code>TRUE</code>, their fraction missing scores
+and conflicts tell something about the quality of the scoring. If <code>FALSE</code>
+(e.g. when the F1 is triploid and the parents are diploid and tetraploid) the
+quality of the F1 scores can be independent of that of the parents.<br>
+If not specified, <code>TRUE</code> is assumed if ploidy2 == ploidy and <code>FALSE</code> if
+ploidy2 != ploidy</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shiftParents</code></td>
+<td>
+<p>only used if parameter shiftmarkers is specified. If <code>TRUE</code>,
+apply the shifts also to the parental and ancestor scores.
+By default <code>TRUE</code> if <code>parentsScoredWithF1</code> is <code>TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>showAll</code></td>
+<td>
+<p>(default <code>FALSE</code>) if <code>TRUE</code>, for each segtype 3 columns
+are added to the returned data frame with the frqInvalid, Pvalue and
+matchParents values for these segtype (see the description of the return value)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>append_shf</code></td>
+<td>
+<p>if <code>TRUE</code> and parameter shiftmarkers is specified, _shf is
+appended to all marker names where shift is not 0. This is not required for
+any of the functions in this package but may prevent duplicated marker names
+when using other software.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For each marker is tested how well the different segregation types
+fit with the observed parental and F1 dosages. The results are summarized
+by columns bestParentfit (which is the best fitting segregation type,
+taking into account the F1 and parental dosages) and columns qall_mult
+and/or qall_weights (how good is the fit of the bestParentfit segtype: 0=bad,
+1=good).<br>
+Column bestfit in the results gives the segtype best fitting the F1
+segregation without taking account of the parents. This bestfit segtype is
+used by function correctDosages, which tests for possible "shifts" in
+the marker models.<br>
+In case the parents are not scored together with the F1 (e.g. if the F1 is
+triploid and the parents are diploid and tetraploid) <code>dosage_matrix</code>
+should be edited to contain the parental as well as the F1 scores.
+In case the diploid and tetraploid parent are scored in the same run of
+function <code>saveMarkerModels</code> (from package <code>fitPoly</code>)
+the diploid is initially scored as nulliplex-duplex-quadruplex (dosage 0, 2
+or 4); that must be converted to the true diploid dosage scores (0, 1 or 2).
+Similar corrections are needed with other combinations, such as a diploid
+parent scored together with a hexaploid population etc.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing two elements, <code>checked_F1</code> and <code>meta</code>. <code>meta</code> is itself
+a list that stores the parameter settings used in running <code>checkF1</code> which can 
+be useful for later reference. The first element (<code>checked_F1</code>) contains the actual results: a data
+frame with one row per marker, with the following columns:
+</p>
+
+<ul>
+<li>
+<p> m: the sequential number of the marker (as assigned by <code>fitPoly</code>)
+</p>
+</li>
+<li>
+<p> MarkerName: the name of the marker, with _shf appended if the marker
+is shifted and append_shf is <code>TRUE</code>
+</p>
+</li>
+<li>
+<p> parent1: consensus dosage score of the samples of parent 1
+</p>
+</li>
+<li>
+<p> parent2: consensus dosage score of the samples of parent 2
+</p>
+</li>
+<li>
+<p> F1_0 ...	F1_&lt;ploidy&gt;: the number of F1 samples with dosage scores
+0 ... &lt;ploidy&gt;
+</p>
+</li>
+<li>
+<p> F1_NA: the number of F1 samples with a missing dosage score
+</p>
+</li>
+<li>
+<p> sample names of parents and ancestors: the dosage scores for those
+samples
+</p>
+</li>
+<li>
+<p> bestfit: the best fitting segtype, considering only the F1 samples
+</p>
+</li>
+<li>
+<p> frqInvalid_bestfit: for the bestfit segtype, the frequency of F1 samples
+with a dosage score that is invalid (that should not occur). The frequency is
+calculated as the number of invalid samples divided by the number of non-NA
+samples
+</p>
+</li>
+<li>
+<p> Pvalue_bestfit: the chisquare test P-value for the observed
+distribution of dosage scores vs the expected fractions. For segtypes
+where only one dosage is expected (1_0, 1_1 etc) the binomial probability of
+the number of invalid scores is given, assuming an error
+rate of seg_invalidrate (hard-coded as 0.03)
+</p>
+</li>
+<li>
+<p> matchParent_bestfit: indication how the bestfit segtype matches the
+consensus dosages of parent 1 and 2: "Unknown"=both parental
+dosages unknown; "No"=one or both parental dosages known
+and conflicting with the segtype; "OneOK"= only one parental
+dosage known, not conflicting with the segtype; "Yes"=both
+parental dosages known and combination matching with
+the segtype. This score is initially assigned based on
+only high-confidence parental consensus scores; if
+low-confidence dosages are confirmed by the F1, the
+matchParent for (only) the selected segtype is
+updated, as are the parental consensus scores.
+</p>
+</li>
+<li>
+<p> bestParentfit: the best fitting segtype that does not conflict with
+the parental consensus scores
+</p>
+</li>
+<li>
+<p> frqInvalid_bestParentfit, Pvalue_bestParentfit,
+matchParent_bestParentfit: same as the corresponding columns for bestfit.
+Note that matchParent_bestParentfit cannot be "No".
+</p>
+</li>
+<li>
+<p> q1_segtypefit: a value from 0 (bad) to 1 (good), a measure of the fit of
+the bestParentfit segtype based on Pvalue, invalidP and whether bestfit is
+equal to bestParentfit
+</p>
+</li>
+<li>
+<p> q2_parents: a value from 0 (bad) to 1 (good), based either on the
+quality of the parental scores (the number of missing scores and of
+conflicting scores, if parentsScoredWithF1 is TRUE) or on matchParents
+(No=0, Unknown=0.65, OneOK=0.9, Yes=1, if parentsScoredWithF1 is FALSE)
+</p>
+</li>
+<li>
+<p> q3_fracscored: a value from 0 (bad) to 1 (good), based on the fraction
+of F1 samples that have a non-missing dosage score
+</p>
+</li>
+<li>
+<p> qall_mult: a value from 0 (bad) to 1 (good), a summary quality score
+equal to the product q1*q2*q3. Equal to 0 if any of these is 0, hence
+sensitive to thresholds; a natural selection criterion would be to accept
+all markers with qall_mult &gt; 0
+</p>
+</li>
+<li>
+<p> qall_weights: a value from 0 (bad) to 1 (good), a weighted average of
+q1, q2 and q3, with weights as specified in parameter critweight. This column is
+present only if critweight is specified. In this case there is no "natural"
+threshold; a threshold for selection of markers must be obtained by inspecting
+XY-plots of markers over a range of qall_weights values
+</p>
+</li>
+<li>
+<p> shift: if shiftmarkers is specified a column shift is added with
+for all markers the applied shift (for the unshifted markers the shift value
+is 0)
+</p>
+</li>
+</ul>
+<p>qall_mult and/or qall_weights can be used to compare the quality
+of the SNPs within one analysis and one F1 population but not between analyses
+or between different F1 populations.<br>
+If parameter showAll is <code>TRUE</code> there are 3 additional columns for each
+segtype with names frqInvalid_&lt;segtype&gt;, Pvalue_&lt;segtype&gt; and
+matchParent_&lt;segtype&gt;; see the corresponding columns for bestfit for an
+explanation. These extra columns are inserted directly before the bestfit
+column.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+data("ALL_dosages")
+chk1&lt;-checkF1(input_type="discrete",dosage_matrix=ALL_dosages,parent1="P1",parent2="P2",
+F1=setdiff(colnames(ALL_dosages),c("P1","P2")),polysomic=T,disomic=F,mixed=F,
+ploidy=4)
+data("gp_df")
+chk1&lt;-checkF1(input_type="probabilistic",probgeno_df=gp_df,parent1="P1",parent2="P2",
+F1=setdiff(levels(gp_df$SampleName),c("P1","P2")),polysomic=T,disomic=F,mixed=F,
+ploidy=4)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

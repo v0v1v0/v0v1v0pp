@@ -1,0 +1,133 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pandemics-package</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Monitoring a Developing Pandemic with Available Data.
+</h2>
+
+<h3>Description</h3>
+
+<p>Full dynamic system to describe and forecast the spread
+and the severity of a developing pandemic based on typically available data. The system involves three different transitions: infection-infection, infection-hospitalization and hospitalization-death/recovery. The intensities of these transitions are dynamic and estimated using nonparametric local linear estimators.
+</p>
+<p>Estimation is performed from aggregated data consisting of number of infections (positive tests), hospitalizations, deaths and recoveries notified each day.
+</p>
+<p>The package can be used to provide forecasts of new infections, hospitalizations and deaths, as well as typical survival indicators such as the median time from admission in hospital to recovery or death, or the probability that a patient who has been in hospital for a number of days can leave it alive.
+</p>
+
+
+<h3>Details</h3>
+
+
+<table>
+<tr>
+<td style="text-align: left;">
+Package: </td>
+<td style="text-align: left;"> pandemics</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+Type: </td>
+<td style="text-align: left;"> Package</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+Version: </td>
+<td style="text-align: left;"> 0.1.0</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+Date: </td>
+<td style="text-align: left;"> 2024-30-08</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+License: </td>
+<td style="text-align: left;"> GPL-2</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>M.L. Gamiz, E. Mammen, M.D. Martinez-Miranda and J.P. Nielsen
+</p>
+<p>Maintainer: Maria Dolores Martinez-Miranda &lt;mmiranda@ugr.es&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>Gámiz, M.L., Mammen, E., Martínez-Miranda, M.D. and Nielsen, J.P.  (2022). Missing link survival analysis with applications to available pandemic data. Computational Statistics &amp; Data Analysis, 169, 107405.
+</p>
+<p>Gámiz, M.L., Mammen, E., Martínez-Miranda, M.D. and Nielsen, J.P. (2024a). Low quality exposure and point processes with a view to the first phase of a pandemic. arXiv:2308.09918.
+</p>
+<p>Gámiz, M.L., Mammen, E., Martínez-Miranda, M.D. and Nielsen, J.P. (2024b). Monitoring a developing pandemic with available data. arXiv:2308.09919.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Forecasting new infections in October 2020 from data up to 30-Sep
+data('covid')
+## We remove the first 56 rows  (no data on testing until 13th May)
+covid2&lt;-covid[-c(1:56),]
+M2&lt;-nrow(covid2)
+Hi&lt;-covid2$Hospi
+Hi&lt;-Hi[-1]
+Ri&lt;-covid2$Recov
+Ri&lt;-diff(Ri)
+Di&lt;-covid2$Death
+Di&lt;-diff(Di)
+Pi&lt;-covid2$Posit
+M2&lt;-length(Di)
+# New hospitalizations are Hi-Ri-Di
+newHi&lt;-Hi[-1]-(Hi[-M2]-Ri[-M2]-Di[-M2])
+newHi&lt;-as.integer(c(Hi[1],newHi))
+newHi[newHi&lt;0]&lt;-0
+ddates&lt;-covid2$Date
+
+## 1. First estimate the infection rate
+Ms&lt;-141   # up to 30-Sep
+Ei.new&lt;-Pi[1:Ms]
+delay&lt;-1;Msd&lt;-Ms-delay
+Oi.z&lt;-Ei.new[-(1:delay)]
+Ei.z1&lt;-Ei.new[1:Msd];
+t.grid&lt;-z.grid&lt;-1:Msd
+bs&lt;-t(c(5,10))
+RInf&lt;-rate2Dmiss(t.grid,z.grid,Oi.z,Ei.z1,bs.grid=bs,cv=FALSE)
+RoInf&lt;-RInf$hi.zt
+
+## 2. Forecasting now with a given infection indicator
+Cval&lt;-1.5
+period&lt;-32  # forecasts up to 1st November, 32 days
+fore&lt;-forecasting(Cval,period,RoInf,Pz=Pi[1:Ms],
+    newHz=newHi[1:Ms],Hz=Hi[1:Ms],Dz=Di[1:Ms],Rz=Ri[1:Ms])
+Pz.pred&lt;-fore$Pz.pred
+
+## 3. Plot forecasts and compare with observed values
+## (future values are shown for predictions validation)
+Pz.obs&lt;-Pi
+yy&lt;-range(Pz.pred,Pz.obs,na.rm=TRUE)
+plot(1:(Ms-1),Pz.obs[3:(Ms+1)],ylab='',xlab='Date of notification',
+     main='Forecasts of new positives in October 2020',pch=19,
+     ylim=yy,xaxt='n',xlim=c(1,Ms+1+period))
+oat&lt;-c(1,17,32,47,62,78,93,109,124,139,154,170)
+olab&lt;-ddates[oat]
+axis(1,at=oat,labels=olab)
+points(Ms:(Ms+period-2),Pz.obs[(Ms+2):(Ms+period)],col=1,pch=1)
+lines(Ms:(Ms+period-2),Pz.pred[-1],col=2,lty=2,lwd=3)
+legend('topleft',c('Data: daily number of new positives until 30-Sep',
+    paste('Forecasts with Cval=',round(Cval,2)),
+    'True numbers of new positives in October'),
+    pch=c(19,NA,1),col=c(1,2,1),lty=c(NA,2,NA),lwd=c(NA,3,NA),bty='n')
+
+</code></pre>
+
+
+</div>

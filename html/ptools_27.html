@@ -1,0 +1,162 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>wdd</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimates the WDD Test</h2>
+
+<h3>Description</h3>
+
+<p>Estimates the weighted displacement difference test from <a href="https://crimesciencejournal.biomedcentral.com/articles/10.1186/s40163-018-0085-5">Wheeler &amp; Ratcliffe, <em>A simple weighted displacement difference test to evaluate place based crime interventions</em>, Crime Science</a>
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">wdd(
+  control,
+  treated,
+  disp_control = c(0, 0),
+  disp_treated = c(0, 0),
+  time_weights = c(1, 1),
+  area_weights = c(1, 1, 1, 1),
+  alpha = 0.1,
+  silent = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>vector with counts in pre,post for control area</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>treated</code></td>
+<td>
+<p>vector with counts in pre,post for treated area</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>disp_control</code></td>
+<td>
+<p>vector with counts in pre,post for displacement control area (default <code>c(0,0)</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>disp_treated</code></td>
+<td>
+<p>vector with counts in pre,post for displacement treated area (default <code>c(0,0)</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time_weights</code></td>
+<td>
+<p>vector with weights for time periods for pre/post (default <code>c(1,1)</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>area_weights</code></td>
+<td>
+<p>vector with weights for different sized areas, order is c(control,treated,disp_control,disp_treated) (default <code>c(1,1,1,1)</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>scaler alpha level for confidence interval (default <code>0.1</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>silent</code></td>
+<td>
+<p>boolean set to TRUE if you do not want anything printed out (default FALSE)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The wdd (weighted displacement difference) test is an extensions to differences-in-differences when observed count data pre/post in treated control areas. The test statistic (ignoring displacement areas and weights) is:
+</p>
+<p style="text-align: center;"><code class="reqn">WDD = \Delta T - \Delta Ct</code>
+</p>
+
+<p>where <code class="reqn">\Delta T = T_1 - T_0</code>, the post time period count minus the pre time period count for the treated areas. And ditto for the control areas, Ct. The variance is calculated as:
+</p>
+<p style="text-align: center;"><code class="reqn">T_1 + T_0 + Ct_1 + Ct_0</code>
+</p>
+
+<p>that is this test uses the normal approximation to the Poisson distribution to calculate the standard error for the WDD. So beware if using very tiny counts – this approximation is less likely to be applicable (or count data that is Poisson, e.g. very overdispersed).
+</p>
+<p>This function also incorporates weights for different examples, such as differing <a href="https://andrewpwheeler.com/2021/01/09/the-wdd-test-with-different-pre-post-time-periods/">pre/post time periods</a> (e.g. 2 years in pre and 1 year in post), or <a href="https://andrewpwheeler.com/2021/02/23/the-wdd-test-with-different-area-sizes/">different area sizes</a> (e.g. a one square mile area vs a two square mile area). The subsequent test statistic can then be interpreted as changes per unit time or changes per unit area (e.g. density) or both per time and density.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A length 9 vector with names:
+</p>
+
+<ul>
+<li> <p><code>Est_Local</code> and <code>SE_Local</code>, the WDD and its standard error for the local estimates
+</p>
+</li>
+<li> <p><code>Est_Displace</code> and <code>SE_Displace</code>, the WDD and its standard error for the displacement areas
+</p>
+</li>
+<li> <p><code>Est_Total</code> and <code>SE_Total</code>, the WDD and its standard error for the combined local/displacement areas
+</p>
+</li>
+<li> <p><code>Z</code>, the Z-score for the total estimate
+</p>
+</li>
+<li>
+<p> and the lower and upper confidence intervals, <code>LowCI</code> and <code>HighCI</code>, for whatever alpha level you specified for the total estimate.
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Wheeler, A. P., &amp; Ratcliffe, J. H. (2018). A simple weighted displacement difference test to evaluate place based crime interventions. <em>Crime Science</em>, 7(1), 1-9.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>wdd_harm()</code> for aggregating multiple WDD tests into one metric (e.g. based on crime harm weights)
+<code>e_test()</code> for checking the difference in two Poisson means
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># No weights and no displacement
+cont &lt;- c(20,20); treat &lt;- c(20,10)
+wdd(cont,treat)
+
+# With Displacement stats
+disptreat &lt;- c(30,20); dispcont &lt;- c(30,30)
+wdd(cont,treat,dispcont,disptreat)
+
+# With different time periods for pre/post
+wdd(cont,treat,time_weights=c(2,1))
+
+# With different area sizes
+wdd(cont,treat,dispcont,disptreat,area_weights=c(2,1.5,3,3.2))
+
+# You can technically use this even without pre (so just normal based approximation)
+# just put in 0's for the pre data (so does not factor into variance)
+res_test &lt;- wdd(c(0,20),c(0,10))
+twotail_p &lt;- pnorm(res_test['Z'])*2
+print(twotail_p) #~0.068
+# e-test is very similar
+e_test(20,10) #~0.069
+</code></pre>
+
+
+</div>

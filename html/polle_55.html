@@ -1,0 +1,371 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>policy_learn</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create Policy Learner</h2>
+
+<h3>Description</h3>
+
+<p><code>policy_learn()</code> is used to specify a policy
+learning method (Q-learning,
+doubly robust Q-learning, policy tree
+learning and outcome weighted learning).
+Evaluating the policy learner returns a policy object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">policy_learn(
+  type = "ql",
+  control = list(),
+  alpha = 0,
+  threshold = NULL,
+  full_history = FALSE,
+  L = 1,
+  cross_fit_g_models = TRUE,
+  save_cross_fit_models = FALSE,
+  future_args = list(future.seed = TRUE),
+  name = type
+)
+
+## S3 method for class 'policy_learn'
+print(x, ...)
+
+## S3 method for class 'policy_object'
+print(x, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>Type of policy learner method:
+</p>
+
+<ul>
+<li> <p><code>"ql"</code>: Quality/Q-learning.
+</p>
+</li>
+<li> <p><code>"drql"</code>: Doubly Robust Q-learning.
+</p>
+</li>
+<li> <p><code>"blip"</code>:
+Doubly Robust blip-learning (only for dichotomous actions).
+</p>
+</li>
+<li> <p><code>"ptl"</code>: Policy Tree Learning.
+</p>
+</li>
+<li> <p><code>"owl"</code>: Outcome Weighted Learning.
+</p>
+</li>
+<li> <p><code>"earl"</code>:
+Efficient Augmentation and Relaxation Learning (only single stage).
+</p>
+</li>
+<li> <p><code>"rwl"</code>: Residual Weighted Learning (only single stage).
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>List of control arguments.
+Values (and default values) are set using
+<code>control_{type}()</code>. Key arguments include:<br><code>control_drql()</code>:<br></p>
+
+<ul><li> <p><code>qv_models</code>:
+Single element or list of V-restricted Q-models created
+by <code>q_glm()</code>, <code>q_rf()</code>, <code>q_sl()</code> or similar functions.
+</p>
+</li></ul>
+<p><code>control_blip()</code>:<br></p>
+
+<ul><li> <p><code>blip_models</code>:
+Single element or list of V-restricted blip-models created
+by <code>q_glm()</code>, <code>q_rf()</code>, <code>q_sl()</code> or similar functions.
+</p>
+</li></ul>
+<p><code>control_ptl()</code>: <br></p>
+
+<ul>
+<li> <p><code>policy_vars</code>: Character vector/string or list of character
+vectors/strings. Variable names used to construct
+the V-restricted policy tree.
+The names must be a subset of the history names, see get_history_names().
+</p>
+</li>
+<li> <p><code>hybrid</code>: If <code>TRUE</code>,
+<code>policytree::hybrid_policy_tree()</code> is used to
+fit a policy tree.
+</p>
+</li>
+<li> <p><code>depth</code>:
+Integer or integer vector. The depth of the fitted policy
+tree for each stage.
+</p>
+</li>
+</ul>
+<p><code>control_owl()</code>: <br></p>
+
+<ul>
+<li> <p><code>policy_vars</code>: As in <code>control_ptl()</code>.
+</p>
+</li>
+<li> <p><code>loss</code>: Loss function.
+The options are <code>"hinge"</code>, <code>"ramp"</code>,
+<code>"logit"</code>, <code>"logit.lasso"</code>, <code>"l2"</code>, <code>"l2.lasso"</code>.
+</p>
+</li>
+<li> <p><code>kernel</code>: Type of kernel
+used by the support vector machine. The
+options are <code>"linear"</code>, <code>"rbf"</code>.
+</p>
+</li>
+<li> <p><code>augment</code>:  If <code>TRUE</code> the outcomes are augmented.
+</p>
+</li>
+</ul>
+<p><code>control_earl()</code>/<code>control_rwl()</code>: <br></p>
+
+<ul>
+<li> <p><code>moPropen</code>:
+Propensity model of class "ModelObj", see modelObj::modelObj.
+</p>
+</li>
+<li> <p><code>moMain</code>: Main effects outcome model of class "ModelObj".
+</p>
+</li>
+<li> <p><code>moCont</code> Contrast outcome model of class "ModelObj".
+</p>
+</li>
+<li> <p><code>regime</code>:
+An object of class formula specifying the design of the policy.
+</p>
+</li>
+<li> <p><code>surrogate</code>:
+The surrogate 0-1 loss function. The options are
+<code>"logit"</code>, <code>"exp"</code>,
+<code>"hinge"</code>, <code>"sqhinge"</code>, <code>"huber"</code>.
+</p>
+</li>
+<li> <p><code>kernel</code>: The options are
+<code>"linear"</code>, <code>"poly"</code>, <code>"radial"</code>.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Probability threshold for determining realistic actions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>Numeric vector, thresholds for not
+choosing the reference action at stage 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>full_history</code></td>
+<td>
+<p>If <code>TRUE</code>, the full
+history is used to fit each policy function (e.g. QV-model,
+policy tree). If FALSE, the single stage/
+"Markov type" history is used to fit each policy function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L</code></td>
+<td>
+<p>Number of folds for cross-fitting nuisance models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cross_fit_g_models</code></td>
+<td>
+<p>If <code>TRUE</code>, the g-models will not be
+cross-fitted even if L &gt; 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save_cross_fit_models</code></td>
+<td>
+<p>If <code>TRUE</code>, the cross-fitted
+models will be saved.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>future_args</code></td>
+<td>
+<p>Arguments passed to <code>future.apply::future_apply()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>Character string.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Object of class "policy_object" or "policy_learn".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed to print.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Function of inherited class <code>"policy_learn"</code>.
+Evaluating the function on a policy_data object returns an object of
+class policy_object. A policy object is a list containing all or
+some of the following elements:
+</p>
+
+<dl>
+<dt><code>q_functions</code></dt>
+<dd>
+<p>Fitted Q-functions. Object
+of class "nuisance_functions".</p>
+</dd>
+<dt><code>g_functions</code></dt>
+<dd>
+<p>Fitted g-functions. Object
+of class "nuisance_functions".</p>
+</dd>
+<dt><code>action_set</code></dt>
+<dd>
+<p>Sorted character vector describing
+the action set, i.e.,
+the possible actions at each stage.</p>
+</dd>
+<dt><code>alpha</code></dt>
+<dd>
+<p>Numeric. Probability threshold to determine
+realistic actions.</p>
+</dd>
+<dt><code>K</code></dt>
+<dd>
+<p>Integer. Maximal number of stages.</p>
+</dd>
+<dt><code>qv_functions</code></dt>
+<dd>
+<p>(only if <code>type = "drql"</code>) Fitted
+V-restricted Q-functions. Contains a fitted model for each stage and action.</p>
+</dd>
+<dt><code>ptl_objects</code></dt>
+<dd>
+<p>(only if <code>type = "ptl"</code>) Fitted V-restricted
+policy trees. Contains a policytree::policy_tree for each stage.</p>
+</dd>
+<dt><code>ptl_designs</code></dt>
+<dd>
+<p>(only if <code>type = "ptl"</code>) Specification of the
+V-restricted design matrix for each stage</p>
+</dd>
+</dl>
+<h3>S3 generics</h3>
+
+<p>The following S3 generic functions are available for an object of
+class "policy_object":
+</p>
+
+<dl>
+<dt><code>get_g_functions()</code></dt>
+<dd>
+<p>Extract the fitted g-functions.</p>
+</dd>
+<dt><code>get_q_functions()</code></dt>
+<dd>
+<p>Extract the fitted Q-functions.</p>
+</dd>
+<dt><code>get_policy()</code></dt>
+<dd>
+<p>Extract the fitted policy object.</p>
+</dd>
+<dt><code>get_policy_functions()</code></dt>
+<dd>
+<p>Extract the fitted policy function for
+a given stage.</p>
+</dd>
+<dt><code>get_policy_actions()</code></dt>
+<dd>
+<p>Extract the (fitted) policy actions.</p>
+</dd>
+</dl>
+<h3>References</h3>
+
+<p>Doubly Robust Q-learning (<code>type = "drql"</code>): Luedtke, Alexander R., and
+Mark J. van der Laan. "Super-learning of an optimal dynamic treatment rule."
+The international journal of biostatistics 12.1 (2016): 305-332.
+<a href="https://doi.org/10.1515/ijb-2015-0052">doi:10.1515/ijb-2015-0052</a>.<br><br>
+Policy Tree Learning (<code>type = "ptl"</code>): Zhou, Zhengyuan, Susan Athey,
+and Stefan Wager. "Offline multi-action policy learning: Generalization and
+optimization." Operations Research (2022). <a href="https://doi.org/10.1287/opre.2022.2271">doi:10.1287/opre.2022.2271</a>.<br><br>
+(Augmented) Outcome Weighted Learning: Liu, Ying, et al. "Augmented
+outcome‐weighted learning for estimating optimal dynamic treatment regimens."
+Statistics in medicine 37.26 (2018): 3776-3788. <a href="https://doi.org/10.1002/sim.7844">doi:10.1002/sim.7844</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>policy_eval()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library("polle")
+### Two stages:
+d &lt;- sim_two_stage(5e2, seed=1)
+pd &lt;- policy_data(d,
+                  action = c("A_1", "A_2"),
+                  baseline = c("BB"),
+                  covariates = list(L = c("L_1", "L_2"),
+                                    C = c("C_1", "C_2")),
+                  utility = c("U_1", "U_2", "U_3"))
+pd
+
+### V-restricted (Doubly Robust) Q-learning
+
+# specifying the learner:
+pl &lt;- policy_learn(
+  type = "drql",
+  control = control_drql(qv_models = list(q_glm(formula = ~ C_1 + BB),
+                                          q_glm(formula = ~ L_1 + BB))),
+  full_history = TRUE
+)
+
+# evaluating the learned policy
+pe &lt;- policy_eval(policy_data = pd,
+                  policy_learn = pl,
+                  q_models = q_glm(),
+                  g_models = g_glm())
+pe
+# getting the policy object:
+po &lt;- get_policy_object(pe)
+# inspecting the fitted QV-model for each action strata at stage 1:
+po$qv_functions$stage_1
+head(get_policy(pe)(pd))
+</code></pre>
+
+
+</div>

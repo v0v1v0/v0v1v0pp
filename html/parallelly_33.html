@@ -1,0 +1,109 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>killNode</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Terminate one or more cluster nodes using process signaling</h2>
+
+<h3>Description</h3>
+
+<p>Terminate one or more cluster nodes using process signaling
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">killNode(x, signal = tools::SIGTERM, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>cluster or cluster node to terminate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>signal</code></td>
+<td>
+<p>An integer that specifies the signal level to be sent
+to the parallel R process.
+It's only <code>tools::SIGINT</code> (2) and <code>tools::SIGTERM</code> (15) that are
+supported on all operating systems (i.e. Unix, macOS, and MS Windows).
+All other signals are platform specific, cf. <code>tools::pskill()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Not used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Note that the preferred way to terminate a cluster is via
+<code>parallel::stopCluster()</code>, because it terminates the cluster nodes
+by kindly asking each of them to nicely shut themselves down.
+Using <code>killNode()</code> is a much more sever approach. It abruptly
+terminates the underlying R process, possibly without giving the
+parallel worker a chance to terminate gracefully.  For example,
+it might get terminated in the middle of writing to file.
+</p>
+<p><code>tools::pskill()</code> is used to send the signal to the R process hosting
+the parallel worker.
+</p>
+
+
+<h3>Value</h3>
+
+<p>TRUE if the signal was successfully applied, FALSE if not, and NA if
+signaling is not supported on the specific cluster or node.
+<em>Warning</em>: With R (&lt; 3.5.0), NA is always returned. This is due to a
+bug in R (&lt; 3.5.0), where the signaling result cannot be trusted.
+</p>
+
+
+<h3>Known limitations</h3>
+
+<p>This function works only with cluster nodes of class <code>RichSOCKnode</code>,
+which were created by <code>makeClusterPSOCK()</code>.  It does not work when
+using <code>parallel::makeCluster()</code> and friends.
+</p>
+<p>Currently, it's only possible to send signals to parallel workers, that
+is, cluster nodes, that run on the local machine.
+If attempted to use <code>killNode()</code> on a remote parallel workers, <code>NA</code>
+is returned and an informative warning is produced.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Use <code>isNodeAlive()</code> to check whether one or more cluster nodes are alive.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+cl &lt;- makeClusterPSOCK(2)
+print(isNodeAlive(cl))  ## [1] TRUE TRUE
+
+res &lt;- killNode(cl)
+print(res)
+
+## It might take a moment before the background
+## workers are shutdown after having been signaled
+Sys.sleep(1.0)
+
+print(isNodeAlive(cl))  ## [1] FALSE FALSE
+
+
+</code></pre>
+
+
+</div>

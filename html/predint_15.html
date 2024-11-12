@@ -1,0 +1,236 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>lmer_pi_futmat</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Prediction intervals for future observations based on linear random effects models</h2>
+
+<h3>Description</h3>
+
+<p><code>lmer_pi_futmat()</code> calculates a bootstrap calibrated prediction interval for one or more
+future observation(s) based on linear random effects models. With this approach,
+the experimental design of the future data is taken into account (see below).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">lmer_pi_futmat(
+  model,
+  newdat = NULL,
+  futmat_list = NULL,
+  alternative = "both",
+  alpha = 0.05,
+  nboot = 10000,
+  delta_min = 0.01,
+  delta_max = 10,
+  tolerance = 0.001,
+  traceplot = TRUE,
+  n_bisec = 30,
+  algorithm = "MS22"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a random effects model of class  <code>"lmerMod"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdat</code></td>
+<td>
+<p>either 1 or a <code>data.frame</code> with the same column names as the historical data
+on which <code>model</code> depends</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>futmat_list</code></td>
+<td>
+<p>a list that contains design matrices for each random factor</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alternative</code></td>
+<td>
+<p>either "both", "upper" or "lower". <code>alternative</code> specifies
+if a prediction interval or an upper or a lower prediction limit should be computed</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>defines the level of confidence (1-<code>alpha</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nboot</code></td>
+<td>
+<p>number of bootstraps</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>delta_min</code></td>
+<td>
+<p>lower start value for bisection</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>delta_max</code></td>
+<td>
+<p>upper start value for bisection</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tolerance</code></td>
+<td>
+<p>tolerance for the coverage probability in the bisection</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>traceplot</code></td>
+<td>
+<p>if <code>TRUE</code>: Plot for visualization of the bisection process</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_bisec</code></td>
+<td>
+<p>maximal number of bisection steps</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>algorithm</code></td>
+<td>
+<p>either "MS22" or "MS22mod" (see details)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function returns bootstrap-calibrated prediction intervals as well as
+lower or upper prediction limits.
+</p>
+<p>If <code>algorithm</code> is set to "MS22", both limits of the prediction interval
+are calibrated simultaneously using the algorithm described in Menssen and
+Schaarschmidt (2022), section 3.2.4. The calibrated prediction interval is given
+as
+</p>
+<p style="text-align: center;"><code class="reqn">[l,u] = \hat{\mu} \pm q^{calib} \sqrt{\widehat{var}(\hat{\mu}) + \sum_{c=1}^{C+1}
+\hat{\sigma}^2_c}</code>
+</p>
+
+<p>with <code class="reqn">\hat{\mu}</code> as the expected future observation (historical mean) and
+<code class="reqn">\hat{\sigma}^2_c</code> as the <code class="reqn">c=1, 2, ..., C</code> variance components and <code class="reqn">\hat{\sigma}^2_{C+1}</code>
+as the residual variance obtained from the random
+effects model fitted with <code>lme4::lmer()</code> and <code class="reqn">q^{calib}</code> as the as the bootstrap-calibrated
+coefficient used for interval calculation. <br></p>
+<p>If <code>algorithm</code> is set to "MS22mod", both limits of the prediction interval
+are calibrated independently from each other. The resulting prediction interval
+is given by
+</p>
+<p style="text-align: center;"><code class="reqn">[l,u] = \Big[\hat{\mu} - q^{calib}_l \sqrt{\widehat{var}(\hat{\mu}) + \sum_{c=1}^{C+1} \hat{\sigma}^2_c}, \quad
+\hat{\mu} + q^{calib}_u \sqrt{\widehat{var}(\hat{\mu}) + \sum_{c=1}^{C+1} \hat{\sigma}^2_c} \Big].</code>
+</p>
+
+<p>Please note, that this modification does not affect the calibration procedure, if only
+prediction limits are of interest. <br></p>
+<p>If <code>newdat</code> is defined, the bootstrapped future observations used for the calibration
+process mimic the structure of the data set provided via <code>newdat</code>. The
+data sampling is based on a list of design matrices (one for each random factor)
+that can be obtained if <code>newdat</code> and the model formula are provided to
+<code>lme4::lFormula()</code>. Hence, each random factor that is part of the initial
+model must have at least two replicates in <code>newdat</code>. <br>
+If a random factor in the future data set does not have any replicate, a list
+that contains design matrices (one for each random factor) can be provided via <code>futmat_list</code>.
+</p>
+<p>This function is an implementation of the PI given in Menssen and Schaarschmidt 2022
+section 3.2.4, except, that the bootstrap calibration values are drawn from
+bootstrap samples that mimic the future data as described above.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>lmer_pi_futmat()</code> returns an object of class <code>c("predint", "normalPI")</code>
+with prediction intervals or limits in the first entry (<code>$prediction</code>).
+</p>
+
+
+<h3>References</h3>
+
+<p>Menssen and Schaarschmidt (2022): Prediction intervals for all of M future
+observations based on linear random effects models. Statistica Neerlandica,
+<a href="https://doi.org/10.1111/stan.12260">doi:10.1111/stan.12260</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# loading lme4
+library(lme4)
+
+# Fitting a random effects model based on c2_dat1
+fit &lt;- lmer(y_ijk~(1|a)+(1|b)+(1|a:b), c2_dat1)
+summary(fit)
+
+#----------------------------------------------------------------------------
+### Using newdat
+
+# Prediction interval using c2_dat2 as future data
+pred_int &lt;- lmer_pi_futmat(model=fit, newdat=c2_dat2, alternative="both", nboot=100)
+summary(pred_int)
+
+# Upper prediction limit for m=1 future observations
+pred_u &lt;- lmer_pi_futmat(model=fit, newdat=1, alternative="upper", nboot=100)
+summary(pred_u)
+
+#----------------------------------------------------------------------------
+
+### Using futmat_list
+
+# c2_dat4 has no replication for b. Hence the list of design matrices can not be
+# generated by lme4::lFormula() and have to be provided by hand via futmat_list.
+
+c2_dat4
+
+# Build a list containing the design matrices
+
+fml &lt;- vector(length=4, "list")
+
+names(fml) &lt;- c("a:b", "b", "a", "Residual")
+
+fml[["a:b"]] &lt;- matrix(nrow=6, ncol=2, data=c(1,1,0,0,0,0, 0,0,1,1,1,1))
+
+fml[["b"]] &lt;- matrix(nrow=6, ncol=1, data=c(1,1,1,1,1,1))
+
+fml[["a"]] &lt;- matrix(nrow=6, ncol=2, data=c(1,1,0,0,0,0, 0,0,1,1,1,1))
+
+fml[["Residual"]] &lt;- diag(6)
+
+fml
+
+# Please note, that the design matrix for the interaction term a:b is also
+# provided even there is no replication for b, since it is assumed that
+# both, the historical and the future data descent from the same data generating
+# process.
+
+# Calculate the PI
+pred_fml &lt;- lmer_pi_futmat(model=fit, futmat_list=fml, alternative="both", nboot=100)
+summary(pred_fml)
+
+#----------------------------------------------------------------------------
+
+# Please note that nboot was set to 100 in order to decrease computing time
+# of the example. For a valid analysis set nboot=10000.
+
+</code></pre>
+
+
+</div>

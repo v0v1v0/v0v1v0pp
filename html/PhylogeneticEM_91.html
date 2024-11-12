@@ -1,0 +1,97 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>merge_rotations</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Merge fits from independent runs of PhyloEM.</h2>
+
+<h3>Description</h3>
+
+<p><code>merge_rotations</code> takes several fits from <code>PhyloEM</code>, and
+merge them according to the best score (maximum likelihood or least squares).
+For each number of shifts, 
+The datasets needs to be equal up to a rotation. This is tested thanks to a QR
+decomposition, see function <code>find_rotation</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">merge_rotations(..., method.selection = NULL, tol = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>objects of class <code>PhyloEM</code> fitted on datasets that are equal up to a rotation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method.selection</code></td>
+<td>
+<p>(optional) selection method to be applied to the merged fit. 
+See <code>params_process.PhyloEM</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>(optional) relative numerical tolerance. See <code>find_rotation</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An object of class <code>PhyloEM</code>, result of the merge.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+## Load Data
+data(monkeys)
+## Run method
+# Note: use more alpha values for better results.
+res &lt;- PhyloEM(Y_data = monkeys$dat,        ## data
+               phylo = monkeys$phy,         ## phylogeny
+               process = "scOU",            ## scalar OU
+               random.root = TRUE,          ## root is stationary
+               stationary.root = TRUE,
+               K_max = 10,                  ## maximal number of shifts
+               nbr_alpha = 4,               ## number of alpha values
+               parallel_alpha = TRUE,       ## parallelize on alpha values
+               Ncores = 2)
+## Rotate dataset
+rot &lt;- matrix(c(cos(pi/4), -sin(pi/4), sin(pi/4), cos(pi/4)), nrow= 2, ncol = 2)
+Yrot &lt;- t(rot) %*% monkeys$dat
+rownames(Yrot) &lt;- rownames(monkeys$dat)
+## Fit rotated dataset
+# Note: use more alpha values for better results.
+res_rot &lt;- PhyloEM(Y_data = Yrot,               ## rotated data
+                   phylo = monkeys$phy,         
+                   process = "scOU",            
+                   random.root = TRUE,          
+                   stationary.root = TRUE,
+                   K_max = 10,                  
+                   nbr_alpha = 4,               
+                   parallel_alpha = TRUE,       
+                   Ncores = 2)
+## Merge the two
+res_merge &lt;- merge_rotations(res, res_rot)
+## Plot the selected result
+plot(res_merge)
+## Plot the model selection criterion
+plot_criterion(res_merge)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

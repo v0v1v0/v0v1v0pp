@@ -1,0 +1,205 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pcr_curve</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate the standard curve model</h2>
+
+<h3>Description</h3>
+
+<p>Uses the <code class="reqn">C_T</code> values and a reference gene and a group, in addition to the
+intercept and slope of each gene form a serial dilution experiment, to calculate
+the standard curve model and estimate the normalized relative expression of the
+target genes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pcr_curve(
+  df,
+  group_var,
+  reference_gene,
+  reference_group,
+  mode = "separate_tube",
+  intercept,
+  slope,
+  plot = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>A data.frame of <code class="reqn">C_T</code> values with genes in the columns and
+samples in rows rows</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group_var</code></td>
+<td>
+<p>A character vector of a grouping variable. The length of
+this variable should equal the number of rows of df</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reference_gene</code></td>
+<td>
+<p>A character string of the column name of a control
+gene</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reference_group</code></td>
+<td>
+<p>A character string of the control group in group_var</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mode</code></td>
+<td>
+<p>A character string of; 'separate_tube' (default) or 'same_tube'.
+This is to indicate whether the different genes were run in separate or the
+same PCR tube</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intercept</code></td>
+<td>
+<p>A numeric vector of intercept and length equals the number of genes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>slope</code></td>
+<td>
+<p>A numeric vector of slopes length equals the number of genes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>A logical (default is FALSE)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments passed to customize plot</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>this model doesn't assume perfect amplification but rather actively
+use the amplification in calculating the relative expression. So when the
+amplification efficiency of all genes are 100% both methods should give
+similar results. The standard curve method is applied using two steps.
+First, serial dilutions of the mRNAs from the samples of interest are used
+as input to the PCR reaction. The linear trend of the log input amount and
+the resulting <code class="reqn">C_T</code> values for each gene are used to calculate an intercept
+and a slope. Secondly, these intercepts and slopes are used to calculate the
+amounts of mRNA of the genes of interest and the control/reference in the
+samples of interest and the control sample/reference. These amounts are
+finally used to calculate the relative expression.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data.frame of 7 columns
+</p>
+
+<ul>
+<li>
+<p> group The unique entries in group_var
+</p>
+</li>
+<li>
+<p> gene The column names of df
+</p>
+</li>
+<li>
+<p> normalized The normalized expression of target genes relative to a reference_gene
+</p>
+</li>
+<li>
+<p> calibrated The calibrated expression of target genes relative to a reference_group
+</p>
+</li>
+<li>
+<p> error The standard deviation of normalized relative expression
+</p>
+</li>
+<li>
+<p> lower The lower interval of the normalized relative expression
+</p>
+</li>
+<li>
+<p> upper The upper interval of the normalized relative expression
+</p>
+</li>
+</ul>
+<p>When <code>plot</code> is TRUE, returns a bar graph of the calibrated expression
+of the genes in the column and the groups in the column group. Error bars
+are drawn using the columns lower and upper. When more one gene are plotted
+the default in dodge bars. When the argument facet is TRUE a separate
+panel is drawn for each gene.
+</p>
+
+
+<h3>References</h3>
+
+<p>Livak, Kenneth J, and Thomas D Schmittgen. 2001. “Analysis of
+Relative Gene Expression Data Using Real-Time Quantitative PCR and the
+Double Delta CT Method.” Methods 25 (4). ELSEVIER.
+doi:10.1006/meth.2001.1262.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># locate and read file
+fl &lt;- system.file('extdata', 'ct3.csv', package = 'pcr')
+ct3 &lt;- read.csv(fl)
+
+fl &lt;- system.file('extdata', 'ct1.csv', package = 'pcr')
+ct1 &lt;- read.csv(fl)
+
+# make a vector of RNA amounts
+amount &lt;- rep(c(1, .5, .2, .1, .05, .02, .01), each = 3)
+
+# calculate curve
+standard_curve &lt;- pcr_assess(ct3, amount = amount, method = 'standard_curve')
+intercept &lt;- standard_curve$intercept
+slope &lt;- standard_curve$slope
+
+# make grouping variable
+group &lt;- rep(c('brain', 'kidney'), each = 6)
+
+# apply the standard curve method
+pcr_curve(ct1,
+          group_var = group,
+          reference_gene = 'GAPDH',
+          reference_group = 'brain',
+          intercept = intercept,
+          slope = slope)
+
+# returns a plot
+pcr_curve(ct1,
+          group_var = group,
+          reference_gene = 'GAPDH',
+          reference_group = 'brain',
+          intercept = intercept,
+          slope = slope,
+          plot = TRUE)
+
+</code></pre>
+
+
+</div>

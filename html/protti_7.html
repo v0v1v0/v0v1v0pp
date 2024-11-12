@@ -1,0 +1,275 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>calculate_diff_abundance</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate differential abundance between conditions</h2>
+
+<h3>Description</h3>
+
+<p>Performs differential abundance calculations and statistical hypothesis tests on data frames
+with protein, peptide or precursor data. Different methods for statistical testing are available.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">calculate_diff_abundance(
+  data,
+  sample,
+  condition,
+  grouping,
+  intensity_log2,
+  missingness = missingness,
+  comparison = comparison,
+  mean = NULL,
+  sd = NULL,
+  n_samples = NULL,
+  ref_condition = "all",
+  filter_NA_missingness = TRUE,
+  method = c("moderated_t-test", "t-test", "t-test_mean_sd", "proDA"),
+  p_adj_method = "BH",
+  retain_columns = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a data frame containing at least the input variables that are required for the
+selected method. Ideally the output of <code>assign_missingness</code> or <code>impute</code> is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sample</code></td>
+<td>
+<p>a character column in the <code>data</code> data frame that contains the sample name.
+Is not required if <code>method = "t-test_mean_sd"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>condition</code></td>
+<td>
+<p>a character or numeric column in the <code>data</code> data frame that contains the
+conditions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grouping</code></td>
+<td>
+<p>a character column in the <code>data</code> data frame that contains precursor,
+peptide or protein identifiers.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intensity_log2</code></td>
+<td>
+<p>a numeric column in the <code>data</code> data frame that contains intensity
+values. The intensity values need to be log2 transformed. Is not required if
+<code>method = "t-test_mean_sd"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>missingness</code></td>
+<td>
+<p>a character column in the <code>data</code> data frame that contains missingness
+information. Can be obtained by calling <code>assign_missingness()</code>. Is not required if
+<code>method = "t-test_mean_sd"</code>. The type of missingness assigned to a comparison does not have
+any influence on the statistical test. However, if <code>filter_NA_missingness = TRUE</code> and
+<code>method = "proDA"</code>, then comparisons with missingness <code>NA</code> are filtered out prior
+to p-value adjustment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>comparison</code></td>
+<td>
+<p>a character column in the <code>data</code> data frame that contains information of
+treatment/reference condition pairs. Can be obtained by calling <code>assign_missingness</code>.
+Comparisons need to be in the form condition1_vs_condition2, meaning two compared conditions are
+separated by <code>"_vs_"</code>. This column determines for which condition pairs differential
+abundances are calculated. Is not required if <code>method = "t-test_mean_sd"</code>, in that case
+please provide a reference condition with the ref_condition argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mean</code></td>
+<td>
+<p>a numeric column in the <code>data</code> data frame that contains mean values for two
+conditions. Is only required if <code>method = "t-test_mean_sd"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd</code></td>
+<td>
+<p>a numeric column in the <code>data</code> data frame that contains standard deviations for
+two conditions. Is only required if <code>method = "t-test_mean_sd"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_samples</code></td>
+<td>
+<p>a numeric column in the <code>data</code> data frame that contains the number of
+samples per condition for two conditions. Is only required if <code>method = "t-test_mean_sd"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ref_condition</code></td>
+<td>
+<p>optional, character value providing the condition that is used as a
+reference for differential abundance calculation. Only required for <code>method = "t-test_mean_sd"</code>.
+Instead of providing one reference condition, "all" can be supplied, which will create all
+pairwise condition pairs. By default <code>ref_condition = "all"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filter_NA_missingness</code></td>
+<td>
+<p>a logical value, default is <code>TRUE</code>. For all methods except
+<code>"t-test_mean_sd"</code> missingness information has to be provided. This information can be
+for example obtained by calling <code>assign_missingness()</code>. If a reference/treatment pair has
+too few samples to be considered robust based on user defined cutoffs, it is annotated with <code>NA</code>
+as missingness by the <code>assign_missingness()</code> function. If this argument is <code>TRUE</code>,
+these <code>NA</code> reference/treatment pairs are filtered out. For <code>method = "proDA"</code> this
+is done before the p-value adjustment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>a character value, specifies the method used for statistical hypothesis testing.
+Methods include Welch test (<code>"t-test"</code>), a Welch test on means, standard deviations and
+number of replicates (<code>"t-test_mean_sd"</code>) and a moderated t-test based on the <code>limma</code>
+package (<code>"moderated_t-test"</code>). More information on the moderated t-test can be found in
+the <code>limma</code> documentation. Furthermore, the <code>proDA</code> package specific method (<code>"proDA"</code>)
+can be used to infer means across samples based on a probabilistic dropout model. This
+eliminates the need for data imputation since missing values are inferred from the model. More
+information can be found in the <code>proDA</code> documentation. We do not recommend using the
+<code>moderated_t-test</code> or <code>proDA</code> method if the data was filtered for low CVs or imputation
+was performed. Default is <code>method = "moderated_t-test"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p_adj_method</code></td>
+<td>
+<p>a character value, specifies the p-value correction method. Possible
+methods are c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"). Default
+method is <code>"BH"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>retain_columns</code></td>
+<td>
+<p>a vector indicating if certain columns should be retained from the input
+data frame. Default is not retaining additional columns <code>retain_columns = NULL</code>. Specific
+columns can be retained by providing their names (not in quotations marks, just like other
+column names, but in a vector). Please note that if you retain columns that have multiple
+rows per grouped variable there will be duplicated rows in the output.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A data frame that contains differential abundances (<code>diff</code>), p-values (<code>pval</code>)
+and adjusted p-values (<code>adj_pval</code>) for each protein, peptide or precursor (depending on
+the <code>grouping</code> variable) and the associated treatment/reference pair. Depending on the
+method the data frame contains additional columns:
+</p>
+
+<ul>
+<li>
+<p> "t-test": The <code>std_error</code> column contains the standard error of the differential
+abundances. <code>n_obs</code> contains the number of observations for the specific protein, peptide
+or precursor (depending on the <code>grouping</code> variable) and the associated treatment/reference pair.
+</p>
+</li>
+<li>
+<p> "t-test_mean_sd": Columns labeled as control refer to the second condition of the
+comparison pairs. Treated refers to the first condition. <code>mean_control</code> and <code>mean_treated</code>
+columns contain the means for the reference and treatment condition, respectively. <code>sd_control</code>
+and <code>sd_treated</code> columns contain the standard deviations for the reference and treatment
+condition, respectively. <code>n_control</code> and <code>n_treated</code> columns contain the numbers of
+samples for the reference and treatment condition, respectively. The <code>std_error</code> column
+contains the standard error of the differential abundances. <code>t_statistic</code> contains the
+t_statistic for the t-test.
+</p>
+</li>
+<li>
+<p> "moderated_t-test": <code>CI_2.5</code> and <code>CI_97.5</code> contain the 2.5% and 97.5%
+confidence interval borders for differential abundances. <code>avg_abundance</code> contains average
+abundances for treatment/reference pairs (mean of the two group means). <code>t_statistic</code>
+contains the t_statistic for the t-test. <code>B</code> The B-statistic is the log-odds that the
+protein, peptide or precursor (depending on <code>grouping</code>) has a differential abundance
+between the two groups. Suppose B=1.5. The odds of differential abundance is exp(1.5)=4.48, i.e,
+about four and a half to one. The probability that there is a differential abundance is
+4.48/(1+4.48)=0.82, i.e., the probability is about 82% that this group is differentially
+abundant. A B-statistic of zero corresponds to a 50-50 chance that the group is differentially
+abundant.<code>n_obs</code> contains the number of observations for the specific protein, peptide or
+precursor (depending on the <code>grouping</code> variable) and the associated treatment/reference pair.
+</p>
+</li>
+<li>
+<p> "proDA": The <code>std_error</code> column contains the standard error of the differential
+abundances. <code>avg_abundance</code> contains average abundances for treatment/reference pairs
+(mean of the two group means). <code>t_statistic</code> contains the t_statistic for the t-test.
+<code>n_obs</code> contains the number of observations for the specific protein, peptide or precursor
+(depending on the <code>grouping</code> variable) and the associated treatment/reference pair.
+</p>
+</li>
+</ul>
+<p>For all methods execept <code>"proDA"</code>, the p-value adjustment is performed only on the
+proportion of data that contains a p-value that is not <code>NA</code>. For <code>"proDA"</code> the
+p-value adjustment is either performed on the complete dataset (<code>filter_NA_missingness = TRUE</code>)
+or on the subset of the dataset with missingness that is not <code>NA</code> (<code>filter_NA_missingness = FALSE</code>).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(123) # Makes example reproducible
+
+# Create synthetic data
+data &lt;- create_synthetic_data(
+  n_proteins = 10,
+  frac_change = 0.5,
+  n_replicates = 4,
+  n_conditions = 2,
+  method = "effect_random",
+  additional_metadata = FALSE
+)
+
+# Assign missingness information
+data_missing &lt;- assign_missingness(
+  data,
+  sample = sample,
+  condition = condition,
+  grouping = peptide,
+  intensity = peptide_intensity_missing,
+  ref_condition = "all",
+  retain_columns = c(protein, change_peptide)
+)
+
+# Calculate differential abundances
+# Using "moderated_t-test" and "proDA" improves
+# true positive recovery progressively
+diff &lt;- calculate_diff_abundance(
+  data = data_missing,
+  sample = sample,
+  condition = condition,
+  grouping = peptide,
+  intensity_log2 = peptide_intensity_missing,
+  missingness = missingness,
+  comparison = comparison,
+  method = "t-test",
+  retain_columns = c(protein, change_peptide)
+)
+
+head(diff, n = 10)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,267 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>read.Structure</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Read Genotypes and Other Data from a Structure File
+</h2>
+
+<h3>Description</h3>
+
+<p><code>read.Structure</code> creates a <code>genambig</code> object by reading a text
+file formatted for the software Structure.  <code>Ploidies</code> and
+<code>PopInfo</code> (if
+available) are also written to the object, and data from additional
+columns can optionally be extracted as well.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">read.Structure(infile, ploidy, missingin = -9, sep = "\t",
+               markernames = TRUE, labels = TRUE, extrarows = 1,
+               popinfocol = 1, extracols = 1, getexcols = FALSE,
+               ploidyoutput="one")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>infile</code></td>
+<td>
+
+<p>Character string.  The file path to be read.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ploidy</code></td>
+<td>
+
+<p>Integer.  The ploidy of the file, <em>i.e.</em> how many rows there
+are for each individual.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>missingin</code></td>
+<td>
+
+<p>The symbol used to represent missing data in the Structure file.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sep</code></td>
+<td>
+
+<p>The character used to delimit the fields of the Structure file (tab by default).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>markernames</code></td>
+<td>
+
+<p>Boolean, indicating whether the file has a header containing marker names.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>labels</code></td>
+<td>
+
+<p>Boolean, indicating whether the file has a column containing sample names.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extrarows</code></td>
+<td>
+
+<p>Integer.  The number of extra rows that the file has, not counting
+marker names.  This could include rows for recessive alleles,
+inter-marker distances, or phase information.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>popinfocol</code></td>
+<td>
+
+<p>Integer.  The column number (after the labels column, if present)
+where the data to be used for <code>PopInfo</code> are stored.  Can be
+<code>NA</code> to indicate that <code>PopInfo</code> should not be extracted from
+the file.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extracols</code></td>
+<td>
+
+<p>Integer.  The number of extra columns that the file has, not counting
+sample names (labels) but counting the column to be used for
+<code>PopInfo</code>.  This could include PopData, PopFlag, LocData,
+Phenotype, or any other extra columns.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>getexcols</code></td>
+<td>
+
+<p>Boolean, indicating whether the function should return the data from any
+extra columns.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ploidyoutput</code></td>
+<td>
+
+<p>This argument determines what is assigned to the <code>Ploidies</code> slot
+of the <code>"genambig"</code> dataset that is output.  It should be a
+string, either <code>"one"</code>, <code>"samplemax"</code>, or
+<code>"matrix"</code>.  This indicates, respectively, that <code>ploidy</code>
+should be used as the ploidy of the entire dataset, that the maximum
+number of alleles for each sample should be used as the ploidy of that
+sample, or that ploidies should be stored as a matrix of allele counts
+for each sample*locus.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The current version of <code>read.Structure</code> does not support the
+ONEROWPERIND option in the file format.  Each locus must only have one
+column.  If your data are in ONEROWPERIND format, it should be fairly
+simple to manipulate it in a spreadsheet program so that it can be read
+by <code>read.GeneMapper</code> instead.
+</p>
+<p><code>read.Structure</code> uses <code>read.table</code> to initially read the file into a
+data frame, then extracts information from the data frame.  Because of
+this, any header rows (particularly the one containing marker names)
+should have leading tabs (or spaces if <code>sep=" "</code>) so that the marker
+names align correctly with their corresponding genotypes.  You should be
+able to open the file in a spreadsheet program and have everything align
+correctly.
+</p>
+<p>If the file does not contain sample names, set <code>labels=FALSE</code>.  The
+samples will be numbered instead, and if you like you can use the
+<code>Samples&lt;-</code> function to edit the sample names of the genotype object after
+import.  Likewise, if <code>markernames=FALSE</code>, the
+loci will be numbered automatically by the column names that
+<code>read.table</code> creates, but these can also be edited after the fact.
+</p>
+<p>The <code>Ploidies</code> slot of the <code>"genambig"</code> object that is created
+is initially indexed by both sample and locus, with ploidy being
+written to the slot on a per-genotype basis.  After all genotypes have
+been imported, <code>reformatPloidies</code> is used to convert
+<code>Ploidies</code> to the simplest possible format before the object is returned.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>getexcols=FALSE</code>, the function returns only a <code>genambig</code> object.
+</p>
+<p>If <code>getexcols=TRUE</code>, the function returns a list with two elements.  The
+first, named <code>ExtraCol</code>, is a data frame, where the row names are the
+sample names and each column is one of the extra columns from the file
+(but with each sample only once instead of being repeated <code>ploidy</code>
+number of times).  The second element is named <code>Dataset</code> and is the
+genotype object described above.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>References</h3>
+
+<p><a href="https://web.stanford.edu/group/pritchardlab/structure_software/release_versions/v2.3.4/structure_doc.pdf">https://web.stanford.edu/group/pritchardlab/structure_software/release_versions/v2.3.4/structure_doc.pdf</a>
+</p>
+<p>Hubisz, M. J., Falush, D., Stephens, M. and Pritchard, J. K. (2009)
+Inferring weak population structure with the assistance of sample
+group information.  <em>Molecular Ecology Resources</em> <b>9</b>,
+1322–1332.
+</p>
+<p>Falush, D., Stephens, M. and Pritchard, J. K.  (2007)
+Inferences of population structure using multilocus genotype data:
+dominant markers and null alleles.  <em>Molecular Ecology Notes</em>
+<b>7</b>, 574–578.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>write.Structure</code>, <code>read.GeneMapper</code>,
+<code>read.Tetrasat</code>, <code>read.ATetra</code>,
+<code>read.GenoDive</code>,
+<code>read.SPAGeDi</code>, <code>read.POPDIST</code>,
+<code>read.STRand</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># create a file to read (normally done in a text editor or spreadsheet
+# software)
+myfile &lt;- tempfile()
+cat("\t\tRhCBA15\tRhCBA23\tRhCBA28\tRhCBA14\tRUB126\tRUB262\tRhCBA6\tRUB26",
+    "\t\t-9\t-9\t-9\t-9\t-9\t-9\t-9\t-9",
+    "WIN1B\t1\t197\t98\t152\t170\t136\t208\t151\t99",
+    "WIN1B\t1\t208\t106\t174\t180\t166\t208\t164\t99",
+    "WIN1B\t1\t211\t98\t182\t187\t184\t208\t174\t99",
+    "WIN1B\t1\t212\t98\t193\t170\t203\t208\t151\t99",
+    "WIN1B\t1\t-9\t-9\t-9\t-9\t-9\t-9\t-9\t-9",
+    "WIN1B\t1\t-9\t-9\t-9\t-9\t-9\t-9\t-9\t-9",
+    "WIN1B\t1\t-9\t-9\t-9\t-9\t-9\t-9\t-9\t-9",
+    "WIN1B\t1\t-9\t-9\t-9\t-9\t-9\t-9\t-9\t-9",
+    "MCD1\t2\t208\t100\t138\t160\t127\t202\t151\t124",
+    "MCD1\t2\t208\t102\t153\t168\t138\t207\t151\t134",
+    "MCD1\t2\t208\t106\t157\t180\t162\t211\t151\t137",
+    "MCD1\t2\t208\t110\t159\t187\t127\t215\t151\t124",
+    "MCD1\t2\t208\t114\t168\t160\t127\t224\t151\t124",
+    "MCD1\t2\t208\t124\t193\t160\t127\t228\t151\t124",
+    "MCD1\t2\t-9\t-9\t-9\t-9\t-9\t-9\t-9\t-9",
+    "MCD1\t2\t-9\t-9\t-9\t-9\t-9\t-9\t-9\t-9",
+    "MCD2\t2\t208\t98\t138\t160\t136\t202\t150\t120",
+    "MCD2\t2\t208\t102\t144\t174\t145\t214\t150\t132",
+    "MCD2\t2\t208\t105\t148\t178\t136\t217\t150\t135",
+    "MCD2\t2\t208\t114\t151\t184\t136\t227\t150\t120",
+    "MCD2\t2\t208\t98\t155\t160\t136\t202\t150\t120",
+    "MCD2\t2\t208\t98\t157\t160\t136\t202\t150\t120",
+    "MCD2\t2\t208\t98\t163\t160\t136\t202\t150\t120",
+    "MCD2\t2\t208\t98\t138\t160\t136\t202\t150\t120",
+    "MCD3\t2\t197\t100\t172\t170\t159\t213\t174\t134",
+    "MCD3\t2\t197\t106\t174\t178\t193\t213\t176\t132",
+    "MCD3\t2\t-9\t-9\t-9\t-9\t-9\t-9\t-9\t-9",
+    "MCD3\t2\t-9\t-9\t-9\t-9\t-9\t-9\t-9\t-9",
+    "MCD3\t2\t-9\t-9\t-9\t-9\t-9\t-9\t-9\t-9",
+    "MCD3\t2\t-9\t-9\t-9\t-9\t-9\t-9\t-9\t-9",
+    "MCD3\t2\t-9\t-9\t-9\t-9\t-9\t-9\t-9\t-9",
+    "MCD3\t2\t-9\t-9\t-9\t-9\t-9\t-9\t-9\t-9",
+    sep="\n",file=myfile)
+
+# view the file
+cat(readLines(myfile), sep="\n")
+
+# read the structure file into genotypes and populations
+testdata &lt;- read.Structure(myfile, ploidy=8)
+
+# examine the results
+testdata
+</code></pre>
+
+
+</div>

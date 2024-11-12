@@ -1,0 +1,136 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pdfClassification</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Classification of low density data
+</h2>
+
+<h3>Description</h3>
+
+<p>Allocates low density data points in a multi-stage procedure after that cluster cores have been detected 
+by applying <code>pdfCluster</code>.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pdfClassification(obj, n.stage = 5, se = TRUE, hcores = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>obj</code></td>
+<td>
+
+<p>An object of <code>pdfCluster-class</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.stage</code></td>
+<td>
+
+<p>Allocation of low density data is performed by following a multi-stages procedure in <code>n.stage</code> stages. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se</code></td>
+<td>
+
+<p>Logical. Should the standard-error of the density estimates be taken into account to define the order of allocation? Default value is TRUE. 
+See details below.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hcores</code></td>
+<td>
+
+<p>Logical. Set this value to TRUE to build cluster density estimates by selecting the same bandwidths as the ones used to form 
+the cluster cores. Otherwise, bandwidths specific for the clusters are selected. Default value is FALSE. See details below.   
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The basic idea of the classification stage of the procedure is as follows: for an unallocated data point <code class="reqn">x_0</code>,
+compute the estimated density <code class="reqn">\hat{f}_m(x_0)</code> based on the data already assigned to group <code class="reqn">m, m = 1, 2, \ldots, M</code>,
+and assign <code class="reqn">x_0</code> to the group with highest log ratio <code class="reqn">\hat{f}_m(x_0)/\max_m \hat{f}_m(x_0)</code>. 
+</p>
+<p>In case <code class="reqn">\hat{f}_m(x_0)</code>=0, for all <code class="reqn">m = 1, 2, \ldots, M</code>, <code class="reqn">x_0</code> is considered as an outlier. The procedure gives a warning 
+message and the outlier remains unclassified. The cluster label of <code class="reqn">x_0</code> will be set to zero.   
+</p>
+<p>The current implementation of this idea proceeds in <code>n.stage</code> stages, allocating a block of points at a time,
+updating the estimates <code class="reqn">\hat{f}_m(\cdot)</code> based on the new members of each group and then allocating a new block of points. 
+When <code>se = TRUE</code>, classification is performed by further weighting the log-ratios inversely with their approximated standard
+error, so that points whose density estimate has highest precision are allocated first.
+</p>
+<p>Each of the <code class="reqn">\hat{f}_m(\cdot)</code> is built by selecting either the same bandwidths <code class="reqn">h_0</code> as the ones used to form the cluster cores (when <code>hcores = TRUE</code>) or cluster-specific bandwidths, obtained as follows: 
+</p>
+<p style="text-align: center;"><code class="reqn">h_m^{*} = \exp [(1-a_m) \log(h_0) + a_m \log(h_m)],</code>
+</p>
+
+<p>where <code class="reqn">a_m</code> is the proportion of data points in the <code class="reqn">m</code>-th cluster core and <code class="reqn">h_m</code> are asymptotically optimal for a normal distribution of the <code class="reqn">m</code>-th cluster or computed according to the Silverman (1986) approach, if the kernel estimator has fixed or adaptive bandwidth, respectively. 
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of <code>pdfCluster-class</code> with slot <code>stages</code> of class <code>"list"</code> having length equal to <code>n.stage</code>. 
+See <code>pdfCluster-class</code> for further details.  
+</p>
+
+
+<h3>Note</h3>
+
+ 
+<p>Function <code>pdfClassification</code> is called internally, from <code>pdfCluster</code>, when the argument
+<code>n.stage</code> is set to a value greater than zero. Alternatively, it may be called externally, by providing as 
+argument an object of <code>pdfCluster-class</code>.
+</p>
+<p>When <code>pdfClassification</code> is internally called from <code>pdfCluster</code> and one group only is detected, 
+the slot <code>stages</code> is a list with <code>n.stage</code> elements, each of them being a vector with length equal to the number
+of data points and all elements equal to 1.
+</p>
+
+
+<h3>References</h3>
+
+<p>Azzalini A., Torelli N. (2007). Clustering via nonparametric density estimation. <em>Statistics and Computing</em>. 17, 71-80.
+</p>
+<p>Silverman, B. (1986). <em>Density estimation for statistics and data analysis</em>. Chapman and Hall, London.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pdfCluster</code>, <code>pdfCluster-class</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load data
+data(wine)
+
+# select a subset of variables
+x &lt;- wine[, c(2,5,8)]
+
+#whole procedure, included the classification phase
+cl &lt;- pdfCluster(x)
+summary(cl)
+table(groups(cl))
+
+#use of bandwidths specific for the group 
+cl1 &lt;- pdfClassification(cl, hcores= TRUE)
+table(groups(cl1))
+</code></pre>
+
+
+</div>

@@ -1,0 +1,277 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Cross-validation in penalized generalized linear models</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Cross-validated penalized regression</h2>
+
+<h3>Description</h3>
+
+<p>Cross-validating generalized linear models with L1 (lasso or fused lasso) and/or L2 (ridge)  penalties, using likelihood cross-validation.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">
+cvl (response, penalized, unpenalized, lambda1 = 0, lambda2= 0, positive = FALSE, 
+    fusedl = FALSE, data, model = c("cox", "logistic", "linear", "poisson"), 
+    startbeta, startgamma, fold, epsilon = 1e-10, maxiter, standardize = FALSE, 
+    trace = TRUE, approximate = FALSE)
+
+optL1 (response, penalized, unpenalized, minlambda1, maxlambda1, base1, lambda2 = 0, 
+  fusedl = FALSE, positive = FALSE, data, 
+  model = c("cox", "logistic", "linear", "poisson"), startbeta, startgamma, fold, 
+  epsilon = 1e-10, maxiter = Inf, standardize = FALSE, tol = .Machine$double.eps^0.25, 
+  trace = TRUE)
+
+optL2 (response, penalized, unpenalized, lambda1 = 0, minlambda2, maxlambda2, base2, 
+fusedl = FALSE ,positive = FALSE, data, 
+  model = c("cox", "logistic", "linear", "poisson"), startbeta, startgamma, 
+  fold, epsilon = 1e-10, maxiter, standardize = FALSE, tol = .Machine$double.eps^0.25, 
+  trace = TRUE, approximate = FALSE)
+    
+profL1 (response, penalized, unpenalized, minlambda1, maxlambda1, base1, lambda2 = 0,
+  fusedl = FALSE,positive = FALSE, data, 
+  model = c("cox", "logistic", "linear", "poisson"), startbeta, startgamma, fold, 
+  epsilon = 1e-10, maxiter = Inf, standardize = FALSE, steps = 100, minsteps = steps/3, 
+  log = FALSE, save.predictions = FALSE, trace = TRUE, plot = FALSE)
+
+profL2 (response, penalized, unpenalized, lambda1 = 0, minlambda2, maxlambda2, base2, 
+  fusedl = FALSE,positive = FALSE, data, 
+  model = c("cox", "logistic", "linear", "poisson"), startbeta, startgamma, fold, 
+  epsilon = 1e-10, maxiter, standardize = FALSE, steps = 100, minsteps = steps/2, 
+  log = TRUE, save.predictions = FALSE, trace = TRUE, plot = FALSE, approximate = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>response</code></td>
+<td>
+<p>The response variable (vector). This should be a numeric vector for linear regression, a <code>Surv</code> object for Cox regression and <code>factor</code> or a vector of 0/1 values for logistic regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalized</code></td>
+<td>
+<p>The penalized covariates. These may be specified either as a matrix or as a (one-sided) <code>formula</code> object. See also under <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>unpenalized</code></td>
+<td>
+<p>Additional unpenalized covariates. Specified as under <code>penalized</code>. Note that an unpenalized intercept is included in the model by default (except in the cox model). This can be suppressed by specifying <code>unpenalized = ~0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda1, lambda2</code></td>
+<td>
+<p>The fixed values of the tuning parameters for L1 and L2 penalization. Each must be either a single positive numbers or a vector with length equal to the number of covariates in <code>penalized</code> argument. In the latter case, each covariate is given its own penalty weight.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minlambda1, minlambda2, maxlambda1, maxlambda2</code></td>
+<td>
+<p>The values of the tuning parameters for L1 or L2 penalization between which the cross-validated likelihood is to be profiled or optimized. For fused lasso penalty <code>minlambda2</code> and <code>maxlambda2</code> are the tuning parameters for L1 penalty on the differences of the coefficients between which the cross-validated likelihood is to be optimized. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>base1, base2</code></td>
+<td>
+<p>An optional vector of length equal to the number of covariates in penalized. If supplied, profiling or optimization is performed between <code>base1*minlambda1</code> and <code>base1*maxlambda1</code>; analogous for <code>base2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fusedl</code></td>
+<td>
+<p>If <code>TRUE</code> or a vector, the penalization method used is fused lasso. The value for <code>lambda1</code> is used as the tuning parameter for L1 penalization on the coefficients and the value for <code>lambda2</code> is used as the tuning parameter for L1 penalization on the differences of the coefficients. Default value is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>positive</code></td>
+<td>
+<p>If <code>TRUE</code>, constrains the estimated regression coefficients of all penalized covariates to be non-negative. If a logical vector with the length of the number of covariates in <code>penalized</code>, constrains the estimated regression coefficients of a subset of the penalized covariates to be non-negative.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A <code>data.frame</code> used to evaluate <code>response</code>, and the terms of <code>penalized</code> or <code>unpenalized</code> when these have been specified as a  <code>formula</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>The model to be used. If missing, the model will be guessed from the <code>response</code> input.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>startbeta</code></td>
+<td>
+<p>Starting values for the regression coefficients of the penalized covariates. These starting values will be used only for the first values of <code>lambda1</code> and <code>lambda2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>startgamma</code></td>
+<td>
+<p>Starting values for the regression coefficients of the unpenalized covariates. These starting values will be used only for the first values of <code>lambda1</code> and <code>lambda2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fold</code></td>
+<td>
+<p>The fold for cross-validation. May be supplied as a single number (between 2 and n) giving the number of folds, or, alternatively, as a length <code>n</code> vector with values in <code>1:fold</code>, specifying exactly which subjects are assigned to which fold. The default is <code>fold = 1:n</code>, resulting in leave-one-out (n-fold) cross-validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epsilon</code></td>
+<td>
+<p>The convergence criterion. As in <code>glm</code>. Convergence is judged separately on the likelihood and on the penalty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxiter</code></td>
+<td>
+<p>The maximum number of iterations allowed in each fitting of the model. Set by default at 25 when only an L2 penalty is present, infinite otherwise.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardize</code></td>
+<td>
+<p>If <code>TRUE</code>, standardizes all penalized covariates to unit central L2-norm before applying penalization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>steps</code></td>
+<td>
+<p>The maximum number of steps between <code>minlambda1</code> and <code>maxlambda1</code> or <code>minlambda2</code> and <code>maxlambda2</code> at which the cross-validated likelihood is to be calculated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minsteps</code></td>
+<td>
+<p>The minimum number of steps between <code>minlambda1</code> and <code>maxlambda1</code> or <code>minlambda2</code> and <code>maxlambda2</code> at which the cross-validated likelihood is to be calculated. If <code>minsteps</code> is smaller than <code>steps</code>, the algorithm will automatically stop when the cross-validated likelihood drops below the cross-validated likelihood of the null model, provided it has done at least <code>minsteps</code> steps.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>log</code></td>
+<td>
+<p>If <code>FALSE</code>, the steps between <code>minlambda1</code> and <code>maxlambda1</code> or <code>minlambda2</code> and <code>maxlambda2</code> are equidistant on a linear scale, if <code>TRUE</code> on a logarithmic scale. Please note the different default between <code>optL1</code> (<code>FALSE</code>) and <code>optL2</code> (<code>TRUE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>The tolerance of the Brent algorithm used for minimization. See also <code>optimize</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save.predictions</code></td>
+<td>
+<p>Controls whether or not to save cross-validated predictions for all values of lambda.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace</code></td>
+<td>
+<p>If <code>TRUE</code>, prints progress information. Note that setting <code>trace=TRUE</code> may slow down the algorithm (but it often feels quicker)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>approximate</code></td>
+<td>
+<p>If <code>TRUE</code>, the cross-validated likelihood values are approximated rather than fully calculated. Note that this option is only available for ridge models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>If <code>TRUE</code>, makes a plot of cross-validated likelihood versus lambda.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>All five functions return a list with the following named elements:
+</p>
+
+<dl>
+<dt>
+<code>lambda</code>:</dt>
+<dd>
+<p>For <code>optL1</code> and <code>optL2</code> <code>lambda</code> gives the optimal value of the tuning parameters found. For <code>profL1</code> and <code>profL2</code> <code>lambda</code> is the vector of values of the tuning parameter for which the cross-validated likelihood has been calculated. Absent in the output of <code>cvl</code>.</p>
+</dd>
+<dt>
+<code>cvl</code>:</dt>
+<dd>
+<p>The value(s) of the cross-validated likelihood. For <code>optL1</code>, <code>optL2</code> this is the cross-validated likelihood at the optimal value of the tuning parameter.</p>
+</dd>
+<dt>
+<code>fold</code>:</dt>
+<dd>
+<p>Returns the precise allocation of the subjects into the cross-validation folds. Note that the same allocation is used for all cross-validated likelihood calculations in each call to <code>optL1</code>, <code>optL2</code>, <code>profL1</code>, <code>profL2</code>.</p>
+</dd>
+<dt>
+<code>predictions</code>:</dt>
+<dd>
+<p>The cross-validated predictions for the left-out samples. The precise format of the cross-validated predictions depends on the type of generalized linear model (see <code>breslow</code> for survival models. The functions <code>profL1</code> and <code>profL2</code> return a list here (only if <code>save.predictions = TRUE</code>), whereas <code>optL1</code>, <code>optL2</code> return the predictions for the optimal value of the tuning parameter only.</p>
+</dd>
+<dt>
+<code>fullfit</code>:</dt>
+<dd>
+<p>The fitted model on the full data. The functions <code>profL1</code> and <code>profL2</code> return a list of <code>penfit</code> objects here, whereas <code>optL1</code>, <code>optL2</code> return the full data fit (a single <code>penfit</code> object) for the optimal value of the tuning parameter only.</p>
+</dd>
+</dl>
+<h3>Value</h3>
+
+<p>A named list. See details.</p>
+
+
+<h3>Note</h3>
+
+<p>The <code>optL1</code> and <code>optL2</code> functions use Brent's algorithm for minimization without derivatives (see also <code>optimize</code>). There is a risk that these functions converge to a local instead of to a global optimum. This is especially the case for <code>optL1</code>, as the cross-validated likelihood as a function of <code>lambda1</code> quite often has local optima. It is   recommended to use <code>optL1</code> in combination with <code>profL1</code> to check whether <code>optL1</code> has converged to the right optimum.
+</p>
+<p>See also the notes under <code>penalized</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Jelle Goeman: <a href="mailto:j.j.goeman@lumc.nl">j.j.goeman@lumc.nl</a></p>
+
+
+<h3>References</h3>
+
+<p>Goeman J.J. (2010). L-1 Penalized Estimation in the Cox Proportional Hazards Model. Biometrical Journal 52 (1) 70-84.</p>
+
+
+<h3>See Also</h3>
+
+<p><code>penalized</code>, <code>penfit</code>, <code>plotpath</code>.</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># More examples in the package vignette:
+#  type vignette("penalized")
+
+data(nki70)
+attach(nki70)
+
+# Finding an optimal cross-validated likelihood
+opt &lt;- optL1(Surv(time, event), penalized = nki70[,8:77], fold = 5)
+coefficients(opt$fullfit)
+plot(opt$predictions)
+
+# Plotting the profile of the cross-validated likelihood
+prof &lt;- profL1(Surv(time, event), penalized = nki70[,8:77],
+    fold = opt$fold, steps=10)
+plot(prof$lambda, prof$cvl, type="l")
+plotpath(prof$fullfit)
+</code></pre>
+
+
+</div>

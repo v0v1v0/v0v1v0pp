@@ -1,0 +1,209 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ped</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Pedigree construction</h2>
+
+<h3>Description</h3>
+
+<p>This is the basic constructor of <code>ped</code> objects. Utility functions for
+creating many common pedigree structures are described in ped_basic. See
+also <code>as.ped()</code> and <code>readPed()</code>, which are more liberal regarding the input
+format.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ped(
+  id,
+  fid,
+  mid,
+  sex,
+  famid = "",
+  reorder = TRUE,
+  validate = TRUE,
+  detectLoops = TRUE,
+  isConnected = FALSE,
+  verbose = FALSE
+)
+
+singleton(id = 1, sex = 1, famid = "")
+
+singletons(id, sex = 1)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>A vector (coercible to character) of individual ID labels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fid, mid</code></td>
+<td>
+<p>Vectors of the same length as <code>id</code>, naming the father and
+mother of each individual, respectively. Missing parents (i.e.,
+corresponding to founder individuals) may be entered as "0", "" or NA.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sex</code></td>
+<td>
+<p>A numeric of the same length as <code>id</code>, describing the genders of
+the individuals (in the same order as <code>id</code>.) Each entry must be either 1
+(=male), 2 (=female) or 0 (=unknown).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>famid</code></td>
+<td>
+<p>A character string. Default: An empty string.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reorder</code></td>
+<td>
+<p>A logical indicating if the pedigree should be reordered so
+that all parents precede their children. Default: TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>validate</code></td>
+<td>
+<p>A logical indicating if a validation of the pedigree
+structure should be performed. Default: TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>detectLoops</code></td>
+<td>
+<p>A logical indicating if the presence of loops should be
+detected. Setting this to FALSE may speed up the processing of large
+pedigrees. Default: TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>isConnected</code></td>
+<td>
+<p>A logical indicating if the input is known to be a
+connected pedigree. Setting this to TRUE speeds up the processing. Default:
+FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A logical.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Each individual must have either both parents specified, or no parents.
+Missing parents are indicated with entries "0", "" or NA in <code>fid</code> and <code>mid</code>.
+Note that <code>id</code>,<code>fid</code>,<code>mid</code> are all converted to character vectors before
+matching to establish the parent connections.
+</p>
+<p>If the pedigree is disconnected, it is split into its connected components
+and returned as a list of <code>ped</code> objects.
+</p>
+<p>A singleton is a special <code>ped</code> object whose pedigree contains 1 individual.
+The class attribute of a singleton is <code>c('singleton', 'ped')</code>.
+</p>
+<p><code>singletons()</code> creates a list of singletons with the indicated labels and
+sexes.
+</p>
+<p>Selfing, i.e. the presence of pedigree members whose father and mother are
+the same individual, is allowed in <code>ped</code> objects. Any such "self-fertilizing"
+parent must have undecided sex (<code>sex = 0</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>ped</code> object, which is essentially a list with the following
+entries:
+</p>
+
+<ul>
+<li> <p><code>ID</code> : A character vector of ID labels. Unless the pedigree is reordered
+during creation, this equals <code>as.character(id)</code>
+</p>
+</li>
+<li> <p><code>FIDX</code> : An integer vector with paternal indices: For each <code class="reqn">j =
+  1,2,...</code>, the entry <code>FIDX[j]</code> is 0 if <code>ID[j]</code> has no father within the
+pedigree; otherwise <code>ID[FIDX[j]]</code> is the father of <code>ID[j]</code>.
+</p>
+</li>
+<li> <p><code>MIDX</code> : An integer vector with maternal indices: For each <code class="reqn">j =
+  1,2,...</code>, the entry <code>MIDX[j]</code> is 0 if <code>ID[j]</code> has no mother within the
+pedigree; otherwise <code>ID[MIDX[j]]</code> is the mother of <code>ID[j]</code>.
+</p>
+</li>
+<li> <p><code>SEX</code> : An integer vector with gender codes. Unless the pedigree is
+reordered, this equals <code>as.integer(sex)</code>.
+</p>
+</li>
+<li> <p><code>FAMID</code> : The family ID.
+</p>
+</li>
+<li> <p><code>UNBROKEN_LOOPS</code> : A logical indicating if the pedigree has unbroken
+loops, or NA if the status is currently unknown.
+</p>
+</li>
+<li> <p><code>LOOP_BREAKERS</code> : A matrix with loop breaker ID's in the first column and
+their duplicates in the second column. All entries refer to the internal
+IDs. This is usually set by <code>breakLoops()</code>.
+</p>
+</li>
+<li> <p><code>FOUNDER_INBREEDING</code> : A list of two potential entries, "autosomal" and
+"x"; both numeric vectors with the same length as <code>founders(x)</code>.
+<code>FOUNDER_INBREEDING</code> is always NULL when a new <code>ped</code> is created. See
+<code>founderInbreeding()</code>.
+</p>
+</li>
+<li> <p><code>MARKERS</code> : A list of <code>marker</code> objects, or NULL.
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Magnus Dehli Vigeland
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>newPed()</code>, ped_basic, ped_modify, ped_subgroups, <code>relabel()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Trio
+x = ped(id = 1:3, fid = c(0,0,1), mid = c(0,0,2), sex = c(1,2,1))
+
+# Female singleton
+y = singleton('NN', sex = 2)
+
+# Selfing
+z = ped(id = 1:2, fid = 0:1, mid = 0:1, sex = 0:1)
+stopifnot(hasSelfing(z))
+
+# Disconnected pedigree: Trio + singleton
+ped(id = 1:4, fid = c(2,0,0,0), mid = c(3,0,0,0), sex = c(1,1,2,1))
+
+# List of singletons
+singletons(1:2)
+
+</code></pre>
+
+
+</div>

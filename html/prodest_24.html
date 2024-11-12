@@ -1,0 +1,239 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>prodestWRDG</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Estimate productivity - IV Wooldridge method
+</h2>
+
+<h3>Description</h3>
+
+<p>The <code>prodestWRDG()</code> function accepts at least 6 objects (id, time, output, free, state and proxy variables), and returns a <code>prod</code> object of class <code>S3</code> with three elements: (i) a list of model-related objects, (ii) a list with the data used in the estimation and estimated vectors of first-stage residuals, and (iii) a list with the estimated parameters and their bootstrapped standard errors.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">  prodestWRDG(Y, fX, sX, pX, idvar, timevar, cX = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>Y      </code></td>
+<td>
+
+<p>the vector of value added log output.</p>
+</td>
+</tr></table>
+<table><tr style="vertical-align: top;">
+<td><code>fX     </code></td>
+<td>
+
+<p>the vector/matrix/dataframe of log free variables.</p>
+</td>
+</tr></table>
+<table><tr style="vertical-align: top;">
+<td><code>sX     </code></td>
+<td>
+
+<p>the vector/matrix/dataframe of log state variables.</p>
+</td>
+</tr></table>
+<table><tr style="vertical-align: top;">
+<td><code>pX    </code></td>
+<td>
+
+<p>the vector/matrix/dataframe of log proxy variables.</p>
+</td>
+</tr></table>
+<table><tr style="vertical-align: top;">
+<td><code>cX     </code></td>
+<td>
+
+<p>the vector/matrix/dataframe of control variables. By default <code>cX= NULL</code>.</p>
+</td>
+</tr></table>
+<table><tr style="vertical-align: top;">
+<td><code>idvar  </code></td>
+<td>
+
+<p>the vector/matrix/dataframe identifying individual panels.</p>
+</td>
+</tr></table>
+<table><tr style="vertical-align: top;">
+<td><code>timevar</code></td>
+<td>
+
+<p>the vector/matrix/dataframe identifying time.</p>
+</td>
+</tr></table>
+<h3>Details</h3>
+
+<p>Consider a Cobb-Douglas production technology for firm <code class="reqn">i</code> at time <code class="reqn">t</code>
+</p>
+
+<ul><li> <p><code class="reqn">y_{it} = \alpha + w_{it}\beta + k_{it}\gamma + \omega_{it} + \epsilon_{it}</code>
+</p>
+</li></ul>
+<p>where <code class="reqn">y_{it}</code> is the (log) output, w_it a 1xJ vector of (log) free variables, k_it is a 1xK vector of state variables and <code class="reqn">\epsilon_{it}</code> is a normally distributed idiosyncratic error term.
+The unobserved technical efficiency parameter <code class="reqn">\omega_{it}</code> evolves according to a first-order Markov process:
+</p>
+
+<ul><li> <p><code class="reqn">\omega_{it} = E(\omega_{it} | \omega_{it-1}) + u_{it} = g(\omega_{it-1}) + u_{it}</code>
+</p>
+</li></ul>
+<p>and <code class="reqn">u_{it}</code> is a random shock component assumed to be uncorrelated with the technical efficiency, the state variables in <code class="reqn">k_{it}</code> and the lagged free variables <code class="reqn">w_{it-1}</code>.
+Wooldridge method allows to jointly estimate OP/LP two stages jointly in a system of two equations. It relies on the following set of assumptions:
+</p>
+
+<ul>
+<li>
+<p> a) <code class="reqn">\omega_{it} = g(x_{it} , p_{it})</code>: productivity is an unknown function <code class="reqn">g(.)</code> of state and a proxy variables;
+</p>
+</li>
+<li>
+<p> b) <code class="reqn">E(\omega_{it} | \omega_{it-1)}=f[\omega_{it-1}]</code>, productivity is an unknown function <code class="reqn">f[.]</code> of lagged productivity, <code class="reqn">\omega_{it-1}</code>.
+</p>
+</li>
+</ul>
+<p>Under the above set of assumptions, It is possible to construct a system gmm using the  vector of residuals from
+</p>
+
+<ul>
+<li> <p><code class="reqn">r_{1it} = y_{it} - \alpha - w_{it}\beta - x_{it}\gamma - g(x_{it} , p_{it}) </code>
+</p>
+</li>
+<li> <p><code class="reqn">r_{2it} = y_{it} - \alpha - w_{it}\beta - x_{it}\gamma - f[g(x_{it-1} , p_{it-1})]</code>
+</p>
+</li>
+</ul>
+<p>where the unknown function <code class="reqn">f(.)</code> is approximated by a n-th order polynomial and <code class="reqn">g(x_{it} , m_{it}) = \lambda_0 + c(x_{it} , m_{it})\lambda</code>. In particular, <code class="reqn">g(x_{it} , m_{it})</code> is a linear combination of functions in <code class="reqn">(x_{it} , m_{it})</code>
+and <code class="reqn">c_{it}</code> are the addends of this linear combination. The residuals <code class="reqn">r_{it}</code> are used to set the moment conditions
+</p>
+
+<ul><li> <p><code class="reqn">E(Z_{it}*r_{it}) =0</code>
+</p>
+</li></ul>
+<p>with the following set of instruments:
+</p>
+
+<ul>
+<li> <p><code class="reqn">Z1_{it} = (1, w_{it}, x_{it}, c_{it})</code>
+</p>
+</li>
+<li> <p><code class="reqn">Z2_{it} = (w_{it-1}, c_{it}, c_{it})</code>
+</p>
+</li>
+</ul>
+<p>Following previous assumptions, being <code class="reqn">f(\omega) = \delta_0 + \delta_1(c_{it}\lambda) + \delta_2(c_{it}\lambda)^2 + ... + \delta_G(c_{it}\lambda)^G</code>, one can set <code class="reqn">\delta_1 = G = 1</code> and estimate the model in a linear fashion - i.e., using a linear 2SLS model.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The output of the function <code>prodestWRDG</code> is a member of the <code>S3</code> class <span class="pkg">prod</span>. More precisely, is a list (of length 3) containing the following elements:
+</p>
+<p><code>Model</code>, a list containing:
+</p>
+
+<ul>
+<li> <p><code>method:</code> a string describing the method ('WRDG').
+</p>
+</li>
+<li> <p><code>elapsed.time:</code> time elapsed during the estimation.
+</p>
+</li>
+<li> <p><code>opt.outcome:</code> optimization outcome.
+</p>
+</li>
+</ul>
+<p><code>Data</code>, a list containing:
+</p>
+
+<ul>
+<li> <p><code>Y:</code> the vector of value added log output.
+</p>
+</li>
+<li> <p><code>free:</code> the vector/matrix/dataframe of log free variables.
+</p>
+</li>
+<li> <p><code>state:</code> the vector/matrix/dataframe of log state variables.
+</p>
+</li>
+<li> <p><code>proxy:</code> the vector/matrix/dataframe of log proxy variables.
+</p>
+</li>
+<li> <p><code>control:</code> the vector/matrix/dataframe of log control variables.
+</p>
+</li>
+<li> <p><code>idvar:</code> the vector/matrix/dataframe identifying individual panels.
+</p>
+</li>
+<li> <p><code>timevar:</code> the vector/matrix/dataframe identifying time.
+</p>
+</li>
+</ul>
+<p><code>Estimates</code>, a list containing:
+</p>
+
+<ul>
+<li> <p><code>pars:</code> the vector of estimated coefficients.
+</p>
+</li>
+<li> <p><code>std.errors:</code> the vector of bootstrapped standard errors.
+</p>
+</li>
+</ul>
+<p>Members of class <code>prod</code> have an <code>omega</code> method returning a numeric object with the estimated productivity - that is: <code class="reqn">\omega_{it} = y_{it} - (\alpha + w_{it}\beta + k_{it}\gamma)</code>.
+<code>FSres</code> method returns a numeric object with the residuals of the first stage regression, while <code>summary</code>, <code>show</code> and <code>coef</code> methods are implemented and work as usual.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Gabriele Rovigatti
+</p>
+
+
+<h3>References</h3>
+
+<p>Wooldridge, J M (2009).
+"On estimating firm-level production functions using proxy variables to control for unobservables."
+Economics Letters, 104, 112-114.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">    data("chilean")
+
+    # we fit a model with two free (skilled and unskilled), one state (capital)
+    # and one proxy variable (electricity)
+
+    WRDG.IV.fit &lt;- prodestWRDG_GMM(chilean$Y, fX = cbind(chilean$fX1, chilean$fX2),
+                                    chilean$sX, chilean$pX, chilean$idvar, chilean$timevar)
+
+    # show results
+    WRDG.IV.fit
+
+    
+      # estimate a panel dataset - DGP1, various measurement errors - and run the estimation
+      sim &lt;- panelSim()
+
+      WRDG.IV.sim1 &lt;- prodestWRDG_GMM(sim$Y, sim$fX, sim$sX, sim$pX1, sim$idvar, sim$timevar)
+      WRDG.IV.sim2 &lt;- prodestWRDG_GMM(sim$Y, sim$fX, sim$sX, sim$pX2, sim$idvar, sim$timevar)
+      WRDG.IV.sim3 &lt;- prodestWRDG_GMM(sim$Y, sim$fX, sim$sX, sim$pX3, sim$idvar, sim$timevar)
+      WRDG.IV.sim4 &lt;- prodestWRDG_GMM(sim$Y, sim$fX, sim$sX, sim$pX4, sim$idvar, sim$timevar)
+
+      # show results in .tex tabular format
+      printProd(list(WRDG.IV.sim1, WRDG.IV.sim2, WRDG.IV.sim3, WRDG.IV.sim4),
+                parnames = c('Free','State'))
+    
+  </code></pre>
+
+
+</div>

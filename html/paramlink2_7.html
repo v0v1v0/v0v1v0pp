@@ -1,0 +1,199 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>merlinLod</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Multipoint LOD scores by MERLIN</h2>
+
+<h3>Description</h3>
+
+<p>This function is a wrapper for the parametric linkage functionality of the
+MERLIN software. For this to work, MERLIN must be installed and correctly
+pointed to in the PATH environment variable.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">merlinLod(
+  x,
+  aff,
+  model,
+  map = NULL,
+  markers = NULL,
+  rho = 0,
+  liability = NULL,
+  maxOnly = NA,
+  options = "",
+  dir = tempdir(),
+  cleanup = TRUE,
+  verbose = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A <code>ped</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aff</code></td>
+<td>
+<p>A vector naming the affected pedigree members, or a numeric vector
+of length <code>pedsize(x)</code> with affection statuses for all pedigree members (2
+= affected; 1 = unaffected; 0 = unknown). Alternatively, <code>aff</code> can be a
+list of vectors, named <code>affected</code>, <code>unaffected</code> and <code>unknown</code>. It suffices
+to give (any) two of these vectors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>A <code>disModel</code> object, typically created with <code>diseaseModel()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>map</code></td>
+<td>
+<p>A data frame with columns according to MERLIN format for map
+files.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>markers</code></td>
+<td>
+<p>A vector of marker names or indices referring to markers
+attached to <code>x</code>. By default all markers are included.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+<p>A numeric with values between 0 and 0.5: The recombination
+value(s) for which the LOD score is computed. The value of <code>rho</code> is
+converted to centiMorgans using Haldane's map function and included in the
+MERLIN command using the <code>--position</code> parameter.
+</p>
+<p>Note: This parameter only works when <code>markers</code> has length 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>liability</code></td>
+<td>
+<p>NULL (default) or a vector of length <code>pedsize(x)</code> indicating
+the liability class (a row number of <code>model$penetrances</code>) of each
+individual.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxOnly</code></td>
+<td>
+<p>a logical indicating whether only the maximum LOD score should
+be returned. By default this is always done if the number of markers is 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>options</code></td>
+<td>
+<p>A character with additional options to the MERLIN command.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dir</code></td>
+<td>
+<p>Path to a directory where the MERLIN input files should be
+created.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cleanup</code></td>
+<td>
+<p>A logical indicating if MERLIN files should be removed after
+use. Default: TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>a logical: verbose output or not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed on to <code>pedprobr::merlin()</code>. In
+particular, <code>merlinpath</code> should be supplied if the merlin executables are
+not on the system's search path.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>By default the following MERLIN command is run (via a call to <code>system()</code>)
+after creating appropriate files in a temporary (or user specified) directory:
+</p>
+<pre>
+_merlin.freq --model _merlin.model --tabulate --markerNames --quiet</pre>
+<p>The resulting multipoint LOD scores are extracted from the output and
+returned in R as a linkres object.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If the number of markers is 1, or if <code>maxOnly = TRUE</code>, a single
+number is returned.
+</p>
+<p>Otherwise a <code>linkres</code> object similar to the output of <code>lod()</code>, but with an
+additional column <code>CM</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p><a href="https://csg.sph.umich.edu/abecasis/merlin/">https://csg.sph.umich.edu/abecasis/merlin/</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>lod()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+#---------------------------------
+# Requires MERLIN to be installed
+#---------------------------------
+
+if(pedprobr::checkMerlin()) {
+
+# Pedigree with a single marker
+x = nuclearPed(3, sex = c(1,2,2)) |&gt;
+  addMarker(geno = c("1/1", "1/2", "1/2", "1/2", "1/2"))
+
+# Simple AD model
+merlinLod(x, aff = 2:5, model = diseaseModel("AD"))
+
+# With liability classes
+mod = diseaseModel("AD", penetrances = cbind(f0 = 0, f1 = 1:0, f2 = 1:0))
+merlinLod(x, aff = 2:4, mod, liability = c(1,1,1,1,2))
+
+# X
+merlinLod(x, aff = 3:5, model = diseaseModel("XR"))
+
+}
+
+</code></pre>
+
+
+</div>

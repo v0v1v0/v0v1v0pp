@@ -1,0 +1,182 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>significanceOfLocalPeak</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Statistical significance of local periodogram peaks
+</h2>
+
+<h3>Description</h3>
+
+<p>Calculate statistical significance for a secondary periodogram peak (i.e. a non-global periodogram maximum), based on the null hypothesis of an OUSS process.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">significanceOfLocalPeak(power_o, lambda, power_e, 
+                        time_step, series_size,
+                        Nfreq, peakFreq, peakPower)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>power_o</code></td>
+<td>
+
+<p>Positive number. Power at zero-frequency stemming from the underlying OU process.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+
+<p>Positive number. Resilience (or relaxation rate) of the OU process, in inverse time units. This is also the inverse correlation time of the OU process. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>power_e</code></td>
+<td>
+
+<p>Non-negative number. Asymptotic power at large frequencies due to random measurement errors. Setting this to zero corresponds to the classical OU process.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time_step</code></td>
+<td>
+
+<p>Positive number. The time step of the time series that was used to calculate the periodogram.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>series_size</code></td>
+<td>
+
+<p>Positive integer. The size of the time series for which the periodogram peak was calculated.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Nfreq</code></td>
+<td>
+
+<p>The number of frequencies from which the local periodogram peak was picked. Typically equal to the number of frequencies in the periodogram.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>peakFreq</code></td>
+<td>
+
+<p>Single number. The frequency of the focal peak.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>peakPower</code></td>
+<td>
+
+<p>Single number. The periodogram power calculated for the focal peak.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The OUSS parameters <code>power_o</code>, <code>lambda</code> and <code>power_e</code> will typically be maximum-likelihood fitted values returned by <code>evaluate.pm</code>. The <code>time_step</code> is also returned by <code>evaluate.pm</code> and is inferred from the analysed time series. The examined periodogram peak (as defined by <code>peakFreq</code>) will typically be a secondary peak of interest, masked by other stronger peaks or a low-frequency maximum. The significance of such a peak is not defined by standard tests.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The returned P-value (referred to as “local P-value”) is the probability that an OUSS process with the specified parameters would generate a periodogram with a power-to-expectation ratio greater than <code>peakPower/E</code>, where <code>E</code> is the power spectrum of the OUSS process at frequency <code>peakFreq</code>. Hence, the significance is a measure for how much the peak power deviates from its expectation. The calculated value is an approximation. It becomes exact for long regular time series.
+</p>
+
+
+<h3>Note</h3>
+
+<p>This statistical significance is not equivalent to the one calculated by <code>evaluate.pm</code> for the global periodogram maximum.
+If the investigated periodogram peak is a global maximum, then the P-value returned by <code>evaluate.pm</code> should be preferred, as it also takes into account the absolute magnitude of the peak.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Stilianos Louca
+</p>
+
+
+<h3>References</h3>
+
+<p>Louca, S., Doebeli, M. (2015) Detecting cyclicity in ecological time series, Ecology 96: 1724–1732
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>evaluate.pm</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">  # In this example we generate a random cyclic time series, where the peak is (most likely)
+  # masked by a strong low-frequency maximum.
+  # We will use significanceOfLocalPeak() to evaluate its significance
+  # based on its deviation from the expected power.
+  
+  # generate cyclic time series by adding a periodic signal to an OUSS process
+  period    = 1;
+  times     = seq(0,20,0.2);
+  signal    = 0.5 * cos(2*pi*times/period) +
+              generate_ouss(times, mu=0, sigma=1, lambda=1, epsilon=0.5);
+  
+  # calculate periodogram and fit OUSS model
+  report    = evaluate.pm(times=times, signal=signal);
+  print(report)
+	
+  # find which periodogram mode approximately corresponds to the frequency we are interested in
+  cycleMode = which(report$frequencies&gt;=0.99/period)[1]; 
+	
+  # calculate P-value for local peak
+  Pvalue    = significanceOfLocalPeak(power_o     = report$power_o, 
+                                      lambda      = report$lambda, 
+                                      power_e     = report$power_e, 
+                                      time_step   = report$time_step, 
+                                      series_size = length(times),
+                                      Nfreq       = length(report$frequencies), 
+                                      peakFreq    = report$frequencies[cycleMode], 
+                                      peakPower   = report$periodogram[cycleMode]);
+
+  # plot time series
+  old.par &lt;- par(mfrow=c(1, 2));
+  plot(ts(times), ts(signal), 
+       xy.label=FALSE, type="l", 
+       ylab="signal", xlab="time", main="Time series (cyclic)", 
+       cex=0.8, cex.main=0.9);
+
+  # plot periodogram
+  title = sprintf("Periodogram OUSS analysis\nfocusing on local peak at freq=%.3g\nPlocal=%.2g",
+                  report$frequencies[cycleMode],Pvalue);
+  plot(ts(report$frequencies), ts(report$periodogram), 
+       xy.label=FALSE, type="l", 
+       ylab="power", xlab="frequency", main=title, 
+       col="black", cex=0.8, cex.main=0.9);
+	
+  # plot fitted OUSS power spectrum
+  lines(report$frequencies, report$fittedPS, col="red");
+	par(old.par)
+
+</code></pre>
+
+
+</div>

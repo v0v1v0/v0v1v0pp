@@ -1,0 +1,204 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tidy_levels_labels</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Term and Level Descriptions for <code>pixiedust</code> Tables</h2>
+
+<h3>Description</h3>
+
+<p>Default model objects identify rows of results with 
+appropriate term name.  More often than not, the term name is 
+not suitable for formally reported output.  <code>tidy_levels_labels</code>
+performs some basic work to quickly provide more readable 
+descriptors for cases where they can easily be obtained.  These
+descriptors are retrieved from the data, however, so the 
+utility is determined by the user's habits in providing 
+term labels and meaningful factor levels.  
+</p>
+<p>Due to the complexity of the terms that could be used for a model,
+it isn't practical to attempt to recover human-ready descriptors
+for every conceivable term.  This would require recovering variable
+names for any number of functions.  <code>pixiedust</code> only 
+goes after the easiest to obtain. Replacements no managed by 
+<code>tidy_levels_labels</code> may still be made with the <code>replace</code>
+sprinkle.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">tidy_levels_labels(
+  object,
+  descriptors = "term",
+  numeric_level = c("term", "term_plain", "label"),
+  argcheck = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A model object, ideally with a <code>model.frame</code> method.
+It is unclear at the moment (18 Sept. 2015) what will happen if
+an object is passed that does not have a <code>model.frame</code> method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>descriptors</code></td>
+<td>
+<p>A character vector indicating the descriptors to
+be used in the table.  Acceptable inputs are <code>"term"</code>, 
+<code>"term_plain"</code>, <code>"label"</code>, <code>"level"</code>, and 
+<code>"level_detail"</code>.  These may be used in any combination and
+any order, with the descriptors appearing in the table from left
+to right in the order given.  The default, <code>"term"</code>, returns
+only the term descriptor and is identical to the output provided
+by <code>broom::tidy</code> methods.  See Details for a full explanation
+of each option and the Examples for sample output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>numeric_level</code></td>
+<td>
+<p>A character string that determines which descriptor
+is used for numeric variables in the <code>"level_detail"</code> descriptor
+when a numeric has an interaction with a factor.  Acceptable inputs
+are <code>"term"</code>, <code>"term_plain"</code>, and <code>"label"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>argcheck</code></td>
+<td>
+<p>An assert collection created by <code>checkmate::makeAssertCollection</code>.
+Under normal circumstances, this is passed from <code>dust</code>.  If <code>NULL</code>,
+as in the case it is run outside of <code>dust</code>, a new collection is
+created and the assertions are reported within <code>tidy_levels_labels</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The user may select up to five columns of descriptors, 
+although doing so would certainly create some ambiguity.  See
+the Examples for sample output.
+</p>
+
+<ul>
+<li>
+<p><code>"term"</code> The term name used in the R model summary
+</p>
+</li>
+<li>
+<p><code>"term_plain"</code> The term name used in the formula.
+For variables that produce multiple term names (such as factors),
+the plain term name may be duplicated.  For example, a factor that
+has term names <code>FctrB</code> and <code>FctrC</code>, indicating rows for 
+levels <code>B</code> and <code>C</code> of the variable <code>Fctr</code>, will 
+have two rows of <code>"term_plain"</code> of just <code>Fctr</code>.
+</p>
+</li>
+<li>
+<p><code>"label"</code> Provides the label attached to the data using
+<code>labelVector::get_label</code>.  When a term is not associated with a label, 
+the value of <code>term_plain</code> is returned instead. Note that, variable names
+will disassociate with a label if they are used in a function (such
+as <code>factor(x)</code> or <code>x^2</code>.
+</p>
+</li>
+<li>
+<p><code>"level"</code> Indicates the level being compared within a factor 
+(or an interaction involving a factor), otherwise it returns <code>NA</code>.
+It may also be said that this value is the appendix to a factor name.  
+For the term <code>FctrB</code>, this would just be <code>B</code>.
+</p>
+</li>
+<li>
+<p><code>"level_detail"</code> Gives additional information to <code>level</code>
+by including the reference level of the factor.  For the term <code>FctrB</code>,
+this would return <code>"B vs A"</code>.  When an interaction with a numeric
+variable is present, the <code>level</code> for the numeric may be either 
+<code>term_plain</code> or <code>label</code>, the choice being controlled by the
+<code>level_detail</code> argument.
+</p>
+</li>
+</ul>
+<h3>Restrictions</h3>
+
+<p>The descriptors, other than <code>"term"</code>, generally don't make sense for data 
+frame objects.  The use of <code>tidy_levels_labels</code> is not permitted within
+the <code>dust</code> function, but is allowed if you really want it by 
+<code>pixiedust:::tidy_levels_labels</code>.
+</p>
+<p>Other special cases noted in future uses will be documented here, but in 
+general, if it isn't a model object, you probably don't really want to 
+use this.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Benjamin Nutter
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#* Descriptors for lm output with no interactions
+mtcars2 &lt;- mtcars
+mtcars2$mpg &lt;- labelVector::set_label(mtcars2$mpg, "Gas Mileage")
+mtcars2$qsec &lt;-  labelVector::set_label(mtcars2$qsec, "Quarter Mile Time")
+mtcars2$am &lt;-  labelVector::set_label(mtcars2$am, "Transmission")
+mtcars2$wt &lt;-  labelVector::set_label(mtcars2$wt, "Weight")
+mtcars2$gear &lt;-  labelVector::set_label(mtcars2$gear, "Gears")
+
+#* Basic Output for a model with no interactions
+#* Note: numeric_level has no impact as there are no
+#*       interactions involving numeric variables.
+
+fit &lt;- lm(mpg ~ qsec + factor(am) + wt + factor(gear), data = mtcars2)
+
+pixiedust:::tidy_levels_labels(fit, 
+  descriptors = c("term", "term_plain", "label", "level", "level_detail"),
+  numeric_level = "term") 
+  
+#* Assign factors ahead of the model. This allows 
+#* the user to determine the levels that display.
+#* Compare the output for 'am' with the output for 'gear'
+
+mtcars2$am &lt;- factor(mtcars2$am, 0:1, c("Automatic", "Manual"))
+mtcars2$am &lt;-  labelVector::set_label(mtcars2$am, "Transmission") 
+    # Label was lost in variable conversion
+fit &lt;- lm(mpg ~ qsec + am + wt + factor(gear), data = mtcars2)
+pixiedust:::tidy_levels_labels(fit, 
+  descriptors = c("term", "term_plain", "label", "level", "level_detail"),
+  numeric_level = "term") 
+  
+  
+#* Include an interaction between a factor and numeric.
+
+fit &lt;- lm(mpg ~ qsec + am * wt + factor(gear), data = mtcars2)
+pixiedust:::tidy_levels_labels(fit, 
+  descriptors = c("term", "term_plain", "label", "level", "level_detail"),
+  numeric_level = "term") 
+  
+#* Now observe how 'level' and 'level_detail' change 
+#* in the interaction terms as we choose different 
+#* values for 'numeric_level'
+
+pixiedust:::tidy_levels_labels(fit, 
+  descriptors = c("term", "term_plain", "label", "level", "level_detail"),
+  numeric_level = "term_plain")
+  
+pixiedust:::tidy_levels_labels(fit, 
+  descriptors = c("term", "term_plain", "label", "level", "level_detail"),
+  numeric_level = "label")  
+</code></pre>
+
+
+</div>

@@ -1,0 +1,355 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>freqRat</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Frequency Ratio Method for Estimating Sampling Probability</h2>
+
+<h3>Description</h3>
+
+<p>Estimate per-interval sampling probability in the fossil record from a set
+of discrete-interval taxon ranges using the frequency-ratio method described
+by Foote and Raup (1996). Can also calculate extinction rate per interval from
+the same data distribution.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">freqRat(timeData, calcExtinction = FALSE, plot = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>timeData</code></td>
+<td>
+<p>A 2 column matrix with the first and last occurrences of taxa
+given in relative time intervals. If a list of length two is given for
+<code>timeData</code>, such as would be expected if the output of <code>binTimeData</code> was
+directly input, the second element is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>calcExtinction</code></td>
+<td>
+<p>If <code>TRUE</code>, the per-interval, per-lineage extinction rate 
+is estimated as the negative slope of the log frequencies, ignoring single
+hits (as described in Foote and Raup, 1996.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>If <code>TRUE</code>, the histogram of observed taxon ranges is plotted, with
+frequencies on a linear scale</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function uses the frequency ratio ("freqRat") method of Foote and Raup
+(1996) to estimate the per-interval sampling rate for a set of taxa. This
+method assumes that intervals are of fairly similar length and that
+taxonomic extinction and sampling works similar to homogenous Poisson
+processes. These analyses are ideally applied to data from single
+stratigraphic section but potentially are applicable to regional or global
+datasets, although the behavior of those datasets is less well understood.
+</p>
+<p>The frequency ratio is a simple relationship between the number of taxa
+observed only in a single time interval (also known as singletons), the
+number of taxa observed only in two time intervals and the number of taxa
+observed in three time intervals. These respective frequencies, respectively
+f1, f2 and f3 can then be related to the per-interval sampling probability
+with the following expression.
+</p>
+<p><code class="reqn">Sampling.Probability = (f2^2)/(f1*f3)</code>
+</p>
+<p>This frequency ratio is generally referred to as the 'freqRat' in
+paleobiological literature.
+</p>
+<p>It is relatively easy to visually test if range data fits expectation that
+true taxon durations are exponentially distributed by plotting the
+frequencies of the observed ranges on a log scale: data beyond the
+'singletons' category should have a linear slope, implying that durations
+were originally exponentially distributed. (Note, a linear scale is used for
+the plotting diagram made by this function when 'plot' is TRUE, so that plot
+cannot be used for this purpose.)
+</p>
+<p>The accuracy of this method tends to be poor at small interval length and
+even relatively large sample sizes. A portion at the bottom of the examples
+in the help file examine this issue in greater detail with simulations. This
+package author recommends using the ML method developed in Foote (1997)
+instead, which is usable via the function <code>make_durationFreqDisc</code>.
+</p>
+<p>As extant taxa should not be included in a freqRat calculation, any taxa
+listed as being in a bin with start time 0 and end time 0 (and thus being
+extant without question) are dropped before the model fitting it performed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>This function returns the per-interval sampling probability as the
+"freqRat", and estimates
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David W. Bapst
+</p>
+
+
+<h3>References</h3>
+
+<p>Foote, M. 1997 Estimating Taxonomic Durations and Preservation
+Probability. <em>Paleobiology</em> <b>23</b>(3):278–300.
+</p>
+<p>Foote, M., and D. M. Raup. 1996 Fossil preservation and the stratigraphic
+ranges of taxa. <em>Paleobiology</em> <b>22</b>(2):121–140.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Model fitting methods in <code>make_durationFreqDisc</code> and <code>make_durationFreqCont</code>. 
+Also see conversion methods in <code>sProb2sRate</code>, <code>qsProb2Comp</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Simulate some fossil ranges with simFossilRecord
+set.seed(444)
+record &lt;- simFossilRecord(p = 0.1, 
+                          q = 0.1, 
+                          nruns = 1,
+	                         nTotalTaxa = c(30,40), 
+	                         nExtant = 0
+	                         )
+taxa &lt;- fossilRecord2fossilTaxa(record)
+# simulate a fossil record with imperfect sampling with sampleRanges
+rangesCont &lt;- sampleRanges(taxa,r = 0.1)
+# Now let's use binTimeData to bin in intervals of 5 time units
+rangesDisc &lt;- binTimeData(rangesCont,int.length = 5)
+
+# now, get an estimate of the sampling rate (we set it to 0.5 above)
+
+# for discrete data we can estimate the sampling probability per interval (R)
+    # i.e. this is not the same thing as the instantaneous sampling rate (r)
+    
+# can use sRate2sProb to see what we would expect
+sRate2sProb(r = 0.1, int.length = 5)
+
+# expect R = ~0.39
+
+# now we can apply freqRat to get sampling probability
+SampProb &lt;- freqRat(rangesDisc, plot = TRUE)
+SampProb
+
+# I estimated R = ~0.25 
+# Not wildly accurate, is it?
+
+# can also calculate extinction rate per interval of time
+freqRat(rangesDisc, calcExtinction = TRUE)
+
+# est. ext rate = ~0.44 per interval
+# 5 time-unit intervals, so ~0.44 / 5 = ~0.08 per time-unit
+# That's pretty close to the generating value of 0.01, used in sampleRanges
+
+## Not run: 
+#################
+# The following example code (which is not run by default) examines how 
+	# the freqRat estimates vary with sample size, interval length
+	# and compares it to using make_durationFreqDisc
+
+# how good is the freqRat at 20 sampled taxa on avg?
+set.seed(444)
+r &lt;- runif(100)
+int.length = 1
+# estimate R from r, assuming stuff like p = q
+R &lt;- sapply(r, sRate2sProb, int.length = 1)	
+ntaxa &lt;- freqRats &lt;- numeric()
+for(i in 1:length(r)){
+	# assuming budding model
+	record &lt;- simFossilRecord(p = 0.1, 
+	                          q = 0.1, 
+	                          r = r[i], 
+	                          nruns = 1,
+	                          nSamp = c(15,25), 
+	                          nExtant = 0, 
+	                          plot = TRUE
+	                          )
+	ranges &lt;- fossilRecord2fossilRanges(record)
+	timeList &lt;- binTimeData(ranges,int.length = int.length)
+	ntaxa[i] &lt;- nrow(timeList[[2]])
+	freqRats[i] &lt;- freqRat(timeList)
+	}
+plot(R,freqRats);abline(0,1)
+# without the gigantic artifacts bigger than 1...
+plot(R,freqRats,ylim = c(0,1));abline(0,1)
+# very worrisome lookin'!
+
+# how good is it at 100 sampled taxa on average?
+set.seed(444)
+r &lt;- runif(100)
+int.length = 1
+R &lt;- sapply(r,sRate2sProb,int.length = 1)
+ntaxa &lt;- freqRats &lt;- numeric()
+for(i in 1:length(r)){
+    # assuming budding model
+    record &lt;- simFossilRecord(p = 0.1, 
+                              q = 0.1, 
+                              r = r[i], 
+                              nruns = 1, 
+                              nSamp = c(80,150), 
+                              nExtant = 0, 
+                              plot = TRUE)
+	ranges &lt;- fossilRecord2fossilRanges(record)
+	timeList &lt;- binTimeData(ranges, 
+	     int.length = int.length)
+	ntaxa[i] &lt;- nrow(timeList[[2]])
+	freqRats[i] &lt;- freqRat(timeList)
+	}
+	
+plot(R, freqRats,
+     ylim = c(0,1)
+     )
+abline(0,1)
+
+#not so hot, eh?
+
+################
+#LETS CHANGE THE TIME BIN LENGTH!
+
+# how good is it at 100 sampled taxa on average, with longer time bins?
+set.seed(444)
+r &lt;- runif(100)
+int.length &lt;- 10
+R &lt;- sapply(r, sRate2sProb, int.length = int.length)
+ntaxa &lt;- freqRats &lt;- numeric()
+for(i in 1:length(r)){
+	   # assuming budding model
+	   record &lt;- simFossilRecord(p = 0.1, 
+	                          q = 0.1, 
+	                          r = r[i], 
+	                          nruns = 1,	
+	                          nSamp = c(80,150), 
+	                          nExtant = 0, 
+	                          plot = TRUE)
+	   ranges &lt;- fossilRecord2fossilRanges(record)
+	   timeList &lt;- binTimeData(ranges, int.length = int.length)
+	   ntaxa[i] &lt;- nrow(timeList[[2]])
+	   freqRats[i] &lt;- freqRat(timeList)
+	   }
+	
+plot(R, freqRats, ylim = c(0,1))
+abline(0,1)
+# things get more accurate as interval length increases... odd, eh?
+
+# how good is it at 20 sampled taxa on average, with longer time bins?
+set.seed(444)
+r &lt;- runif(100)
+int.length &lt;- 10
+R &lt;- sapply(r, sRate2sProb, int.length = int.length)
+ntaxa &lt;- freqRats &lt;- numeric()
+for(i in 1:length(r)){
+	# assuming budding model
+	record &lt;- simFossilRecord(p = 0.1, 
+	                          q = 0.1, 
+	                          r = r[i], 
+	                          nruns = 1,	
+	                          nSamp = c(15,25), 
+	                          nExtant = 0, 
+	                          plot = TRUE)
+	ranges &lt;- fossilRecord2fossilRanges(record)
+	timeList &lt;- binTimeData(ranges, int.length = int.length)
+	ntaxa[i] &lt;- nrow(timeList[[2]])
+	freqRats[i] &lt;- freqRat(timeList)
+	}
+plot(R, freqRats, ylim = c(0,1))
+abline(0,1)
+# still not so hot at low sample sizes, even with longer bins
+
+########################
+# ML METHOD
+
+# how good is the ML method at 20 taxa, 1 time-unit bins?
+set.seed(444)
+r &lt;- runif(100)
+int.length &lt;- 1
+R &lt;- sapply(r,sRate2sProb,int.length = int.length)
+ntaxa &lt;- ML_sampProb &lt;- numeric()
+for(i in 1:length(r)){
+	   # assuming budding model
+	   record &lt;- simFossilRecord(p = 0.1, 
+	                             q = 0.1, 
+	                             r = r[i], 
+	                             nruns = 1,
+	                             nSamp = c(15,25), 
+	                             nExtant = 0, 
+	                             plot = TRUE
+	                             )
+	   ranges &lt;- fossilRecord2fossilRanges(record)
+	   timeList &lt;- binTimeData(ranges, int.length = int.length)
+	   ntaxa[i] &lt;- nrow(timeList[[2]])
+    likFun &lt;- make_durationFreqDisc(timeList)
+    ML_sampProb[i] &lt;- optim(
+         parInit(likFun), likFun,
+		      lower = parLower(likFun),
+		      upper = parUpper(likFun),
+         method = "L-BFGS-B",
+         control = list(maxit = 1000000)
+         )[[1]][2]
+	   }
+	   
+plot(R, ML_sampProb)
+abline(0,1)
+
+# Not so great due to likelihood surface ridges
+ # but it returns values between 0-1
+
+# how good is the ML method at 100 taxa, 1 time-unit bins?
+set.seed(444)
+r &lt;- runif(100)
+int.length &lt;- 1
+R &lt;- sapply(r, sRate2sProb,
+    int.length = int.length)
+ntaxa &lt;- ML_sampProb &lt;- numeric()
+for(i in 1:length(r)){
+    # assuming budding model
+	   record &lt;- simFossilRecord(p = 0.1, 
+	                             q = 0.1, 
+	                             r = r[i], 
+	                             nruns = 1,
+	                             nSamp = c(80,150), 
+	                             nExtant = 0, 
+	                             plot = TRUE)
+	   ranges &lt;- fossilRecord2fossilRanges(record)
+	   timeList &lt;- binTimeData(ranges,int.length = int.length)
+	   ntaxa[i] &lt;- nrow(timeList[[2]])
+    likFun &lt;- make_durationFreqDisc(timeList)
+    ML_sampProb[i] &lt;- optim(parInit(likFun),
+                         likFun,
+		                      lower = parLower(likFun),
+		                      upper = parUpper(likFun),
+                         method = "L-BFGS-B",
+                         control = list(maxit = 1000000)
+                         )[[1]][2]
+	}
+	
+plot(R,ML_sampProb)
+abline(0,1)
+
+# Oh, fairly nice, although still a biased uptick as R gets larger
+
+## End(Not run)
+</code></pre>
+
+
+</div>

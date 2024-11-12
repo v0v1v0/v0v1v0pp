@@ -1,0 +1,177 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>prepExpo</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Prepare Exposure Data for Aggregation</h2>
+
+<h3>Description</h3>
+
+<p><code>prepExpo</code> uses a <code>Lexis</code> object of periods of exposure
+to fill gaps between the periods and overall entry and exit times without
+accumulating exposure time in periods of no exposure, and splits the
+result if requested.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">prepExpo(
+  lex,
+  freezeScales = "work",
+  cutScale = "per",
+  entry = min(get(cutScale)),
+  exit = max(get(cutScale)),
+  by = "lex.id",
+  breaks = NULL,
+  freezeDummy = NULL,
+  subset = NULL,
+  verbose = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>lex</code></td>
+<td>
+<p>a <code>Lexis</code> object with ONLY periods of exposure
+as rows; one or multiple rows per subject allowed</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>freezeScales</code></td>
+<td>
+<p>a character vector naming <code>Lexis</code> time scales of exposure
+which should be frozen in periods where no exposure occurs (in the gap
+time periods)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cutScale</code></td>
+<td>
+<p>the <code>Lexis</code> time scale along which the subject-specific
+ultimate entry and exit times are specified</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>entry</code></td>
+<td>
+<p>an expression; the time of entry to follow-up which may be earlier, at, or after
+the first time of exposure in <code>freezeScales</code>; evaluated separately
+for each unique combination of <code>by</code>, so e.g. with 
+<code>entry = min(Var1)</code> and <code>by = "lex.id"</code> it 
+sets the <code>lex.id</code>-specific minima of <code>Var1</code> to be the original times
+of entry for each <code>lex.id</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exit</code></td>
+<td>
+<p>the same as <code>entry</code> but for the ultimate exit time per unique
+combination of <code>by</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>by</code></td>
+<td>
+<p>a character vector indicating variable names in <code>lex</code>,
+the unique combinations of which identify separate subjects for which
+to fill gaps in the records from <code>entry</code> to <code>exit</code>;
+for novices of <code>{data.table}</code>, this is passed to a 
+<code>data.table</code>'s <code>by</code> argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>breaks</code></td>
+<td>
+<p>a named list of breaks; 
+e.g. <code>list(work = 0:20,per = 1995:2015)</code>; passed on to 
+<code>splitMulti</code> so see that function's help for more details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>freezeDummy</code></td>
+<td>
+<p>a character string; specifies the name for a dummy variable
+that this function will create and add to output which 
+identifies rows where the <code>freezeScales</code> are frozen and where not
+(<code>0</code> implies not frozen, <code>1</code> implies frozen);
+if <code>NULL</code>, no dummy is created</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+<p>a logical condition to subset data by before computations;
+e.g. <code>subset = sex == "male"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical; if <code>TRUE</code>, the function is chatty and returns
+some messages and timings during its run.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments passed on to <code>splitMulti</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>prepExpo</code> is a convenience function for the purpose of eventually aggregating 
+person-time and events in categories of not only normally progressing 
+<code>Lexis</code> time scales but also some time scales which should not
+progress sometimes. For example a person may work at a production facility
+only intermittently, meaning exposure time (to work-related substances 
+for example) should not progress outside of periods of work. This allows for
+e.g. a correct aggregation of person-time and events by categories of cumulative
+time of exposure.
+</p>
+<p>Given a <code>Lexis</code> object containing rows (time lines)
+where a subject is exposed to something (and NO periods without exposure),
+fills any gaps between exposure periods for each unique combination of <code>by</code>
+and the subject-specific "ultimate" <code>entry</code> and <code>exit</code> times,
+"freezes" the cumulative exposure times in periods of no exposure,
+and splits data using <code>breaks</code> passed to <code>splitMulti</code>
+if requested. Results in a (split) <code>Lexis</code> object where <code>freezeScales</code>
+do not progress in time periods where no exposure was recorded in <code>lex</code>.
+</p>
+<p>This function assumes that <code>entry</code> and <code>exit</code> arguments are the
+same for each row within a unique combination of variables named in <code>by</code>.
+E.g. with <code>by = "lex.id"</code> only each <code>lex.id</code> has a unique value
+for <code>entry</code> and <code>exit</code> at most.
+</p>
+<p>The supplied <code>breaks</code> split the data using <code>splitMulti</code>, with
+the exception that breaks supplied concerning any frozen time scales
+ONLY split the rows where the time scales are not frozen. E.g.
+with <code>freezeScales = "work"</code>, 
+<code>breaks = list(work = 0:10, cal = 1995:2010)</code> splits all rows over
+<code>"cal"</code> but only non-frozen rows over <code>"work"</code>.
+</p>
+<p>Only supports frozen time scales that advance and freeze contemporaneously:
+e.g. it would not currently be possible to take into account the cumulative
+time working at a facility and the cumulative time doing a single task
+at the facility, if the two are not exactly the same. On the other hand
+one might use the same time scale for different exposure types, supply them
+as separate rows, and identify the different exposures using a dummy variable.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a <code>Lexis</code> object that has been split if <code>breaks</code> is specified.
+The resulting time is also a <code>data.table</code> if 
+<code>options("popEpi.datatable") == TRUE</code> (see: <code>?popEpi</code>)
+</p>
+
+
+</div>

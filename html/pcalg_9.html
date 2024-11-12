@@ -1,0 +1,276 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>backdoor</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Find Set Satisfying the Generalized Backdoor Criterion (GBC)</h2>
+
+<h3>Description</h3>
+
+<p>This function first checks if the total causal effect of
+one variable (<code>x</code>) onto another variable (<code>y</code>) is
+identifiable via the GBC, and if this is
+the case it explicitly gives a set of variables that satisfies the
+GBC with respect to <code>x</code> and <code>y</code>
+in the given graph.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">backdoor(amat, x, y, type = "pag", max.chordal = 10, verbose=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>amat</code></td>
+<td>
+<p>adjacency matrix of type <code>amat.cpdag</code> or
+<code>amat.pag</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x,y</code></td>
+<td>
+<p>(integer) position of variable <code class="reqn">X</code> and <code class="reqn">Y</code>,
+respectively, in the adjacency matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>string specifying the type of graph of the adjacency matrix
+<code>amat</code>.  It can be a DAG (type="dag"), a CPDAG (type="cpdag");
+then the type of the adjacency matrix is assumed to be
+amat.cpdag.  It can also be a MAG (type="mag"), or a PAG
+(type="pag"); then the type of the adjacency matrix is assumed to be
+amat.pag.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.chordal</code></td>
+<td>
+<p>only if <code>type = "mag"</code>, is used in
+<code>pag2magAM</code> to determine paths too large to be checked
+for chordality.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical; if true, some output is produced during
+computation.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is a generalization of Pearl's backdoor criterion, see
+Pearl (1993), defined for directed acyclic graphs (DAGs), for single
+interventions and single outcome variable to more general types of
+graphs (CPDAGs, MAGs, and PAGs) that describe Markov equivalence
+classes of DAGs with and without latent variables but without
+selection variables. For more details see Maathuis and Colombo (2015).
+</p>
+<p>The motivation to find a set W that satisfies the GBC with respect to
+<code>x</code> and <code>y</code>
+in the given graph relies on the result of the generalized backdoor adjustment:
+</p>
+<p><em>If a set of variables W satisfies the GBC relative to <code>x</code>
+and <code>y</code> in the given graph, then
+the causal effect of <code>x</code> on <code>y</code> is identifiable and is given
+by</em> </p>
+<p style="text-align: center;"><code class="reqn">%
+    P(Y|do(X = x)) = \sum_W P(Y|X,W) \cdot P(W).</code>
+</p>
+
+<p>This result allows to write post-intervention densities (the one
+written using Pearl's do-calculus) using only observational densities
+estimated from the data.
+</p>
+<p>If the input graph is a DAG (<code>type="dag"</code>), this function reduces
+to Pearl's backdoor criterion for single interventions and single
+outcome variable, and the parents of <code>x</code> in the DAG satisfy the
+backdoor criterion unless <code>y</code> is a parent of <code>x</code>.
+</p>
+<p>If the input graph is a CPDAG C (<code>type="cpdag"</code>), a MAG M
+(<code>type="mag"</code>), or a PAG P (<code>type="pag"</code>) (with both M and P
+not allowing selection variables), this function first checks if the
+total causal effect of <code>x</code> on <code>y</code> is identifiable via the
+GBC (see Maathuis and Colombo, 2015). If
+the effect is not identifiable in this way, the output is
+NA. Otherwise, an explicit set W that satisfies the GBC with respect
+to <code>x</code> and <code>y</code> in the given graph is found.
+</p>
+<p>At this moment this function is not able to work with an RFCI-PAG.
+</p>
+<p>It is important to note that there can be pair of nodes <code>x</code> and
+<code>y</code> for which there is no set W that satisfies the GBC, but the
+total causal effect might be identifiable via some other technique.
+</p>
+<p>For the coding of the adjacency matrix see amatType.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Either NA if the total causal effect is not identifiable via the
+GBC, or a set if the effect is identifiable
+via the GBC. Note that if the set W is
+equal to the empty set, the output is NULL.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Diego Colombo and Markus Kalisch (<a href="mailto:kalisch@stat.math.ethz.ch">kalisch@stat.math.ethz.ch</a>)</p>
+
+
+<h3>References</h3>
+
+<p>M.H. Maathuis and D. Colombo (2015). A generalized backdoor
+criterion. Annals of Statistics 43 1060-1088.
+</p>
+<p>J. Pearl (1993). Comment: Graphical models, causality and intervention.
+<em>Statistical Science</em> <b>8</b>, 266–269.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>gac</code> for the Generalized Adjustment Criterion
+(GAC), which is a generalization of GBC; <code>pc</code> for
+estimating a CPDAG, <code>dag2pag</code>
+and <code>fci</code> for estimating a PAG, and
+<code>pag2magAM</code> for estimating a MAG.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+#####################################################################
+##DAG
+#####################################################################
+## Simulate the true DAG
+suppressWarnings(RNGversion("3.5.0"))
+set.seed(123)
+p &lt;- 7
+myDAG &lt;- randomDAG(p, prob = 0.2) ## true DAG
+
+## Extract the adjacency matrix of the true DAG
+true.amat &lt;- (amat &lt;- as(myDAG, "matrix")) != 0 # TRUE/FALSE &lt;==&gt; 1/0
+print.table(1*true.amat, zero.=".") # "visualization"
+
+## Compute set satisfying the GBC:
+backdoor(true.amat, 5, 7, type="dag")
+
+#####################################################################
+##CPDAG
+#####################################################################
+##################################################
+## Example not identifiable
+## Maathuis and Colombo (2015), Fig. 3a, p.1072
+##################################################
+## create the graph
+p &lt;- 5
+. &lt;- 0
+amat &lt;- rbind(c(.,.,1,1,1),
+              c(.,.,1,1,1),
+              c(.,.,.,1,.),
+              c(.,.,.,.,1),
+              c(.,.,.,.,.))
+colnames(amat) &lt;- rownames(amat) &lt;- as.character(1:5)
+V &lt;- as.character(1:5)
+edL &lt;- vector("list",length=5)
+names(edL) &lt;- V
+edL[[1]] &lt;- list(edges=c(3,4,5),weights=c(1,1,1))
+edL[[2]] &lt;- list(edges=c(3,4,5),weights=c(1,1,1))
+edL[[3]] &lt;- list(edges=4,weights=c(1))
+edL[[4]] &lt;- list(edges=5,weights=c(1))
+g &lt;- new("graphNEL", nodes=V, edgeL=edL, edgemode="directed")
+
+## estimate the true CPDAG
+myCPDAG &lt;- dag2cpdag(g)
+## Extract the adjacency matrix of the true CPDAG
+true.amat &lt;- (as(myCPDAG, "matrix") != 0) # 1/0 &lt;==&gt; TRUE/FALSE
+
+## The effect is not identifiable, in fact:
+backdoor(true.amat, 3, 5, type="cpdag")
+
+
+##################################################
+## Example identifiable
+## Maathuis and Colombo (2015), Fig. 3b, p.1072
+##################################################
+
+## create the graph
+p &lt;- 6
+amat &lt;- rbind(c(0,0,1,1,0,1), c(0,0,1,1,0,1), c(0,0,0,0,1,0),
+              c(0,0,0,0,1,1), c(0,0,0,0,0,0), c(0,0,0,0,0,0))
+colnames(amat) &lt;- rownames(amat) &lt;- as.character(1:6)
+V &lt;- as.character(1:6)
+edL &lt;- vector("list",length=6)
+names(edL) &lt;- V
+edL[[1]] &lt;- list(edges=c(3,4,6),weights=c(1,1,1))
+edL[[2]] &lt;- list(edges=c(3,4,6),weights=c(1,1,1))
+edL[[3]] &lt;- list(edges=5,weights=c(1))
+edL[[4]] &lt;- list(edges=c(5,6),weights=c(1,1))
+g &lt;- new("graphNEL", nodes=V, edgeL=edL, edgemode="directed")
+
+## estimate the true CPDAG
+myCPDAG &lt;- dag2cpdag(g)
+## Extract the adjacency matrix of the true CPDAG
+true.amat &lt;- as(myCPDAG, "matrix") != 0
+
+## The effect is identifiable and the set satisfying GBC is:
+backdoor(true.amat, 6, 3, type="cpdag")
+
+
+##################################################################
+##PAG
+##################################################################
+##################################################
+## Example identifiable
+## Maathuis and Colombo (2015), Fig. 5a, p.1075
+##################################################
+
+## create the graph
+p &lt;- 7
+amat &lt;- t(matrix(c(0,0,1,1,0,0,0, 0,0,1,1,0,0,0, 0,0,0,1,0,1,0,
+                   0,0,0,0,0,0,1, 0,0,0,0,0,1,1, 0,0,0,0,0,0,0,
+                   0,0,0,0,0,0,0),  7, 7))
+colnames(amat) &lt;- rownames(amat) &lt;- as.character(1:7)
+V &lt;- as.character(1:7)
+edL &lt;- vector("list",length=7)
+names(edL) &lt;- V
+edL[[1]] &lt;- list(edges=c(3,4),weights=c(1,1))
+edL[[2]] &lt;- list(edges=c(3,4),weights=c(1,1))
+edL[[3]] &lt;- list(edges=c(4,6),weights=c(1,1))
+edL[[4]] &lt;- list(edges=7,weights=c(1))
+edL[[5]] &lt;- list(edges=c(6,7),weights=c(1,1))
+g &lt;- new("graphNEL", nodes=V, edgeL=edL, edgemode="directed")
+L &lt;- 5
+
+## compute the true covariance matrix of g
+cov.mat &lt;- trueCov(g)
+
+## transform covariance matrix into a correlation matrix
+true.corr &lt;- cov2cor(cov.mat)
+suffStat &lt;- list(C=true.corr, n=10^9)
+indepTest &lt;- gaussCItest
+
+## estimate the true PAG
+true.pag &lt;- dag2pag(suffStat, indepTest, g, L, alpha = 0.9999)@amat
+
+## The effect is identifiable  and the backdoor set is:
+backdoor(true.pag, 3, 5, type="pag")
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,391 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>poismf</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Factorization of Sparse Counts Matrices through Poisson Likelihood</h2>
+
+<h3>Description</h3>
+
+<p>Creates a low-rank non-negative factorization of a sparse counts
+matrix by maximizing Poisson likelihood minus L1/L2 regularization, using
+gradient-based optimization procedures.
+</p>
+<p>The model idea is to approximate: <code class="reqn">\mathbf{X} \sim \texttt{Poisson}(\mathbf{A} \mathbf{B}^T)</code>
+</p>
+<p>Ideal for usage in recommender systems, in which the 'X' matrix would consist of
+interactions (e.g. clicks, views, plays), with users representing the rows and items
+representing the columns.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">poismf(
+  X,
+  k = 50,
+  method = "tncg",
+  l2_reg = "auto",
+  l1_reg = 0,
+  niter = "auto",
+  maxupd = "auto",
+  limit_step = TRUE,
+  initial_step = 1e-07,
+  early_stop = TRUE,
+  reuse_prev = FALSE,
+  weight_mult = 1,
+  handle_interrupt = TRUE,
+  nthreads = parallel::detectCores()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>The counts matrix to factorize. Can be: </p>
+
+<ul>
+<li>
+<p> A 'data.frame' with 3 columns, containing in this order:
+row index or user ID, column index or item ID, count value. The first two columns will
+be converted to factors to enumerate them internally, and will return those same
+values from 'topN'. In order to avoid this internal re-enumeration, can pass 'X'
+as a sparse COO matrix instead.
+</p>
+</li>
+<li>
+<p> A sparse matrix from package 'Matrix' in triplets (COO) format
+(that is: 'Matrix::dgTMatrix') (recommended).
+Such a matrix can be created from row/column indices through
+function 'Matrix::sparseMatrix' (with 'repr="T"').
+Will also accept them in CSC and CSR formats ('Matrix::dgCMatrix' and
+'Matrix::dgRMatrix'), but will be converted
+along the way (so it will be slightly slower).
+</p>
+</li>
+<li>
+<p> A sparse matrix in COO format from the 'SparseM' package.
+Will also accept them in CSR and CSC format, but will be converted along the way
+(so it will be slightly slower).
+</p>
+</li>
+<li>
+<p> A full matrix (of class 'base::matrix') - this is not recommended though.
+</p>
+</li>
+</ul>
+<p>Passing sparse matrices is faster as it will not need to re-enumerate the rows and columns.
+Dense (regular) matrices will be converted to sparse format, which is inefficient.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Number of latent factors to use (dimensionality of the low-rank factorization).
+If ‘k' is very small (e.g. 'k=3'), it’s recommended to use ‘method=’pg'',
+otherwise it's recommended to use ‘method=’tncg'‘, and if using 'method=’cg'',
+it's recommended to use large 'k' (at least 100).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Optimization method to use as inner solver. Options are: </p>
+
+<ul>
+<li>
+<p> '"tncg"' : will use the conjugate gradient method from reference [2].
+This is the slowest option, but tends to find better local optima, and
+if either run for many inner iterations (controlled by 'maxupd') or
+reusing previous solutions each time (controlled by 'reuse_prev'),
+tends to produce sparse latent factor matrices.
+Note that when reusing previous solutions, fitting times are much faster
+and the quality of the results as evaluated by ranking-based recommendation
+quality metrics is almost as good, but solutions tend to be less sparse
+(see reference [1] for details).
+Unlike the other two, this solver is extremely unlikely to fail to produce
+results, and it is thus the recommended one.
+</p>
+</li>
+<li>
+<p> '"cg"' : will use the conjugate gradient method from reference [3],
+which is faster than the one from reference [2], but tends not to reach
+as good local optima. Usually, with this method and the default hyperparameters,
+the latent factor matrices will be very sparse, but note that it can
+fail to produce results (in which case the obtained factors will be
+very poor quality without warning) when 'k' is small (recommended to
+use 'k&gt;=100' when using this solver).
+</p>
+</li>
+<li>
+<p> '"pg"' : will use a proximal gradient method, which is a lot faster
+than the other two and more memory-efficient, but tends to only work
+with very large regularization values, and doesn't find as good
+local optima, nor tends to result in sparse factors. Under this method,
+top-N recommendations tend to have little variation from one user to another.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>l2_reg</code></td>
+<td>
+<p>Strength of L2 regularization. It is recommended to use small values
+along with ‘method=’tncg'‘, very large values along with 'method=’pg'',
+and medium to large values with ‘method=’cg''. If passing '"auto"',
+will set it to <code class="reqn">10^3</code> for TNCG, <code class="reqn">10^4</code> for CG, and <code class="reqn">10^9</code> for PG.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>l1_reg</code></td>
+<td>
+<p>Strength of L1 regularization. Not recommended.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>niter</code></td>
+<td>
+<p>Number of outer iterations to perform. One iteration denotes an update
+over both matrices. If passing ''auto'', will set it to 10 for TNCG and PG,
+or to 30 for CG.
+</p>
+<p>Using more iterations usually leads to better results for CG, at the
+expense of longer fitting times. TNCG is more likely to converge to
+a local optimum with fewer outer iterations, with further iterations
+not changing the values of any single factor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxupd</code></td>
+<td>
+<p>Maximum number of inner iterations for each user/item vector.
+Note: for 'method=TNCG', this means maximum number of <b>function
+evaluations</b> rather than number of updates, so it should be higher.
+You might also want to try decreasing this while increasing 'niter'.
+For ‘method=’pg'', this will be taken as the actual number of updates,
+as it does not perform a line search like the other methods.
+If passing ‘"auto"', will set it to '15*k' for 'method=’tncg'',
+5 for ‘method=’cg'‘, and 10 for 'method=’pg''. If using
+‘method=’cg'', one might also want to try other combinations such as
+'maxupd=1' and 'niter=100'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>limit_step</code></td>
+<td>
+<p>When passing ‘method=’cg'', whether to limit the step sizes in each update
+so as to drive at most one variable to zero each time, as prescribed in [3].
+If running the procedure for many iterations, it's recommended to set this
+to ‘TRUE'. You also might set 'method=’cg'' plus 'maxupd=1' and
+'limit_step=FALSE' to reduce the algorithm to simple projected gradient descent
+with a line search.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initial_step</code></td>
+<td>
+<p>Initial step size to use for proximal gradient updates. Larger step sizes
+reach converge faster, but are more likely to result in failed optimization.
+Ignored when passing ‘method=’tncg'‘ or 'method=’cg'', as those will
+perform a line seach instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>early_stop</code></td>
+<td>
+<p>In the TNCG method, whether to stop before reaching the maximum number of
+iterations if the updates do not change the factors significantly or at all.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reuse_prev</code></td>
+<td>
+<p>In the TNCG method, whether to reuse the factors obtained in the previous
+iteration as starting point for each inner update. This has the
+effect of reaching convergence much quicker, but will oftentimes lead to
+slightly worse solutions.
+</p>
+<p>If passing 'FALSE' and 'maxupd' is small, the obtained factors might not
+be sparse at all. If passing 'TRUE', they will typically be less sparse
+than when passing ‘FALSE' with large 'maxupd' or than with 'method=’cg''.
+</p>
+<p>Setting it to 'TRUE' has the side effect of potentially making the factors
+obtained when fitting the model different from the factors obtained after
+calling the 'predict_factors' function with the same data the model was fit.
+</p>
+<p>For methods other than TNCG, this is always assumed 'TRUE'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weight_mult</code></td>
+<td>
+<p>Extra multiplier for the weight of the positive entries over the missing
+entries in the matrix to factorize. Be aware that Poisson likelihood will
+implicitly put more weight on the non-missing entries already. Passing larger
+values will make the factors have larger values (which might be desirable),
+and can help with instability and failed optimization cases. If passing this,
+it's recommended to try very large values (e.g. 10^2), and might require
+adjusting the other hyperparameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>handle_interrupt</code></td>
+<td>
+<p>When receiving an interrupt signal, whether the model should stop
+early and leave a usable object with the parameters obtained up
+to the point when it was interrupted (when passing 'TRUE'), or
+raise an interrupt exception without producing a fitted model object
+(when passing 'FALSE').</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nthreads</code></td>
+<td>
+<p>Number of parallel threads to use.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In order to speed up the optimization procedures, it's recommended to use
+an optimized library for BLAS operations such as MKL or OpenBLAS (ideally the "openmp" variant).
+See <a href="https://github.com/david-cortes/R-openblas-in-windows">this link</a>
+for instructions on getting OpenBLAS in R for Windows.
+</p>
+<p>When using proximal gradient method, this model is prone to numerical
+instability, and can turn out to spit all NaNs or zeros in the fitted
+parameters. The TNCG method is not prone to such failed optimizations.
+</p>
+<p>Although the main idea behind this software is to produce sparse model/factor
+matrices, they are always taken in dense format when used inside this software,
+and as such, it might be faster to use these matrices through some other external
+library that would be able to exploit their sparsity.
+</p>
+<p>For reproducible results, random number generation seeds can be controlled through 'set.seed'.
+</p>
+<p>Model quality or recommendation quality can be evaluated using the
+<a href="https://cran.r-project.org/package=recometrics">recometrics</a> package.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class 'poismf' with the following fields of interest:
+</p>
+
+
+<h3>Fields</h3>
+
+
+<dl>
+<dt><code>A</code></dt>
+<dd>
+<p>The user/document/row-factor matrix (will be transposed due to R's
+column-major storage of matrices).</p>
+</dd>
+<dt><code>B</code></dt>
+<dd>
+<p>The item/word/column-factor matrix (will be transposed due to R's
+column-major storage of matrices).</p>
+</dd>
+<dt><code>levels_A</code></dt>
+<dd>
+<p>A vector indicating which user/row ID corresponds to each row
+position in the 'A' matrix. This will only be generated when passing 'X' as a
+'data.frame', otherwise will not remap them.</p>
+</dd>
+<dt><code>levels_B</code></dt>
+<dd>
+<p>A vector indicating which item/column ID corresponds to each row
+position in the 'B' matrix. This will only be generated when passing 'X' as a
+'data.frame', otherwise will not remap them.</p>
+</dd>
+</dl>
+<h3>References</h3>
+
+
+<ol>
+<li>
+<p> Cortes, David.
+"Fast Non-Bayesian Poisson Factorization for Implicit-Feedback Recommendations."
+arXiv preprint arXiv:1811.01908 (2018).
+</p>
+</li>
+<li>
+<p> Nash, Stephen G.
+"Newton-type minimization via the Lanczos method."
+SIAM Journal on Numerical Analysis 21.4 (1984): 770-788.
+</p>
+</li>
+<li>
+<p> Li, Can.
+"A conjugate gradient type method for the nonnegative constraints optimization problems."
+Journal of Applied Mathematics 2013 (2013).
+</p>
+</li>
+</ol>
+<h3>See Also</h3>
+
+<p>predict.poismf topN factors
+get.factor.matrices get.model.mappings
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(poismf)
+
+### create a random sparse data frame in COO format
+nrow &lt;- 10^2 ## &lt;- users
+ncol &lt;- 10^3 ## &lt;- items
+nnz  &lt;- 10^4 ## &lt;- events (agg)
+set.seed(1)
+X &lt;- data.frame(
+        row_ix = sample(nrow, size=nnz, replace=TRUE),
+        col_ix = sample(ncol, size=nnz, replace=TRUE),
+        count  = rpois(nnz, 1) + 1
+     )
+X &lt;- X[!duplicated(X[, c("row_ix", "col_ix")]), ]
+
+### can also pass X as sparse matrix - see below
+### X &lt;- Matrix::sparseMatrix(
+###          i=X$row_ix, j=X$col_ix, x=X$count,
+###          repr="T")
+### the indices can also be characters or other types:
+### X$row_ix &lt;- paste0("user", X$row_ix)
+### X$col_ix &lt;- paste0("item", X$col_ix)
+
+### factorize the randomly-generated sparse matrix
+model &lt;- poismf(X, k=5, method="tncg", nthreads=1)
+
+### (for sparse factors, use higher 'k' and larger data)
+
+### predict functionality (chosen entries in X)
+### predict entry [1, 10] (row 1, column 10)
+predict(model, 1, 10, nthreads=1)
+### predict entries [1,4], [1,5], [1,6]
+predict(model, c(1, 1, 1), c(4, 5, 6), nthreads=1)
+
+### ranking functionality (for recommender systems)
+topN(model, user=2, n=5, exclude=X$col_ix[X$row_ix==2], nthreads=1)
+topN.new(model, X=X[X$row_ix==2, c("col_ix","count")],
+    n=5, exclude=X$col_ix[X$row_ix==2], nthreads=1)
+
+### obtaining latent factors
+a_vec  &lt;- factors.single(model,
+            X[X$row_ix==2, c("col_ix","count")])
+A_full &lt;- factors(model, X, nthreads=1)
+A_orig &lt;- get.factor.matrices(model)$A
+
+### (note that newly-obtained factors will differ slightly)
+sqrt(mean((A_full["2",] - A_orig["2",])^2))
+</code></pre>
+
+
+</div>

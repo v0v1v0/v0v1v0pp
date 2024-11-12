@@ -1,0 +1,167 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pukelsheim</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Biproportional apportionment with data frames</h2>
+
+<h3>Description</h3>
+
+<p>Method to proportionally allocate seats among parties/lists and
+districts/regions/entities ('Doppelter Pukelsheim').
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pukelsheim(
+  votes_df,
+  district_seats_df,
+  quorum,
+  new_seats_col = "seats",
+  use_list_votes = TRUE,
+  winner_take_one = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>votes_df</code></td>
+<td>
+<p>data.frame (long format) with 3 columns (actual colnames can differ):
+</p>
+
+<ul>
+<li>
+<p> party id/name
+</p>
+</li>
+<li>
+<p> district id/name
+</p>
+</li>
+<li>
+<p> votes
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>district_seats_df</code></td>
+<td>
+<p>data.frame with 2 columns (actual colnames can differ):
+</p>
+
+<ul>
+<li>
+<p> district id/name
+</p>
+</li>
+<li>
+<p> number of seats for a district
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quorum</code></td>
+<td>
+<p>Optional list of functions which take the votes_matrix and return a logical
+vector that denotes for each list/party whether they reached the quorum (i.e. are
+eligible for seats). The easiest way to do this is via <code>quorum_any()</code> or
+<code>quorum_all()</code>, see examples. Alternatively you can pass a precalculated logical
+vector. No quorum is applied if parameter is missing or <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new_seats_col</code></td>
+<td>
+<p>name of the new column</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_list_votes</code></td>
+<td>
+<p>By default (<code>TRUE</code>) it's assumed that each voter in a district has
+as many votes as there are seats in a district. Set to <code>FALSE</code> if <code>votes_df</code> shows the
+number of voters (e.g. they can only vote for one party).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>winner_take_one</code></td>
+<td>
+<p>Set to <code>TRUE</code> if the party that got the most votes in a district
+must get <em>at least</em> one seat ('Majorzbedingung') in this district. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Each party nominates a candidate list for every district. The voters vote for the parties
+of their district. The seat allocation is calculated in two steps:
+</p>
+
+<ol>
+<li>
+<p> In the so called <code>upper apportionment</code>
+the number of seats for each party (over all districts) is determined.
+</p>
+</li>
+<li>
+<p> In the so called <code>lower apportionment</code>
+the seats are distributed to the regional party list respecting the results
+from the upper apportionment.
+</p>
+</li>
+</ol>
+<p>Parties failing to reach quorums cannot get seats. This function does not handle seat
+assignment to candidates.
+</p>
+<p>If you want to use other apportion methods than Sainte-Laguë use <code>biproporz()</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data.frame like <code>votes_df</code> with a new column denoting the number seats per
+party and district. Party and district divisors stored in attributes in attributes
+(hidden from print, see <code>get_divisors()</code>).
+</p>
+
+
+<h3>See Also</h3>
+
+<p>This function calls <code>biproporz()</code> after preparing the input data.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Zug 2018
+votes_df = unique(zug2018[c("list_id", "entity_id", "list_votes")])
+district_seats_df = unique(zug2018[c("entity_id", "election_mandates")])
+
+seats_df = pukelsheim(votes_df,
+                      district_seats_df,
+                      quorum_any(any_district = 0.05, total = 0.03),
+                      winner_take_one = TRUE)
+
+head(seats_df)
+
+# Finland 2019
+finland19_result = pukelsheim(finland2019$votes_df,
+                             finland2019$district_seats_df,
+                             new_seats_col = "mandates",
+                             use_list_votes = FALSE)
+tail(finland19_result[order(finland19_result$mandates),])
+
+</code></pre>
+
+
+</div>

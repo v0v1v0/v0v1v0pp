@@ -1,0 +1,224 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RDSpillovers</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Research and Development Spillovers Data</h2>
+
+<h3>Description</h3>
+
+<p>a cross-section of 119 industries from 1980 to 2005
+</p>
+<p><em>country</em> :  world 
+</p>
+<p><em>package</em> : panel
+</p>
+<p><em>JEL codes: </em>C51, D24, O32, O33
+</p>
+<p><em>Chapter</em> : 04, 05, 09
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">data(RDSpillovers)</code></pre>
+
+
+<h3>Format</h3>
+
+<p>A dataframe containing:
+</p>
+
+<dl>
+<dt>id</dt>
+<dd>
+<p>country-industry index</p>
+</dd>
+<dt>year</dt>
+<dd>
+<p>year</p>
+</dd>
+<dt>country</dt>
+<dd>
+<p>country</p>
+</dd>
+<dt>sector</dt>
+<dd>
+<p>manufacturing sector as SIC 15-37, excluding SIC 23</p>
+</dd>
+<dt>lny</dt>
+<dd>
+<p>log output</p>
+</dd>
+<dt>lnl</dt>
+<dd>
+<p>log of labour input</p>
+</dd>
+<dt>lnk</dt>
+<dd>
+<p>log of physical capital stock</p>
+</dd>
+<dt>lnrd</dt>
+<dd>
+<p>log of RD capital stock</p>
+</dd>
+</dl>
+<h3>Source</h3>
+
+<p>author's web site <a href="https://sites.google.com/site/medevecon/home">https://sites.google.com/site/medevecon/home</a></p>
+
+
+<h3>References</h3>
+
+<p>Eberhardt, M.; Helmers, C. and H. Strauss (2013) “Do Spillovers Matter in Estimating Private Returns to R and D?”, <em>The Review of Economics and Statistics</em>, <b>95(2)</b>, 436–448, doi: <a href="https://doi.org/10.1162/REST_a_00272">10.1162/REST_a_00272</a>
+.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#### Example 4-10
+
+## ------------------------------------------------------------------------
+## Not run: 
+data("RDSpillovers", package = "pder")
+library("plm")
+fm.rds &lt;- lny ~ lnl + lnk + lnrd
+
+## ------------------------------------------------------------------------
+pcdtest(fm.rds, RDSpillovers)
+
+## ------------------------------------------------------------------------
+rds.2fe &lt;- plm(fm.rds, RDSpillovers, model = "within", effect = "twoways")
+pcdtest(rds.2fe)
+
+## ------------------------------------------------------------------------
+cbind("rho"  = pcdtest(rds.2fe, test = "rho")$statistic,
+      "|rho|"= pcdtest(rds.2fe, test = "absrho")$statistic)
+
+
+#### Example 5-10
+
+## ------------------------------------------------------------------------
+data("RDSpillovers", package = "pder")
+pehs &lt;- pdata.frame(RDSpillovers, index = c("id", "year"))
+ehsfm &lt;- lny ~ lnl + lnk + lnrd
+phtest(ehsfm, pehs, method = "aux")
+
+## ------------------------------------------------------------------------
+phtest(ehsfm, pehs, method = "aux", vcov = vcovHC)
+
+
+#### Example 5-15
+
+## ------------------------------------------------------------------------
+fm &lt;- lny ~ lnl + lnk + lnrd
+
+## ------------------------------------------------------------------------
+
+
+if (requireNamespace("lmtest")){
+    library("lmtest")
+    gglsmodehs &lt;- pggls(fm, RDSpillovers, model = "pooling")
+    coeftest(gglsmodehs)
+
+    feglsmodehs &lt;- pggls(fm, RDSpillovers, model = "within")
+    coeftest(feglsmodehs)
+    
+    phtest(gglsmodehs, feglsmodehs)
+    
+    fdglsmodehs &lt;- pggls(fm, RDSpillovers, model = "fd")
+    
+    fee &lt;- resid(feglsmodehs)
+    dbfee &lt;- data.frame(fee=fee, id=attr(fee, "index")[[1]])
+    coeftest(plm(fee~lag(fee)+lag(fee,2), dbfee, model = "p", index="id"))
+    
+    fde &lt;- resid(fdglsmodehs)
+    dbfde &lt;- data.frame(fde=fde, id=attr(fde, "index")[[1]])
+    coeftest(plm(fde~lag(fde)+lag(fde,2), dbfde, model = "p", index="id"))
+    
+    coeftest(fdglsmodehs)
+}
+
+
+#### Example 9-7
+
+## ------------------------------------------------------------------------
+ccep.rds &lt;- pcce(fm.rds, RDSpillovers, model="p")
+if (requireNamespace("lmtest")){
+    library("lmtest")
+    ccep.tab &lt;- cbind(coeftest(ccep.rds)[, 1:2],
+                      coeftest(ccep.rds, vcov = vcovNW)[, 2],
+                      coeftest(ccep.rds, vcov = vcovHC)[, 2])
+    dimnames(ccep.tab)[[2]][2:4] &lt;- c("Nonparam.", "vcovNW", "vcovHC")
+    round(ccep.tab, 3)
+}
+
+
+## ------------------------------------------------------------------------
+autoreg &lt;- function(rho = 0.1, T = 100){
+  e &lt;- rnorm(T+1)
+  for (t in 2:(T+1)) e[t] &lt;- e[t]+rho*e[t-1]
+  e
+}
+set.seed(20)
+
+f &lt;- data.frame(time = rep(0:40, 2), 
+                rho = rep(c(0.2, 1), each = 41),
+                y = c(autoreg(rho = 0.2, T = 40), 
+                      autoreg(rho = 1, T = 40)))
+if (requireNamespace("ggplot2")){
+    library("ggplot2")
+    ggplot(f, aes(time, y)) + geom_line() + facet_wrap(~ rho) + xlab("") + ylab("")
+
+    autoreg &lt;- function(rho = 0.1, T = 100){
+        e &lt;- rnorm(T)
+        for (t in 2:(T)) e[t] &lt;- e[t] + rho *e[t-1]
+        e
+    }
+    tstat &lt;- function(rho = 0.1, T = 100){
+        y &lt;- autoreg(rho, T)
+        x &lt;- autoreg(rho, T)
+        z &lt;- lm(y ~ x)
+        coef(z)[2] / sqrt(diag(vcov(z))[2])
+    }
+    result &lt;- c()
+    R &lt;- 1000
+    for (i in 1:R) result &lt;- c(result, tstat(rho = 0.2, T = 40))
+    quantile(result, c(0.025, 0.975))
+    prop.table(table(abs(result) &gt; 2))
+
+
+    result &lt;- c()
+    R &lt;- 1000
+    for (i in 1:R) result &lt;- c(result, tstat(rho = 1, T = 40))
+    quantile(result, c(0.025, 0.975))
+    prop.table(table(abs(result) &gt; 2))
+
+    
+    R &lt;- 1000
+    T &lt;- 100
+    result &lt;- c()
+    for (i in 1:R){
+        y &lt;- autoreg(rho=1, T=100)
+        Dy &lt;- y[2:T] - y[1:(T-1)]
+        Ly &lt;- y[1:(T-1)]
+        z &lt;- lm(Dy ~ Ly)
+        result &lt;- c(result, coef(z)[2] / sqrt(diag(vcov(z))[2]))
+    }
+
+    ggplot(data.frame(x = result), aes(x = x)) + 
+        geom_histogram(fill = "white", col = "black", 
+                       bins = 20, aes(y = ..density..)) +
+        stat_function(fun = dnorm) + xlab("") + ylab("")
+
+
+    prop.table(table(result &lt; -1.64))
+}
+
+## End(Not run)
+</code></pre>
+
+
+</div>

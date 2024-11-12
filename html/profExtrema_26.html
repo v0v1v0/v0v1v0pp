@@ -1,0 +1,261 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>obliqueProf_UQ</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Oblique profiles UQ from a kriging model</h2>
+
+<h3>Description</h3>
+
+<p>The function obliqueProf_UQ computes the profile extrema functions for posterior realizations of a Gaussian process and its confidence bounds
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">obliqueProf_UQ(object, allPsi, threshold, allResMean = NULL,
+  quantiles_uq = c(0.05, 0.95), options_approx = NULL,
+  options_full_sims = NULL, options_sims = NULL,
+  options_bound = NULL, plot_level = 0, plot_options = NULL,
+  return_level = 1)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>either a km model or a list containing partial results. If <code>object</code> is a km model then all computations are carried out. If <code>object</code> is a list, then the function carries out all computations to complete the results list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allPsi</code></td>
+<td>
+<p>a list containing the matrices Psi (dim <code class="reqn">pxd</code>) for which to compute the profile extrema</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>the threshold of interest</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allResMean</code></td>
+<td>
+<p>a list resulting from <code>getProfileExtrema</code> or <code>approxProfileExtrema</code> for the profile extrema on the mean. If NULL the median from the observations is plotted</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quantiles_uq</code></td>
+<td>
+<p>a vector containing the quantiles to be computed</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>options_approx</code></td>
+<td>
+<p>an optional list of options for approxProfileExtrema, see approxProfileExtrema for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>options_full_sims</code></td>
+<td>
+<p>an optional list of options for getProfileExtrema, see getProfileExtrema for details. If NULL the full computations are not executed. NOTE: this computations might be very expensive!</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>options_sims</code></td>
+<td>
+<p>an optional list of options for the posterior simulations.
+</p>
+
+<ul>
+<li>
+<p><code>algorithm:</code> string choice of the algorithm to select the pilot points ("A" or "B", default "B");
+</p>
+</li>
+<li>
+<p><code>lower:</code> <code class="reqn">d</code> dimensional vector with lower bounds for pilot points, default <code>rep(0,d)</code>;
+</p>
+</li>
+<li>
+<p><code>upper:</code> <code class="reqn">d</code> dimensional vector with upper bounds for pilot points, default <code>rep(1,d)</code>;
+</p>
+</li>
+<li>
+<p><code>batchsize:</code> number of pilot points, default <code>120</code>;
+</p>
+</li>
+<li>
+<p><code>optimcontrol:</code> list containing the options for optimization, see optim_dist_measure;
+</p>
+</li>
+<li>
+<p><code>integcontrol:</code> list containing the options for numerical integration of the criterion, see optim_dist_measure;
+</p>
+</li>
+<li>
+<p><code>integration.param:</code> list containing the integration design, obtained with the function integration_design;
+</p>
+</li>
+<li>
+<p><code>nsim:</code> number of approximate GP simulations, default <code>300</code>.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>options_bound</code></td>
+<td>
+<p>an optional list containing <code>beta</code> the confidence level for the approximation and <code>alpha</code> the confidence level for the bound. Note that <code>alpha &gt; 2*beta</code>. If <code>NULL</code>, the bound is not computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot_level</code></td>
+<td>
+<p>an integer to select the plots to return (0=no plots, 1=basic plots, 2= all plots)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot_options</code></td>
+<td>
+<p>an optional list of parameters for plots. See setPlotOptions for currently available options.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_level</code></td>
+<td>
+<p>an integer to select the amount of details returned</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>If return_level=1 a list containing </p>
+
+<ul>
+<li>
+<p><code>profSups:</code>an array <code>dxfullDesignSizexnsims</code> containing the profile sup for each coordinate for each realization.
+</p>
+</li>
+<li>
+<p><code>profInfs:</code>an array <code>dxfullDesignSizexnsims</code> containing the profile inf for each coordinate for each realization.
+</p>
+</li>
+<li>
+<p><code>prof_quantiles_approx:</code>a list containing the quantiles (levels set by <code>quantiles_uq</code>) of the profile extrema functions.
+</p>
+</li>
+</ul>
+<p> if return_level=2 the same list as above but also including <code>more:</code> a list containing </p>
+
+<ul>
+<li>
+<p><code>times:</code>a list containing
+</p>
+
+<ul>
+<li>
+<p><code>tSpts:</code> computational time for selecting pilot points.
+</p>
+</li>
+<li>
+<p><code>tApprox1ord:</code>vector containing the computational time required for profile extrema computation for each realization
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p><code>simuls:</code> a matrix containing the value of the field simulated at the pilot points
+</p>
+</li>
+<li>
+<p><code>sPts:</code>the pilot points
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Dario Azzimonti
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">if (!requireNamespace("DiceKriging", quietly = TRUE)) {
+stop("DiceKriging needed for this example to work. Please install it.",
+     call. = FALSE)
+}
+# Compute a kriging model from 50 evaluations of the Branin function
+# Define the function
+g&lt;-function(x){
+  return(-branin(x))
+}
+gp_des&lt;-lhs::maximinLHS(20,2)
+reals&lt;-apply(gp_des,1,g)
+kmModel&lt;-km(design = gp_des,response = reals,covtype = "matern3_2")
+
+threshold=-10
+d&lt;-2
+
+# Compute oblique profiles UQ starting from GP model
+# define simulation options
+options_sims&lt;-list(algorithm="B", lower=rep(0,d), upper=rep(1,d),
+                   batchsize=80, optimcontrol = list(method="genoud",pop.size=100,print.level=0),
+                   integcontrol = list(distrib="sobol",n.points=1000), nsim=150)
+# define approximation options
+options_approx&lt;- list(multistart=4,heavyReturn=TRUE,
+                      initDesign=NULL,fullDesignSize=100,
+                      smoother=NULL)
+# define plot options
+options_plots&lt;-list(save=FALSE, titleProf = "Coordinate profiles",
+                    title2d = "Posterior mean",qq_fill=TRUE)
+
+# Define the oblique directions
+# (for theta=0 it is equal to coordinateProfiles)
+theta=pi/4
+allPsi = list(Psi1=matrix(c(cos(theta),sin(theta)),ncol=2),
+              Psi2=matrix(c(cos(theta+pi/2),sin(theta+pi/2)),ncol=2))
+## Not run: 
+# here we reduce the number of simulations to speed up the example
+# a higher number should be used
+options_sims$nsim &lt;- 50
+
+# profile UQ on approximate oblique profiles
+oProfiles_UQ&lt;-obliqueProf_UQ(object = kmModel,threshold = threshold,allPsi=allPsi,
+                             allResMean = NULL,quantiles_uq = c(0.05,0.95),
+                             options_approx = options_approx, options_full_sims = NULL,
+                             options_sims = options_sims,options_bound = NULL,
+                             plot_level = 3, plot_options = options_plots,return_level = 3)
+# profile UQ on full optim oblique profiles
+
+options_full_sims&lt;-list(multistart=4,heavyReturn=TRUE)
+oProfiles_UQ_full&lt;- obliqueProf_UQ(object = oProfiles_UQ,threshold = threshold,allPsi=allPsi,
+                             allResMean = NULL,quantiles_uq = c(0.05,0.95),
+                             options_approx = options_approx, options_full_sims = options_full_sims,
+                             options_sims = options_sims,options_bound = NULL,
+                             plot_level = 3, plot_options = options_plots,return_level = 3)
+
+
+
+# profile UQ on full optim oblique profiles with bound
+oProfiles_UQ_full_bound&lt;-obliqueProf_UQ(object = oProfiles_UQ_full,threshold = threshold,
+                                        allPsi=allPsi, allResMean = NULL,
+                                        quantiles_uq = c(0.05,0.95),
+                                        options_approx = options_approx,
+                                        options_full_sims = options_full_sims,
+                                      options_sims = options_sims,
+                                      options_bound = list(beta=0.024,alpha=0.05),
+                                      plot_level = 3, plot_options = options_plots,
+                                      return_level = 3)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

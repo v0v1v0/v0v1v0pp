@@ -1,0 +1,97 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pudding</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Paired Comparisons of Chocolate Pudding</h2>
+
+<h3>Description</h3>
+
+<p>This is an example dataset from <cite>Davidson 1970</cite> comprising paired
+comparisons of chocolate pudding, with six brands in total. The responses
+include tied outcomes, i.e. no preference.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pudding
+</code></pre>
+
+
+<h3>Format</h3>
+
+<p>A data frame with 15 records and 6 variables:
+</p>
+
+<dl>
+<dt><code>i</code></dt>
+<dd>
+<p>The first brand in the comparison.</p>
+</dd>
+<dt><code>j</code></dt>
+<dd>
+<p>The second brand in the comparison.</p>
+</dd>
+<dt><code>r_ij</code></dt>
+<dd>
+<p>The frequency of paired comparisons of brand i and
+brand j.</p>
+</dd>
+<dt><code>w_ij</code></dt>
+<dd>
+<p>The frequency of preferences for i over j.</p>
+</dd>
+<dt><code>w_ji</code></dt>
+<dd>
+<p>The frequency of preferences for j over i.</p>
+</dd>
+<dt><code>t_ij</code></dt>
+<dd>
+<p>The frequency of no preference between i and j.</p>
+</dd>
+</dl>
+<h3>References</h3>
+
+<p>Davidson, R. R. (1970). On extending the Bradley-Terry model to accommodate
+ties in paired comparison experiments. <em>Journal of the American
+Statistical Association</em>, <b>65</b>, 317–328.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# create orderings for each set of paired comparisons
+
+# wins for brand i and wins for brand j
+i_wins &lt;- data.frame(Winner = pudding$i, Loser = pudding$j)
+j_wins &lt;- data.frame(Winner = pudding$j, Loser = pudding$i)
+
+# ties: use an array list (easier with R &gt;= 3.6.0)
+if (getRversion() &lt; "3.6.0"){
+  n &lt;- nrow(pudding)
+  ties &lt;- data.frame(Winner = array(split(pudding[c("i", "j")], 1:n), n),
+                     Loser = rep(NA, 15))
+} else {
+  ties &lt;- data.frame(Winner = asplit(pudding[c("i", "j")], 1),
+                     Loser = rep(NA, 15))
+}
+head(ties, 2)
+
+# convert to rankings
+R &lt;- as.rankings(rbind(i_wins, j_wins, ties),
+                 input = "orderings")
+head(R, 2)
+tail(R, 2)
+
+# define weights as frequencies of each ranking
+w &lt;- unlist(pudding[c("w_ij", "w_ji", "t_ij")])
+
+# fit Plackett-Luce model: limit iterations to match paper
+mod &lt;- PlackettLuce(R, npseudo = 0, weights = w, maxit = 7)
+</code></pre>
+
+
+</div>

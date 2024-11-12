@@ -1,0 +1,349 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tracefw</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Massively trace forwards thermal-hydraulic regime for district
+heating network</h2>
+
+<h3>Description</h3>
+
+<p>Trace values of thermal-hydraulic regime (temperature, pressure,
+flow rate, and other) in the bunched pipeline along the flow direction using
+user-provided values of <em>specific heat loss power</em>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">tracefw(
+  sender = c(0, 1),
+  acceptor = c(1, 2),
+  temperature = c(70, NA_real_),
+  pressure = c(pipenostics::mpa_kgf(6), NA_real_),
+  flow_rate = c(20, NA_real_),
+  d = rep_len(100, 2),
+  len = rep_len(72.446, 2),
+  loss = rep_len(78.4, 2),
+  roughness = rep_len(0.001, 2),
+  inlet = c(0.5, 1),
+  outlet = c(1, 1),
+  elev_tol = 0.1,
+  method = "romeo",
+  verbose = TRUE,
+  csv = FALSE,
+  file = "tracefw.csv",
+  use_cluster = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>sender</code></td>
+<td>
+<p>identifier of the node which heat carrier flows out.
+Type: any type that can be painlessly coerced to character by
+<code>as.character</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>acceptor</code></td>
+<td>
+<p>identifier of the node which heat carrier flows in. According to topology
+of test bench considered this identifier should be unique for every row.
+Type: any type that can be painlessly coerced to character by
+<code>as.character</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>temperature</code></td>
+<td>
+<p>Sensor-measured temperature of heat carrier (water) sensor-measured on
+the root node, [<em>°C</em>].
+Use <code>NA_float_</code>s for nodes without temperature sensor.
+Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pressure</code></td>
+<td>
+<p>Sensor-measured
+<a href="https://en.wikipedia.org/wiki/Pressure_measurement#Absolute">absolute pressure</a>
+of heat carrier (water) inside the pipe on the root node, [<em>MPa</em>].
+Use <code>NA_float_</code>s for nodes without pressure sensor.
+Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flow_rate</code></td>
+<td>
+<p>Sensor-measured amount of heat carrier (water) on root node that is
+transferred by pipe during a period, [<em>ton/hour</em>].
+Type: <code>assert_double</code>.
+Use <code>NA_float_</code>s for nodes without flow rate sensor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>internal diameter of pipe (i.e.diameter of acceptor's incoming edge),
+[<em>mm</em>].
+Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>len</code></td>
+<td>
+<p>pipe length (i.e. length of acceptor's incoming edge), [<em>m</em>].
+Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loss</code></td>
+<td>
+<p>user-provided value of <em>specific heat loss</em> power for each pipe in tracing
+path, [<em>kcal/m/h</em>]. Values of the argument can be obtained experimentally,
+or taken from regulatory documents. 
+Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>roughness</code></td>
+<td>
+<p>roughness of internal wall of pipe (i.e. acceptor's incoming edge), [<em>m</em>].
+Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inlet</code></td>
+<td>
+<p>elevation of pipe inlet, [<em>m</em>]. Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outlet</code></td>
+<td>
+<p>elevation of pipe outlet, [<em>m</em>]. Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>elev_tol</code></td>
+<td>
+<p>maximum allowed discrepancy between adjacent outlet and inlet elevations
+of two subsequent pipes in the traced path, [<em>m</em>].
+Type: <code>assert_number</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>method of determining <em>Darcy friction factor</em>:
+</p>
+
+<ul>
+<li> <p><code>romeo</code>
+</p>
+</li>
+<li> <p><code>vatankhan</code>
+</p>
+</li>
+<li> <p><code>buzelli</code>
+</p>
+</li>
+</ul>
+<p>Type: <code>assert_choice</code>.
+For more details see <code>dropp</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical indicator: should they watch tracing process on console?
+Type: <code>assert_flag</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>csv</code></td>
+<td>
+<p>logical indicator: should they incrementally dump results to <em>csv</em>-
+file while tracing?
+Type: <code>assert_flag</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+<p>name of <em>csv</em>-file which they dump results to.
+Type: <code>assert_character</code> of length 1 that can be used safely
+to create a file and write to it.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_cluster</code></td>
+<td>
+<p>utilize functionality of parallel processing on multi-core CPU.
+Type: <code>assert_flag</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>They consider the topology of district heating network represented by
+<code>m325testbench</code>:
+</p>
+<p><img src="../help/figures/tracefw.png" alt="tracefw.png"></p>
+<p>Tracing starts from sensor-equipped root node and goes forward, i.e along
+the flow direction. Function <code>traceline</code> serves under the
+hood for tracing identified linear segments from root node to every
+terminal node. Hence they only need root node to be equipped with sensors.
+Sensors at other nodes are redundant in forward tracing, since the tracing
+algorithm by no means consider them for tracing.
+</p>
+<p>Moreover in the forward tracing algorithm they assume the flow of heat
+carrier is distributed proportionally to the cross-sectional area of the
+outgoing pipeline. Actually, a lot of reasons may cause significant
+deviations from this assumption. As a result, the sequence of paired
+backward/forward tracing may be divergent for regime parameters.
+</p>
+<p>Though some input arguments are natively vectorized their individual values
+all relate to common part of district heating network, i.e. associated with
+common object. It is due to isomorphism between vector representation and
+directed graph of this network. For more details of isomorphic topology
+description see <code>m325testbench</code>.
+</p>
+<p>They are welcome to couple the algorithm with functionality of
+<a href="https://CRAN.R-project.org/package=data.table">data.table</a>.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>data.frame</code> containing results (detailed log) of tracing in
+<a href="https://en.wikipedia.org/wiki/Wide_and_narrow_data">narrow format</a>:
+</p>
+
+<dl>
+<dt><code>node</code></dt>
+<dd>
+<p><em>Tracing job</em>. Identifier of the node which regime parameters is
+calculated for. Values in this vector are identical to those in
+argument <code>acceptor</code>.
+Type: <code>assert_character</code>.
+</p>
+</dd>
+<dt><code>tracing</code></dt>
+<dd>
+<p><em>Tracing job</em>. Identifiers of nodes from which regime parameters
+are traced for the given node. Identifier <code>sensor</code> is used when
+values of regime parameters for the node are sensor readings.
+Type: <code>assert_character</code>.
+</p>
+</dd>
+<dt><code>backward</code></dt>
+<dd>
+<p><em>Tracing job</em>. Identifier of tracing direction. It constantly
+equals to <code>FALSE</code>.
+Type: <code>assert_logical</code>.
+</p>
+</dd>
+<dt><code>aggregation</code></dt>
+<dd>
+<p><em>Tracing job</em>. Identifier of the aggregation method associated
+with traced values. For forward tracing the only option is
+<code>identity</code>.
+Type: <code>assert_character</code>.
+</p>
+</dd>
+<dt><code>temperature</code></dt>
+<dd>
+<p><em>Traced thermal hydraulic regime</em>. Traced temperature of heat
+carrier (water) that is associated with the node, [<em>°C</em>].
+Type: <code>assert_double</code>.
+</p>
+</dd>
+<dt><code>pressure</code></dt>
+<dd>
+<p><em>Traced thermal hydraulic regime</em>. Traced pressure of heat
+carrier (water) that is associated with the node, [<em>MPa</em>].
+Type: <code>assert_double</code>.
+</p>
+</dd>
+<dt><code>flow_rate</code></dt>
+<dd>
+<p><em>Traced thermal hydraulic regime</em>. Traced flow rate of heat
+carrier (water) that is associated with the node, [<em>ton/hour</em>].
+Type: <code>assert_double</code>.
+</p>
+</dd>
+<dt><code>job</code></dt>
+<dd>
+<p><em>Tracing job</em>. Value of tracing job counter.
+For forward tracing value of <code>job</code> counts the number of traced paths from root node.
+Type: <code>assert_count</code>.
+</p>
+</dd>
+</dl>
+<p>Type: <code>assert_data_frame</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Regime tracing: 
+<code>m325tracebw()</code>,
+<code>m325tracefw()</code>,
+<code>m325traceline()</code>,
+<code>tracebw()</code>,
+<code>traceline()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(pipenostics)
+
+# Minimum two nodes should be in district heating network graph:
+tracefw(verbose = FALSE)
+
+# Consider isomorphic representation of District Heating Network graph:
+DHN &lt;- pipenostics::m325testbench
+
+# * remove irrelevant parameters from the test bench
+DHN[c("year", "insulation", "laying", "beta", "exp5k")] &lt;- NULL
+DHN[c("temperature", "pressure", "flow_rate")] &lt;- NA_real_
+
+# * avoid using numeric identifiers for nodes:
+DHN$sender   &lt;- sprintf("N%02i", DHN$sender)
+DHN$acceptor &lt;- sprintf("N%02i", DHN$acceptor)
+
+# * alter units:
+DHN$d &lt;- 1e3 * DHN$d  # convert [m] to [mm]
+
+# * provide current regime parameters for root node
+root_node &lt;- 12
+DHN[root_node, "temperature"] &lt;-  70.4942576978  # [°C]
+DHN[root_node, "pressure"]    &lt;-   0.6135602014  # [MPa]
+DHN[root_node, "flow_rate"]   &lt;- 274.0           # [ton/hour]
+
+# * provide actual values of specific heat loss power, [kcal/m/h], for each
+# segment N01 - N26. Since N12 is a root node, the specific heat loss
+# power for this acceptor is set to 0 (or may be any other numeric value).
+actual_loss &lt;- c(
+  96.8,  96.8,  71.2, 116.7, 71.3,  96.8, 78.5, 116.7, 28.6, 24.5, 
+ 116.7,   0.0, 153.2,  96.8, 96.8, 116.7, 24.5, 116.7, 28.6, 96.8, 
+  78.5, 116.7,  71.3,  96.8, 96.8,  71.1
+)
+
+# Trace the test bench forward for the first time:
+fw_report &lt;- do.call(
+  "tracefw", c(as.list(DHN), list(loss = actual_loss), verbose = FALSE, elev_tol = .5)
+)
+
+</code></pre>
+
+
+</div>

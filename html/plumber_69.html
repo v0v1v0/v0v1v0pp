@@ -1,0 +1,114 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>register_parser</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Manage parsers</h2>
+
+<h3>Description</h3>
+
+<p>A parser is responsible for decoding the raw body content of a request into
+a list of arguments that can be mapped to endpoint function arguments.
+For instance, <code>parser_json()</code> parse content-type <code>application/json</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">register_parser(alias, parser, fixed = NULL, regex = NULL, verbose = TRUE)
+
+registered_parsers()
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>alias</code></td>
+<td>
+<p>An alias to map parser from the <code style="white-space: pre;">⁠@parser⁠</code> plumber tag to the global parsers list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parser</code></td>
+<td>
+<p>The parser function to be added. This build the parser function. See Details for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixed</code></td>
+<td>
+<p>A character vector of fixed string to be matched against a request <code>content-type</code> to use <code>parser</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regex</code></td>
+<td>
+<p>A character vector of regex string to be matched against a request <code>content-type</code> to use <code>parser</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical value which determines if a warning should be
+displayed when alias in map are overwritten.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>When <code>parser</code> is evaluated, it should return a parser function.
+Parser matching is done first by <code>content-type</code> header matching with <code>fixed</code> then by using
+regular expressions with <code>regex</code>. Note that plumber strips <code style="white-space: pre;">⁠; charset*⁠</code> from <code>content-type</code> header before matching.
+</p>
+<p>Plumber will try to use <code>parser_json()</code> (if available) when no <code>content-type</code> header is found and
+the request body starts with <code style="white-space: pre;">⁠{⁠</code> or <code>[</code>.
+</p>
+<p>Functions signature should include <code>value</code>, <code>...</code> and
+possibly <code>content_type</code>, <code>filename</code>. Other parameters may be provided
+if you want to use the headers from <code>webutils::parse_multipart()</code>.
+</p>
+<p>Parser function structure is something like below.
+</p>
+<div class="sourceCode r"><pre>function(parser_arguments_here) {
+  # return a function to parse a raw value
+  function(value, ...) {
+    # do something with raw value
+  }
+}
+</pre></div>
+
+
+<h3>Functions</h3>
+
+
+<ul><li> <p><code>registered_parsers()</code>: Return all registered parsers
+</p>
+</li></ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># `content-type` header is mostly used to look up charset and adjust encoding
+parser_dcf &lt;- function(...) {
+  function(value, content_type = "text/x-dcf", ...) {
+    charset &lt;- get_character_set(content_type)
+    value &lt;- rawToChar(value)
+    Encoding(value) &lt;- charset
+    read.dcf(value, ...)
+  }
+}
+
+# Could also leverage existing parsers
+parser_dcf &lt;- function(...) {
+  parser_read_file(function(tmpfile) {
+    read.dcf(tmpfile, ...)
+  })
+}
+
+# Register the newly created parser
+## Not run: register_parser("dcf", parser_dcf, fixed = "text/x-dcf")
+</code></pre>
+
+
+</div>

@@ -1,0 +1,167 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pmxpartab</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate an formatted HTML table of parameter estimates</h2>
+
+<h3>Description</h3>
+
+<p>Generate an formatted HTML table of parameter estimates
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pmxpartab(
+  parframe,
+  columns = c(est = "Estimate", rse = "RSE%", ci95 = "95% CI", shrinkage =
+    "Shrinkage"),
+  sections = !is.null(parframe$type),
+  section.labels = c(Structural = "Typical Values", CovariateEffect =
+    "Covariate Effects", RUV = "Residual Error", IIV = "Between Subject Variability", IOV
+    = "Inter-Occasion Variability"),
+  footnote = NULL,
+  show.fixed.to.zero = FALSE,
+  merge.units = TRUE,
+  na = "-",
+  digits = 3
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>parframe</code></td>
+<td>
+<p>A <code>data.frame</code> such as returned by pmxparframe.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>columns</code></td>
+<td>
+<p>A named <code>character</code> vector of columns to include in the table
+(and in what order). The names correspond to column names in <code>parframe</code> and
+the value to the column labels that appear in the formatted table.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sections</code></td>
+<td>
+<p>A <code>logical</code> indicating whether or not the table should be
+formatted into sections according the the <code>type</code> column of <code>parframe</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>section.labels</code></td>
+<td>
+<p>A named <code>character</code> vector. The names correspond to
+values in the <code>type</code> column of <code>parframe</code>, and the values to labels that
+appear in the formatted table.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>footnote</code></td>
+<td>
+<p>A <code>character</code> vector of footnotes to place underneath the
+formatted table (may contain HTML codes).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>show.fixed.to.zero</code></td>
+<td>
+<p>A <code>logical</code> indicating whether parameters that are
+fixed to zero should appear in the formatted table (by default, parameters
+that are formatted to values other than zero do appear in the table, but
+those that are fixed to zero are ignored).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>merge.units</code></td>
+<td>
+<p>A <code>logical</code> indicating whether or not units (if present)
+should be merged into the parameter label (i.e., in parentheses following
+the name/label).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na</code></td>
+<td>
+<p>A <code>character</code> string to use in the formatted table to indicate
+missing or non-applicable values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>digits</code></td>
+<td>
+<p>Number of significant digits to include in the formatted
+table.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An object of class <code>"pmxpartab"</code>. This is essentially just an HTML
+character string that displays in the default web browser or viewer when
+printed (as per <code>htmltools::print.html()</code>).
+</p>
+
+
+<h3>See Also</h3>
+
+<p>pmxparframe
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+outputs &lt;- list(
+  est = list(
+    th = list(CL = 0.482334, VC = 0.0592686),
+    om = list(nCL = 0.315414, nVC = 0.536025),
+    sg = list(ERRP = 0.0508497)),
+  se = list(
+    th = list(CL = 0.0138646, VC = 0.00555121),
+    om = list(nCL = 0.0188891, nVC = 0.0900352),
+    sg = list(ERRP = 0.00182851)),
+  fixed = list(
+    th = list(CL = FALSE, VC = FALSE),
+    om = list(nCL = FALSE, nVC = FALSE),
+    sg = list(ERRP = FALSE)),
+  shrinkage = list(nCL = 9.54556, nVC = 47.8771))
+
+meta &lt;- list(
+  parameters = list(
+    list(name="CL", label="Clearance", units="L/h", type="Structural"),
+    list(name="VC", label="Volume", units="L", type="Structural", trans="exp"),
+    list(name="nCL", label="On Clearance", type="IIV", trans="SD (CV%)"),
+    list(name="nVC", label="On Volume", type="IIV"),
+    list(name="ERRP", label="Proportional Error", units="%", type="RUV", trans="%")))
+
+pmxpartab(pmxparframe(outputs, meta),
+    columns=c(est="Estimate", rse="RSE%", ci95="95% CI", shrinkage="Shrinkage"),
+    footnote="CI=confidence interval; RSE=relative standard error.")
+
+
+# An example using a Cox model, where we construct the parframe manually:
+library(survival)
+cph.fit &lt;- coxph(Surv(time, status) ~ ph.ecog + age, data=lung)
+parframe &lt;- with(summary(cph.fit), data.frame(
+    name  = c("ph.ecog", "age"),
+    label = c("ECOG performance score", "Age"),
+    est   = coefficients[,"exp(coef)"],
+    pval  = coefficients[,"Pr(&gt;|z|)"],
+    lci95 = conf.int[,"lower .95"],
+    uci95 = conf.int[,"upper .95"]
+))
+pmxpartab(parframe=parframe,
+    columns=c(est="HR", ci95="95% CI", pval="P-Value"))
+
+</code></pre>
+
+
+</div>

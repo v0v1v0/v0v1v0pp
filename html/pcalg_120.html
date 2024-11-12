@@ -1,0 +1,191 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Score-class</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Virtual Class "Score"</h2>
+
+<h3>Description</h3>
+
+<p>This virtual base class represents a score for causal inference; it is used
+in the causal inference functions <code>ges</code>, <code>gies</code> and
+<code>simy</code>. 
+</p>
+
+
+<h3>Details</h3>
+
+<p>Score-based structure learning algorithms for causal inference such as 
+Greedy Equivalence Search
+(GES, implemented in the function <code>ges</code>), Greedy Interventional
+Equivalence Search (GIES, implemented in the function <code>gies</code>) and
+the dynamic programming approach of Silander and Myllymäki (2006)
+(implemented in the function <code>simy</code>) try to find the DAG model which
+maximizes a scoring criterion for a given data set.  A widely-used scoring 
+criterion is the Bayesian Information Criterion (BIC).
+</p>
+<p>The virtual class <code>Score</code> is the base class for providing a scoring
+criterion to the mentioned causal inference algorithms.  It does not 
+implement a concrete scoring criterion, but it defines the functions that 
+must be provided by its descendants (cf. methods).
+</p>
+<p>Knowledge of this class is only required if you aim to implement an own 
+scoring criterion.  At the moment, it is recommended to use the predefined
+scoring criteria for multivariate Gaussian data derived from <code>Score</code>, 
+<code>GaussL0penIntScore</code> and
+<code>GaussL0penObsScore</code>. 
+</p>
+
+
+<h3>Fields</h3>
+
+<p>The fields of <code>Score</code> are mainly of interest for users who aim at 
+deriving an own class from this virtual base class, i.e., implementing an own
+score function.
+</p>
+
+<dl>
+<dt>
+<code>.nodes</code>:</dt>
+<dd>
+<p>Node labels.  They are passed to causal inference
+methods by default to label the nodes of the resulting graph.</p>
+</dd>
+<dt>
+<code>decomp</code>:</dt>
+<dd>
+<p>Indicates whether the represented score is
+decomposable (cf. details).  At the moment, only decomposable scores are 
+supported by the implementation of the causal inference algorithms; 
+support for non-decomposable scores is planned.</p>
+</dd>
+<dt>
+<code>pp.dat</code>:</dt>
+<dd>
+<p>List representing the preprocessed input data;
+this is typically a statistic which is sufficient for the 
+calculation of the score.</p>
+</dd>
+<dt>
+<code>.pardag.class</code>:</dt>
+<dd>
+<p>Name of the class of the parametric DAG model
+corresponding to the score.  This must name a class derived from 
+<code>ParDAG</code>.</p>
+</dd>
+<dt>
+<code>c.fcn</code>:</dt>
+<dd>
+<p>Only used internally; must remain empty for (user
+specified) classes derived from <code>Score</code>.</p>
+</dd> 
+</dl>
+<h3>Constructor</h3>
+
+<pre>
+new("Score",
+  data = matrix(1, 1, 1), 
+  targets = list(integer(0)),
+  target.index = rep(as.integer(1), nrow(data)), 
+  nodes = colnames(data),
+  ...)
+</pre>
+
+<dl>
+<dt><code>data</code></dt>
+<dd>
+<p>Data matrix with <code class="reqn">n</code> rows and <code class="reqn">p</code> columns.  Each 
+row corresponds to one realization, either interventional or 
+observational.</p>
+</dd>
+<dt><code>targets</code></dt>
+<dd>
+<p>List of mutually exclusive intervention targets
+that have been used for data generation.</p>
+</dd>
+<dt><code>target.index</code></dt>
+<dd>
+<p>Vector of length <code class="reqn">n</code>; the <code class="reqn">i</code>-th entry 
+specifies the index of the intervention
+target in <code>targets</code> under which the <code class="reqn">i</code>-th row of <code>data</code>
+was measured.</p>
+</dd>
+<dt><code>nodes</code></dt>
+<dd>
+<p>Node labels</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Additional parameters used by derived (and non-virtual)
+classes.</p>
+</dd>
+</dl>
+<h3>Methods</h3>
+
+<p>Note that since <code>Score</code> is a virtual class, its methods cannot be called
+directly, but only on derived classes.
+</p>
+
+<dl>
+<dt><code>local.score(vertex, parents, ...)</code></dt>
+<dd>
+<p>For decomposable scores,
+this function calculates the local score of a vertex and its parents.
+Must throw an error in derived classes that do not represent a 
+decomposable score.</p>
+</dd>
+<dt><code>global.score.int(edges, ...)</code></dt>
+<dd>
+<p>Calculates the global score of
+a DAG, represented as a list of in-edges: for each vertex in the DAG,
+this list contains a vector of parents.</p>
+</dd>
+<dt><code>global.score(dag, ...)</code></dt>
+<dd>
+<p>Calculates the global score of a DAG,
+represented as object of a class derived from <code>ParDAG</code>.</p>
+</dd>
+<dt><code>local.fit(vertex, parents, ...)</code></dt>
+<dd>
+<p>Calculates a local model fit
+of a vertex and its parents, e.g. by MLE. 
+The result is a vector of parameters whose 
+meaning depends on the model class; it matches the convention used in the
+corresponding causal model (cf. <code>.pardag.class</code>).
+
+</p>
+</dd>
+<dt><code>global.fit(dag, ...)</code></dt>
+<dd>
+<p>Calculates the global MLE of a DAG,
+represented by an object of the class specified by <code>.pardag.class</code>.
+The result is a list of vectors, one per vertex, each in the same format
+as the result vector of <code>local.mle</code>.
+
+</p>
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p>Alain Hauser (<a href="mailto:alain.hauser@bfh.ch">alain.hauser@bfh.ch</a>)
+</p>
+
+
+<h3>References</h3>
+
+<p>T. Silander and P. Myllymäki (2006).  A simple approach for finding the 
+globally optimal Bayesian network structure.  <em>Proceedings of the 22nd 
+Conference on Uncertainty in Artificial Intelligence (UAI 2006)</em>, 445–452
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ges</code>, <code>gies</code>, <code>simy</code>, 
+<code>GaussL0penIntScore</code>, 
+<code>GaussL0penObsScore</code>
+</p>
+
+
+</div>

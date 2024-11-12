@@ -1,0 +1,240 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pdSpecClust2D</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Intrinsic wavelet HPD time-varying spectral clustering</h2>
+
+<h3>Description</h3>
+
+<p><code>pdSpecClust2D</code> performs clustering of HPD time-varying spectral matrices corrupted by noise (e.g. HPD time-varying
+periodograms) by combining wavelet thresholding and fuzzy clustering in the intrinsic wavelet coefficient domain according to
+the following steps:
+</p>
+
+<ol>
+<li>
+<p> Transform a collection of noisy HPD time-varying spectral matrices to the intrinsic wavelet domain and denoise the
+HPD matrix surfaces by (tree-structured) thresholding of wavelet coefficients with <code>pdSpecEst2D</code>.
+</p>
+</li>
+<li>
+<p> Apply an intrinsic fuzzy c-means algorithm to the coarsest midpoints at scale <code>j = 0</code> across subjects.
+</p>
+</li>
+<li>
+<p> Taking into account the fuzzy cluster assignments in the previous step, apply a weighted fuzzy c-means
+algorithm to the nonzero thresholded wavelet coefficients across subjects from scale <code>j = 1</code> up to <code>j = jmax</code>.
+</p>
+</li>
+</ol>
+<p>More details can be found in Chapter 3 of (Chau 2018) and the accompanying vignettes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pdSpecClust2D(P, K, jmax, metric = "Riemannian", m = 2, d.jmax = 0.1,
+  eps = c(1e-04, 1e-04), tau = 0.5, max_iter = 50,
+  return.centers = FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>P</code></td>
+<td>
+<p>a (<code>d,d,n[1],n[2],S</code>)-dimensional array of HPD matrices, corresponding to a collection of surfaces of
+<code class="reqn">(d,d)</code>-dimensional HPD matrices of size <code class="reqn">n_1 \times n_2</code>, with <code class="reqn">n_1 = 2^{J_1}</code> and <code class="reqn">n_2 = 2^{J_2}</code>
+for some <code class="reqn">J_1,J_2 &gt; 0</code>, for <code class="reqn">S</code> different subjects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>the number of clusters, a positive integer larger than 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>jmax</code></td>
+<td>
+<p>an upper bound on the maximum wavelet scale to be considered in the clustering procedure. If
+<code>jmax</code> is not specified, it is set equal to the maximum (i.e., finest) wavelet scale minus 2.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>metric</code></td>
+<td>
+<p>the metric that the space of HPD matrices is equipped with. The default choice is <code>"Riemannian"</code>,
+but this can also be one of: <code>"logEuclidean"</code>, <code>"Cholesky"</code>, <code>"rootEuclidean"</code> or
+<code>"Euclidean"</code>. Additional details are given below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m</code></td>
+<td>
+<p>the fuzziness parameter for both fuzzy c-means algorithms. <code>m</code> should be larger or equal to <code class="reqn">1</code>.
+If <code class="reqn">m = 1</code> the cluster assignments are no longer fuzzy, i.e., the procedure
+performs hard clustering.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d.jmax</code></td>
+<td>
+<p>a proportion that is used to determine the maximum wavelet scale to be considered in the clustering
+procedure. A larger value <code>d.jmax</code> leads to less wavelet coefficients being taken into account, and therefore
+lower computational effort in the procedure. If <code>d.jmax</code> is not specified, by default <code>d.jmax = 0.1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps</code></td>
+<td>
+<p>an optional vector with two components determining the stopping criterion. The first step in the cluster procedure
+terminates if the (integrated) intrinsic distance between cluster centers is smaller than <code>eps[1]</code>.
+The second step in the cluster procedure terminates if the (integrated) Euclidean distance between cluster centers is smaller
+than <code>eps[2]</code>. By default <code>eps = c(1e-04, 1e-04)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau</code></td>
+<td>
+<p>an optional argument tuning the weight given to the cluster assignments obtained in the first step of
+the clustering algorithm. If <code>tau</code> is not specified, by default <code>tau = 0.5</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_iter</code></td>
+<td>
+<p>an optional argument tuning the maximum number of iterations in both the first and second step of the
+clustering algorithm, defaults to <code>max_iter = 50</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return.centers</code></td>
+<td>
+<p>should the cluster centers transformed back the space of HPD matrices also be returned?
+Defaults to <code>return.centers = FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments passed on to <code>pdSpecEst2D</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The input array <code>P</code> corresponds to a collection of initial noisy HPD time-varying spectral estimates of the
+<code class="reqn">(d,d)</code>-dimensional time-varying spectral matrix at <code class="reqn">n_1 \times n_2</code> time-frequency points, with <code class="reqn">n_1, n_2</code>
+dyadic numbers, for <code class="reqn">S</code> different subjects. These can be e.g., multitaper HPD time-varying periodograms given as output
+by the function <code>pdPgram2D</code>.<br>
+First, for each subject <code class="reqn">s = 1,\ldots,S</code>, thresholded wavelet coefficients in the intrinsic wavelet domain are
+calculated by <code>pdSpecEst2D</code>, see the function documentation for additional details on the wavelet thresholding
+procedure.<br>
+The maximum wavelet scale taken into account in the clustering procedure is determined by the arguments
+<code>jmax</code> and <code>d.jmax</code>. The maximum scale is set to the minimum of <code>jmax</code> and the wavelet
+scale <code class="reqn">j</code> for which the proportion of nonzero thresholded wavelet coefficients (averaged
+across subjects) is smaller than <code>d.jmax</code>.<br>
+The <code class="reqn">S</code> subjects are assigned to <code class="reqn">K</code> different clusters in a probabilistic fashion according to a
+two-step procedure:
+</p>
+
+<ol>
+<li>
+<p> In the first step, an intrinsic fuzzy c-means algorithm, with fuzziness parameter <code class="reqn">m</code> is applied to the
+<code class="reqn">S</code> coarsest midpoints at scale <code>j = 0</code> in the subject-specific 2D midpoint pyramids. Note that the distance
+function in the intrinsic c-means algorithm relies on the chosen metric on the space of HPD matrices.
+</p>
+</li>
+<li>
+<p> In the second step, a weighted fuzzy c-means algorithm based on the Euclidean
+distance function, also with fuzziness parameter <code class="reqn">m</code>, is applied to the nonzero thresholded wavelet
+coefficients of the <code class="reqn">S</code> different subjects. The tuning parameter <code>tau</code> controls the weight given
+to the cluster assignments obtained in the first step of the clustering algorithm.
+</p>
+</li>
+</ol>
+<p>The function computes the forward and inverse intrinsic 2D AI wavelet transform in the space of HPD matrices equipped with
+one of the following metrics: (i) the affine-invariant Riemannian metric (default) as detailed in e.g., (Bhatia 2009)[Chapter 6]
+or (Pennec et al. 2006); (ii) the log-Euclidean metric, the Euclidean inner product between matrix logarithms;
+(iii) the Cholesky metric, the Euclidean inner product between Cholesky decompositions; (iv) the Euclidean metric; or
+(v) the root-Euclidean metric. The default choice of metric (affine-invariant Riemannian) satisfies several useful properties
+not shared by the other metrics, see (Chau 2018) for more details. Note that this comes
+at the cost of increased computation time in comparison to one of the other metrics. <br>
+If <code>return.centers = TRUE</code>, the function also returns the <code>K</code> HPD time-varying spectral matrices corresponding to
+the cluster centers based on the given metric by applying the intrinsic inverse 2D AI wavelet transform (
+<code>InvWavTransf2D</code>) to the cluster centers in the wavelet domain.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Depending on the input the function returns a list with five or six components:
+</p>
+
+<dl>
+<dt>cl.prob </dt>
+<dd>
+<p> an (<code class="reqn">S,K</code>)-dimensional matrix, where the value at position (<code class="reqn">s,k</code>) in the
+matrix corresponds to the probabilistic cluster membership assignment of subject <code class="reqn">s</code> with respect
+to cluster <code class="reqn">k</code>.</p>
+</dd>
+<dt>cl.centers.D </dt>
+<dd>
+<p> a list of <code>K</code> wavelet coefficient pyramids, where each 2D pyramid of wavelet
+coefficients is associated to a cluster center.</p>
+</dd>
+<dt>cl.centers.M0 </dt>
+<dd>
+<p> a list of <code>K</code> arrays of coarse-scale midpoints at scale <code>j = 0</code>, where each
+array is associated to a cluster center.</p>
+</dd>
+<dt>cl.centers.f </dt>
+<dd>
+<p> only available if <code>return.centers = TRUE</code>, returning a list of <code>K</code> <code>(d,d,n[1],n[2])</code>-dimensional
+arrays, where each array corresponds to an<code class="reqn">n_1 \times n_2</code>-sized surface of <code class="reqn">(d,d)</code>-dimensional HPD matrices associated
+to a cluster center.</p>
+</dd>
+<dt>cl.jmax </dt>
+<dd>
+<p> the maximum wavelet scale taken into account in the clustering procedure determined by
+the input arguments <code>jmax</code> and <code>d.jmax</code>.</p>
+</dd>
+</dl>
+<h3>References</h3>
+
+<p>Bhatia R (2009).
+<em>Positive Definite Matrices</em>.
+Princeton University Press, New Jersey.<br><br> Chau J (2018).
+<em>Advances in Spectral Analysis for Multivariate, Nonstationary and Replicated Time Series</em>.
+phdthesis, Universite catholique de Louvain.<br><br> Pennec X, Fillard P, Ayache N (2006).
+“A Riemannian framework for tensor computing.”
+<em>International Journal of Computer Vision</em>, <b>66</b>(1), 41–66.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pdSpecEst2D</code>, <code>WavTransf2D</code>, <code>pdDist</code>, <code>pdPgram2D</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+## Generate noisy HPD surfaces for 6 subjects in 2 groups
+n &lt;- c(2^5, 2^5)
+P &lt;- array(c(rExamples2D(n, example = "tvar", replicates = 3)$P,
+             rExamples2D(n, example = "tvar", replicates = 3)$P), dim = c(2, 2, n, 6))
+cl &lt;- pdSpecClust2D(P, K = 2, metric = "logEuclidean")
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

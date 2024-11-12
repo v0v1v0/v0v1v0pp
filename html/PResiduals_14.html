@@ -1,0 +1,138 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>presid</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Probability-scale residual</h2>
+
+<h3>Description</h3>
+
+<p><code>presid</code> calculates the probability-scale residual for various model
+function objects. Currently supported models include <code>glm</code>
+(Poisson, binomial, and gaussian families), <code>lm</code> in the
+<span class="pkg">stats</span> library; <code>survreg</code> (Weibull, exponential, gaussian,
+logistic, and lognormal distributions) and <code>coxph</code> in the
+<span class="pkg">survival</span> library; <code>polr</code> and <code>glm.nb</code> in
+the <span class="pkg">MASS</span> library; and <code>ols</code>, <code>cph</code>,
+<code>lrm</code>, <code>orm</code>, <code>psm</code>, and <code>Glm</code>
+in the <span class="pkg">rms</span> library.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">presid(object, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>The model object for which the probability-scale residual is calculated</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguements passed to methods</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Probability-scale residual is <code class="reqn">P(Y &lt; y) - P(Y &gt; y)</code> where <code class="reqn">y</code> is the observed
+outcome and <code class="reqn">Y</code> is a random variable from the fitted distribution.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The probability-scale residual for the model
+</p>
+
+
+<h3>References</h3>
+
+<p>Shepherd BE, Li C, Liu Q (2016)
+Probability-scale residuals for continuous, discrete, and censored data.
+<em>The Canadian Jouranl of Statistics</em>. <b>44</b>:463–476.
+</p>
+<p>Li C and Shepherd BE (2012)
+A new residual for ordinal outcomes.
+<em>Biometrika</em>. <b>99</b>: 473–480.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(survival)
+library(stats)
+
+set.seed(100)
+n &lt;- 1000
+x &lt;- rnorm(n)
+t &lt;- rweibull(n, shape=1/3, scale=exp(x))
+c &lt;- rexp(n, 1/3)
+y &lt;- pmin(t, c)
+d &lt;- ifelse(t&lt;=c, 1, 0)
+
+mod.survreg &lt;- survreg(Surv(y, d) ~ x, dist="weibull")
+summary(presid(mod.survreg))
+plot(x, presid(mod.survreg))
+
+##### example for proprotional hazards model
+n &lt;- 1000
+x &lt;- rnorm(n)
+beta0 &lt;- 1
+beta1 &lt;- 0.5
+t &lt;- rexp(n, rate = exp(beta0 + beta1*x))
+c &lt;- rexp(n, rate=1)
+y &lt;- ifelse(t&lt;c, t, c)
+delta &lt;- as.integer(t&lt;c)
+
+mod.coxph &lt;- coxph(Surv(y, delta) ~ x)
+presid &lt;- presid(mod.coxph)
+plot(x, presid, cex=0.4, col=delta+2)
+
+#### example for Negative Binomial regression
+library(MASS)
+
+n &lt;- 1000
+beta0 &lt;- 1
+beta1 &lt;- 0.5
+x &lt;- runif(n, min=-3, max=3)
+y &lt;- rnbinom(n, mu=exp(beta0 + beta1*x), size=3)
+
+mod.glm.nb &lt;- glm.nb(y~x)
+presid &lt;- presid(mod.glm.nb)
+summary(presid)
+plot(x, presid, cex=0.4)
+
+##### example for proportional odds model
+library(MASS)
+
+n &lt;- 1000
+x  &lt;- rnorm(n)
+y  &lt;- numeric(n)
+alpha = c(-1, 0, 1, 2)
+beta &lt;- 1
+py  &lt;-  (1 + exp(- outer(alpha, beta*x, "+"))) ^ (-1)
+aa = runif(n)
+for(i in 1:n)
+  y[i] = sum(aa[i] &gt; py[,i])
+y &lt;-  as.factor(y)
+
+
+mod.polr &lt;- polr(y~x, method="logistic")
+summary(mod.polr)
+presid &lt;- presid(mod.polr)
+summary(presid)
+plot(x, presid, cex=0.4)
+</code></pre>
+
+
+</div>

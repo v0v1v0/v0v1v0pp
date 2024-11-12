@@ -1,0 +1,150 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cv.polywog</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Cross-validation of polynomial degree and penalization factor</h2>
+
+<h3>Description</h3>
+
+<p>k-fold cross-validation to select the polynomial degree and penalization
+factor for a <code>polywog</code> model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cv.polywog(formula, ..., degrees.cv = 1:3, nfolds = 10, model = TRUE,
+  X = FALSE, y = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>model formula specifying the response and input variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>other arguments to be passed to <code>polywog</code>.  Arguments
+related to the bootstrap will be ignored, as bootstrapping must be
+performed separately.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>degrees.cv</code></td>
+<td>
+<p>vector of polynomial degrees to examine via
+cross-validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nfolds</code></td>
+<td>
+<p>number of folds to use in cross-validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>logical: whether to include the model frame in the
+<code>"polywog"</code> object included in the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>logical: whether to include the raw model matrix (i.e., the
+matrix of input variables prior to taking their polynomial expansion) in
+the <code>"polywog"</code> object included in the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>logical: whether to include the response variable in the
+<code>"polywog"</code> object included in the output.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>When fitting with <code>method = "scad"</code>, different fold assignments are
+used for each polynomial degree specified, because <code>cv.ncvreg</code>
+does not allow for custom fold assignments.  This may affect the accuracy
+of the estimated cross-validation error for each degree.  When
+<code>method = "scad"</code>, the calls to <code>polywog</code> made by
+<code>cv.polywog</code> will issue warnings that the <code>foldid</code> argument is
+being ignored.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"cv.polywog"</code>, a list containing:
+</p>
+
+<dl>
+<dt><code>results</code></dt>
+<dd>
+<p>A table of each degree tested, the optimal
+penalization factor <code class="reqn">\lambda</code> for that degree, and its
+cross-validation error.</p>
+</dd>
+<dt><code>degree.min</code></dt>
+<dd>
+<p>The polynomial degree giving the lowest
+cross-validation error.</p>
+</dd>
+<dt><code>polywog.fit</code></dt>
+<dd>
+<p>A <code>polywog</code> model, fit at the
+polynomial degree giving the lowest cross-validation error.</p>
+</dd>
+</dl>
+<p>Because the returned object contains the fitted polywog model for the
+optimal degree, no additional runs of <code>polywog</code> are necessary
+to estimate coefficients or the penalization factor <code class="reqn">\lambda</code>.
+However, bootstrap results must be obtained by running
+<code>bootPolywog</code> on the <code>"polywog.fit"</code> element of the
+returned object, as in the examples below.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Brenton Kenkel and Curtis S. Signorino
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Using occupational prestige data
+data(Prestige, package = "carData")
+Prestige &lt;- transform(Prestige, income = income / 1000)
+
+## Examine degrees 1 through 4
+## (note: using low convergence threshold to shorten computation time of the
+## example, *not* recommended in practice!)
+set.seed(39)
+cv1 &lt;- cv.polywog(prestige ~ education + income + type,
+                  data = Prestige,
+                  degrees.cv = 1:4,
+                  nfolds = 10,
+                  thresh = 1e-4)
+print(cv1)
+
+## Extract best model and bootstrap
+fit1 &lt;- cv1$polywog.fit
+fit1 &lt;- bootPolywog(fit1, nboot = 5)
+summary(fit1)
+</code></pre>
+
+
+</div>

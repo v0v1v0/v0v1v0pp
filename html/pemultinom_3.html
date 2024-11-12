@@ -1,0 +1,131 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predict_pemultinom</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Make predictions on new predictors based on fitted l1-penalized multinomial regression model.</h2>
+
+<h3>Description</h3>
+
+<p>Make predictions on new predictors based on fitted l1-penalized multinomial regression model, by using the fitted beta.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">predict_pemultinom(beta, ref, xnew, type = c("class", "prob"))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>the beta estimate from l1-penalized multinomial regression. Should be in the same format as <code>beta.min</code> or <code>beta.1se</code> in output of function <code>cv.pemultinom</code>. The user is recommended to directly pass <code>beta.min</code> or <code>beta.1se</code> from the output of function <code>cv.pemultinom</code> to parameter <code>beta</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ref</code></td>
+<td>
+<p>the reference level, which should be the same reference level as used in obtaining <code>beta</code>. An input is required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xnew</code></td>
+<td>
+<p>new observations to predict labels for. Should be a matrix or a data frame, where each row and column represents an observation and predictor, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>the type of prediction output. Can be 'class' or 'prob'. Default = 'class'.
+</p>
+
+<ul>
+<li>
+<p> class: the predicted class/label.
+</p>
+</li>
+<li>
+<p> prob: the predicted probability for each class.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>When <code>type</code> = 'class', return a vector. When <code>type</code> = 'prob', return a matrix where each row and column represent an observation and a probability of that class, respectively. Default = 'class'.
+</p>
+
+
+<h3>References</h3>
+
+<p>Tian, Y., Rusinek, H., Masurkar, A. V., &amp; Feng, Y. (2023). L1-penalized Multinomial Regression: Estimation, inference, and prediction, with an application to risk factor identification for different dementia subtypes. arXiv preprint arXiv:2302.02310.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>cv.pemultinom</code>, <code>debiased_lasso</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># generate training data from Model 1 in Tian et al. (2023) with n = 50 and p = 50
+set.seed(1, kind = "L'Ecuyer-CMRG")
+n &lt;- 50
+p &lt;- 50
+K &lt;- 3
+
+Sigma &lt;- outer(1:p, 1:p, function(x,y) {
+  0.9^(abs(x-y))
+})
+R &lt;- chol(Sigma)
+s &lt;- 3
+beta_coef &lt;- matrix(0, nrow = p+1, ncol = K-1)
+beta_coef[1+1:s, 1] &lt;- c(1.5, 1.5, 1.5)
+beta_coef[1+1:s+s, 2] &lt;- c(1.5, 1.5, 1.5)
+
+x &lt;- matrix(rnorm(n*p), ncol = p) %*% R
+y &lt;- sapply(1:n, function(j){
+  prob_i &lt;- c(sapply(1:(K-1), function(k){
+    exp(sum(x[j, ]*beta_coef[-1, k]))
+  }), 1)
+  prob_i &lt;- prob_i/sum(prob_i)
+  sample(1:K, size = 1, replace = TRUE, prob = prob_i)
+})
+
+# fit the l1-penalized multinomial regression model
+fit &lt;- cv.pemultinom(x, y, ncores = 2)
+
+# generate test data from the same model
+x.test &lt;- matrix(rnorm(n*p), ncol = p) %*% R
+y.test &lt;- sapply(1:n, function(j){
+  prob_i &lt;- c(sapply(1:(K-1), function(k){
+    exp(sum(x.test[j, ]*beta_coef[-1, k]))
+  }), 1)
+  prob_i &lt;- prob_i/sum(prob_i)
+  sample(1:K, size = 1, replace = TRUE, prob = prob_i)
+})
+
+# predict labels of test data and calculate the misclassification error rate (using beta.min)
+ypred.min &lt;- predict_pemultinom(fit$beta.min, ref = 3, xnew = x.test, type = "class")
+mean(ypred.min != y.test)
+
+# predict labels of test data and calculate the misclassification error rate (using beta.1se)
+ypred.1se &lt;- predict_pemultinom(fit$beta.1se, ref = 3, xnew = x.test, type = "class")
+mean(ypred.1se != y.test)
+
+# predict posterior probabilities of test data
+ypred.prob &lt;- predict_pemultinom(fit$beta.min, ref = 3, xnew = x.test, type = "prob")
+</code></pre>
+
+
+</div>

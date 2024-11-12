@@ -1,0 +1,88 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>nextStage</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>nextStage</h2>
+
+<h3>Description</h3>
+
+<p>Imputation permutation group-sequential log-rank test.
+Random permutations of a block a reused in all later stages. This automatically
+results in blockwise permutations.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">nextStage(pgs.obj, alpha, formula, data = parent.frame())
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pgs.obj</code></td>
+<td>
+<p>permGS object as returned by <code>createPermGS</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>alpha at current stage</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a formula object, as used by <code>coxph</code>, left hand side must be a 'Surv' object, right hand side must only consist of a factor (treatment indicator) and optionally a special strata() term identifying the permutation strata</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a data.frame or list containing the variables in "formula", by default "formula" is evaluated in the parent frame</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An updated permGS object.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Two-stage design with one-sided O'Brien-Fleming boundaries using IPZ method
+x &lt;- createPermGS(1000, TRUE, "IPZ")
+
+t1 &lt;- 9  ## calendar time of interim analysis
+t2 &lt;- 18  ## calendar time of final analysis
+
+T &lt;- rexp(100) ## event times
+R &lt;- runif(100, 0, 12)  ## recruitment times
+Z &lt;- rbinom(100, 1, 0.5)  ## treatment assignment
+C &lt;- rexp(100) ## drop-out times
+
+## Stage 1 data
+data.t1 &lt;- data.frame(time=pmin(T, C, max(0, (t1-R))), status=(T&lt;=pmin(C, t1-R)), trt=Z)
+data.t1 &lt;- data.t1[R &lt;= t1,]
+
+## Stage 2 data
+data.t2 &lt;- data.frame(time=pmin(T, C, max(0, (t2-R))), status=(T&lt;=pmin(C, t2-R)), trt=Z)
+data.t2 &lt;- data.t2[R &lt;= t2,] 
+x &lt;- nextStage(x, 0.00153, Surv(time, status) ~ trt, data.t1)
+summary(x)
+
+if(!x$results$reject[1]) {
+   data.t2$strata &lt;- rep.int(c(1,2), c(nrow(data.t1), nrow(data.t2)-nrow(data.t1)))
+   x &lt;- nextStage(x, 0.025, Surv(time, status) ~ trt + strata(strata), data.t2)
+   summary(x)
+}
+</code></pre>
+
+
+</div>

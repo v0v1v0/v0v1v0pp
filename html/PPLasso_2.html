@@ -1,0 +1,121 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Correction1Vect</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Correction on two vectors 
+</h2>
+
+<h3>Description</h3>
+
+<p>For the estimation of <code class="reqn">\beta</code> in  Zhu et al. (2022), this function keeps only the M largest values coefficientss set the others to 0. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">Correction1Vect(X, Y, te = NULL, vector, top_grill. = c(1:length(vector)), delta = 0.95)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+
+<p>Design matrix
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+
+<p>Response vector
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>te</code></td>
+<td>
+
+<p>treatment effects
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vector</code></td>
+<td>
+
+<p>The vector on which we performe the thresholding
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>top_grill.</code></td>
+<td>
+
+<p>grill of the thresholding
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>delta</code></td>
+<td>
+
+<p>parameter <code class="reqn">\delta</code> in the thresholding
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>This function returns the thresholded vector.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Wencan Zhu, Celine Levy-Leduc, Nils Ternes
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">vect_sample=sample(1:20,20)
+X=t(sapply(c(1:10),FUN=function(x) rnorm(20)))
+Y=rnorm(10)
+
+Correction1Vect(X=X, Y=Y, vector=vect_sample)
+
+## The function is currently defined as
+function(X, Y, te=NULL, vector, top_grill.=c(1:length(vector)), delta=0.95){
+  
+  beta_interm &lt;- sapply(top_grill., top, vect = vector)
+  beta_te &lt;- rbind(rep(te[1],length(top_grill.)), rep(te[2],length(top_grill.)), beta_interm)
+  yhat &lt;- as.matrix(X %*% beta_te)
+  residuals &lt;- sweep(yhat, 1, Y)
+  mse_final_top &lt;- colMeans(residuals^2)
+  ratio_mse &lt;- c()
+  for (k in 1:(length(top_grill.) - 1)) {
+    ratio_mse[k] &lt;- round(mse_final_top[k + 1]/mse_final_top[k],6)
+  }
+  top_ratio &lt;- min(which(ratio_mse &gt;= delta))
+  if (is.infinite(top_ratio)) {
+    opt_final_top &lt;- length(vector)
+  }
+  else {
+    opt_final_top &lt;- top_grill.[top_ratio]
+  }
+  
+  return(round(top(vect = vector, thresh = opt_final_top), 6))
+  
+}
+</code></pre>
+
+
+</div>

@@ -1,0 +1,218 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>perrySelect</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Model selection via resampling-based prediction error measures</h2>
+
+<h3>Description</h3>
+
+<p>Combine resampling-based prediction error results for various models into
+one object and select the model with the best prediction performance.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">perrySelect(
+  ...,
+  .list = list(...),
+  .reshape = FALSE,
+  .selectBest = c("min", "hastie"),
+  .seFactor = 1
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>objects inheriting from class <code>"perry"</code> or
+<code>"perrySelect"</code> that contain prediction error results.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.list</code></td>
+<td>
+<p>a list of objects  inheriting from class <code>"perry"</code> or
+<code>"perrySelect"</code>.  If supplied, this is preferred over objects supplied
+via the ... argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.reshape</code></td>
+<td>
+<p>a logical indicating whether objects with more than one
+column of prediction error results should be reshaped to have only one
+column (see “Details”).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.selectBest</code></td>
+<td>
+<p>a character string specifying a criterion for selecting
+the best model.  Possible values are <code>"min"</code> (the default) or
+<code>"hastie"</code>.  The former selects the model with the smallest prediction
+error.  The latter is useful for nested models or for models with a tuning
+parameter controlling the complexity of the model (e.g., penalized
+regression).  It selects the most parsimonious model whose prediction error
+is no larger than <code>.seFactor</code> standard errors above the prediction error
+of the best overall model.  Note that the models are thereby assumed to be
+ordered from the most parsimonious one to the most complex one.  In
+particular a one-standard-error rule is frequently applied.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.seFactor</code></td>
+<td>
+<p>a numeric value giving a multiplication factor of the
+standard error for the selection of the best model.  This is ignored if
+<code>.selectBest</code> is <code>"min"</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Keep in mind that objects inheriting from class <code>"perry"</code> or
+<code>"perrySelect"</code> may contain multiple columns of prediction error
+results.  This is the case if the response is univariate but the
+function to compute predictions (usually the <code>predict</code>
+method of the fitted model) returns a matrix.
+</p>
+<p>The <code>.reshape</code> argument determines how to handle such objects.  If
+<code>.reshape</code> is <code>FALSE</code>, all objects are required to have the same
+number of columns and the best model for each column is selected.  A typical
+use case for this behavior would be if the investigated models contain
+prediction error results for a raw and a reweighted fit.  It might then be
+of interest to researchers to compare the best model for the raw estimators
+with the best model for the reweighted estimators.
+</p>
+<p>If <code>.reshape</code> is <code>TRUE</code>, objects with more than one column of
+results are first transformed with <code>perryReshape</code> to have only
+one column.  Then the best overall model is selected.
+</p>
+<p>It should also be noted that the argument names of <code>.list</code>,
+<code>.reshape</code>, <code>.selectBest</code> and <code>.seFacor</code> start with a dot to
+avoid conflicts with the argument names used for the objects containing
+prediction error results.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"perrySelect"</code> with the following
+components:
+</p>
+
+<dl>
+<dt><code>pe</code></dt>
+<dd>
+<p>a data frame containing the estimated prediction errors
+for the models.  In case of more than one resampling replication, those
+are average values over all replications.</p>
+</dd>
+<dt><code>se</code></dt>
+<dd>
+<p>a data frame containing the estimated standard errors of
+the prediction loss for the models.</p>
+</dd>
+<dt><code>reps</code></dt>
+<dd>
+<p>a data frame containing the estimated prediction errors
+for the models from all replications.  This is only returned in case of more
+than one resampling replication.</p>
+</dd>
+<dt><code>splits</code></dt>
+<dd>
+<p>an object giving the data splits used to estimate the
+prediction error of the models.</p>
+</dd>
+<dt><code>y</code></dt>
+<dd>
+<p>the response.</p>
+</dd>
+<dt><code>yHat</code></dt>
+<dd>
+<p>a list containing the predicted values for the
+models.  Each list component is again a list containing the corresponding
+predicted values from all replications.</p>
+</dd>
+<dt><code>best</code></dt>
+<dd>
+<p>an integer vector giving the indices of the models with
+the best prediction performance.</p>
+</dd>
+<dt><code>selectBest</code></dt>
+<dd>
+<p>a character string specifying the criterion used
+for selecting the best model.</p>
+</dd>
+<dt><code>seFactor</code></dt>
+<dd>
+<p>a numeric value giving the multiplication factor of
+the standard error used for the selection of the best model.</p>
+</dd>
+</dl>
+<h3>Note</h3>
+
+<p>To ensure comparability, the prediction errors for all models are
+required to be computed from the same data splits.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Andreas Alfons
+</p>
+
+
+<h3>References</h3>
+
+<p>Hastie, T., Tibshirani, R. and Friedman, J. (2009) <em>The Elements of
+Statistical Learning: Data Mining, Inference, and Prediction</em>.  Springer,
+2nd edition.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>perryFit</code>, <code>perryTuning</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library("perryExamples")
+data("coleman")
+set.seed(1234)  # set seed for reproducibility
+
+## set up folds for cross-validation
+folds &lt;- cvFolds(nrow(coleman), K = 5, R = 10)
+
+## compare LS, MM and LTS regression
+
+# perform cross-validation for an LS regression model
+fitLm &lt;- lm(Y ~ ., data = coleman)
+cvLm &lt;- perry(fitLm, splits = folds,
+              cost = rtmspe, trim = 0.1)
+
+# perform cross-validation for an MM regression model
+fitLmrob &lt;- lmrob(Y ~ ., data = coleman)
+cvLmrob &lt;- perry(fitLmrob, splits = folds,
+                 cost = rtmspe, trim = 0.1)
+
+# perform cross-validation for an LTS regression model
+fitLts &lt;- ltsReg(Y ~ ., data = coleman)
+cvLts &lt;- perry(fitLts, splits = folds,
+               cost = rtmspe, trim = 0.1)
+
+# compare cross-validation results
+perrySelect(LS = cvLm, MM = cvLmrob, LTS = cvLts)
+</code></pre>
+
+
+</div>

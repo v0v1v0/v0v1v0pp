@@ -1,0 +1,139 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>initials_pin_ea</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Initial parameter sets of Ersan &amp; Alici (2016)</h2>
+
+<h3>Description</h3>
+
+<p>Based on the algorithm in Ersan and Alici (2016),
+generates initial parameter sets for the maximum likelihood
+estimation of the <code>PIN</code> model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">initials_pin_ea(data, xtraclusters = 4, verbose = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A dataframe with 2 variables: the first
+corresponds to buyer-initiated trades (buys), and the second corresponds
+to seller-initiated trades (sells).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xtraclusters</code></td>
+<td>
+<p>An integer used to divide trading days into
+<code>#(2 + xtraclusters)</code> clusters, thereby resulting in
+<code style="white-space: pre;">⁠#comb(1 + xtraclusters, 1)⁠</code> initial parameter sets in line with
+Ersan and Alici (2016). The default value is <code>4</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>a binary variable that determines whether information messages
+about the initial parameter sets, including the number of the initial
+parameter sets generated. No message is shown when <code>verbose</code> is set
+to <code>FALSE</code>. The default value is <code>TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The argument 'data' should be a numeric dataframe, and contain
+at least two variables. Only the first two variables will be considered:
+The first variable is assumed to correspond to the total number of
+buyer-initiated trades, while the second variable is assumed to
+correspond to the total number of seller-initiated trades. Each row or
+observation correspond to a trading day. <code>NA</code> values will be ignored.
+</p>
+<p>The function <code>initials_pin_ea()</code> uses a hierarchical agglomerative
+clustering (HAC) to find initial parameter sets for
+the maximum likelihood estimation. The steps in
+Ersan and Alici (2016) algorithm differ from those
+used by Gan et al. (2015), and are summarized below.
+</p>
+<p>Via the use of HAC, daily absolute order imbalances (AOIs) are grouped in
+<code>2+J</code> (default <code>J=4</code>) clusters. After sorting the clusters based on
+AOIs, they are combined into two larger groups of days (event and no-event)
+by merging neighboring clusters with each other. Consequently, those groups
+are formed in <code style="white-space: pre;">⁠#comb(5, 1) = 5⁠</code> different ways. For each of the <code>5</code>
+configurations with which, days are grouped into two (event group and
+no-event group), the procedure below is applied to obtain initial parameter
+sets. <br><br>
+Days in the event group (the one with larger mean AOI) are distributed into
+two groups, i.e. good-event days (days with positive OI) and bad-event days
+(days with negative OI).
+Initial parameters are obtained from the frequencies, and average trade
+rates of three types of days. See
+Ersan and Alici (2016) for further details.<br><br>
+The higher the number of the additional clusters (<code>xtraclusters</code>), the
+better is the estimation. Ersan and Alici (2016),
+however, have shown the benefit of increasing this number beyond 4 is
+marginal, and statistically insignificant.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a dataframe of initial sets each consisting of five
+variables {<code class="reqn">\alpha</code>, <code class="reqn">\delta</code>, <code class="reqn">\mu</code>, <code class="reqn">\epsilon</code><sub>b</sub>, <code class="reqn">\epsilon</code><sub>s</sub>}.
+</p>
+
+
+<h3>References</h3>
+
+<p>Ersan O, Alici A (2016).
+“An unbiased computation methodology for estimating the probability of informed trading (PIN).”
+<em>Journal of International Financial Markets, Institutions and Money</em>, <b>43</b>, 74–94.
+ISSN 10424431.<br><br> Gan Q, Wei WC, Johnstone D (2015).
+“A faster estimation method for the probability of informed trading using hierarchical agglomerative clustering.”
+<em>Quantitative Finance</em>, <b>15</b>(11), 1805–1821.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># There is a preloaded quarterly dataset called 'dailytrades' with 60
+# observations. Each observation corresponds to a day and contains the
+# total number of buyer-initiated trades ('B') and seller-initiated
+# trades ('S') on that day. To know more, type ?dailytrades
+
+xdata &lt;- dailytrades
+
+# Obtain a dataframe of initial parameters for the maximum likelihood
+# estimation using the algorithm of Ersan and Alici (2016).
+
+init.sets &lt;- initials_pin_ea(xdata)
+
+# Use the obtained dataframe to estimate the PIN model using the function
+# pin() with custom initial parameter sets
+
+estimate.1 &lt;- pin(xdata, initialsets = init.sets, verbose = FALSE)
+
+# pin_ea() directly estimates the PIN model using initial parameter sets
+# generated using the algorithm of Ersan &amp; Alici (2016).
+
+estimate.2 &lt;- pin_ea(xdata, verbose = FALSE)
+
+# Check that the obtained results are identical
+
+show(estimate.1@parameters)
+show(estimate.2@parameters)
+
+</code></pre>
+
+
+</div>

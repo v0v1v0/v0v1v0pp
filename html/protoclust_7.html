@@ -1,0 +1,156 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>protocut</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Cut a Minimax Linkage Tree To Get a Clustering</h2>
+
+<h3>Description</h3>
+
+<p>Cuts a minimax linkage tree to get one of n - 1 clusterings.  Works like
+<code>cutree</code> except also returns the prototypes of the resulting
+clustering.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">protocut(hc, k = NULL, h = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>hc</code></td>
+<td>
+<p>an object returned by <code>protoclust</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>the number of clusters desired</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h</code></td>
+<td>
+<p>the height at which to cut the tree</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Given a minimax linkage hierarchical clustering, this function cuts the tree
+at a given height or so that a specified number of clusters is created.  It
+returns both the indices of the prototypes and their locations.  This latter
+information is useful for plotting a dendrogram with prototypes (see
+<code>plotwithprototypes</code>).  As with <code>cutree</code>, if both k and h
+are given, h is ignored. Unlike <code>cutree</code>, in current version k and h
+cannot be vectors.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list corresponding to the clustering from cutting tree:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>cl</code></td>
+<td>
+<p>vector of cluster memberships</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>protos</code></td>
+<td>
+<p>vector of prototype
+indices corresponding to the k clusters created.  <code>protos[i]</code> gives the
+index of the prototype for all elements with <code>cl==i</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>imerge</code></td>
+<td>
+<p>vector describing the nodes where prototypes occur. We use the
+naming convention of the <code>merge</code> matrix in <code>hclust</code>: if
+<code>imerge[i]</code> is positive, it is the interior node (counting from the
+bottom) of the cluster with elements <code>which(cl==i)</code>; if
+<code>imerge[i]</code> is negative, then this is a singleton cluster with a leaf
+as prototype.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Jacob Bien and Rob Tibshirani
+</p>
+
+
+<h3>References</h3>
+
+<p>Bien, J., and Tibshirani, R. (2011), "Hierarchical Clustering
+with Prototypes via Minimax Linkage," <em>The Journal of the American 
+Statistical Association</em>, 106(495), 1075-1084.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>protoclust</code>, <code>cutree</code>,
+<code>plotwithprototypes</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# generate some data:
+set.seed(1)
+n &lt;- 100
+p &lt;- 2
+x &lt;- matrix(rnorm(n * p), n, p)
+rownames(x) &lt;- paste("A", 1:n, sep="")
+d &lt;- dist(x)
+
+# perform minimax linkage clustering:
+hc &lt;- protoclust(d)
+
+# cut the tree to yield a 10-cluster clustering:
+k &lt;- 10 # number of clusters
+cut &lt;- protocut(hc, k=k)
+h &lt;- hc$height[n - k]
+
+# plot dendrogram (and show cut):
+plotwithprototypes(hc, imerge=cut$imerge, col=2)
+abline(h=h, lty=2)
+
+# get the prototype assigned to each point:
+pr &lt;- cut$protos[cut$cl]
+
+# find point farthest from its prototype:
+dmat &lt;- as.matrix(d)
+ifar &lt;- which.max(dmat[cbind(1:n, pr[1:n])])
+
+# note that this distance is exactly h:
+stopifnot(dmat[ifar, pr[ifar]] == h)
+
+# since this is a 2d example, make 2d display:
+plot(x, type="n")
+points(x, pch=20, col="lightblue")
+lines(rbind(x[ifar, ], x[pr[ifar], ]), col=3)
+points(x[cut$protos, ], pch=20, col="red")
+text(x[cut$protos, ], labels=hc$labels[cut$protos], pch=19)
+tt &lt;- seq(0, 2 * pi, length=100)
+for (i in cut$protos) {
+  lines(x[i, 1] + h * cos(tt), x[i, 2] + h * sin(tt))
+}
+
+</code></pre>
+
+
+</div>

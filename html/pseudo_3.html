@@ -1,0 +1,126 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pseudosurv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Pseudo-observations for the Kaplan-Meier estimate</h2>
+
+<h3>Description</h3>
+
+<p>Computes pseudo-observations for modeling survival function based on the Kaplan-Meier estimator.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pseudosurv(time,event, tmax)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>the follow up time.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>event</code></td>
+<td>
+
+<p>the status indicator: 0=alive, 1=dead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tmax</code></td>
+<td>
+
+<p>a vector of time points at which the pseudo-observations are to be computed. If missing, the pseudo-observations are
+reported at each event time.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function calculates the pseudo-observations for the value of the survival function at prespecified time-points for each individual.
+The pseudo-observations can be used for fitting a regression model with a generalized estimating equation.
+No missing values in either <code>time</code> or <code>event</code>
+vector are allowed.
+</p>
+<p>Please note that the output of the function has changed and the usage is thus no longer the same as in the reference paper - the new usage is described in the example below.
+Similar (faster) version of the function is available in the R-package prodlim (<code>jackknife</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing the following objects:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>The ordered time points at which the pseudo-observations are evaluated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pseudo</code></td>
+<td>
+<p>A matrix. Each row belongs to one individual (ordered as in the original data set),
+each column presents a time point (ordered in time). </p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Klein J.P., Gerster M., Andersen P.K., Tarima S., POHAR PERME, M.: "SAS and R Functions to Compute Pseudo-values for Censored Data Regression." <em>Comput. methods programs biomed.</em>, 2008, 89 (3): 289-300 
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pseudomean</code>,
+<code>pseudoci</code>,
+<code>pseudoyl</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(KMsurv)
+data(bmt)
+
+#calculate the pseudo-observations
+cutoffs &lt;- c(50,105,170,280,530)
+pseudo &lt;- pseudosurv(time=bmt$t2,event=bmt$d3,tmax=cutoffs)
+
+
+#rearrange the data into a long data set
+b &lt;- NULL
+for(it in 1:length(pseudo$time)){
+	b &lt;- rbind(b,cbind(bmt,pseudo = pseudo$pseudo[,it],
+	     tpseudo = pseudo$time[it],id=1:nrow(bmt)))
+}
+b &lt;- b[order(b$id),]
+
+
+
+#fit a Cox model using GEE
+library(geepack)
+summary(fit &lt;- geese(pseudo~as.factor(tpseudo)+as.factor(group)+
+        as.factor(z8)+z1,data=b,scale.fix=TRUE,family=gaussian,
+        jack=TRUE, mean.link="cloglog",corstr="independence"))
+
+#The results using the AJ variance estimate
+round(cbind(mean = fit$beta,SD = sqrt(diag(fit$vbeta.ajs)),
+	Z = fit$beta/sqrt(diag(fit$vbeta.ajs)),	PVal =
+	2-2*pnorm(abs(fit$beta/sqrt(diag(fit$vbeta.ajs))))),4)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,174 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>phe_dsr</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate Directly Standardised Rates using phe_dsr</h2>
+
+<h3>Description</h3>
+
+<p>Calculates directly standardised rates with confidence limits using Byar's
+method (1) with Dobson method adjustment (2).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">phe_dsr(
+  data,
+  x,
+  n,
+  stdpop = esp2013,
+  stdpoptype = "vector",
+  type = "full",
+  confidence = 0.95,
+  multiplier = 1e+05
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>data.frame containing the data to be standardised, pre-grouped if
+multiple DSRs required; unquoted string; no default</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>field name from data containing the observed number of events for
+each standardisation category (eg ageband) within each grouping set (eg
+area); unquoted string; no default</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>field name from data containing the populations for each
+standardisation category (eg ageband) within each grouping set (eg area);
+unquoted string; no default</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stdpop</code></td>
+<td>
+<p>the standard populations for each standardisation category (eg
+age band); unquoted string referencing a numeric vector or field name from
+data depending on value of stdpoptype; default = esp2013</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stdpoptype</code></td>
+<td>
+<p>whether the stdpop has been specified as a vector or a
+field name from data; quoted string "field" or "vector"; default = "vector"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>defines the data and metadata columns to be included in output;
+can be "value", "lower", "upper", "standard" (for all data) or "full" (for
+all data and metadata); quoted string; default = "full"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>confidence</code></td>
+<td>
+<p>the required level of confidence expressed as a number
+between 0.9 and 1 or a number between 90 and 100 or can be a vector of 0.95
+and 0.998, for example, to output both 95 percent and 99.8 percent percent CIs; numeric;
+default 0.95</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multiplier</code></td>
+<td>
+<p>the multiplier used to express the final values (eg 100,000
+= rate per 100,000); numeric; default 100,000</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>When type = "full", returns a tibble of total counts, total
+populations, directly standardised rates, lower confidence limits, upper
+confidence limits, confidence level, statistic and method for each grouping
+set
+</p>
+
+
+<h3>Notes</h3>
+
+<p>User MUST ensure that x, n and stdpop vectors are all ordered
+by the same standardisation category values as records will be matched by
+position. <br><br> For total counts &gt;= 10 Byar's method (1) is applied using
+the internal byars_lower and byars_upper functions.
+When the total count is &lt; 10 DSRs are not reliable and will therefore not
+be calculated.
+</p>
+
+
+<h3>References</h3>
+
+<p>(1) Breslow NE, Day NE. Statistical methods in cancer research,
+volume II: The design and analysis of cohort studies. Lyon: International
+Agency for Research on Cancer, World Health Organisation; 1987. <br><br>
+(2) Dobson A et al. Confidence intervals for weighted sums of Poisson parameters. Stat Med 1991;10:457-62.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other PHEindicatormethods package functions: 
+<code>assign_funnel_significance()</code>,
+<code>calculate_ISRate()</code>,
+<code>calculate_ISRatio()</code>,
+<code>calculate_funnel_limits()</code>,
+<code>calculate_funnel_points()</code>,
+<code>phe_life_expectancy()</code>,
+<code>phe_mean()</code>,
+<code>phe_proportion()</code>,
+<code>phe_quantile()</code>,
+<code>phe_rate()</code>,
+<code>phe_sii()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(dplyr)
+df &lt;- data.frame(indicatorid = rep(c(1234, 5678, 91011, 121314),
+                 each = 19 * 2 * 5),
+                 year = rep(2006:2010, each = 19 * 2),
+                 sex = rep(rep(c("Male", "Female"), each = 19), 5),
+                 ageband = rep(c(0,5,10,15,20,25,30,35,40,45,
+                                 50,55,60,65,70,75,80,85,90), times = 10),
+                 obs = sample(200, 19 * 2 * 5 * 4, replace = TRUE),
+                 pop = sample(10000:20000, 19 * 2 * 5 * 4, replace = TRUE))
+
+## default execution
+df %&gt;%
+    group_by(indicatorid, year, sex) %&gt;%
+    phe_dsr(obs, pop)
+
+## calculate both 95% and 99.8% CIs in single execution
+df %&gt;%
+    group_by(indicatorid, year, sex) %&gt;%
+    phe_dsr(obs, pop, confidence = c(0.95, 0.998))
+
+## calculate DSRs for multiple grouping sets in single execution
+
+df %&gt;%
+    group_by(indicatorid, year, sex) %&gt;%
+    phe_dsr(obs, pop, type = "standard")
+
+</code></pre>
+
+
+</div>

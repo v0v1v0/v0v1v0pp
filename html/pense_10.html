@@ -1,0 +1,425 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pense_cv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Cross-validation for (Adaptive) PENSE Estimates</h2>
+
+<h3>Description</h3>
+
+<p>Perform (repeated) K-fold cross-validation for <code>pense()</code>.
+</p>
+<p><code>adapense_cv()</code> is a convenience wrapper to compute adaptive
+PENSE estimates.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pense_cv(
+  x,
+  y,
+  standardize = TRUE,
+  lambda,
+  cv_k,
+  cv_repl = 1,
+  cv_metric = c("tau_size", "mape", "rmspe", "auroc"),
+  fit_all = TRUE,
+  fold_starts = c("full", "enpy", "both"),
+  cl = NULL,
+  ...
+)
+
+adapense_cv(x, y, alpha, alpha_preliminary = 0, exponent = 1, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>n</code> by <code>p</code> matrix of numeric predictors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>vector of response values of length <code>n</code>.
+For binary classification, <code>y</code> should be a factor with 2 levels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardize</code></td>
+<td>
+<p>whether to standardize the <code>x</code> variables prior to fitting
+the PENSE estimates. Can also be set to <code>"cv_only"</code>, in which case the
+input data is not standardized, but the training data in the CV folds is
+scaled to match the scaling of the input data.
+Coefficients are always returned on the original scale.
+This can fail for variables with a large proportion of a single value
+(e.g., zero-inflated data).
+In this case, either compute with <code>standardize = FALSE</code> or standardize
+the data manually.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>optional user-supplied sequence of penalization levels. If given and not <code>NULL</code>,
+<code>nlambda</code> and <code>lambda_min_ratio</code> are ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv_k</code></td>
+<td>
+<p>number of folds per cross-validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv_repl</code></td>
+<td>
+<p>number of cross-validation replications.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv_metric</code></td>
+<td>
+<p>either a string specifying the performance metric to use, or a function to
+evaluate prediction errors in a single CV replication.
+If a function, the number of arguments define the data the function receives.
+If the function takes a single argument, it is called with a single numeric vector of
+prediction errors.
+If the function takes two or more arguments, it is called with the predicted values as
+first argument and the true values as second argument.
+The function must always return a single numeric value quantifying the prediction performance.
+The order of the given values corresponds to the order in the input data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit_all</code></td>
+<td>
+<p>If <code>TRUE</code>, fit the model for all penalization levels.
+Can also be any combination of <code>"min"</code> and <code>"{x}-se"</code>, in which case only models at the
+penalization level with smallest average CV accuracy, or within <code>{x}</code> standard errors,
+respectively.
+Setting <code>fit_all</code> to <code>FALSE</code> is equivalent to <code>"min"</code>.
+Applies to all <code>alpha</code> value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fold_starts</code></td>
+<td>
+<p>how to determine starting values in the
+cross-validation folds. If <code>"full"</code> (default), use the best solution from
+the fit to the full data as starting value. This implies
+<code>fit_all=TRUE</code>.
+If <code>"enpy"</code> compute separate ENPY initial estimates in each fold.
+The option <code>"both"</code> uses both.
+These starts are in addition to the starts provided in <code>other_starts</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cl</code></td>
+<td>
+<p>a parallel cluster. Can only be used in combination with
+<code>ncores = 1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Arguments passed on to <code>pense</code>
+</p>
+
+<dl>
+<dt><code>nlambda</code></dt>
+<dd>
+<p>number of penalization levels.</p>
+</dd>
+<dt><code>lambda_min_ratio</code></dt>
+<dd>
+<p>Smallest value of the penalization level as a fraction of the largest
+level (i.e., the smallest value for which all coefficients are zero). The default depends on
+the sample size relative to the number of variables and <code>alpha</code>. If more observations than
+variables are available, the default is <code>1e-3 * alpha</code>, otherwise <code>1e-2 * alpha</code>.</p>
+</dd>
+<dt><code>nlambda_enpy</code></dt>
+<dd>
+<p>number of penalization levels where the EN-PY initial estimate is computed.</p>
+</dd>
+<dt><code>penalty_loadings</code></dt>
+<dd>
+<p>a vector of positive penalty loadings (a.k.a. weights) for different
+penalization of each coefficient. Only allowed for <code>alpha</code> &gt; 0.</p>
+</dd>
+<dt><code>enpy_lambda</code></dt>
+<dd>
+<p>optional user-supplied sequence of penalization levels at which EN-PY
+initial estimates are computed. If given and not <code>NULL</code>, <code>nlambda_enpy</code> is ignored.</p>
+</dd>
+<dt><code>other_starts</code></dt>
+<dd>
+<p>a list of other staring points, created by <code>starting_point()</code>.
+If the output of <code>enpy_initial_estimates()</code> is given, the starting points will be <em>shared</em>
+among all penalization levels.
+Note that if a the starting point is <em>specific</em> to a penalization level, this penalization
+level is added to the grid of penalization levels (either the manually specified grid in
+<code>lambda</code> or the automatically generated grid of size <code>nlambda</code>).
+If <code>standardize = TRUE</code>, the starting points are also scaled.</p>
+</dd>
+<dt><code>intercept</code></dt>
+<dd>
+<p>include an intercept in the model.</p>
+</dd>
+<dt><code>bdp</code></dt>
+<dd>
+<p>desired breakdown point of the estimator, between 0.05 and 0.5. The actual
+breakdown point may be slightly larger/smaller to avoid instabilities of the S-loss.</p>
+</dd>
+<dt><code>cc</code></dt>
+<dd>
+<p>tuning constant for the S-estimator. Default is chosen based on the breakdown
+point <code>bdp</code>. This affects the estimated coefficients only if
+<code>standardize=TRUE</code>. Otherwise only the estimated scale of the residuals
+would be affected.</p>
+</dd>
+<dt><code>eps</code></dt>
+<dd>
+<p>numerical tolerance.</p>
+</dd>
+<dt><code>explore_solutions</code></dt>
+<dd>
+<p>number of solutions to compute up to the desired precision <code>eps</code>.</p>
+</dd>
+<dt><code>explore_tol,explore_it</code></dt>
+<dd>
+<p>numerical tolerance and maximum number of iterations for
+exploring possible solutions. The tolerance should be (much) looser than <code>eps</code> to be useful,
+and the number of iterations should also be much smaller than the maximum number of
+iterations given via <code>algorithm_opts</code>.</p>
+</dd>
+<dt><code>max_solutions</code></dt>
+<dd>
+<p>only retain up to <code>max_solutions</code> unique solutions per penalization level.</p>
+</dd>
+<dt><code>comparison_tol</code></dt>
+<dd>
+<p>numeric tolerance to determine if two solutions are equal.
+The comparison is first done on the absolute difference in the value of the objective
+function at the solution If this is less than <code>comparison_tol</code>, two solutions are deemed
+equal if the squared difference of the intercepts is less than <code>comparison_tol</code> and the
+squared <code class="reqn">L_2</code> norm of the difference vector is less than <code>comparison_tol</code>.</p>
+</dd>
+<dt><code>add_zero_based</code></dt>
+<dd>
+<p>also consider the 0-based regularization path. See details for a
+description.</p>
+</dd>
+<dt><code>enpy_specific</code></dt>
+<dd>
+<p>use the EN-PY initial estimates only at the penalization level they
+are computed for. See details for a description.</p>
+</dd>
+<dt><code>carry_forward</code></dt>
+<dd>
+<p>carry the best solutions forward to the next penalty
+level.</p>
+</dd>
+<dt><code>sparse</code></dt>
+<dd>
+<p>use sparse coefficient vectors.</p>
+</dd>
+<dt><code>ncores</code></dt>
+<dd>
+<p>number of CPU cores to use in parallel. By default, only one CPU core is used.
+Not supported on all platforms, in which case a warning is given.</p>
+</dd>
+<dt><code>algorithm_opts</code></dt>
+<dd>
+<p>options for the MM algorithm to compute the estimates.
+See <code>mm_algorithm_options()</code> for details.</p>
+</dd>
+<dt><code>mscale_opts</code></dt>
+<dd>
+<p>options for the M-scale estimation. See <code>mscale_algorithm_options()</code>
+for details.</p>
+</dd>
+<dt><code>enpy_opts</code></dt>
+<dd>
+<p>options for the ENPY initial estimates, created with the
+<code>enpy_options()</code> function. See <code>enpy_initial_estimates()</code> for details.</p>
+</dd>
+<dt><code>cv_k,cv_objective</code></dt>
+<dd>
+<p>deprecated and ignored. See <code>pense_cv()</code> for estimating
+prediction performance via cross-validation.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>elastic net penalty mixing parameter with <code class="reqn">0 \le \alpha \le 1</code>.
+<code>alpha = 1</code> is the LASSO penalty, and <code>alpha = 0</code> the Ridge penalty.
+Can be a vector of several values, but <code>alpha = 0</code> cannot be mixed with other values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha_preliminary</code></td>
+<td>
+<p><code>alpha</code> parameter for the preliminary estimate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exponent</code></td>
+<td>
+<p>the exponent for computing the penalty loadings based on
+the preliminary estimate.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The built-in CV metrics are
+</p>
+
+<dl>
+<dt><code>"tau_size"</code></dt>
+<dd>
+<p><code class="reqn">\tau</code>-size of the prediction error, computed by
+<code>tau_size()</code> (default).</p>
+</dd>
+<dt><code>"mape"</code></dt>
+<dd>
+<p>Median absolute prediction error.</p>
+</dd>
+<dt><code>"rmspe"</code></dt>
+<dd>
+<p>Root mean squared prediction error.</p>
+</dd>
+<dt><code>"auroc"</code></dt>
+<dd>
+<p>Area under the receiver operator characteristic curve (actually 1 - AUROC).
+Only sensible for binary responses.</p>
+</dd>
+</dl>
+<p><code>adapense_cv()</code> is a convenience wrapper which performs 3 steps:
+</p>
+
+<ol>
+<li>
+<p> compute preliminary estimates via
+<code>pense_cv(..., alpha = alpha_preliminary)</code>,
+</p>
+</li>
+<li>
+<p> computes the penalty loadings from the estimate <code>beta</code> with best
+prediction performance by
+<code>adapense_loadings = 1 / abs(beta)^exponent</code>, and
+</p>
+</li>
+<li>
+<p> compute the adaptive PENSE estimates via
+<code>pense_cv(..., penalty_loadings = adapense_loadings)</code>.
+</p>
+</li>
+</ol>
+<h3>Value</h3>
+
+<p>a list-like object with the same components as returned by <code>pense()</code>,
+plus the following:
+</p>
+
+<dl>
+<dt><code>cvres</code></dt>
+<dd>
+<p>data frame of average cross-validated performance.</p>
+</dd>
+</dl>
+<p>a list-like object as returned by <code>pense_cv()</code> plus the following
+</p>
+
+<dl>
+<dt><code>preliminary</code></dt>
+<dd>
+<p>the CV results for the preliminary estimate.</p>
+</dd>
+<dt><code>exponent</code></dt>
+<dd>
+<p>exponent used to compute the penalty loadings.</p>
+</dd>
+<dt><code>penalty_loadings</code></dt>
+<dd>
+<p>penalty loadings used for the
+adaptive PENSE estimate.</p>
+</dd>
+</dl>
+<h3>See Also</h3>
+
+<p><code>pense()</code> for computing regularized S-estimates without
+cross-validation.
+</p>
+<p><code>coef.pense_cvfit()</code> for extracting coefficient estimates.
+</p>
+<p><code>plot.pense_cvfit()</code> for plotting the CV performance or the
+regularization path.
+</p>
+<p>Other functions to compute robust estimates with CV: 
+<code>pensem_cv()</code>,
+<code>regmest_cv()</code>
+</p>
+<p>Other functions to compute robust estimates with CV: 
+<code>pensem_cv()</code>,
+<code>regmest_cv()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Compute the adaptive PENSE regularization path for Freeny's
+# revenue data (see ?freeny)
+data(freeny)
+x &lt;- as.matrix(freeny[ , 2:5])
+
+## Either use the convenience function directly ...
+set.seed(123)
+ada_convenience &lt;- adapense_cv(x, freeny$y, alpha = 0.5,
+                               cv_repl = 2, cv_k = 4)
+
+## ... or compute the steps manually:
+# Step 1: Compute preliminary estimates with CV
+set.seed(123)
+preliminary_estimate &lt;- pense_cv(x, freeny$y, alpha = 0,
+                                 cv_repl = 2, cv_k = 4)
+plot(preliminary_estimate, se_mult = 1)
+
+# Step 2: Use the coefficients with best prediction performance
+# to define the penalty loadings:
+prelim_coefs &lt;- coef(preliminary_estimate, lambda = 'min')
+pen_loadings &lt;- 1 / abs(prelim_coefs[-1])
+
+# Step 3: Compute the adaptive PENSE estimates and estimate
+# their prediction performance.
+set.seed(123)
+ada_manual &lt;- pense_cv(x, freeny$y, alpha = 0.5,
+                       cv_repl = 2, cv_k = 4,
+                       penalty_loadings = pen_loadings)
+
+# Visualize the prediction performance and coefficient path of
+# the adaptive PENSE estimates (manual vs. automatic)
+def.par &lt;- par(no.readonly = TRUE)
+layout(matrix(1:4, ncol = 2, byrow = TRUE))
+plot(ada_convenience$preliminary)
+plot(preliminary_estimate)
+plot(ada_convenience)
+plot(ada_manual)
+par(def.par)
+</code></pre>
+
+
+</div>

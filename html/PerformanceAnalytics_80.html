@@ -1,0 +1,170 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>clean.boudt</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>clean extreme observations in a time series to to provide more robust risk
+estimates</h2>
+
+<h3>Description</h3>
+
+<p>Robustly clean a time series to reduce the magnitude, but not the number or
+direction, of observations that exceed the <code class="reqn">1-\alpha\%</code> risk threshold.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">clean.boudt(R, alpha = 0.01, trim = 0.001)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+<p>an xts, vector, matrix, data frame, timeSeries or zoo object of
+asset returns</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>probability to filter at 1-alpha, defaults to .01 (99%)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trim</code></td>
+<td>
+<p>where to set the "extremeness" of the Mahalanobis distance</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Many risk measures are calculated by using the first two (four) moments of
+the asset or portfolio return distribution. Portfolio moments are extremely
+sensitive to data spikes, and this sensitivity is only exacerbated in a
+multivariate context. For this reason, it seems appropriate to consider
+estimates of the multivariate moments that are robust to return observations
+that deviate extremely from the Gaussian distribution.
+</p>
+<p>There are two main approaches in defining robust alternatives to estimate
+the multivariate moments by their sample means (see e.g. Maronna[2006]). One
+approach is to consider a more robust estimator than the sample means.
+Another one is to first clean (in a robust way) the data and then take the
+sample means and moments of the cleaned data.
+</p>
+<p>Our cleaning method follows the second approach. It is designed in such a
+way that, if we want to estimate downside risk with loss probability
+<code class="reqn">\alpha</code>, it will never clean observations that belong to the
+<code class="reqn">1-\alpha</code> least extreme observations. Suppose we have an
+<code class="reqn">n</code>-dimensional vector time series of length <code class="reqn">T</code>: <code class="reqn">r_1,...,r_T</code>.
+We clean this time series in three steps.
+</p>
+ <ol>
+<li> <p><em> Ranking the observations in function of their
+extremeness. </em>Denote <code class="reqn">\mu</code> and <code class="reqn">\Sigma</code> the mean and covariance
+matrix of the bulk of the data and let <code class="reqn">\lfloor \cdot \rfloor</code>
+be the operator that takes the integer part of its argument. As a measure of
+the extremeness of the return observation <code class="reqn">r_t</code>, we use its squared
+Mahalanobis distance <code class="reqn"> d^2_t = (r_t-\mu)'\Sigma^{-1}(r_t-\mu)</code>.  We
+follow Rousseeuw(1985) by estimating <code class="reqn">\mu</code> and <code class="reqn">\Sigma</code> as the mean
+vector and covariance matrix (corrected to ensure consistency) of the subset
+of size <code class="reqn">\lfloor (1-\alpha)T\rfloor</code> for which the
+determinant of the covariance matrix of the elements in that subset is the
+smallest. These estimates will be robust against the <code class="reqn">\alpha</code> most
+extreme returns. Let <code class="reqn">d^2_{(1)},...,d^2_{(T)}</code> be the ordered sequence
+of the estimated squared Mahalanobis distances such that <code class="reqn">d^2_{(i)}\leq
+d^2_{(i+1)}</code>.
+</p>
+</li>
+<li> <p><em>Outlier identification.</em> Return observations are qualified as
+outliers if their estimated squared Mahalanobis distance <code class="reqn">d^2_t</code> is
+greater than the empirical <code class="reqn">1-\alpha</code> quantile <code class="reqn">d^2_{(\lfloor
+(1-\alpha)T \rfloor)}</code> and exceeds a very extreme
+quantile of the Chi squared distribution function with <code class="reqn">n</code> degrees of
+freedom, which is the distribution function of <code class="reqn">d^2_t</code> when the returns
+are normally distributed. In this application we take the 99.9% quantile,
+denoted <code class="reqn">\chi ^2_{n,0.999}</code>.
+</p>
+</li>
+<li> <p><em>Data cleaning. </em> Similarly to Khan(2007) we only clean the
+returns that are identified as outliers in step 2 
+by replacing these returns <code class="reqn">r_t</code> with 
+</p>
+<p style="text-align: center;"><code class="reqn">r_t\sqrt{\frac{\max(d^2_{(\lfloor(1-\alpha)T)\rfloor},\chi^2_{n,0.999})}{d^2_t}}</code>
+</p>
+
+<p>The cleaned
+return vector has the same orientation as the original return vector, but
+its magnitude is smaller. Khan(2007) calls this procedure of limiting the
+value of <code class="reqn">d^2_t</code> to a quantile of the <code class="reqn">\chi^2_n</code> distribution,
+“multivariate Winsorization'.
+</p>
+</li>
+</ol>
+<p>Note that the primary value of data cleaning lies in creating a more robust
+and stable estimation of the distribution describing the large majority of
+the return data. The increased robustness and stability of the estimated
+moments utilizing cleaned data should be used for portfolio construction. If
+a portfolio manager wishes to have a more conservative risk estimate,
+cleaning may not be indicated for risk monitoring. It is also important to
+note that the robust method proposed here does not remove data from the
+series, but only decreases the magnitude of the extreme events. It may also
+be appropriate in practice to use a cleaning threshold somewhat outside the
+VaR threshold that the manager wishes to consider. In actual practice, it is
+probably best to back-test the results of both cleaned and uncleaned series
+to see what works best with the particular combination of assets under
+consideration.
+</p>
+
+
+<h3>Value</h3>
+
+<p>cleaned data matrix
+</p>
+
+
+<h3>Note</h3>
+
+<p>This function and much of this text was originally written for Boudt,
+et. al, 2008
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Kris Boudt, Brian G. Peterson
+</p>
+
+
+<h3>References</h3>
+
+<p>Boudt, K., Peterson, B. G., Croux, C., 2008. Estimation and
+Decomposition of Downside Risk for Portfolios with Non-Normal Returns.
+Journal of Risk, forthcoming.
+</p>
+<p>Khan, J. A., S. Van Aelst, and R. H. Zamar (2007). Robust linear model
+selection based on least angle regression. Journal of the American
+Statistical Association 102.
+</p>
+<p>Maronna, R. A., D. R. Martin, and V. J. Yohai (2006). Robust Statistics:
+Theory and Methods. Wiley.
+</p>
+<p>Rousseeuw, P. J. (1985). Multivariate estimation with high breakdown point.
+In W. Grossmann, G. Pflug, I. Vincze, and W. Wertz (Eds.), Mathematical
+Statistics and Its Applications, Volume B, pp. 283?297. Dordrecht-Reidel.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>Return.clean</code>
+</p>
+
+
+</div>

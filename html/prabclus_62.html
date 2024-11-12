@@ -1,0 +1,268 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>regdistbetweenone</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Testing equality of one within-group and between-two groups
+distances regression</h2>
+
+<h3>Description</h3>
+
+<p>Jackknife-based test for equality of two regressions between
+distances. Given two groups of objects, this tests whether the
+regression involving the distances within one of the groups is compatible
+with the regression involving the same within-group distances together
+with the between group distances.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">regdistbetweenone(dmx,dmy,grouping,groups=levels(as.factor(grouping))[1:2],rgroup)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dmx</code></td>
+<td>
+<p>dissimilarity matrix or object of class
+<code>dist</code>. Explanatory dissimilarities (often these will be proper
+distances, but more general dissimilarities that do not
+necessarily fulfill the triangle inequality can be used, same for <code>dmy</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dmy</code></td>
+<td>
+<p>dissimilarity matrix or object of class
+<code>dist</code>. Response dissimilarities.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grouping</code></td>
+<td>
+<p>something that can be coerced into a factor,
+defining the grouping of
+objects represented by the dissimilarities <code>dmx</code> and <code>dmy</code>
+(i.e., if <code>grouping</code> has length n, <code>dmx</code> and <code>dmy</code>
+must be dissimilarities between <code>n</code> objects).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groups</code></td>
+<td>
+<p>vector of two levels. The two groups defining the
+regressions to be compared in the test. These can be
+factor levels, integer numbers, or strings, depending on the entries
+of <code>grouping</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rgroup</code></td>
+<td>
+<p>one of the levels in <code>groups</code>, denoting the group
+of which within-group dissimilarities are considered.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The null hypothesis that the regressions based on the distances
+within group <code>species</code> and based on these distances together with
+the between-groups distances are
+equal is tested using jackknife pseudovalues. The test statistic is
+the difference between fitted
+values with x (explanatory variable) fixed at the center of the
+between-group distances. The test is run one-sided, i.e., the null
+hypothesis is only rejected if the between-group distances are larger
+than expected under the null hypothesis, see below. For the jackknife,
+observations from both groups are left out one at a time. However, the
+roles of the two groups are different (observations from group
+<code>species</code> are used in both regressions whereas observations from
+the other group are only used in one of them), and therefore the
+corresponding jackknife pseudovalues can have different variances. To
+take this into account, variances are pooled, and the degrees of
+freedom of the t-test are computed by the Welch-Sattertwaithe
+approximation for aggregation of different variances.
+</p>
+<p>The test cannot be run and many components will be <code>NA</code> in case that
+within-group regressions or jackknifed within-group regressions are
+ill-conditioned.
+</p>
+<p>This was implemented having in mind an application in which the
+explanatory distances represent geographical distances, the response
+distances are genetic distances, and groups represent species or
+species-candidates. In this application, for testing whether the
+regression patterns are compatble with the two groups behaving like a
+single species, one would first use <code>regeqdist</code> to test whether a
+joint regression for the within-group distances of both groups makes
+sense. If this is not rejected, <code>regdistbetween</code> is run to see
+whether the between-group distances are compatible with the
+within-group distances. 
+If a joint regression on
+within-group distances is rejected by <code>regeqdist</code>,
+<code>regdistbetweenone</code> can be
+used to test whether the between-group distances are at least
+compatible with the within-group distances of one of the groups, which
+can still be the case within a single species, see Hausdorf and Hennig
+(2019). This
+is only rejected if the between-group
+distances are larger than expected under equality of regressions,
+because if they are smaller, this is not an indication against the
+groups belonging together genetically. To this end,
+<code>regdistbetweenone</code> needs to be run twice using both groups as
+<code>species</code>. This will produce two p-values. The null hypothesis
+that the regressions are compatible for at least one group can be
+rejected if the maximum of the two p-values is smaller than the chosen
+significance level.
+</p>
+
+
+<h3>Value</h3>
+
+<p>list of class <code>"regdistbetween"</code> with components
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>pval</code></td>
+<td>
+<p>p-value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coeffdiff</code></td>
+<td>
+<p>difference between regression fits (within-group
+together with between-groups distances
+minus within-group distances only) at <code>xcenterbetween</code>, see
+below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>condition</code></td>
+<td>
+<p>condition numbers of regressions, see <code>kappa</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lmfit</code></td>
+<td>
+<p>list. Output objects of <code>lm</code> within the two groups.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>jr</code></td>
+<td>
+<p>output object of <code>jackknife</code> for difference
+between regression fitted values at <code>xcenterbetween</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xcenter</code></td>
+<td>
+<p>mean of within-group distances for group <code>species</code>
+of explanatory variable, used for centering.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xcenterbetween</code></td>
+<td>
+<p>mean of between-groups distances of explanatory
+variable (after centering by <code>xcenter</code>); at this point
+regression fitted values are computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tstat</code></td>
+<td>
+<p>t-statistic.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tdf</code></td>
+<td>
+<p>degrees of freedom of t-statistic according to
+Welch-Sattertwaithe approximation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>jackest</code></td>
+<td>
+<p>jackknife-estimator of difference between regression
+fitted values at <code>xcenterbetween</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>jackse</code></td>
+<td>
+<p>jackknife-standard error for
+<code>jackest</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>jackpseudo</code></td>
+<td>
+<p>vector of jacknife pseudovalues on which the test is
+based.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groups</code></td>
+<td>
+<p>see above.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>species</code></td>
+<td>
+<p>see above.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>testname</code></td>
+<td>
+<p>title to be printed out when using
+<code>print.regdistbetween</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Christian Hennig
+<a href="mailto:christian.hennig@unibo.it">christian.hennig@unibo.it</a>
+<a href="https://www.unibo.it/sitoweb/christian.hennig/en">https://www.unibo.it/sitoweb/christian.hennig/en</a></p>
+
+
+<h3>References</h3>
+
+<p>Hausdorf, B. and Hennig, C. (2019) Species delimitation and
+geography. Submitted.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>regeqdist</code>, <code>regdistbetweenone</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">  options(digits=4)
+  data(veronica)
+  ver.geo &lt;- coord2dist(coordmatrix=veronica.coord[173:207,],file.format="decimal2")
+  vei &lt;- prabinit(prabmatrix=veronica[173:207,],distance="jaccard")
+
+  species &lt;-c(rep(1,13),rep(2,22))
+  loggeo &lt;- log(ver.geo+quantile(as.vector(as.dist(ver.geo)),0.25))
+  rtest3 &lt;-
+  regdistbetweenone(dmx=loggeo,dmy=vei$distmat,grouping=species,groups=c(1,2),rgroup=1)
+  print(rtest3)
+</code></pre>
+
+
+</div>

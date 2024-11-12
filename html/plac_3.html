@@ -1,0 +1,190 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PLAC</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate the PLAC estimator when a time-dependent indicator presents</h2>
+
+<h3>Description</h3>
+
+<p>Both a conditional approach Cox model and a pairwise likelihood augmented
+estimator are fitted and the corresponding results are returned in a list.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PLAC(
+  ltrc.formula,
+  ltrc.data,
+  id.var = "ID",
+  td.type = "none",
+  td.var = NULL,
+  t.jump = NULL,
+  init.val = NULL,
+  max.iter = 100,
+  print.result = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ltrc.formula</code></td>
+<td>
+<p>a formula of of the form <code>Surv(A, Y, D) ~ Z</code>, where
+<code>Z</code> only include the time-invariate covariates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ltrc.data</code></td>
+<td>
+<p>a data.frame of the LTRC dataset including the responses,
+time-invariate covariates and the jump times for the time-depnencent
+covariate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id.var</code></td>
+<td>
+<p>the name of the subject id in <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>td.type</code></td>
+<td>
+<p>the type of the time-dependent covariate. Either one of
+<code>c("none", "independent", "post-trunc", "pre-post-trunc")</code>. See
+Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>td.var</code></td>
+<td>
+<p>the name of the time-dependent covariate in the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t.jump</code></td>
+<td>
+<p>the name of the jump time variable in <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init.val</code></td>
+<td>
+<p>a list of the initial values of the coefficients and the
+baseline hazard function for the PLAC estimator.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.iter</code></td>
+<td>
+<p>the maximal number of iteration for the PLAC estimator</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>print.result</code></td>
+<td>
+<p>logical, if a brief summary of the regression coefficient
+estiamtes should be printed out.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>other arguments</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>ltrc.formula</code> should have the same form as used in
+<code>coxph()</code>; e.g., <code>Surv(A, Y, D) ~ Z1 + Z2</code>. where <code>(A, Y,
+  D)</code> are the truncation time, the survival time  and the status indicator
+(<code>(tstart, tstop, event)</code> as in <code>coxph</code>).
+<code>td.type</code> is used to determine which <code>C++</code> function will be
+invoked: either <code>PLAC_TI</code> (if <code>td.type = "none"</code>), <code>PLAC_TD</code>
+(if <code>td.type = "independent"</code>) or <code>PLAC_TDR</code>) (if <code>td.type
+  %in% c("post-trunc", "pre-post-trunc")</code>). For <code>td.type =
+  "post-trunc"</code>, the pre-truncation values for the time-dependent covariate
+will be set to be zero for all subjects.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a list of model fitting results for both conditional approach and the
+PLAC estimators.
+</p>
+
+<dl>
+<dt><code>Event.Time</code></dt>
+<dd>
+<p>Ordered distinct observed event times</p>
+</dd>
+<dt><code>b</code></dt>
+<dd>
+<p>Regression coefficients estiamtes</p>
+</dd>
+<dt><code>se.b</code></dt>
+<dd>
+<p>Model-based SEs of the regression coefficients
+estiamtes</p>
+</dd>
+<dt><code>H0</code></dt>
+<dd>
+<p>Estimated cumulative baseline hazard function</p>
+</dd>
+<dt><code>se.H0</code></dt>
+<dd>
+<p>Model-based SEs of the estimated cumulative baseline
+hazard function</p>
+</dd>
+<dt><code>sandwich</code></dt>
+<dd>
+<p>The sandwich estimator for (beta,
+lambda)</p>
+</dd>
+<dt><code>k</code></dt>
+<dd>
+<p>The number of iteration for used for the PLAC
+estimator</p>
+</dd>
+<dt><code>summ</code></dt>
+<dd>
+<p>A brief summary of the covariates effects</p>
+</dd>
+</dl>
+<h3>References</h3>
+
+<p>Wu, F., Kim, S., Qin, J., Saran, R., &amp; Li, Y. (2018). A pairwise likelihood augmented Cox estimator for left‐truncated data. Biometrics, 74(1), 100-108.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># When only time-invariant covariates are involved
+dat1 = sim.ltrc(n = 40)$dat
+PLAC(ltrc.formula = Surv(As, Ys, Ds) ~ Z1 + Z2,
+     ltrc.data = dat1, td.type = "none")
+# When there is a time-dependent covariate that is independent of the truncation time
+dat2 = sim.ltrc(n = 40, time.dep = TRUE,
+               distr.A = "binomial", p.A = 0.8, Cmax = 5)$dat
+PLAC(ltrc.formula = Surv(As, Ys, Ds) ~ Z,
+     ltrc.data = dat2, td.type = "independent",
+     td.var = "Zv", t.jump = "zeta")
+# When there is a time-dependent covariate that depends on the truncation time
+dat3 = sim.ltrc(n = 40, time.dep = TRUE, Zv.depA = TRUE, Cmax = 5)$dat
+PLAC(ltrc.formula = Surv(As, Ys, Ds) ~ Z,
+     ltrc.data = dat3, td.type = "post-trunc",
+     td.var = "Zv", t.jump = "zeta")
+
+</code></pre>
+
+
+</div>

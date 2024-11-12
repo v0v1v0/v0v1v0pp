@@ -1,0 +1,290 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>%&gt;&gt;%</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Pipe an object forward</h2>
+
+<h3>Description</h3>
+
+<p>The <code>%&gt;&gt;%</code> operator pipes the object on the left-hand side to the
+right-hand side according to the syntax.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">x %&gt;&gt;% expr
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expr</code></td>
+<td>
+<p>expression</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Pipe operator <code>%&gt;&gt;%</code> determines the piping mechanism by the syntax
+of the expression on the right-hand side.
+</p>
+<p><code>%&gt;&gt;%</code> supports the following syntaxes:
+</p>
+<p>1. Pipe to first unnamed argument:
+</p>
+<p>Whenever a function name or call with or without parameters follows
+the operator, the left-hand side value will be piped to the right-hand
+side function as the first unnamed argument.
+</p>
+<p><code>x %&gt;&gt;% f</code> evaluated as <code>f(x)</code>
+</p>
+<p><code>x %&gt;&gt;% f(...)</code> evaluated as <code>f(x,...)</code>
+</p>
+<p><code>x %&gt;&gt;% package::name(...)</code> evaluated as <code>package::name(x, ...)</code>
+</p>
+<p>2. Pipe to <code>.</code> in enclosed expression:
+</p>
+<p>Whenever an expression following the operator is enclosed by <code>{}</code>,
+the expression will be evaluated with <code>.</code> representing the left-hand
+side value. It is the same with expression enclosed with <code>()</code> unless
+it contains a lambda expression or assignment expression.
+</p>
+<p><code>x %&gt;&gt;% { expr }</code> evaluated as <code>{ expr }</code> given <code>. = x</code>
+</p>
+<p><code>x %&gt;&gt;% ( expr )</code> evaluated as <code>expr</code> given <code>. = x</code>
+</p>
+<p>3. Pipe by lambda expression:
+</p>
+<p>A lambda expression is a formula whose left-hand side is a symbol used to
+represent the value being piped and right-hand side is an expression to be
+evaluated with the symbol.
+</p>
+<p><code>x %&gt;&gt;% (p ~ expr)</code> as <code>expr</code> given <code>p = x</code>
+</p>
+<p>4. Pipe for side-effect:
+</p>
+<p>If one only cares about the side effect (e.g. printing intermediate
+results, plotting graphics, assigning value to symbol) of an expression
+rather than its returned value, write a lambda expression that starts
+with <code>~</code> indicating side effect (or branching, in the sense of
+pipeline building).
+</p>
+<p><code>x %&gt;&gt;% (~ f(.))</code> evaluated as <code>{f(x); x}</code>.
+</p>
+<p><code>x %&gt;&gt;% (~ p ~ f(p))</code> evaluated as <code>{f(x); x}</code>
+</p>
+<p>5. Pipe for assignment
+</p>
+<p>Equal operator (<code>=</code>) and assignment operators (<code>&lt;-</code> and <code>-&gt;</code>) perform assignment.
+This is particularly useful when one needs to save an intermediate value in the middle
+of a pipeline without breaking it.
+</p>
+<p>Assignment as side-effect
+</p>
+<p>In general, <code>x %&gt;&gt;% (~ y = ...)</code> is evaluated as
+<code>y &lt;- x %&gt;&gt;% (...)</code> and returns <code>x</code>.
+</p>
+<p><code>x %&gt;&gt;% (~ y)</code> evaluated as <code>y &lt;- x</code> and returns <code>x</code>,
+where <code>y</code> must be a symbol.
+</p>
+<p><code>x %&gt;&gt;% (~ y = f(.))</code> evaluated as <code>y &lt;- f(x)</code> and returns
+<code>x</code>.
+</p>
+<p><code>x %&gt;&gt;% (~ y = p ~ f(p))</code> evaluated as <code>y &lt;- f(x)</code> and
+returns <code>x</code>.
+</p>
+<p>Piping with assignment
+</p>
+<p>In general, <code>x %&gt;&gt;% (y = ...)</code> is evaluated as
+<code>y &lt;- x %&gt;&gt;% (...)</code>.
+</p>
+<p><code>x %&gt;&gt;% (y = f(.))</code> evaluated as <code>y &lt;- f(x)</code> and returns
+<code>f(x)</code>.
+</p>
+<p><code>x %&gt;&gt;% (y = p ~ f(p))</code> evaluated as <code>y &lt;- f(x)</code> and returns
+<code>f(x)</code>.
+</p>
+<p>The equal sign above can be interchangeably used as the assignment operator <code>&lt;-</code>.
+Note that the global assignment operator <code>&lt;&lt;-</code> and <code>-&gt;&gt;</code> in a pipeline also
+performs global assignment that is subject to side-effect outside the calling
+environment.
+</p>
+<p>In some cases, users might need to create a group of symbols. The following code
+calls <code>assign</code> to dynamically determine the symbol name when its value is
+evaluated.
+</p>
+<p><code>for (i in 1:5) rnorm(i) %&gt;&gt;% (assign(paste0("rnorm", i), .))</code>
+</p>
+<p>To avoid exporting a symbol to the calling environment, use a symbol name
+starting with <code>.</code> like
+</p>
+<p>6. Pipe for element extraction:
+</p>
+<p>If a symbol is enclosed within <code>()</code>, it tells the operator to
+extract element from the left-hand side value. It works with vector,
+list, environment and all other objects for which <code>[[]]</code>
+is defined. Moreover, it also works with S4 object.
+</p>
+<p><code>x %&gt;&gt;% (name)</code> as <code>x[["name"]]</code> when <code>x</code> is
+<code>list</code>, <code>environment</code>, <code>data.frame</code>, etc; and
+<code>x@name</code> when <code>x</code> is S4 object.
+</p>
+<p>7. Pipe to string:
+</p>
+<p>If an object is piped to a single <code>character</code> value, then the string will
+be <code>cat()</code> and starts a new paragraph. This is useful for indicating the
+executing process of a pipeline.
+</p>
+<p><code>x %&gt;&gt;% "print something" %&gt;&gt;% f(y)</code> will <code>cat("print something")</code>
+and then evaluate <code>f(x,y)</code>.
+</p>
+<p>8. Pipe for questioning:
+</p>
+<p>If a lambda expression start with <code>?</code>, the expression will be a side
+effect printing the syntax and the value of the expression. This is a
+light-weight version of side-effect piping and can be useful for simple
+inspection and debugging for pipeline operations.
+</p>
+<p><code>x %&gt;&gt;% (? expr)</code> will print the value of <code>expr</code> and
+return <code>x</code>, just like a question.
+</p>
+<p><code>x %&gt;&gt;% ("title" ? expr)</code> will print <code>"title"</code> as the question, the
+value of <code>expr</code>, and return <code>x</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Pipe as first-argument to a function name
+rnorm(100) %&gt;&gt;% plot
+
+# Pipe as first-argument to a function call
+rnorm(100) %&gt;&gt;% plot()
+rnorm(100) %&gt;&gt;% plot(col="red")
+rnorm(100) %&gt;&gt;% plot(col="red",main=length(.))
+
+# Pipe as first-argument to a function call in namespace
+# (in this case, parentheses are required)
+rnorm(100) %&gt;&gt;% base::mean()
+
+# Pipe to . in an expression enclosed by braces
+representing the piped object
+rnorm(100) %&gt;&gt;% { plot(.,col="red",main=length(.)) }
+
+# Pipe to . in an expression enclosed by parentheses
+representing the piped object
+rnorm(100) %&gt;&gt;% (plot(.,col="red",main=length(.)))
+
+# Pipe to an expression enclosed by parentheses with
+lambda expression in the form of x ~ f(x).
+rnorm(100) %&gt;&gt;% (x ~ plot(x,col="red",main=length(x)))
+
+# Pipe to an expression for side effect and return
+# the input value
+rnorm(100) %&gt;&gt;%
+  (~ cat("Number of points:",length(.))) %&gt;&gt;%
+  summary
+
+rnorm(100) %&gt;&gt;%
+  (~ x ~ cat("Number of points:",length(x))) %&gt;&gt;%
+  summary
+
+# Assign the input value to a symbol in calling environment
+# as side-effect
+mtcars %&gt;&gt;%
+  subset(mpg &lt;= mean(mpg)) %&gt;&gt;%
+  (~ sub_mtcars) %&gt;&gt;%
+  summary
+
+# Assign to a symbol the value calculated by lambda expression
+# as side effect
+mtcars %&gt;&gt;%
+  (~ summary_mtcars = summary(.)) %&gt;&gt;%
+  (~ lm_mtcars = df ~ lm(mpg ~ ., data = df)) %&gt;&gt;%
+  subset(mpg &lt;= mean(mpg)) %&gt;&gt;%
+  summary
+
+# Modifying values in calling environment
+"col_" %&gt;&gt;%
+  paste0(colnames(mtcars)) %&gt;&gt;%
+  {names(mtcars) &lt;- .}
+
+rnorm(100) %&gt;&gt;% {
+  num_mean &lt;- mean(.)
+  num_sd &lt;- sd(.)
+  num_var &lt;- var(.)
+}
+
+rnorm(100) %&gt;&gt;% {
+  .mean &lt;- mean(.)
+  .sd &lt;- sd(.)
+  ci &lt;- .mean + c(-1,1) * 1.96 * .sd
+}
+
+for(i in 1:10) rnorm(i) %&gt;&gt;% (assign(paste0("var", i), .))
+
+# Pipe for element extraction
+mtcars %&gt;&gt;% (mpg)
+
+# Pipe for questioning and printing
+rnorm(100) %&gt;&gt;%
+  (? summary(.)) %&gt;&gt;%
+  plot(col="red")
+
+mtcars %&gt;&gt;%
+  "data prepared" %&gt;&gt;%
+  lm(formula = mpg ~ wt + cyl) %&gt;&gt;%
+  summary %&gt;&gt;%
+  coef
+
+mtcars %&gt;&gt;%
+  ("Sample data" ? head(., 3)) %&gt;&gt;%
+  lm(formula = mpg ~ wt + cyl) %&gt;&gt;%
+  summary %&gt;&gt;%
+  coef
+
+# Pipe to an anomymous function
+rnorm(100) %&gt;&gt;% (function(x) mean(x))()
+rnorm(100) %&gt;&gt;% {function(x) mean(x)}()
+
+# Pipe to an enclosed function to make a closure
+z &lt;- rnorm(100) %&gt;&gt;% (function(x) mean(x+.))
+z(1) # 3
+
+z &lt;- rnorm(100) %&gt;&gt;% {function(x) mean(x+.)}
+z(1) # 3
+
+# Data manipulation with dplyr
+library(dplyr)
+iris %&gt;&gt;%
+  mutate(Sepal.Size=Sepal.Length*Sepal.Width,
+    Petal.Size=Petal.Length*Petal.Width) %&gt;&gt;%
+  select(Sepal.Size,Petal.Size,Species) %&gt;&gt;%
+  group_by(Species) %&gt;&gt;%
+  do(arrange(.,desc(Sepal.Size+Petal.Size)) %&gt;&gt;% head(3))
+
+# Data manipulation with rlist
+library(rlist)
+list(1,2,3) %&gt;&gt;%
+  list.map(. + 1) %&gt;&gt;%
+  list.filter(. &lt;= 5) %&gt;&gt;%
+  list.sort(.)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

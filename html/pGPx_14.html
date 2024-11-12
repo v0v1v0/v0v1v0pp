@@ -1,0 +1,202 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>optim_dist_measure</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Choose simulation points</h2>
+
+<h3>Description</h3>
+
+<p>Selects <code>batchsize</code> locations where to simulate the field by minimizing the distance in measure criterion or by maximizing the integrand of the distance in measure criterion. Currently it is only a wrapper for the functions <code>max_distance_measure</code> and <code>max_integrand_edm</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">optim_dist_measure(
+  model,
+  threshold,
+  lower,
+  upper,
+  batchsize,
+  algorithm = "B",
+  alpha = 0.5,
+  verb = 1,
+  optimcontrol = NULL,
+  integration.param = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a km model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>threshold value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower</code></td>
+<td>
+<p>a <code class="reqn">d</code> dimensional vector containing the lower bounds for the optimization</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper</code></td>
+<td>
+<p>a <code class="reqn">d</code> dimensional vector containing the upper bounds for the optimization</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>batchsize</code></td>
+<td>
+<p>number of simulations points to find</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>algorithm</code></td>
+<td>
+<p>type of algorithm used to obtain simulation points: </p>
+
+<ul>
+<li> <p><code>"A"</code> minimize the full integral criterion;
+</p>
+</li>
+<li> <p><code>"B"</code> maximize the integrand of the criterion.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>value of Vorob'ev threshold</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verb</code></td>
+<td>
+<p>an integer to choose the level of verbosity</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimcontrol</code></td>
+<td>
+<p>a list containing optional parameters for the optimization, see max_sur_parallel for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>integration.param</code></td>
+<td>
+<p>a list containing parameters for the integration of the criterion A, see max_sur_parallel for more details.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing </p>
+
+<ul>
+<li> <p><code>par</code> a matrix <code>batchsize*d</code> containing the optimal points
+</p>
+</li>
+<li> <p><code>value</code> a vector of length <code>batchsize</code> with the values of the criterion at each step
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Azzimonti D. F., Bect J., Chevalier C. and Ginsbourger D. (2016). Quantifying uncertainties on excursion sets under a Gaussian random field prior. SIAM/ASA Journal on Uncertainty Quantification, 4(1):850–874.
+</p>
+<p>Azzimonti, D. (2016). Contributions to Bayesian set estimation relying on random field priors. PhD thesis, University of Bern.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">### Compute optimal simulation points in a 2d example
+if (!requireNamespace("DiceKriging", quietly = TRUE)) {
+stop("DiceKriging needed for this example to work. Please install it.",
+     call. = FALSE)
+}
+if (!requireNamespace("DiceDesign", quietly = TRUE)) {
+stop("DiceDesign needed for this example to work. Please install it.",
+     call. = FALSE)
+}
+# Define the function
+g=function(x){
+  return(-DiceKriging::branin(x))
+}
+d=2
+# Fit OK km model
+design&lt;-DiceDesign::maximinESE_LHS(design = DiceDesign::lhsDesign(n=20,
+                                                                  dimension = 2,
+                                                                  seed=42)$design)$design
+colnames(design)&lt;-c("x1","x2")
+observations&lt;-apply(X = design,MARGIN = 1,FUN = g)
+kmModel&lt;-DiceKriging::km(formula = ~1,design = design,response = observations,
+                         covtype = "matern3_2",control=list(trace=FALSE))
+
+# Run optim_dist_measure, algorithm B to obtain one simulation point
+# NOTE: the approximating process resulting from 1 simulation point
+# is very rough and it should not be used, see below for a more principled example.
+simu_pointsB &lt;- optim_dist_measure(model=kmModel,threshold = -10,
+                                  lower = c(0,0),upper = c(1,1),
+                                  batchsize = 1,algorithm = "B")
+
+## Not run: 
+# Get 75 simulation points with algorithm A
+batchsize &lt;- 50
+simu_pointsA &lt;- optim_dist_measure(model=kmModel,threshold = -10,
+                                  lower = c(0,0),upper = c(1,1),
+                                  batchsize = batchsize,algorithm = "A")
+
+# Get 75 simulation points with algorithm B
+batchsize &lt;- 75
+simu_pointsB &lt;- optim_dist_measure(model=kmModel,threshold = -10,
+                                  lower = c(0,0),upper = c(1,1),
+                                  batchsize = batchsize,algorithm = "B")
+# plot the criterion value
+critValA &lt;-c(simu_pointsA$value,rep(NA,25))
+par(mar = c(5,5,2,5))
+plot(1:batchsize,critValA,type='l',main="Criterion value",ylab="Algorithm A",xlab="batchsize")
+par(new=T)
+plot(1:batchsize,simu_pointsB$value, axes=F, xlab=NA, ylab=NA,col=2,lty=2,type='l')
+axis(side = 4)
+mtext(side = 4, line = 3, 'Algorithm B')
+legend("topright",c("Algorithm A","Algorithm B"),lty=c(1,2),col=c(1,2))
+par(mar= c(5, 4, 4, 2) + 0.1)
+
+# obtain nsims posterior realization at simu_points
+nsims &lt;- 1
+nn_data&lt;-expand.grid(seq(0,1,,50),seq(0,1,,50))
+nn_data&lt;-data.frame(nn_data)
+colnames(nn_data)&lt;-colnames(kmModel@X)
+approx.simu &lt;- simulate_and_interpolate(object=kmModel, nsim = 1, simupoints = simu_pointsA$par,
+                                        interpolatepoints = as.matrix(nn_data),
+                                        nugget.sim = 0, type = "UK")
+
+## Plot the approximate process realization
+image(matrix(approx.simu[1,],ncol=50),
+      col=grey.colors(20))
+contour(matrix(approx.simu[1,],ncol=50),
+        nlevels = 20,add=TRUE)
+points(simu_pointsA$par,pch=17)
+points(simu_pointsB$par,pch=1,col=2)
+
+
+## End(Not run)
+</code></pre>
+
+
+</div>

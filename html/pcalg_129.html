@@ -1,0 +1,175 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>simy</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate Interventional Markov Equivalence Class of a DAG</h2>
+
+<h3>Description</h3>
+
+<p>Estimate the interventional essential graph representing the Markov
+equivalence class of a DAG using the dynamic programming (DP) approach of
+Silander and Myllymäki (2006).  This algorithm maximizes a decomposable
+scoring criterion in exponential runtime.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">simy(score, labels = score$getNodes(), targets = score$getTargets(),
+    verbose = FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>score</code></td>
+<td>
+<p>An instance of a class derived from <code>Score</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>labels</code></td>
+<td>
+<p>Node labels; by default, they are determined from the scoring
+object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>targets</code></td>
+<td>
+<p>A list of intervention targets (cf. details).  A list of
+vectors, each vector listing the vertices of one intervention target.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>if <code>TRUE</code>, detailed output is provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments for debugging purposes and fine tuning.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function estimates the interventional Markov equivalence class of a DAG
+based on a data sample with interventional data originating from various
+interventions and possibly observational data. The intervention targets used
+for data generation must be specified by the argument <code>targets</code> as a
+list of (integer) vectors listing the intervened vertices; observational
+data is specified by an empty set, i.e. a vector of the form
+<code>integer(0)</code>.  As an example, if data contains observational samples
+as well as samples originating from an intervention at vertices 1 and 4,
+the intervention targets must be specified as <code>list(integer(0),
+  as.integer(1), as.integer(c(1, 4)))</code>.
+</p>
+<p>An interventional Markov equivalence class of DAGs can be uniquely
+represented by a partially directed graph called interventional essential
+graph.  Its edges have the following interpretation:
+</p>
+
+<ol>
+<li>
+<p> a directed edge <code class="reqn">a \longrightarrow b</code> stands for an arrow that has the same
+orientation in all representatives of the interventional Markov
+equivalence class;
+</p>
+</li>
+<li>
+<p> an undirected edge a – b stands for an arrow that is oriented in one
+way in some representatives of the equivalence class and in the other way
+in other representatives of the equivalence class.
+</p>
+</li>
+</ol>
+<p>Note that when plotting the object, undirected and bidirected edges are
+equivalent.
+</p>
+<p>The DP approach of Silander and Myllymäki (2006) is a score-based algorithm
+that guarantees to find the optimum of any decomposable scoring criterion.
+Its CPU and memory consumption grow exponentially with the number of
+variables in the system, irrespective of the sparseness of the true or
+estimated DAG.  The implementation in the pcalg package is feasible up to
+approximately 20 variables, depending on the user's computer.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>simy</code> returns a list with the following two components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>essgraph</code></td>
+<td>
+<p>An object of class <code>EssGraph</code> containing an
+estimate of the equivalence class of the underlying DAG.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>repr</code></td>
+<td>
+<p>An object of a class derived from <code>ParDAG</code>
+containing a (random) representative of the estimated equivalence class.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Alain Hauser (<a href="mailto:alain.hauser@bfh.ch">alain.hauser@bfh.ch</a>)
+</p>
+
+
+<h3>References</h3>
+
+<p>T. Silander and P. Myllymäki (2006).  A simple approach for finding the
+globally optimal Bayesian network structure.  <em>Proceedings of the 22nd
+Conference on Uncertainty in Artificial Intelligence (UAI 2006)</em>, 445–452
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>gies</code>, <code>Score</code>, <code>EssGraph</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">##################################################
+## Using Gaussian Data
+##################################################
+## Load predefined data
+data(gmInt)
+
+## Define the score (BIC)
+score &lt;- new("GaussL0penIntScore", gmInt$x, gmInt$targets, gmInt$target.index)
+
+## Estimate the essential graph
+simy.fit &lt;- simy(score) 
+eDAG &lt;- simy.fit$essgraph
+as(eDAG, "graph")
+
+## Look at the graph incidence matrix (a "sparseMatrix"):
+if(require(Matrix))
+  show( as(as(eDAG, "graphNEL"), "Matrix") )
+
+
+## Plot the estimated essential graph and the true DAG
+if (require(Rgraphviz)) {
+  par(mfrow=c(1,2))
+  plot(eDAG, main = "Estimated ess. graph")
+  plot(gmInt$g, main = "True DAG")
+}
+</code></pre>
+
+
+</div>

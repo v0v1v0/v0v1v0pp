@@ -1,0 +1,226 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>paleopop_simulator</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Runs a customized population model simulation.</h2>
+
+<h3>Description</h3>
+
+<p>Simulates a population model customized for paleontological time-scales, optimized
+for single-generation transitions and large populations, across multiple generations
+and returns simulation results. Each generational time-step includes:
+</p>
+
+<ol>
+<li>
+<p> Density dependence calculations
+</p>
+</li>
+<li>
+<p> Environmental stochasticity calculations
+</p>
+</li>
+<li>
+<p> Generational transition calculations
+</p>
+</li>
+<li>
+<p> Harvest calculations
+</p>
+</li>
+<li>
+<p> Dispersal calculations
+</p>
+</li>
+<li>
+<p> Results collection
+</p>
+</li>
+</ol>
+<h3>Usage</h3>
+
+<pre><code class="language-R">paleopop_simulator(inputs)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>inputs</code></td>
+<td>
+<p>Nested list/object with named elements:
+</p>
+
+<dl>
+<dt><code>random_seed</code></dt>
+<dd>
+<p>Number to seed the random number generation for stochasticity.</p>
+</dd>
+<dt><code>time_steps</code></dt>
+<dd>
+<p>Number of simulation time steps.</p>
+</dd>
+<dt><code>years_per_step</code></dt>
+<dd>
+<p>Number of years per time step.</p>
+</dd>
+<dt><code>populations</code></dt>
+<dd>
+<p>Number of populations.</p>
+</dd>
+<dt><code>initial_abundance</code></dt>
+<dd>
+<p>Array of initial abundances for each population.</p>
+</dd>
+<dt><code>transition_rate</code></dt>
+<dd>
+<p>Rate of transition (or fecundity) between generations.</p>
+</dd>
+<dt><code>standard_deviation</code></dt>
+<dd>
+<p>Standard deviation applied to transition rates.</p>
+</dd>
+<dt><code>compact_decomposition</code></dt>
+<dd>
+<p>List containing a compact transposed 
+(Cholesky) decomposition <em>matrix</em> (t_decomposition_compact_matrix) 
+and a corresponding <em>map</em> of population indices 
+(t_decomposition_compact_map), as per 
+<code>SpatialCorrelation</code> class 
+attributes.</p>
+</dd>
+<dt><code>carrying_capacity</code></dt>
+<dd>
+<p>Matrix of carrying capacities (<em>populations</em> rows by <em>time_steps</em> columns).</p>
+</dd>
+<dt><code>density_dependence</code></dt>
+<dd>
+<p>Density dependence type ("competition", "logistic", or "ceiling").</p>
+</dd>
+<dt><code>growth_rate_max</code></dt>
+<dd>
+<p>Maximum growth rate (for "competition" or "logistic" density dependence).</p>
+</dd>
+<dt><code>harvest</code></dt>
+<dd>
+<p>Boolean for utilizing harvesting.</p>
+</dd>
+<dt><code>harvest_max</code></dt>
+<dd>
+<p>Proportion harvested per year (note: annual time scale - not generational).</p>
+</dd>
+<dt><code>harvest_g</code></dt>
+<dd>
+<p>The <em>G</em> parameter in the harvest function.</p>
+</dd>
+<dt><code>harvest_z</code></dt>
+<dd>
+<p>The <em>Z</em> parameter in the harvest function.</p>
+</dd>
+<dt><code>harvest_max_n</code></dt>
+<dd>
+<p>Maximum density per grid cell.</p>
+</dd>
+<dt><code>human_density</code></dt>
+<dd>
+<p>Matrix of human density (fraction) (<em>populations</em> rows by <em>time_steps</em> columns).</p>
+</dd>
+<dt><code>dispersal_data</code></dt>
+<dd>
+<p>List of data frames of non-zero dispersal rates and indices for constructing a compact dispersal matrix, and optional changing rates over time, as per class <code>DispersalGenerator</code> <em>dispersal_data</em> attribute.</p>
+</dd>
+<dt><code>dispersal_target_k</code></dt>
+<dd>
+<p>Target population carrying capacity threshold for density dependent dispersal.</p>
+</dd>
+<dt><code>abundance_threshold</code></dt>
+<dd>
+<p>Abundance threshold (that needs to be exceeded) for each population to persist.</p>
+</dd>
+<dt><code>occupancy_threshold</code></dt>
+<dd>
+<p>Threshold for the number of populations occupied (that needs to be exceeded) for all populations to persist.</p>
+</dd>
+<dt><code>results_selection</code></dt>
+<dd>
+<p>List of results selection from: "abundance", "ema", "extirpation", "harvested", "occupancy", "human_density".</p>
+</dd>
+</dl>
+</td>
+</tr></table>
+<h3>Value</h3>
+
+<p>Simulation results as a nested list (as selected):
+</p>
+
+<dl>
+<dt><code>abundance</code></dt>
+<dd>
+<p>Matrix of simulation abundances (<em>populations</em> rows by <em>time_steps</em> columns).</p>
+</dd>
+<dt><code>ema</code></dt>
+<dd>
+<p>Matrix of expected minimum abundances (<em>populations</em> rows by <em>time_steps</em> columns).</p>
+</dd>
+<dt><code>extirpation</code></dt>
+<dd>
+<p>Array of extirpation times for each population.</p>
+</dd>
+<dt><code>harvested</code></dt>
+<dd>
+<p>Matrix of estimated individuals harvested (<em>populations</em> rows by <em>time_steps</em> columns).</p>
+</dd>
+<dt><code>occupancy</code></dt>
+<dd>
+<p>Array of number of populations occupied at each time-step.</p>
+</dd>
+<dt><code>human_density</code></dt>
+<dd>
+<p>Matrix of human densities, (<em>populations</em> rows by <em>time_steps</em> columns).</p>
+</dd>
+</dl>
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(raster)
+library(poems)
+# Ring Island example region
+coordinates &lt;- data.frame(x = rep(seq(-178.02, -178.06, -0.01), 5),
+                          y = rep(seq(19.02, 19.06, 0.01), each = 5))
+template_raster &lt;- Region$new(coordinates = coordinates)$region_raster # full extent
+sealevel_raster &lt;- template_raster
+template_raster[][c(7:9, 12:14, 17:19)] &lt;- NA # make Ring Island
+sealevel_raster[][c(7:9, 12:14, 17:18)] &lt;- NA
+raster_stack &lt;- raster::stack(x = append(replicate(9, template_raster), sealevel_raster))
+region &lt;- PaleoRegion$new(template_raster = raster_stack)
+
+# Model template
+model_template &lt;- PaleoPopModel$new(
+region = region,
+time_steps = 10,
+years_per_step = 12, # years per generational time-step
+standard_deviation = 0.1,
+growth_rate_max = 0.6,
+harvest = FALSE,
+populations = region$region_cells,
+initial_abundance = seq(9000, 0, -1000),
+transition_rate = 1.0,
+carrying_capacity = rep(1000, 17),
+dispersal = (!diag(nrow = 17, ncol = 17))*0.05,
+density_dependence = "logistic",
+dispersal_target_k = 10,
+occupancy_threshold = 1, 
+abundance_threshold = 10,
+results_selection = c("abundance")
+)
+
+# Simulations
+results &lt;- paleopop_simulator(model_template) # input as PaleoPopModel object
+inputs &lt;- model_template$get_attributes()
+paleopop_simulator(inputs) # input as list of attributes
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,249 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>elom</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Multi-player Elo Based Rating System</h2>
+
+<h3>Description</h3>
+
+<p>Implements the Elo based rating system for for multi-player games
+where the result is a placing or a score. This includes zero-sum
+games such as poker and mahjong. The default arguments used here 
+are those used by Tenhou for riichi mahjong. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">elom(x, nn = 4, exact = TRUE, base = c(30,10,-10,-30), status = NULL, 
+    init = 1500, kfac = kriichi, history = FALSE, sort = TRUE, ...,
+	placing = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A data frame containing <code>2nn+1</code> variables, where 
+<code>nn</code> is the number of players in a single game: (col <code>1</code>) 
+a numeric vector denoting the time period in which the game 
+took place, (cols <code>2</code> to <code>nn+1</code>) numeric or character 
+identifiers for each of the <code>nn</code> players, (cols <code>nn+2</code> 
+to <code>2nn+1</code>) the result of the game expressed as a number, 
+typically a score for each player (e.g. the number of remaining 
+chips in poker). Negative numbers are allowed. 
+Alternatively, the result can be a placing (e.g. 1 for 
+first place, 2 for second place), in which case the <code>placing</code>
+argument MUST be set to <code>TRUE</code>. Placings must be integers: in the
+event of a tie, multiple players can be given the same placing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nn</code></td>
+<td>
+<p>Number of players in a single game. If the number of players
+varies, then this argument should be set to the maximum number of 
+players in any game, and the <code>exact</code> argument should be set to
+<code>FALSE</code>. Unused player identifiers in <code>x</code> must then 
+be set to the missing value <code>NA</code>. The game score for <code>NA</code>
+player identifiers is ignored and therefore can also be set to 
+<code>NA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exact</code></td>
+<td>
+<p>If <code>TRUE</code> (the default), then every game always has 
+exactly <code>nn</code> players. If <code>TRUE</code>, then <code>x</code> cannot have 
+missing values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>base</code></td>
+<td>
+<p>The base values used for the rating. Can be a numeric 
+vector of length equal to <code>nn</code>, a numeric matrix with <code>nrow(x)</code>
+rows and <code>nn</code> columns,	or a vectorized function of 
+the game score. If a numeric vector, then the person with the highest 
+score gets <code>base[1]</code>, the person with the second highest score 
+gets <code>base[2]</code>, and so on. In the event of a tie on the game score, 
+tied players are given the largest available <code>base</code> value. For 
+games with less than <code>nn</code> players, see Details. If <code>base</code> is
+a matrix, then the ith row is used for the ith game in <code>x</code>. If 
+<code>base</code> is a vectorized function, then each player gets 
+the result of the function applied to the game score. In Riichi 
+mahjong, where players start with 25000 points, a typical example 
+might be <code>function(x) (x-25000)/250</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>status</code></td>
+<td>
+<p>A data frame with the current status of the
+system. If not <code>NULL</code>, this needs to be a data frame 
+in the form of the <code>ratings</code> component of the returned 
+list, containing variables named <code>Player</code>, <code>Rating</code>,
+and optionally <code>Games</code>, <code>1st</code>, <code>2nd</code>, 
+<code>3rd</code> and so on, and finally <code>Lag</code>, which 
+are all set to zero if not given.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+<p>The rating at which to initialize a new player not
+appearing in <code>status</code>. Must be a single number. If
+different initializations for different players are required,
+this can be done using <code>status</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kfac</code></td>
+<td>
+<p>The K factor parameter. Can be a single number or
+a vectorized function of two arguments, the first being the
+ratings and the second being the number of games played. See
+<code>kriichi</code> for an example.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>history</code></td>
+<td>
+<p>If <code>TRUE</code> returns the entire history for each 
+period in the component <code>history</code> of the returned list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sort</code></td>
+<td>
+<p>If <code>TRUE</code> sort the results by rating (highest
+to lowest). If <code>FALSE</code> sort the results by player.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Passed to the function <code>kfac</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>placing</code></td>
+<td>
+<p>If the results are given as placings (e.g. 1 for 
+first place, 2 for second place) then this argument MUST be set
+to <code>TRUE</code>, otherwise the placings will be interpreted 
+as game scores.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For multi-player games there is no player one advantage parameter 
+(e.g. a home advantage in football or a white advantage in chess). 
+</p>
+<p>If the sum of the vector <code>base</code> is not zero, or
+if <code>base</code> is a function which is not zero when evaluated
+at the starting chip/points value, then you may observe 
+unusual behaviour and/or substantial ratings inflation/deflation.
+</p>
+<p>The two-player Elo system is based on game outcomes in the interval 
+[0,1] and therefore uses a different scaling. As a result, the K 
+factors here should be smaller. The default (as used by Tenhou)
+is a K factor of 0.2 for players that have played a large number of
+games (see <code>kriichi</code>).
+</p>
+<p>If the number of players varies and <code>base</code> is a vector (of length 
+<code>nn</code>), then if the game has less than <code>nn</code> players, the vector 
+is reduced by successively removing the centre value (for odd lengths) 
+or by averaging both centre values (for even lengths). For example, if 
+the <code>x</code> data frame contains both four-player and three-player 
+mahjong games, then under the default values the three-player base 
+vector becomes <code>c(30,0,-30)</code>, which is consistent with the vector 
+that Tenhou uses for three-player mahjong.
+</p>
+<p>A numeric matrix can be used to allocate different <code>base</code> vectors to
+different games. For example, in Riichi mahjong, games can be Tonpuusen 
+(East round only) or Hanchan (East and South rounds), and you may wish
+to allocate different base vectors to each type.  
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list object of class <code>"rating"</code> with the following 
+components
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>ratings</code></td>
+<td>
+<p>A data frame of the results at the end of the 
+final time period. The variables are self explanatory except
+for <code>Lag</code>, which represents the number of time periods
+since the player last played a game. This is equal to zero
+for players who played in the latest time period, and is
+also zero for players who have not yet played any games.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>history</code></td>
+<td>
+<p>A three dimensional array, or <code>NULL</code> if 
+<code>history</code> is <code>FALSE</code>. The row dimension is the 
+players, the column dimension is the time periods. 
+The third dimension gives different parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nn</code></td>
+<td>
+<p>The number of players for a single game.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kfac</code></td>
+<td>
+<p>The K factor or K factor function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>The character string <code>"EloM"</code>.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Elo, Arpad (1978) 
+The Rating of Chessplayers, Past and Present. 
+Arco. ISBN 0-668-04721-6.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>elo</code>, <code>fide</code>, <code>glicko</code>, <code>kriichi</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">robj &lt;- elom(riichi)
+robj
+
+ut &lt;- unique(riichi$Time)
+robj &lt;- elom(riichi[riichi$Time == ut[1],])
+for(i in 2:length(ut)) {
+  robj &lt;- elom(riichi[riichi$Time == ut[i],], status = robj$ratings)
+}
+robj
+</code></pre>
+
+
+</div>

@@ -1,0 +1,222 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>compute_dmod</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Comprehensive <code class="reqn">d_{Mod}</code> calculator</h2>
+
+<h3>Description</h3>
+
+<p>This is a general-purpose function to compute <code class="reqn">d_{Mod}</code> effect sizes from raw data and to perform bootstrapping.
+It subsumes the functionalities of the <code>compute_dmod_par</code> (for parametric computations) and <code>compute_dmod_npar</code> (for non-parametric computations)
+functions and automates the generation of regression equations and descriptive statistics for computing <code class="reqn">d_{Mod}</code> effect sizes. Please see documentation
+for <code>compute_dmod_par</code> and <code>compute_dmod_npar</code> for details about how the effect sizes are computed.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">compute_dmod(
+  data,
+  group,
+  predictors,
+  criterion,
+  referent_id,
+  focal_id_vec = NULL,
+  conf_level = 0.95,
+  rescale_cdf = TRUE,
+  parametric = TRUE,
+  bootstrap = TRUE,
+  boot_iter = 1000,
+  stratify = FALSE,
+  empirical_ci = FALSE,
+  cross_validate_wts = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Data frame containing the data to be analyzed (if not a data frame, must be an object convertible to a data frame via the <code>as.data.frame()</code> function).
+The data set must contain a criterion variable, at least one predictor variable, and a categorical variable that identifies the group to which each case (i.e., row) in the data set belongs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group</code></td>
+<td>
+<p>Name or column-index number of the variable that identifies group membership in the data set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predictors</code></td>
+<td>
+<p>Name(s) or column-index number(s) of the predictor variable(s) in the data set. No predictor can be a factor-type variable.
+If multiple predictors are specified, they will be combined into a regression-weighted composite that will be carried forward to compute <code class="reqn">d_{Mod}</code> effect sizes.
+</p>
+
+<ul><li> <p><em>Note</em>: If weights other than regression weights should be used to combine the predictors into a composite, the user must manually compute such a composite,
+include the composite in the <code>dat</code> data set, and identify the composite variable in <code>predictors</code>.
+</p>
+</li></ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>criterion</code></td>
+<td>
+<p>Name or column-index number of the criterion variable in the data set. The criterion cannot be a factor-type variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>referent_id</code></td>
+<td>
+<p>Label used to identify the referent group in the <code>group</code> variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>focal_id_vec</code></td>
+<td>
+<p>Label(s) to identify the focal group(s) in the <code>group</code> variable. If <code>NULL</code> (the default), the specified referent group will be compared to all other groups.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conf_level</code></td>
+<td>
+<p>Confidence level (between <code>0</code> and <code>1</code>) to be used in generating confidence intervals. Default is <code>.95</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rescale_cdf</code></td>
+<td>
+<p>Logical argument that indicates whether parametric <code class="reqn">d_{Mod}</code> results should be rescaled to account for using a cumulative density &lt; 1 in the computations (<code>TRUE</code>; default) or not (<code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parametric</code></td>
+<td>
+<p>Logical argument that indicates whether <code class="reqn">d_{Mod}</code> should be computed using an assumed normal distribution (<code>TRUE</code>; default) or observed frequencies (<code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootstrap</code></td>
+<td>
+<p>Logical argument that indicates whether <code class="reqn">d_{Mod}</code> should be bootstrapped (<code>TRUE</code>; default) or not (<code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>boot_iter</code></td>
+<td>
+<p>Number of bootstrap iterations to compute (default = <code>1000</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stratify</code></td>
+<td>
+<p>Logical argument that indicates whether the random bootstrap sampling should be stratified (<code>TRUE</code>) or unstratified (<code>FALSE</code>; default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>empirical_ci</code></td>
+<td>
+<p>Logical argument that indicates whether the bootstrapped confidence intervals should be computed from the observed empirical distributions (<code>TRUE</code>) or computed using
+bootstrapped means and standard errors via the normal-theory approach (<code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cross_validate_wts</code></td>
+<td>
+<p>Only relevant when multiple predictors are specified and bootstrapping is performed.
+Logical argument that indicates whether regression weights derived from the full sample should be used to combine predictors in the bootstrapped samples (<code>TRUE</code>)
+or if a new set of weights should be derived during each iteration of the bootstrapping procedure (<code>FALSE</code>; default).</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>If bootstrapping is selected, the list will include:
+</p>
+
+<ul>
+<li> <p><code>point_estimate</code>: A matrix of effect sizes (<code class="reqn">d_{Mod_{Signed}}</code>,
+<code class="reqn">d_{Mod_{Unsigned}}</code>, <code class="reqn">d_{Mod_{Under}}</code>,
+<code class="reqn">d_{Mod_{Over}}</code>), proportions of under- and over-predicted criterion scores,
+minimum and maximum differences, and the scores associated with minimum and maximum differences.
+All of these values are computed using the full data set.
+</p>
+</li>
+<li> <p><code>bootstrap_mean</code>: A matrix of the same statistics as the <code>point_estimate</code> matrix,
+but the values in this matrix are the means of the results from bootstrapped samples.
+</p>
+</li>
+<li> <p><code>bootstrap_se</code>: A matrix of the same statistics as the <code>point_estimate</code> matrix,
+but the values in this matrix are bootstrapped standard errors (i.e., the standard deviations of the results from bootstrapped samples).
+</p>
+</li>
+<li> <p><code>bootstrap_CI_Lo</code>: A matrix of the same statistics as the <code>point_estimate</code> matrix,
+but the values in this matrix are the lower confidence bounds of the results from bootstrapped samples.
+</p>
+</li>
+<li> <p><code>bootstrap_CI_Hi</code>: A matrix of the same statistics as the <code>point_estimate</code> matrix,
+but the values in this matrix are the upper confidence bounds of the results from bootstrapped samples.
+</p>
+</li>
+</ul>
+<p>If no bootstrapping is performed, the output will be limited to the <code>point_estimate</code> matrix.
+</p>
+
+
+<h3>References</h3>
+
+<p>Nye, C. D., &amp; Sackett, P. R. (2017).
+New effect sizes for tests of categorical moderation and differential prediction.
+<em>Organizational Research Methods, 20</em>(4), 639–664. <a href="https://doi.org/10.1177/1094428116644505">doi:10.1177/1094428116644505</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Generate some hypothetical data for a referent group and three focal groups:
+set.seed(10)
+refDat &lt;- MASS::mvrnorm(n = 1000, mu = c(.5, .2),
+                        Sigma = matrix(c(1, .5, .5, 1), 2, 2), empirical = TRUE)
+foc1Dat &lt;- MASS::mvrnorm(n = 1000, mu = c(-.5, -.2),
+                         Sigma = matrix(c(1, .5, .5, 1), 2, 2), empirical = TRUE)
+foc2Dat &lt;- MASS::mvrnorm(n = 1000, mu = c(0, 0),
+                         Sigma = matrix(c(1, .3, .3, 1), 2, 2), empirical = TRUE)
+foc3Dat &lt;- MASS::mvrnorm(n = 1000, mu = c(-.5, -.2),
+                         Sigma = matrix(c(1, .3, .3, 1), 2, 2), empirical = TRUE)
+colnames(refDat) &lt;- colnames(foc1Dat) &lt;- colnames(foc2Dat) &lt;- colnames(foc3Dat) &lt;- c("X", "Y")
+dat &lt;- rbind(cbind(G = 1, refDat), cbind(G = 2, foc1Dat),
+             cbind(G = 3, foc2Dat), cbind(G = 4, foc3Dat))
+
+# Compute point estimates of parametric d_mod effect sizes:
+compute_dmod(data = dat, group = "G", predictors = "X", criterion = "Y",
+     referent_id = 1, focal_id_vec = 2:4,
+     conf_level = .95, rescale_cdf = TRUE, parametric = TRUE,
+     bootstrap = FALSE)
+
+# Compute point estimates of non-parametric d_mod effect sizes:
+compute_dmod(data = dat, group = "G", predictors = "X", criterion = "Y",
+     referent_id = 1, focal_id_vec = 2:4,
+     conf_level = .95, rescale_cdf = TRUE, parametric = FALSE,
+     bootstrap = FALSE)
+
+# Compute unstratified bootstrapped estimates of parametric d_mod effect sizes:
+compute_dmod(data = dat, group = "G", predictors = "X", criterion = "Y",
+     referent_id = 1, focal_id_vec = 2:4,
+     conf_level = .95, rescale_cdf = TRUE, parametric = TRUE,
+     boot_iter = 10, bootstrap = TRUE, stratify = FALSE, empirical_ci = FALSE)
+
+# Compute unstratified bootstrapped estimates of non-parametric d_mod effect sizes:
+compute_dmod(data = dat, group = "G", predictors = "X", criterion = "Y",
+     referent_id = 1, focal_id_vec = 2:4,
+     conf_level = .95, rescale_cdf = TRUE, parametric = FALSE,
+     boot_iter = 10, bootstrap = TRUE, stratify = FALSE, empirical_ci = FALSE)
+</code></pre>
+
+
+</div>

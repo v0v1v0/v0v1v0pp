@@ -1,0 +1,195 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cpd</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>CPD and NLCPD methods</h2>
+
+<h3>Description</h3>
+
+<p>Function <code>cpd()</code> estimates regional price levels by the Country-Product-Dummy (CPD) method, originally developed by Summers (1973). Auer and Weinand (2022) recently proposed a generalization of the CPD method. This nonlinear CPD method (NLCPD method) is implemented in function <code>nlcpd()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cpd(p, r, n, q=NULL, w=NULL, base=NULL, simplify=TRUE, settings=list())
+
+nlcpd(p, r, n, q=NULL, w=NULL, base=NULL, simplify=TRUE, settings=list(), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>A numeric vector of prices.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r, n</code></td>
+<td>
+<p>A character vector or factor of regional entities <code>r</code> and products <code>n</code>, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>q, w</code></td>
+<td>
+<p>A numeric vector of non-negative quantities <code>q</code> or weights <code>w</code>. By default, no weights are used in the regression (<code>q=NULL</code> and <code>w=NULL</code>). While <code>w</code> can be any weights considered as appropriate for weighted regression, <code>q</code> will result in an expenditure share weighted regression (see details). If both <code>q</code> and <code>w</code> are provided, <code>q</code> will be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>base</code></td>
+<td>
+<p>A character specifying the base to which the estimated logarithmic regional price levels are expressed. When <code>NULL</code>, they refer to the (unweighted) regional average, similar to <code>contr.sum</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simplify</code></td>
+<td>
+<p>A logical indicating whether the full regression-object should be provided (<code>FALSE</code>) or a named vector of estimated regional price levels (<code>TRUE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>settings</code></td>
+<td>
+<p>A list of control settings to be used. The following settings are supported:
+</p>
+
+<ul>
+<li> <p><code>chatty</code> : A logical specifying if warnings and info messages should be printed or not. The default is <code>getOption("pricelevels.chatty")</code>.
+</p>
+</li>
+<li> <p><code>connect</code> : A logical specifying if the data should be checked for connectedness or not. The default is <code>getOption("pricelevels.connect")</code>. If the data are not connected, price levels are computed within the biggest block of connected regions or the block of regions to which the <code>base</code> region belongs. See also <code>connect()</code>.
+</p>
+</li>
+<li> <p><code>norm.weights</code> : A logical specifying if the weights <code>w</code> should be renormalized such that they add up to 1 for each region <code>r</code> or not. The default is <code>TRUE</code>.
+</p>
+</li>
+<li> <p><code>plot</code> : A logical specifying if the calculated price levels should be plotted or not. If <code>TRUE</code>, the price ratios of each region are displayed as boxplots and the price levels are added as colored points. The default is <code>getOption("pricelevels.plot")</code>.
+</p>
+</li>
+<li> <p><code>self.start</code> : Only if <code>par=NULL</code>, the strategy how parameter start values are internally derived by <code>nlcpd()</code>. Currently, values <code>s1</code>, <code>s2</code> and <code>s3</code> are allowed. For <code>s1</code>, simple price averages across products and regions are used as start values, while these are derived by the CPD method for strategies <code>s2</code> and <code>s3</code>. Start values for <code>delta</code> are either set to 1 or derived by their first-order condition if <code>s3</code>. By default, <code>self.start='s1'</code>.
+
+</p>
+</li>
+<li> <p><code>use.jac</code> : A logical indicating if the jacobian matrix should be used by <code>nlcpd()</code> for the nonlinear optimization or not. The default is <code>FALSE</code>.
+</p>
+</li>
+<li> <p><code>w.delta</code> : A named vector of weights for the <code>delta</code>-parameter (see Details). Vector length must be equal to the number of products, while names must match product names. If not supplied, <code class="reqn">\delta_i</code> weights are derived internally by <code>nlcpd()</code> from the weights <code>w</code>.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to <code>nls.lm</code>, typically arguments <code>control</code>, <code>par</code>, <code>upper</code>, and <code>lower</code>. For <code>par</code>, <code>upper</code>, and <code>lower</code>, vectors must have names for each parameter separated by a dot, e.g., <code>lnP.1</code>, <code>pi.2</code>, or <code>delta.3</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The CPD method is a linear regression model that explains the logarithmic price of product <code class="reqn">i</code> in region <code class="reqn">r</code>, <code class="reqn">\ln p_i^r</code>, by the general product price, <code class="reqn">\ln \pi_i</code>, and the overall price level, <code class="reqn">\ln P^r</code>:
+</p>
+<p style="text-align: center;"><code class="reqn">\ln p_i^r = \ln \pi_i + \ln P^r + u_i^r</code>
+</p>
+
+<p>The NLCPD method inflates the CPD model by product-specific elasticities <code class="reqn">\delta_i</code>:
+</p>
+<p style="text-align: center;"><code class="reqn">\ln p_i^r = \ln \pi_i + \delta_i \ln P^r + u_i^r</code>
+</p>
+
+<p>Note that both the CPD and the NLCPD method require a normalization of the estimated price levels <code class="reqn">\widehat{\ln P^r}</code> to avoid multicollinearity. If <code>base=NULL</code>, normalization <code class="reqn">\sum_{r=1}^{R} \widehat{\ln P^r}=0</code> is used in both functions; otherwise, one price level is set to 0. The NLCPD method additionally imposes the restriction <code class="reqn">\sum_{i=1}^{N} w_i \widehat{\delta_i}=1</code>, where the weights <code class="reqn">w_i</code> can be defined by <code>settings$w.delta</code>. In <code>nlcpd()</code>, it is always the parameter <code class="reqn">\widehat{\delta_1}</code> that is derived residually from this restriction.
+</p>
+<p>Before calculations start, missing values are excluded and duplicated observations for <code>r</code> and <code>n</code> are aggregated, that is, duplicated prices <code>p</code> and weights <code>w</code> are averaged and duplicated quantities <code>q</code> added up.
+</p>
+<p>If <code>q</code> is provided, expenditure shares are derived as <code class="reqn">w_i^r = p_i^r q_i^r / \sum_{j=1}^{N} p_j^r q_j^r</code> and used as weights in the regression. If only <code>w</code> is provided, the weights <code>w</code> are (re-)normalized by default. If the weights <code>w</code> do not represent expenditure shares, the (re-)normalization can be turned off by <code>settings=list(norm.weights=FALSE)</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>simplify=TRUE</code>, a named vector of (unlogged) regional price levels. Otherwise, for <code>cpd()</code>, a <code>lm</code>-object containing the full regression output, and for <code>nlcpd()</code> the full output of <code>nls.lm()</code> plus element <code>w.delta</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Sebastian Weinand</p>
+
+
+<h3>References</h3>
+
+<p>Auer, L. v. and Weinand, S. (2022). <em>A Nonlinear Generalization of the Country-Product-
+Dummy Method.</em> Discussion Paper 2022/45, Deutsche Bundesbank.
+</p>
+<p>Summers, R. (1973). International Price Comparisons based upon Incomplete Data. <em>Review of Income and Wealth</em>, 19 (1), 1-16.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>lm</code>, <code>dummy.coef</code>, <code>nls.lm</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># sample complete price data:
+set.seed(123)
+R &lt;- 3 # number of regions
+B &lt;- 1 # number of product groups
+N &lt;- 5 # number of products
+dt1 &lt;- rdata(R=R, B=B, N=N)
+
+# compute expenditure share weighted cpd and nlcpd index:
+dt1[, cpd(p=price, r=region, n=product, q=quantity)]
+dt1[, nlcpd(p=price, r=region, n=product, q=quantity)]
+
+# set individual start values in nlcpd():
+par.init &lt;- list("lnP"=setNames(rep(0, R), 1:R),
+                 "pi"=setNames(rep(2, N), 1:N),
+                 "delta"=setNames(rep(1, N), 1:N))
+dt1[, nlcpd(p=price, r=region, n=product, q=quantity, par=par.init)]
+
+# use lower and upper bounds on parameters:
+dt1[, nlcpd(p=price, r=region, n=product, q=quantity,
+            lower=unlist(par.init)-0.1, upper=unlist(par.init)+0.1)]
+
+# change internal calculation of start values:
+dt1[, nlcpd(p=price, r=region, n=product, q=quantity, settings=list(self.start="s2"))]
+
+# add price data:
+dt2 &lt;- rdata(R=4, B=1, N=4)
+dt2[, "region":=factor(region, labels=4:7)]
+dt2[, "product":=factor(product, labels=6:9)]
+dt &lt;- rbind(dt1, dt2)
+dt[, is.connected(r=region, n=product)] # non-connected now
+
+# compute expenditure share weighted cpd and nlcpd index:
+dt[, cpd(p=price, r=region, n=product, q=quantity, base="1")]
+dt[, nlcpd(p=price, r=region, n=product, q=quantity, base="1")]
+
+# compare with toernqvist index:
+dt[, toernqvist(p=price, r=region, n=product, q=quantity, base="1")]
+
+
+# computational speed in nlcpd() usually increases if use.jac=TRUE:
+set.seed(123)
+dt3 &lt;- rdata(R=20, B=1, N=30)
+system.time(m1 &lt;- dt3[, nlcpd(p=price, r=region, n=product, q=quantity,
+                              settings=list(use.jac=FALSE), simplify=FALSE,
+                              control=minpack.lm::nls.lm.control("maxiter"=200))])
+system.time(m2 &lt;- dt3[, nlcpd(p=price, r=region, n=product, q=quantity,
+                              settings=list(use.jac=TRUE), simplify=FALSE,
+                              control=minpack.lm::nls.lm.control("maxiter"=200))])
+all.equal(m1$par, m2$par, tol=1e-05)
+
+</code></pre>
+
+
+</div>

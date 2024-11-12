@@ -1,0 +1,176 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>threshold_perf</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate performance metrics across probability thresholds</h2>
+
+<h3>Description</h3>
+
+<p><code>threshold_perf()</code> can take a set of class probability predictions
+and determine performance characteristics across different values
+of the probability threshold and any existing groups.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">threshold_perf(.data, ...)
+
+## S3 method for class 'data.frame'
+threshold_perf(
+  .data,
+  truth,
+  estimate,
+  thresholds = NULL,
+  metrics = NULL,
+  na_rm = TRUE,
+  event_level = "first",
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>.data</code></td>
+<td>
+<p>A tibble, potentially grouped.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Currently unused.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>truth</code></td>
+<td>
+<p>The column identifier for the true two-class results
+(that is a factor). This should be an unquoted column name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimate</code></td>
+<td>
+<p>The column identifier for the predicted class probabilities
+(that is a numeric). This should be an unquoted column name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thresholds</code></td>
+<td>
+<p>A numeric vector of values for the probability
+threshold. If unspecified, a series
+of values between 0.5 and 1.0 are used. <strong>Note</strong>: if this
+argument is used, it must be named.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>metrics</code></td>
+<td>
+<p>Either <code>NULL</code> or a <code>yardstick::metric_set()</code> with a list of
+performance metrics to calculate. The metrics should all be oriented towards
+hard class predictions (e.g. <code>yardstick::sensitivity()</code>,
+<code>yardstick::accuracy()</code>, <code>yardstick::recall()</code>, etc.) and not
+class probabilities. A set of default metrics is used when <code>NULL</code> (see
+Details below).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na_rm</code></td>
+<td>
+<p>A single logical: should missing data be removed?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>event_level</code></td>
+<td>
+<p>A single string. Either <code>"first"</code> or <code>"second"</code> to specify
+which level of <code>truth</code> to consider as the "event".</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Note that that the global option <code>yardstick.event_first</code> will be
+used to determine which level is the event of interest. For more details,
+see the Relevant level section of <code>yardstick::sens()</code>.
+</p>
+<p>The default calculated metrics are:
+</p>
+
+<ul>
+<li> <p><code>yardstick::j_index()</code>
+</p>
+</li>
+<li> <p><code>yardstick::sens()</code>
+</p>
+</li>
+<li> <p><code>yardstick::spec()</code>
+</p>
+</li>
+<li> <p><code>distance = (1 - sens) ^ 2 + (1 - spec) ^ 2</code>
+</p>
+</li>
+</ul>
+<p>If a custom metric is passed that does not compute sensitivity and
+specificity, the distance metric is not computed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A tibble with columns: <code>.threshold</code>, <code>.estimator</code>, <code>.metric</code>,
+<code>.estimate</code> and any existing groups.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(dplyr)
+data("segment_logistic")
+
+# Set the threshold to 0.6
+# &gt; 0.6 = good
+# &lt; 0.6 = poor
+threshold_perf(segment_logistic, Class, .pred_good, thresholds = 0.6)
+
+# Set the threshold to multiple values
+thresholds &lt;- seq(0.5, 0.9, by = 0.1)
+
+segment_logistic %&gt;%
+  threshold_perf(Class, .pred_good, thresholds)
+
+# ---------------------------------------------------------------------------
+
+# It works with grouped data frames as well
+# Let's mock some resampled data
+resamples &lt;- 5
+
+mock_resamples &lt;- resamples %&gt;%
+  replicate(
+    expr = sample_n(segment_logistic, 100, replace = TRUE),
+    simplify = FALSE
+  ) %&gt;%
+  bind_rows(.id = "resample")
+
+resampled_threshold_perf &lt;- mock_resamples %&gt;%
+  group_by(resample) %&gt;%
+  threshold_perf(Class, .pred_good, thresholds)
+
+resampled_threshold_perf
+
+# Average over the resamples
+resampled_threshold_perf %&gt;%
+  group_by(.metric, .threshold) %&gt;%
+  summarise(.estimate = mean(.estimate))
+
+</code></pre>
+
+
+</div>

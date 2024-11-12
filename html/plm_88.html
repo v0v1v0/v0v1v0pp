@@ -1,0 +1,150 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>make.dummies</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a Dummy Matrix</h2>
+
+<h3>Description</h3>
+
+<p>Contrast-coded dummy matrix (treatment coding) created from a factor
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">make.dummies(x, ...)
+
+## Default S3 method:
+make.dummies(x, base = 1L, base.add = TRUE, ...)
+
+## S3 method for class 'data.frame'
+make.dummies(x, col, base = 1L, base.add = TRUE, ...)
+
+## S3 method for class 'pdata.frame'
+make.dummies(x, col, base = 1L, base.add = TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a factor from which the dummies are created (x is coerced to
+factor if not yet a factor) for the default method or a data
+data frame/pdata.frame for the respective method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>base</code></td>
+<td>
+<p>integer or character, specifies the reference level (base), if
+integer it refers to position in <code>levels(x)</code>, if character the name
+of a level,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>base.add</code></td>
+<td>
+<p>logical, if <code>TRUE</code> the reference level (base) is added
+to the return value as first column, if <code>FALSE</code> the reference
+level is not included.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>col</code></td>
+<td>
+<p>character (only for the data frame and pdata.frame methods), to
+specify the column which is used to derive the dummies from,</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function creates a matrix of dummies from the levels of a factor in
+treatment coding. In model estimations, it is usually preferable to not
+create the dummy matrix prior to estimation but to simply specify a factor
+in the formula and let the estimation function handle the creation of the
+dummies.
+</p>
+<p>This function is merely a convenience wrapper around <code>stats::contr.treatment</code>
+to ease the dummy matrix creation process shall the dummy matrix be explicitly
+required. See Examples for a use case in LSDV (least squares dummy variable)
+model estimation.
+</p>
+<p>The default method uses a factor as main input (or something coercible to a
+factor) to derive the dummy matrix from. Methods for data frame and pdata.frame
+are available as well and have the additional argument <code>col</code> to specify the
+the column from which the dummies are created; both methods merge the dummy
+matrix to the data frame/pdata.frame yielding a ready-to-use data set.
+See also Examples for use cases.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For the default method, a matrix containing the contrast-coded
+dummies (treatment coding),
+dimensions are n x n where <code>n = length(levels(x))</code> if argument
+<code>base.add = TRUE</code> or <code>n = length(levels(x)-1)</code> if <code>base.add = FALSE</code>;
+for the data frame and pdata.frame method, a data frame or pdata.frame,
+respectively, with the dummies appropriately merged to the input as
+last columns (column names are derived from the name of the column
+used to create the dummies and its levels).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Kevin Tappe
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>stats::contr.treatment()</code>, <code>stats::contrasts()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(plm)
+data("Grunfeld", package = "plm")
+Grunfeld &lt;- Grunfeld[1:100, ] # reduce data set (down to 5 firms)
+
+## default method
+make.dummies(Grunfeld$firm) # gives 5 x 5 matrix (5 firms, base level incl.)
+make.dummies(Grunfeld$firm, base = 2L, base.add = FALSE) # gives 5 x 4 matrix
+
+## data frame method
+Grun.dummies &lt;- make.dummies(Grunfeld, col = "firm")
+
+## pdata.frame method
+pGrun &lt;- pdata.frame(Grunfeld)
+pGrun.dummies &lt;- make.dummies(pGrun, col = "firm")
+
+## Model estimation:
+## estimate within model (individual/firm effects) and LSDV models (firm dummies)
+# within model:
+plm(inv ~ value + capital, data = pGrun, model = "within")
+
+## LSDV with user-created dummies by make.dummies:
+form_dummies &lt;- paste0("firm", c(1:5), collapse = "+")
+form_dummies &lt;- formula(paste0("inv ~ value + capital + ", form_dummies))
+plm(form_dummies, data = pGrun.dummies, model = "pooling") # last dummy is dropped
+
+# LSDV via factor(year) -&gt; let estimation function generate dummies:
+plm(inv ~ value + capital + factor(firm), data = pGrun, model = "pooling")
+</code></pre>
+
+
+</div>

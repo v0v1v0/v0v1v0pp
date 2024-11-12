@@ -1,0 +1,166 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>survpred_prclmm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compute the predicted survival probabilities obtained
+from the PRC models</h2>
+
+<h3>Description</h3>
+
+<p>This function computes the predicted survival probabilities 
+for the for the PRC-LMM model proposed 
+in Signorelli et al. (2021)
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">survpred_prclmm(step1, step2, step3, times = 1, new.longdata = NULL,
+  new.basecovs = NULL, keep.ranef = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>step1</code></td>
+<td>
+<p>the output of <code>fit_lmms</code> (step 1
+of the estimation of PRC-LMM)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>step2</code></td>
+<td>
+<p>the output of <code>summarize_lmms</code> (step 2
+of the estimation of PRC-LMM)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>step3</code></td>
+<td>
+<p>the output of <code>fit_prclmm</code> (step 3
+of the estimation of PRC-LMM)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>times</code></td>
+<td>
+<p>numeric vector with the time points at which
+to estimate the time-dependent AUC</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new.longdata</code></td>
+<td>
+<p>longitudinal data if you want to compute 
+predictions for new subjects on which the model was not trained.
+It should comprise an identifier variable called 'id'.
+Default is <code>new.longdata = NULL</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new.basecovs</code></td>
+<td>
+<p>a dataframe with baseline covariates for the
+new subjects for which predictions are to be computed. 
+It should comprise an identifier variable called 'id'.
+Only needed if baseline covariates were included in step 3 and 
+<code>new.longdata</code> is specified. Default is <code>new.basecovs = NULL</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.ranef</code></td>
+<td>
+<p>should a data frame with the predicted random 
+effects be included in the output? Default is <code>FALSE</code></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing the function call (<code>call</code>),
+a data frame with the predicted survival probabilities
+computed at the supplied time points (<code>predicted_survival</code>),
+and if <code>keep.ranef = TRUE</code> also the predicted random effects
+<code>predicted_ranefs</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Mirko Signorelli
+</p>
+
+
+<h3>References</h3>
+
+<p>Signorelli, M. (2024). pencal: an R Package for the Dynamic 
+Prediction of Survival with Many Longitudinal Predictors. 
+To appear in: The R Journal. Preprint: arXiv:2309.15600
+</p>
+<p>Signorelli, M., Spitali, P., Al-Khalili Szigyarto, C, 
+The MARK-MD Consortium, Tsonaka, R. (2021). 
+Penalized regression calibration: a method for the prediction 
+of survival outcomes using complex longitudinal and 
+high-dimensional data. Statistics in Medicine, 40 (27), 6178-6196.
+DOI: 10.1002/sim.9178
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>fit_lmms</code> (step 1),
+<code>summarize_lmms</code> (step 2) and 
+<code>fit_prclmm</code> (step 3)
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># generate example data
+set.seed(1234)
+p = 4 # number of longitudinal predictors
+simdata = simulate_prclmm_data(n = 100, p = p, p.relev = 2, 
+             t.values = c(0, 0.2, 0.5, 1, 1.5, 2),
+             landmark = 2, seed = 123)
+             
+# step 1 of PRC-LMM: estimate the LMMs
+y.names = paste('marker', 1:p, sep = '')
+step1 = fit_lmms(y.names = y.names, 
+                 fixefs = ~ age, ranefs = ~ age | id, 
+                 long.data = simdata$long.data, 
+                 surv.data = simdata$surv.data,
+                 t.from.base = t.from.base,
+                 n.boots = 0)
+                 
+# step 2 of PRC-LMM: compute the summaries 
+# of the longitudinal outcomes
+step2 = summarize_lmms(object = step1)
+
+# step 3 of PRC-LMM: fit the penalized Cox models
+step3 = fit_prclmm(object = step2, surv.data = simdata$surv.data,
+                   baseline.covs = ~ baseline.age,
+                   penalty = 'ridge')
+                   
+# predict survival probabilities at times 3 to 6
+surv.probs = survpred_prclmm(step1, step2, step3, times = 3:6)
+head(surv.probs$predicted_survival)
+
+# predict survival probabilities for new subjects:
+temp = simulate_prclmm_data(n = 10, p = p, p.relev = 2, 
+      seed = 321, t.values = c(0, 0.2, 0.5, 1, 1.5, 2))
+new.longdata = temp$long.data
+new.basecovs = temp$surv.data[ , 1:2]
+surv.probs.new = survpred_prclmm(step1, step2, step3, 
+                     times = 3:6,
+                     new.longdata = new.longdata,
+                     new.basecovs = new.basecovs)
+head(surv.probs.new$predicted_survival)
+</code></pre>
+
+
+</div>

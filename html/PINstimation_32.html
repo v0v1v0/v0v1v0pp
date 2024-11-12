@@ -1,0 +1,161 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>initials_mpin</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>MPIN initial parameter sets of Ersan (2016)</h2>
+
+<h3>Description</h3>
+
+<p>Based on the algorithm in
+Ersan (2016), generates
+initial parameter sets for the maximum likelihood estimation of the <code>MPIN</code>
+model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">initials_mpin(data, layers = NULL, detectlayers = "EG",
+ xtraclusters = 4, verbose = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A dataframe with 2 variables: the first
+corresponds to buyer-initiated trades (buys), and the second corresponds
+to seller-initiated trades (sells).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>layers</code></td>
+<td>
+<p>An integer referring to the assumed number of
+information layers in the data. If the value of <code>layers</code> is <code>NULL</code>, then
+the number of layers is automatically determined by one of the following
+functions: <code>detectlayers_e()</code>, <code>detectlayers_eg()</code>, and <code>detectlayers_ecm()</code>.
+The default value is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>detectlayers</code></td>
+<td>
+<p>A character string referring to the layer
+detection algorithm used to determine the number of layers in the data. It
+takes one of three values: <code>"E"</code>, <code>"EG"</code>, and <code>"ECM"</code>. <code>"E"</code> refers to the
+algorithm in Ersan (2016), <code>"EG"</code> refers to
+the algorithm in Ersan and Ghachem (2022a); while
+<code>"ECM"</code> refers to the algorithm in
+Ghachem and Ersan (2022a). The default value is <code>"EG"</code>.
+Comparative results between the layer detection
+algorithms can be found in Ersan and Ghachem (2022a).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xtraclusters</code></td>
+<td>
+<p>An integer used to divide trading days into
+<code>#(1 + layers + xtraclusters)</code> clusters, thereby resulting in
+<code>#comb(layers + xtraclusters, layers)</code> initial parameter sets in
+line with Ersan and Alici (2016), and
+Ersan (2016). The default value is <code>4</code>
+as chosen in Ersan (2016).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>a binary variable that determines whether information messages
+about the initial parameter sets, including the number of the initial
+parameter sets generated. No message is shown when <code>verbose</code> is set
+to <code>FALSE</code>. The default value is <code>TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The argument 'data' should be a numeric dataframe, and contain
+at least two variables. Only the first two variables will be considered:
+The first variable is assumed to correspond to the total number of
+buyer-initiated trades, while the second variable is assumed to
+correspond to the total number of seller-initiated trades. Each row or
+observation correspond to a trading day. <code>NA</code> values will be ignored.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a dataframe of initial parameter sets each consisting of
+<code style="white-space: pre;">⁠3J + 2⁠</code> variables {<code class="reqn">\alpha</code>, <code class="reqn">\delta</code>, <code class="reqn">\mu</code>, <code class="reqn">\epsilon</code><sub>b</sub>, <code class="reqn">\epsilon</code><sub>s</sub>}.
+<code class="reqn">\alpha</code>, <code class="reqn">\delta</code>, and <code class="reqn">\mu</code> are vectors of length <code>J</code> where
+<code>J</code> is the number of layers in the <code>MPIN</code> model.
+</p>
+
+
+<h3>References</h3>
+
+<p>Ersan O (2016).
+“Multilayer Probability of Informed Trading.”
+<em>Available at SSRN 2874420</em>.<br><br> Ersan O, Alici A (2016).
+“An unbiased computation methodology for estimating the probability of informed trading (PIN).”
+<em>Journal of International Financial Markets, Institutions and Money</em>, <b>43</b>, 74–94.
+ISSN 10424431.<br><br> Ersan O, Ghachem M (2022a).
+“Identifying information types in probability of informed trading (PIN) models: An improved algorithm.”
+<em>Available at SSRN 4117956</em>.<br><br> Ghachem M, Ersan O (2022a).
+“Estimation of the probability of informed trading models via an expectation-conditional maximization algorithm.”
+<em>Available at SSRN 4117952</em>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># There is a preloaded quarterly dataset called 'dailytrades' with 60
+# observations. Each observation corresponds to a day and contains the
+# total number of buyer-initiated trades ('B') and seller-initiated
+# trades ('S') on that day. To know more, type ?dailytrades
+
+xdata &lt;- dailytrades
+
+# Obtain a dataframe of initial parameter sets for estimation of the MPIN
+# model using the algorithm of Ersan (2016) with 3 extra clusters.
+# By default, the number of layers in the data is detected using the
+# algorithm of Ersan and Ghachem (2022a).
+
+initparams &lt;- initials_mpin(xdata, xtraclusters = 3, verbose = FALSE)
+
+# Show the six first initial parameter sets
+
+print(round(t(head(initparams)), 3))
+
+# Use 10 randomly selected initial parameter sets from initparams to
+# estimate the probability of informed trading via mpin_ecm. The number
+# of information layers will be detected from the initial parameter sets.
+
+numberofsets &lt;- nrow(initparams)
+selectedsets &lt;- initparams[sample(numberofsets, 10),]
+
+estimate &lt;- mpin_ecm(xdata, initialsets = selectedsets, verbose = FALSE)
+
+# Display the estimated MPIN value
+
+show(estimate@mpin)
+
+# Display the estimated parameters as a numeric vector.
+
+show(unlist(estimate@parameters))
+
+# Store the posterior probabilities in a variable, and show the first 6 rows.
+
+modelposteriors &lt;- get_posteriors(estimate)
+show(round(head(modelposteriors), 3))
+
+</code></pre>
+
+
+</div>

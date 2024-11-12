@@ -1,0 +1,204 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Internal Functions</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Internal Functions in polysat</h2>
+
+<h3>Description</h3>
+
+<p>The internal functions <code>G</code>, <code>INDEXG</code>, <code>GENLIST</code>,
+<code>RANMUL</code>, and <code>SELFMAT</code>
+are used for calculating
+genotype probabilities under partial selfing.  The internal function
+<code>.unal1loc</code> finds all unique alleles at a single locus.  The internal
+function <code>fixloci</code> converts locus names to a format that will be
+compatible as column headers for allele frequency tables.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">G(q, n)
+INDEXG(ag1, na1, m2)
+GENLIST(ng, na1, m2)
+RANMUL(ng, na1, ag, m2)
+SELFMAT(ng, na1, ag, m2)
+.unal1loc(object, samples, locus)
+fixloci(loci, warn = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>q</code></td>
+<td>
+<p>Integer.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>Integer.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ag1</code></td>
+<td>
+<p>A vector representing an unambiguous genotype.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na1</code></td>
+<td>
+<p>Integer. The number of alleles, including a null.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m2</code></td>
+<td>
+<p>Integer.  The ploidy.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ng</code></td>
+<td>
+<p>Integer.  The number of genotypes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ag</code></td>
+<td>
+<p>An array of genotypes such as that produced by
+<code>.genlist</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A <code>"genambig"</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>samples</code></td>
+<td>
+<p>Optional, a numeric or character vector indicating
+which samples to use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>locus</code></td>
+<td>
+<p>A character string or number indicating which locus to
+use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loci</code></td>
+<td>
+<p>A character vector of locus names.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>warn</code></td>
+<td>
+<p>Boolean indicating whether a warning should be issued if 
+locus names are changed.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>G</code> returns
+</p>
+<p style="text-align: center;"><code class="reqn">\frac{(n+q)!}{(q+1)! * (n-1)!}</code>
+</p>
+
+<p><code>INDEXG</code> returns an integer indicating the row containing a
+particular genotype in the matrix produced by <code>GENLIST</code>.
+</p>
+<p><code>GENLIST</code> returns an array with dimensions <code>ng, m2</code>,
+containing all possible unambiguous genotypes, one in each row.  The null
+allele is the highest-numbered allele.
+</p>
+<p><code>RANMUL</code> returns a list.  The first item is a vector of
+polynomial coefficients for calculating genotype frequencies under
+random mating.  The second is an array
+showing how many copies of each allele each genotype has.
+</p>
+<p><code>SELFMAT</code> returns the selfing matrix.  Parental genotypes are
+represented in rows, and offspring genotypes in columns.  The numbers
+indicate relative amounts of offspring genotypes produced when the
+parental genotypes are self-fertilized.
+</p>
+<p><code>.unal1loc</code> returns a vector containing all unique alleles, not
+including <code>Missing(object)</code>.
+</p>
+<p><code>fixloci</code> returns a character vector of corrected locus names.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark</p>
+
+
+<h3>References</h3>
+
+<p>De Silva, H. N., Hall, A. J., Rikkerink, E., and Fraser, L. G. (2005)
+Estimation of allele frequencies in polyploids under
+certain patterns of inheritance.  <em>Heredity</em> <b>95</b>, 327–334
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>deSilvaFreq</code>, <code>meandistance.matrix2</code>,
+<code>genotypeProbs</code>, <code>genambig.to.genbinary</code>,
+<code>alleleDiversity</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Calculation of genotype probabilities in a tetraploid with four
+# alleles plus a null, and a selfing rate of 0.5.  This is a translation
+# of code in the supplementary material of De Silva et al. (2005).
+m2 &lt;- 4
+m &lt;- m2/2
+na1 &lt;- 5
+self &lt;- 0.5
+ng &lt;- na1
+for(j in 2:m2){
+    ng &lt;- ng*(na1+j-1)/j
+}
+ag &lt;- polysat:::GENLIST(ng, na1, m2)
+temp &lt;- polysat:::RANMUL(ng, na1, ag, m2)
+rmul &lt;- temp[[1]]
+arep &lt;- temp[[2]]
+rm(temp)
+smat &lt;- polysat:::SELFMAT(ng, na1, ag, m2)
+smatdiv &lt;- (polysat:::G(m-1,m+1))^2
+p1 &lt;- c(0.1, 0.4, 0.2, 0.2, 0.1) # allele frequencies
+
+# GPROBS subroutine
+rvec &lt;- rep(0,ng)
+for(g in 1:ng){
+    rvec[g] &lt;- rmul[g]
+    for(j in 1:m2){
+        rvec[g] &lt;- rvec[g]*p1[ag[g,j]]
+    }
+}
+id &lt;- diag(nrow=ng)
+smatt &lt;- smat/smatdiv
+s3 &lt;- id - self * smatt
+s3inv &lt;- solve(s3)
+gprob &lt;- (1-self) * s3inv %*% rvec
+# gprob is a vector of probabilities of the seventy genotypes.
+</code></pre>
+
+
+</div>

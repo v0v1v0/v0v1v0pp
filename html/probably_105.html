@@ -1,0 +1,133 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>make_class_pred</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a <code>class_pred</code> vector from class probabilities</h2>
+
+<h3>Description</h3>
+
+<p>These functions can be used to convert class probability estimates to
+<code>class_pred</code> objects with an optional equivocal zone.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">make_class_pred(..., levels, ordered = FALSE, min_prob = 1/length(levels))
+
+make_two_class_pred(
+  estimate,
+  levels,
+  threshold = 0.5,
+  ordered = FALSE,
+  buffer = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Numeric vectors corresponding to class probabilities. There should
+be one for each level in <code>levels</code>, and <em>it is assumed that the vectors
+are in the same order as <code>levels</code></em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>levels</code></td>
+<td>
+<p>A character vector of class levels. The length should be the
+same as the number of selections made through <code>...</code>, or length <code>2</code>
+for <code>make_two_class_pred()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ordered</code></td>
+<td>
+<p>A single logical to determine if the levels should be regarded
+as ordered (in the order given). This results in a <code>class_pred</code> object
+that is flagged as ordered.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_prob</code></td>
+<td>
+<p>A single numeric value. If any probabilities are less than
+this value (by row), the row is marked as <em>equivocal</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimate</code></td>
+<td>
+<p>A single numeric vector corresponding to the class
+probabilities of the first level in <code>levels</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>A single numeric value for the threshold to call a row to
+be labeled as the first value of <code>levels</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>buffer</code></td>
+<td>
+<p>A numeric vector of length 1 or 2 for the buffer around
+<code>threshold</code> that defines the equivocal zone (i.e., <code>threshold - buffer[1]</code> to
+<code>threshold + buffer[2]</code>). A length 1 vector is recycled to length 2. The
+default, <code>NULL</code>, is interpreted as no equivocal zone.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A vector of class <code>class_pred</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(dplyr)
+
+good &lt;- segment_logistic$.pred_good
+lvls &lt;- levels(segment_logistic$Class)
+
+# Equivocal zone of .5 +/- .15
+make_two_class_pred(good, lvls, buffer = 0.15)
+
+# Equivocal zone of c(.5 - .05, .5 + .15)
+make_two_class_pred(good, lvls, buffer = c(0.05, 0.15))
+
+# These functions are useful alongside dplyr::mutate()
+segment_logistic %&gt;%
+  mutate(
+    .class_pred = make_two_class_pred(
+      estimate = .pred_good,
+      levels = levels(Class),
+      buffer = 0.15
+    )
+  )
+
+# Multi-class example
+# Note that we provide class probability columns in the same
+# order as the levels
+species_probs %&gt;%
+  mutate(
+    .class_pred = make_class_pred(
+      .pred_bobcat, .pred_coyote, .pred_gray_fox,
+      levels = levels(Species),
+      min_prob = .5
+    )
+  )
+
+</code></pre>
+
+
+</div>

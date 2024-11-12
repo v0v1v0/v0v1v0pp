@@ -1,0 +1,134 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>vitalsens</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Vital rate sensitivities and elasticities</h2>
+
+<h3>Description</h3>
+
+<p>Calculates deterministic sensitivities and elasticities of lambda to
+lower-level vital rates using partial derivatives
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">vitalsens(elements, vitalrates)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>elements</code></td>
+<td>
+<p>An object of mode <code>expression</code> with all matrix
+elements represented by zeros or symbolic vital rates</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vitalrates</code></td>
+<td>
+<p>A list of vital rates with <code>names</code> matching
+expressions in elements above</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Vital rate sensitivities and elasticities are discussed in example 9.3 and
+9.6 in Caswell (2001). Also see Chapter 9 and Box 9.1 for Matlab code in
+Morris and Doak (2002).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A dataframe with vital rate estimates, sensitivities, and elasticities
+</p>
+
+
+<h3>Note</h3>
+
+<p>The element expressions should return the actual matrix element estimates
+after evaluating the variables using <code>eval</code> below.
+</p>
+<p><code>A&lt;-sapply(elements, eval, vitalrates, NULL)</code>
+</p>
+<p>In addition, these expressions should be arranged by rows so the
+following returns the projection matrix.
+</p>
+<p><code>matrix(A, nrow=sqrt(length(elements)), byrow=TRUE)</code>
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Chris Stubben. Based on code posted by Simon Blomberg to R-help mailing list
+</p>
+
+
+<h3>References</h3>
+
+<p>Caswell, H. 2001. Matrix population models: construction,
+analysis, and interpretation, Second edition. Sinauer, Sunderland,
+Massachusetts, USA.
+</p>
+<p>Morris, W. F., and D. F. Doak. 2002. Quantitative conservation biology:
+Theory and practice of population viability analysis. Sinauer, Sunderland,
+Massachusetts, USA.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## emperor goose in Morris and Doak 2002.
+goose.vr &lt;- list( Ss0=0.1357,  Ss1=0.8926,  Sf2=0.6388,  Sf3= 0.8943)
+goose.el &lt;- expression(
+0,  0,  Sf2*Ss1,Sf3*Ss1,
+Ss0,0,  0,      0,
+0,  Ss1,0,      0,
+0,  0,  Ss1,    Ss1)
+## first plot effects of changing vital rates -- Figure 9.1
+n &lt;- length(goose.vr)
+vr &lt;- seq(0,1,.1)
+vrsen &lt;- matrix(numeric(n*length(vr)), ncol=n, dimnames=list(vr, names(goose.vr)))
+for (h in 1:n) {
+   goose.vr2 &lt;- list(  Ss0=0.1357,  Ss1=0.8926,  Sf2=0.6388,  Sf3= 0.8943)
+   for (i in 1:length(vr))
+   {
+      goose.vr2[[h]] &lt;- vr[i]
+      A &lt;- matrix(sapply(goose.el, eval,goose.vr2 , NULL), nrow=sqrt(length(goose.el)), byrow=TRUE)
+      vrsen[i,h] &lt;- max(Re(eigen(A)$values))
+   }
+}
+matplot(rownames(vrsen), vrsen, type='l', lwd=2, las=1,
+ylab="Goose population growth", xlab="Value of vital rate",
+main="Effects of changing goose vital rates")
+vrn &lt;- expression(s[0], s[""&gt;=1], f[2], f[""&gt;=3])
+legend(.8, .4, vrn, lty=1:4, lwd=2, col=1:4, cex=1.2)
+## then calculate sensitivities  -- Table 9.1
+x &lt;- vitalsens(goose.el, goose.vr)
+x
+sum(x$elasticity)
+barplot(t(x[,2:3]), beside=TRUE, legend=TRUE, las=1, xlab="Vital rate",
+main="Goose vital rate sensitivity and elasticity")
+abline(h=0)
+## Table 7 endangered lesser kestral in Hiraldo et al 1996
+kest.vr &lt;-  list(b = 0.9321, co = 0.3847, ca = 0.925, so = 0.3409, sa = 0.7107)
+kest.el &lt;- expression( co*b*so, ca*b*so, sa, sa)
+x &lt;- vitalsens(kest.el, kest.vr)
+x
+sum(x$elasticity)
+barplot(t(x[,2:3]), beside=TRUE, las=1, xlab="Vital rate",
+main="Kestral vital rate sensitivity and elasticity")
+legend(1,1, rownames(t(x[,2:3])), fill=grey.colors(2))
+abline(h=0)
+
+</code></pre>
+
+
+</div>

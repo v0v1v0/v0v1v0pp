@@ -1,0 +1,324 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>simdata</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulate Survival Data</h2>
+
+<h3>Description</h3>
+
+<p><code>simdata</code> is used to simulate a clinical trial data with time-to-event endpoints.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">simdata(group="Group 1", strata="Strata 1", allocation=1,
+    event_lambda=NA, drop_rate=NA, death_lambda=NA, n_rand=NULL,
+    rand_rate=NULL, total_sample=NULL, add_column=c('followT'),
+    simplify=TRUE, advanced_dist=NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>group</code></td>
+<td>
+<p>a character vector of the names of each group (e.g., <code>c('treatment','control')</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>strata</code></td>
+<td>
+<p>a character vector of the names of strata in groups (e.g., <code>c('young','old')</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allocation</code></td>
+<td>
+<p>the relative ratio of sample size in each subgroup (<code>group*strata</code>). See details. The value will be recycled if the length is less than needed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>event_lambda</code></td>
+<td>
+<p>the hazard rate of the primary endpoint (event). See details. The value will be recycled if the length is less than needed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop_rate</code></td>
+<td>
+<p>(optional) the drop-out rate (patients/month). Not hazard rate. See details. The value will be recycled if the length is less than needed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>death_lambda</code></td>
+<td>
+<p>(optional) the hazard rate of death. The value will be recycled if the length is less than needed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_rand</code></td>
+<td>
+<p>(required when <code>rand_rate=NULL</code>) a vector of the number of randomization each month; can be non-integers.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rand_rate</code></td>
+<td>
+<p>(required when <code>n_rand=NULL</code>) the randomization rate (patients/month; can be non-integer).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>total_sample</code></td>
+<td>
+<p>(required when <code>n_rand=NULL</code>) total scheduled sample size.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add_column</code></td>
+<td>
+<p>request additional columns of the returned data frame. <br>
+Valid options are:
+</p>
+
+<ul>
+<li> <p><code>'eventT_abs'</code>: absolute event time from the beginning of the trial (=eventT+randT)
+</p>
+</li>
+<li> <p><code>'dropT_abs'</code>: absolute drop-out time from the beginning of the trial (=dropT+randT)
+</p>
+</li>
+<li> <p><code>'deathT_abs'</code>: absolute death time from the beginning of the trial (=deathT+randT)
+</p>
+</li>
+<li> <p><code>'censor'</code>: censoring (drop-out or death) indicator
+</p>
+</li>
+<li> <p><code>'event'</code>: event indicator
+</p>
+</li>
+<li> <p><code>'censor_reason'</code>: censoring reason ('drop_out','death','never_event'(eventT=inf))
+</p>
+</li>
+<li> <p><code>'followT'</code>: follow-up time (true observed time) from randT
+</p>
+</li>
+<li> <p><code>'followT_abs'</code>: absolute follow-up time from the beginning of the trial (=followT+randT)
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simplify</code></td>
+<td>
+<p>whether drop unused columns (e.g., the group variable when there is only one group). See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>advanced_dist</code></td>
+<td>
+<p>use user-specified distributions for event, drop-out and death. A list containing random generation functions. See details and examples. </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>See webpage <a href="https://zjph602xtc.github.io/PWEXP/">https://zjph602xtc.github.io/PWEXP/</a> for a diagram illustration of the relationship between returned variables.
+</p>
+<p>The total number of subgroups will be '# treatment groups' * '# strata'. The <code>strata</code> variable will be distributed into each treatment group. For example, if <code>group = c('trt','placebo')</code>, <code>strata=c('A','B','C')</code>, then there will be 6 subgroups: trt+A, trt+B, trt+C, placebo+A, placebo+B, placebo+C. The lengths of <code>allocation</code>, <code>event_lambda</code>, <code>drop_rate</code>, <code>death_lambda</code> should be 6 as well. Note that the values will be recycled for these variables. For example, if <code>allocation=c(1,2,3)</code>, then the proportion of 6 subgroups is actually 1:2:3:1:2:3, which means 1:1 ratio for groups, 1:2:3 ratio in each stratum.
+</p>
+<p>The <code>event_lambda</code> (<code class="reqn">\lambda</code>) is the hazard rate of the interested events. The density function of events is <code class="reqn">f(t)=\lambda e^{-\lambda*t}</code>. Similarly, the <code>death_lambda</code> is the hazard rate of death.
+</p>
+<p>The <code>drop_rate</code> is the probability of drop-out at <code class="reqn">t=1</code>, which means the hazard rate of drop-out is <code class="reqn">-log(1-drop_rate)</code> (or say, <code>drop_rate</code>=<code class="reqn">1-e^{-hazard rate}</code>.
+</p>
+<p>When <code>simplify=TRUE</code>, these columns will NOT be included:
+</p>
+
+<ul>
+<li> <p><code>group</code> when only one group is specified
+</p>
+</li>
+<li> <p><code>strata</code> when only one stratum is specified
+</p>
+</li>
+<li> <p><code>eventT</code> when <code>event_lambda=NA</code>
+</p>
+</li>
+<li> <p><code>dropT</code> when <code>drop_rate=NA</code>
+</p>
+</li>
+<li> <p><code>deathT</code>  when <code>death_lambda=NA</code>
+</p>
+</li>
+</ul>
+<p><code>advanced_dist</code> is used to define non-exponential distributions for event, drop-out or death. It is a list containing at least one of the elements: <code>event_dist</code>, <code>drop_dist</code>, <code>death_dist</code>. Each element has random generation functions for each subgroups. For example, <code>advanced_dist=list(event_dist=c(function1, function2), drop_dist=c(function3, function4))</code>. Here <code>function1</code>, <code>function3</code> are the event, drop-out generation function for the first subgroup; <code>function2</code>, <code>function4</code> for the second. If there is a third subgroup, <code>function1</code>, <code>function3</code> will be reused.
+Each data generation function (<code>functionX</code>) is a function with only one input argument <code>n</code> (sample size). If any of the <code>event_dist</code>, <code>drop_dist</code>, <code>death_dist</code> is missing, then we search for <code>event_lambda</code>, <code>drop_rate</code>, <code>death_lambda</code> to generate a exp distribution; if they are also missing, then corresponding variable will not be generated
+.</p>
+
+
+<h3>Value</h3>
+
+<p>A data frame containing the some of these columns:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>ID</code></td>
+<td>
+<p>subject ID</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group</code></td>
+<td>
+<p>group indicator</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>strata</code></td>
+<td>
+<p>stratum indicator</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>randT</code></td>
+<td>
+<p>randomization time (from the beginning of the trial)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eventT</code></td>
+<td>
+<p>event time (from <code>randT</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eventT_abs</code></td>
+<td>
+<p>event time (from the beginning of the trial)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dropT</code></td>
+<td>
+<p>drop-out time (from <code>randT</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dropT_abs</code></td>
+<td>
+<p>drop-out time (from the beginning of the trial)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deathT</code></td>
+<td>
+<p>death time (from <code>randT</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deathT_abs</code></td>
+<td>
+<p>death time (from the beginning of the trial)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>censor</code></td>
+<td>
+<p>censoring (drop-out or death) indicator</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>censor_reason</code></td>
+<td>
+<p>censoring reason ('drop_out','death','never_event'(followT=inf))</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>event</code></td>
+<td>
+<p>event indicator</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>followT</code></td>
+<td>
+<p>follow-up time / observed time (from <code>randT</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>followT_abs</code></td>
+<td>
+<p>follow-up time / observed time (from the beginning of the trial)</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p><code>event_lambda</code>, <code>drop_rate</code>, <code>death_lambda</code> can be 0, which means the corresponding subgroup will have an Inf value for each variable.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Tianchen Xu <a href="mailto:zjph602xutianchen@gmail.com">zjph602xutianchen@gmail.com</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rpwexp</code>,
+<code>rpwexp_conditional</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Two groups with two strata. In the treatment group, there is a treatment
+# sensitive stratum and a non-sensitive stratum. In the placebo group, all
+# subjects are the same. Treatment:place=1:2. Drop rate=1% only in treatment group.
+dat &lt;- simdata(group=c('trt', 'place'), strata = c('sensitive','non-sensitive'),
+               allocation = c(1,1,2,2), rand_rate = 20, total_sample = 1000,
+               event_lambda = c(0.1, 0.2, 0.01, 0.01),
+               drop_rate = c(0.01, 0.01, 0, 0))
+# randomized subjects
+table(dat$group,dat$strata)
+# randomization curve
+plot(sort(dat$randT), 1:1000, xlab='time', ylab='randomized subjects')
+# event time in treatment group
+plot(ecdf(dat$eventT[dat$group=='trt' &amp; dat$strata=='sensitive']))
+lines(ecdf(dat$eventT[dat$group=='trt' &amp; dat$strata=='non-sensitive']), col='red')
+
+
+# One group. Event follows a piecewise exponential distribution; drop-out follows
+# a Weibull; death follows a exponential.
+dist_trt &lt;- function(n)rpwexp(n, rate=c(0.01, 0.05, 0.01), breakpoint = c(30,60))
+dist_placebo &lt;- function(n)rpwexp(n, rate=c(0.01, 0.005), breakpoint = c(50))
+dat &lt;- simdata(group = c('trt','placebo'), n_rand = c(rep(10,50),rep(20,10)),
+               death_lambda = 0.01,
+               advanced_dist = list(event_dist=c(dist_trt, dist_placebo),
+                                    drop_dist=function(n)rweibull(n,3,40)))
+# randomized subjects
+table(dat$group)
+# randomization curve
+plot(sort(dat$randT), 1:700, xlab='time', ylab='randomized subjects')
+# event time in both groups
+plot(ecdf(dat$eventT[dat$group=='trt']), xlim=c(0,100))
+lines(ecdf(dat$eventT[dat$group=='placebo']), col='red')
+# drop-out time
+plot(ecdf(dat$dropT), xlim=c(0,100))
+
+
+# mixture cure distribution, 20% of the subject are cured and will not have events
+dat &lt;- simdata(strata=c('cure','non-cure'), allocation=c(20,80),
+        event_lambda=c(0, 0.38), n_rand = rep(20,30),
+        add_column = c('eventT_abs', 'censor', 'event',
+                       'censor_reason', 'followT', 'followT_abs'))
+</code></pre>
+
+
+</div>

@@ -1,0 +1,112 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>contr_one_hot</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Contrast function for one-hot encodings</h2>
+
+<h3>Description</h3>
+
+<p>This contrast function produces a model matrix with indicator columns for
+each level of each factor.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">contr_one_hot(n, contrasts = TRUE, sparse = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>A vector of character factor levels or the number of unique levels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contrasts</code></td>
+<td>
+<p>This argument is for backwards compatibility and only the
+default of <code>TRUE</code> is supported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sparse</code></td>
+<td>
+<p>This argument is for backwards compatibility and only the
+default of <code>FALSE</code> is supported.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>By default, <code>model.matrix()</code> generates binary indicator variables for
+factor predictors. When the formula does not remove an intercept, an
+incomplete set of indicators are created; no indicator is made for the
+first level of the factor.
+</p>
+<p>For example, <code>species</code> and <code>island</code> both have three levels but
+<code>model.matrix()</code> creates two indicator variables for each:
+</p>
+<div class="sourceCode r"><pre>library(dplyr)
+library(modeldata)
+data(penguins)
+
+levels(penguins$species)
+</pre></div>
+<div class="sourceCode"><pre>## [1] "Adelie"    "Chinstrap" "Gentoo"
+</pre></div>
+<div class="sourceCode r"><pre>levels(penguins$island)
+</pre></div>
+<div class="sourceCode"><pre>## [1] "Biscoe"    "Dream"     "Torgersen"
+</pre></div>
+<div class="sourceCode r"><pre>model.matrix(~ species + island, data = penguins) %&gt;% 
+  colnames()
+</pre></div>
+<div class="sourceCode"><pre>## [1] "(Intercept)"      "speciesChinstrap" "speciesGentoo"    "islandDream"     
+## [5] "islandTorgersen"
+</pre></div>
+<p>For a formula with no intercept, the first factor is expanded to
+indicators for <em>all</em> factor levels but all other factors are expanded to
+all but one (as above):
+</p>
+<div class="sourceCode r"><pre>model.matrix(~ 0 + species + island, data = penguins) %&gt;% 
+  colnames()
+</pre></div>
+<div class="sourceCode"><pre>## [1] "speciesAdelie"    "speciesChinstrap" "speciesGentoo"    "islandDream"     
+## [5] "islandTorgersen"
+</pre></div>
+<p>For inference, this hybrid encoding can be problematic.
+</p>
+<p>To generate all indicators, use this contrast:
+</p>
+<div class="sourceCode r"><pre># Switch out the contrast method
+old_contr &lt;- options("contrasts")$contrasts
+new_contr &lt;- old_contr
+new_contr["unordered"] &lt;- "contr_one_hot"
+options(contrasts = new_contr)
+
+model.matrix(~ species + island, data = penguins) %&gt;% 
+  colnames()
+</pre></div>
+<div class="sourceCode"><pre>## [1] "(Intercept)"      "speciesAdelie"    "speciesChinstrap" "speciesGentoo"   
+## [5] "islandBiscoe"     "islandDream"      "islandTorgersen"
+</pre></div>
+<div class="sourceCode r"><pre>options(contrasts = old_contr)
+</pre></div>
+<p>Removing the intercept here does not affect the factor encodings.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A diagonal matrix that is <code>n</code>-by-<code>n</code>.
+</p>
+
+
+</div>

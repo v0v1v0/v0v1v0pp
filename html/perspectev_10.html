@@ -1,0 +1,192 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>perspectev.read</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Convert occurrence data to perspectev input format
+</h2>
+
+<h3>Description</h3>
+
+<p>Convert occurrence data (each row a separate occurrence) into standardized perspectev format.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">perspectev.read(data,upper,lower,traits,survProb,traitfun,extinctionAge=NULL,
+  occurrenceAge=NULL,vlist=NULL,trim=TRUE,
+  projection=FALSE,quiet=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+
+<p>Occurrence data. This must list each occurrence on a separate row, with upper/lower level classification specified in separate columns, as well as one or more columns specifying the trait-data for that occurrence (e.g. latitude and longitude). For example see data(occurrence_data).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper</code></td>
+<td>
+
+<p>Column name designation for upper level names.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower</code></td>
+<td>
+
+<p>Column name designation for lower level names.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>traits</code></td>
+<td>
+
+<p>A column name (string) or vector of column names which correspond to the trait data under investigation. The order in which trait names are specified is important and corresponds to the t1/t2 designation of trait functions.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>survProb</code></td>
+<td>
+
+<p>Designates lower level survivorship probability, may be either:
+1) A dataframe with three columns: Upper name, lower name, survivorship probability.
+Preferred option - compatible with continuous survivorship probability.
+</p>
+<p>2) A dataframe with two columns: Upper name, lower name. 
+Specifies lower units named as survivorship probability = 1, and all others as 0.
+</p>
+<p>3) A vector of names of surviving lower level units. 
+Upper and lower names must be separated by a space.
+</p>
+<p>If unspecified will assign survivorship based on occurrenceAge and extinctionAge.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>occurrenceAge</code></td>
+<td>
+
+<p>Column name desigation for the age of the occurrence. Only necessary if survProb unspecified, and will be ignored if survProb is specified.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extinctionAge</code></td>
+<td>
+
+<p>Age of the extinction in backward time. E.g. 65.5 for K-Pg mass extinction if occurrenceAge is in mya. Occurrences with ages greater than or equal to extinctionAge will be used to calculate trait values, and lower level units with occurrences before and after extinctionAge are marked as survivors. Lower level units with occurrences only after extinctionAge are excluded. Only necessary if survProb unspecified, and will be ignored if survProb is specified.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>traitfun</code></td>
+<td>
+
+<p>Function for calculating trait values at each level. Not necessary if trim=FALSE.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vlist</code></td>
+<td>
+
+<p>Optional variable list for trait function.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trim</code></td>
+<td>
+
+<p>Remove lower levels that give NA's from trait function? (recommended)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>projection</code></td>
+<td>
+
+<p>Convert coordinates to a Mollweide projection?
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+
+<p>Suppress information messages?
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Function specifies traits under analysis and survivorship probabilities of lower level units. See tutorial (http://evolve.zoo.ox.ac.uk/Evolve/Perspectev.html) for examples.
+</p>
+<p>Traits are specified by supplying the column names of trait data values (e.g. Latitude and Longitude) as a vector. The order in which the traits are specified is important, as this will be the basis of the index in trait functions (first in vector is first in trait list, second in vector is second in trait list, etc..). You can check this after the fact using the Key value. If trim=TRUE, supply a trait function using the traitfun parameter, and this function will remove all lower units which give an NA value in the trait function (e.g. having &lt; 3 distinct coordinates for MCP range).
+</p>
+<p>Survivorship probability may be specified in four ways:
+</p>
+<p>1) The best way is to supply a dataframe to survProb. This data frame should be of column format: &lt;Upper Name&gt; &lt;Lower Name&gt; &lt;Survivorship Probability&gt;, and should specify a survivorship probability for all lower level units in the occurrence data.
+</p>
+<p>2) Similar to 1), but a dataframe of column format: &lt;Upper Name&gt; &lt;Lower Name&gt;. This will assign all lower units specified as having a survivorship probability of 1, and all others as 0.
+</p>
+<p>3) Similar to 2), but a vector of names formed by pasting Upper and Lower names together, separated by a space (e.g. c("Genus1 Species1", "Genus2 Species2")) 
+</p>
+<p>4) Specifying occurrenceAge and extinctionAge. occurrenceAge is the column name for the age of the occurrences, and extinctionAge is the age of the extinction (both in backward time). All units with occurrences that only occur after the extinction are discarded. All units that have some occurrences with ages &lt; extinctionAge, and some occurrences &gt;= extinctionAge (found before and after extinction) are assigned survivorship = 1. All those which only have occurrences &gt;= extinctionAge are assigned survivorship = 0. Note that this will assign any lower level entity found both before/during and after the extinctionAge parameter as a survivor, while any lower level entity only found in the beginning will be listed as a victim. Specifying these parameters is only necessary if survProb is unspecified, and they will be ignored if it is.
+</p>
+<p>In all cases it is important to ensure your data set does not span too far back, because all occurrences provided, unless otherwise stated (see 4, above), will be used to calculate trait values. This is may or may not be good.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Survivorship</code></td>
+<td>
+<p>Dataframe containing upper/lower level classification and survivorship probability for each lower level unit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Traits</code></td>
+<td>
+<p>List containing trait data vectors for each lower level unit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Key</code></td>
+<td>
+<p>Shows indexes of trait values in Traits list, corresponds to order used in "traits" parameter.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Kenneth B. Hoehn &lt;perspectev@gmail.com&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">  data(testData)
+  survivorship = data.frame(cbind(testData$Genus,testData$Species,runif(nrow(testData),0,1)))
+  data = perspectev.read(testData,survProb=survivorship,
+  upper="Genus",lower="Species",traits=c("Lat","Long"),traitfun=mcpRange,
+  projection=FALSE)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,151 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>run_cvfun</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create <code>cvfits</code> from <code>cvfun</code>
+</h2>
+
+<h3>Description</h3>
+
+<p>A helper function that can be used to create input for
+<code>cv_varsel.refmodel()</code>'s argument <code>cvfits</code> by running first <code>cv_folds()</code> and
+then the reference model object's <code>cvfun</code> (see <code>init_refmodel()</code>). This is
+helpful if <code class="reqn">K</code>-fold CV is run multiple times based on the same <code class="reqn">K</code>
+reference model refits.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">run_cvfun(object, ...)
+
+## Default S3 method:
+run_cvfun(object, ...)
+
+## S3 method for class 'refmodel'
+run_cvfun(
+  object,
+  K = if (!inherits(object, "datafit")) 5 else 10,
+  folds = NULL,
+  seed = NA,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>An object of class <code>refmodel</code> (returned by <code>get_refmodel()</code> or
+<code>init_refmodel()</code>) or an object that can be passed to argument <code>object</code> of
+<code>get_refmodel()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>For <code>run_cvfun.default()</code>: Arguments passed to <code>get_refmodel()</code>.
+For <code>run_cvfun.refmodel()</code>: Currently ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>Number of folds. Must be at least 2 and not exceed the number of
+observations. Ignored if <code>folds</code> is not <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>folds</code></td>
+<td>
+<p>Either <code>NULL</code> for determining the CV folds automatically via
+<code>cv_folds()</code> (using argument <code>K</code>) or a numeric (in fact, integer) vector
+giving the fold index for each observation. In the latter case, argument
+<code>K</code> is ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Pseudorandom number generation (PRNG) seed by which the same
+results can be obtained again if needed. Passed to argument <code>seed</code> of
+<code>set.seed()</code>, but can also be <code>NA</code> to not call <code>set.seed()</code> at all. If not
+<code>NA</code>, then the PRNG state is reset (to the state before calling
+<code>run_cvfun()</code>) upon exiting <code>run_cvfun()</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An object that can be used as input for <code>cv_varsel.refmodel()</code>'s
+argument <code>cvfits</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Data:
+dat_gauss &lt;- data.frame(y = df_gaussian$y, df_gaussian$x)
+
+# The `stanreg` fit which will be used as the reference model (with small
+# values for `chains` and `iter`, but only for technical reasons in this
+# example; this is not recommended in general):
+fit &lt;- rstanarm::stan_glm(
+  y ~ X1 + X2 + X3 + X4 + X5, family = gaussian(), data = dat_gauss,
+  QR = TRUE, chains = 2, iter = 500, refresh = 0, seed = 9876
+)
+
+# Define the reference model object explicitly (not really necessary here
+# because the get_refmodel() call is quite fast in this example, but in
+# general, this approach is faster than defining the reference model object
+# multiple times implicitly):
+ref &lt;- get_refmodel(fit)
+
+# Run the reference model object's `cvfun` (with a small value for `K`, but
+# only for the sake of speed in this example; this is not recommended in
+# general):
+cv_fits &lt;- run_cvfun(ref, K = 2, seed = 184)
+
+# Run cv_varsel() (with L1 search and small values for `nterms_max` and
+# `nclusters_pred`, but only for the sake of speed in this example; this is
+# not recommended in general) and use `cv_fits` there:
+cvvs_L1 &lt;- cv_varsel(ref, method = "L1", cv_method = "kfold",
+                     cvfits = cv_fits, nterms_max = 3, nclusters_pred = 10,
+                     seed = 5555)
+# Now see, for example, `?print.vsel`, `?plot.vsel`, `?suggest_size.vsel`,
+# and `?ranking` for possible post-processing functions.
+
+# The purpose of run_cvfun() is to create an object that can be used in
+# multiple cv_varsel() calls, e.g., to check the sensitivity to the search
+# method (L1 or forward):
+cvvs_fw &lt;- cv_varsel(ref, method = "forward", cv_method = "kfold",
+                     cvfits = cv_fits, nterms_max = 3, nclusters = 5,
+                     nclusters_pred = 10, seed = 5555)
+
+# Stratified K-fold CV is straightforward:
+n_strat &lt;- 3L
+set.seed(692)
+# Some example strata:
+strat_fac &lt;- sample(paste0("lvl", seq_len(n_strat)), size = nrow(dat_gauss),
+                    replace = TRUE,
+                    prob = diff(c(0, pnorm(seq_len(n_strat - 1L) - 0.5), 1)))
+table(strat_fac)
+# Use loo::kfold_split_stratified() to create the folds vector:
+folds_strat &lt;- loo::kfold_split_stratified(K = 2, x = strat_fac)
+table(folds_strat, strat_fac)
+# Call run_cvfun(), but this time with argument `folds` instead of `K` (here,
+# specifying argument `seed` would not be necessary because of the set.seed()
+# call above, but we specify it nonetheless for the sake of generality):
+cv_fits_strat &lt;- run_cvfun(ref, folds = folds_strat, seed = 391)
+# Now use `cv_fits_strat` analogously to `cv_fits` from above.
+
+</code></pre>
+
+
+</div>

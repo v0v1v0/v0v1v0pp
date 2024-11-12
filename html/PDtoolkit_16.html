@@ -1,0 +1,175 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fairness.vld</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Model fairness validation</h2>
+
+<h3>Description</h3>
+
+<p><code>fairness.vld</code> performs fairness validation for a given sensitive attribute and selected outcome.
+Sensitive attribute should be categorical variable with reasonable number of modalities, while
+outcome can be categorical (e.g. reject/accept indicator or rating grade) or continuous (e.g. interest rate or amount).
+Depending on model type outcome (see argument <code>mod.outcome.type</code>) Chi-square test or Wald test is applied.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fairness.vld(
+  db,
+  sensitive,
+  obs.outcome,
+  mod.outcome,
+  conditional = NULL,
+  mod.outcome.type,
+  p.value
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>db</code></td>
+<td>
+<p>Data frame with sensitive attribute, observed outcome, model outcome and conditional attribute.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sensitive</code></td>
+<td>
+<p>Name of sensitive attribute within <code>db</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obs.outcome</code></td>
+<td>
+<p>Name of observed outcome within <code>db</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mod.outcome</code></td>
+<td>
+<p>Name of model outcome within <code>db</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conditional</code></td>
+<td>
+<p>Name of conditional attribute within <code>db</code>. It is used for calculation of conditional
+statistical parity. Default value is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mod.outcome.type</code></td>
+<td>
+<p>Type of model outcome. Possible values are <code>disc</code> (discrete outcome)
+and <code>cont</code> (continuous).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.value</code></td>
+<td>
+<p>Significance level of applied statistical test (chi-square or Wald test).</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The command <code>fairness.vld</code> returns a list of three data frames.<br>
+The first object (<code>SP</code>), provides results of statistical parity testing.<br>
+The second object (<code>CSP</code>), provides results of conditional statistical parity testing.
+This object will be returned only if conditional attributed is supplied. <br>
+The third object (<code>EO</code>), provides results of equal opportunity testing.<br></p>
+
+
+<h3>References</h3>
+
+<p>Hurlin, Christophe and Perignon, Christophe and Saurin, Sebastien (2022),
+The Fairness of Credit Scoring Models. HEC Paris Research Paper No. FIN-2021-1411
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">suppressMessages(library(PDtoolkit))
+#build hypothetical model
+data(loans)
+#numeric risk factors
+#num.rf &lt;- sapply(loans, is.numeric)
+#num.rf &lt;- names(num.rf)[!names(num.rf)%in%"Creditability" &amp; num.rf]
+num.rf &lt;- c("Credit Amount", "Age (years)")
+#discretized numeric risk factors using ndr.bin from monobin package
+loans[, num.rf] &lt;- sapply(num.rf, function(x) 
+ndr.bin(x = loans[, x], y = loans[, "Creditability"])[[2]])
+str(loans)
+#run stepMIV
+rf &lt;- c("Account Balance", "Payment Status of Previous Credit", 
+       "Purpose", "Value Savings/Stocks", "Credit Amount",
+       "Age (years)", "Instalment per cent", "Foreign Worker")
+res &lt;- stepMIV(start.model = Creditability ~ 1, 
+   miv.threshold = 0.02, 
+   m.ch.p.val = 0.05,
+   coding = "WoE",
+   coding.start.model = FALSE,
+   db = loans[, c("Creditability", rf)])
+#print coefficients
+summary(res$model)$coefficients
+
+#prepare data frame for fairness validation
+db.fa &lt;- data.frame(Creditability = loans$Creditability, 
+		  mpred = predict(res$model, type = "response", newdata = res$dev.db))
+#add hypothetical reject/accept indicator 
+db.fa$rai &lt;- ifelse(db.fa$mpred &gt; 0.5, 1, 0)
+#add hypothetical rating
+db.fa$rating &lt;- sts.bin(x = round(db.fa$mpred, 4), y = db.fa$Creditability)[[2]]
+#add hypothetical interest rate
+ir.r &lt;- seq(0.03, 0.10, length.out = 6)
+names(ir.r) &lt;- sort(unique(db.fa$rating))
+db.fa$ir &lt;- ir.r[db.fa$rating]
+#add hypothetical sensitive attribute
+db.fa$sensitive.1 &lt;- ifelse(loans$"Sex &amp; Marital Status"%in%2, 1, 0) #not in a model
+db.fa$sensitive.2 &lt;- ifelse(loans$"Age (years)"%in%"03 [35,Inf)", 1, 0) #in a model
+#add some attributes for calculation of conditional statistical parity
+db.fa$"Credit Amount" &lt;- loans$"Credit Amount" 
+head(db.fa)
+
+#discrete model outcome - sensitive attribute not in a model
+fairness.vld(db = db.fa, 
+	 sensitive = "sensitive.1", 
+	 obs.outcome = "Creditability", 
+	 mod.outcome = "rai",
+	 conditional = "Credit Amount", 
+	 mod.outcome.type = "disc", 
+	 p.value = 0.05)
+##discrete model outcome - sensitive attribute in a model
+#fairness.vld(db = db.fa, 
+#		 sensitive = "sensitive.2", 
+#		 obs.outcome = "Creditability", 
+#		 mod.outcome = "rai",
+#		 conditional = "Credit Amount", 
+#		 mod.outcome.type = "disc", 
+#		 p.value = 0.05)
+##continuous outcome - sensitive attribute not in a model
+#fairness.vld(db = db.fa, 
+#		 sensitive = "sensitive.1", 
+#		 obs.outcome = "Creditability", 
+#		 mod.outcome = "ir",
+#		 conditional = "Credit Amount", 
+#		 mod.outcome.type = "cont", 
+#		 p.value = 0.05)
+#continuous outcome - sensitive attribute in a model
+fairness.vld(db = db.fa, 
+	 sensitive = "sensitive.2", 
+	 obs.outcome = "Creditability", 
+	 mod.outcome = "ir",
+	 conditional = "Credit Amount", 
+	 mod.outcome.type = "cont", 
+	 p.value = 0.05)
+</code></pre>
+
+
+</div>

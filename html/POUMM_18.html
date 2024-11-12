@@ -1,0 +1,150 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>likPOUMMGivenTreeVTipsC</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fast (parallel) POUMM likelihood calculation using the SPLITT 
+library</h2>
+
+<h3>Description</h3>
+
+<p>Fast (log-)likelihood calculation using C++
+and OpenMP based parallelization.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">likPOUMMGivenTreeVTipsC(
+  integrator,
+  alpha,
+  theta,
+  sigma,
+  sigmae,
+  g0 = NA,
+  g0Prior = NULL,
+  log = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>integrator</code></td>
+<td>
+<p>An Rcpp module object from the class POUMM_AbcPOUMM. This 
+object is to be created using the function pruneTree (see example). 
+This object contains the data and tree (arguments z and tree of the 
+equivalent function dVTipsGivenTreeVTips.).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>the strength of the selection</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta</code></td>
+<td>
+<p>long term mean value of the OU process</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma</code></td>
+<td>
+<p>the unit-time standard deviation of the random component in the
+OU process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigmae</code></td>
+<td>
+<p>the standard deviation of the environmental deviation added to
+the genetic contribution at each tip, by default 0, meaning no
+environmental deviation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g0</code></td>
+<td>
+<p>Numeric, NA or NaN, either a fixed genotypic value at the root of 
+tree or NA or NaN. A NA "Not Available" will cause to analytically
+calculate the value of g0 that would maximize the conditional likelihood of
+the data given g0. A NaN "Not a Number" will cause integration over g0
+taking values in (-Inf,+Inf) assuming that g0 is normally distributed with
+mean g0Prior$mean and variance g0Prior$var (see parameter g0Prior).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g0Prior</code></td>
+<td>
+<p>Either NULL or a list with named numeric or character members
+"mean" and "var". Specifies a prior normal distribution for the parameter
+g0.
+If characters, the members mean and var are evaluated as R-expressions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>log</code></td>
+<td>
+<p>Logical indicating whether log-likelihood should be returned
+instead of likelihood, default is TRUE.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is the C++ equivalent of dVTipsGivenTreePOUMM
+(aliased also as likPOUMMGivenTreeVTips). Currently, the function does not 
+support multiple precision floating point operations (supported in 
+dVTipsGivenTreePOUMM). The C++ implementation is based on the library for
+parallel tree traversal "SPLITT" 
+(https://github.com/venelin/SPLITT.git).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A numeric with attributes "g0" and "g0LogPrior".
+</p>
+
+
+<h3>References</h3>
+
+<p>Mitov, V., and Stadler, T. (2017). Fast and Robust Inference of Phylogenetic Ornstein-Uhlenbeck Models Using Parallel Likelihood Calculation. bioRxiv, 115089. 
+https://doi.org/10.1101/115089
+Mitov, V., &amp; Stadler, T. (2017). Fast Bayesian Inference of Phylogenetic Models Using Parallel Likelihood Calculation and Adaptive Metropolis Sampling. Systematic Biology, 235739. http://doi.org/10.1101/235739
+</p>
+
+
+<h3>See Also</h3>
+
+<p>dVTipsGivenTreePOUMM
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+N &lt;- 100
+tr &lt;- ape::rtree(N)
+z &lt;- rVNodesGivenTreePOUMM(tr, 0, 2, 3, 1, 1)[1:N]
+pruneInfo &lt;- pruneTree(tr, z)
+microbenchmark::microbenchmark(
+  likCpp &lt;- likPOUMMGivenTreeVTipsC(pruneInfo$integrator, 2, 3, 1, 1),
+  likR &lt;- likPOUMMGivenTreeVTips(z, tr, 2, 3, 1, 1, pruneInfo = pruneInfo))
+
+# should be the same values
+likCpp
+likR
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

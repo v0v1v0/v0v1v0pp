@@ -1,0 +1,183 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rvar</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Random variables of arbitrary dimension</h2>
+
+<h3>Description</h3>
+
+<p>Random variables backed by arrays of arbitrary dimension
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rvar(
+  x = double(),
+  dim = NULL,
+  dimnames = NULL,
+  nchains = NULL,
+  with_chains = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>(multiple options) The object to convert to an <code>rvar</code>:
+</p>
+
+<ul>
+<li>
+<p> A vector of draws from a distribution.
+</p>
+</li>
+<li>
+<p> An array where the first dimension represents draws from a distribution.
+The resulting <code>rvar</code> will have dimension <code>dim(x)[-1]</code>; that is,
+everything except the first dimension is used for the shape of the
+variable, and the first dimension is used to index draws from the
+distribution (see <strong>Examples</strong>). Optionally,
+if <code>with_chains == TRUE</code>, the first dimension indexes the iteration and the
+second dimension indexes the chain (see <code>with_chains</code>).
+</p>
+</li>
+<li>
+<p> An <code>rvar</code>.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dim</code></td>
+<td>
+<p>(integer vector) One or more integers giving the maximal indices
+in each dimension to override the dimensions of the <code>rvar</code> to be created
+(see <code>dim()</code>). If <code>NULL</code> (the default), <code>dim</code> is determined by the input.
+<strong>NOTE:</strong> This argument controls the dimensions of the <code>rvar</code>, not the
+underlying array, so you cannot change the number of draws using this
+argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dimnames</code></td>
+<td>
+<p>(list) Character vectors giving the names in each dimension
+to override the names of the dimensions of the <code>rvar</code> to be created (see
+<code>dimnames()</code>). If <code>NULL</code> (the default), this is determined by the input.
+<strong>NOTE:</strong> This argument controls the names of the dimensions of the
+<code>rvar</code>, not the underlying array.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nchains</code></td>
+<td>
+<p>(positive integer) The number of chains. The if <code>NULL</code> (the default),
+<code>1</code> is used unless <code>x</code> is already an <code>rvar</code>, in which case the number of
+chains it has is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>with_chains</code></td>
+<td>
+<p>(logical) Does <code>x</code> include a dimension for chains?
+If <code>FALSE</code> (the default), chains are not included, the first dimension of
+the input array should index draws, and the <code>nchains</code> argument can be
+used to determine the number of chains. If <code>TRUE</code>, the <code>nchains</code> argument
+is ignored and the second dimension of <code>x</code> is used to index chains.
+Internally, the array will be converted to a format without the chain index.
+Ignored when <code>x</code> is already an <code>rvar</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>"rvar"</code> class internally represents random variables as arrays of arbitrary
+dimension, where the first dimension is used to index draws from the distribution.
+Most mathematical operators and functions are supported, including efficient matrix
+multiplication and vector and array-style indexing. The intent is that an <code>rvar</code>
+works as closely as possible to how a base vector/matrix/array does, with a few
+differences:
+</p>
+
+<ul>
+<li>
+<p> The default behavior when subsetting is not to drop extra dimensions (i.e.
+the default <code>drop</code> argument for <code>[</code> is <code>FALSE</code>, not <code>TRUE</code>).
+</p>
+</li>
+<li>
+<p> Rather than base R-style recycling, <code>rvar</code>s use a limited form of broadcasting:
+if an operation is being performed on two vectors with different size of the same
+dimension, the smaller vector will be recycled up to the size of the larger one
+along that dimension so long as it has size 1.
+</p>
+</li>
+</ul>
+<p>For functions that expect base numeric arrays and for which <code>rvar</code>s cannot be
+used directly as arguments, you can use <code>rfun()</code> or <code>rdo()</code> to translate your
+code into code that executes across draws from one or more random variables
+and returns a random variable as output. Typically <code>rdo()</code> offers the most
+straightforward translation.
+</p>
+<p>As <code>rfun()</code> and <code>rdo()</code> incur some performance cost, you can also operate directly
+on the underlying array using the <code>draws_of()</code> function. To re-use existing
+random number generator functions to efficiently create <code>rvar</code>s, use <code>rvar_rng()</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"rvar"</code> representing a random variable.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>as_rvar()</code> to convert objects to <code>rvar</code>s. See <code>rdo()</code>, <code>rfun()</code>, and
+<code>rvar_rng()</code> for higher-level interfaces for creating <code>rvar</code>s.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+set.seed(1234)
+
+# To create a "scalar" `rvar`, pass a one-dimensional array or a vector
+# whose length (here `4000`) is the desired number of draws:
+x &lt;- rvar(rnorm(4000, mean = 1, sd = 1))
+x
+
+# Create random vectors by adding an additional dimension:
+n &lt;- 4   # length of output vector
+x &lt;- rvar(array(rnorm(4000 * n, mean = rep(1:n, each = 4000), sd = 1), dim = c(4000, n)))
+x
+
+# Create a random matrix:
+rows &lt;- 4
+cols &lt;- 3
+x &lt;- rvar(array(rnorm(4000 * rows * cols, mean = 1, sd = 1), dim = c(4000, rows, cols)))
+x
+
+# If the input sample comes from multiple chains, we can indicate that using the
+# nchains argument (here, 1000 draws each from 4 chains):
+x &lt;- rvar(rnorm(4000, mean = 1, sd = 1), nchains = 4)
+x
+
+# Or if the input sample has chain information as its second dimension, we can
+# use with_chains to create the rvar
+x &lt;- rvar(array(rnorm(4000, mean = 1, sd = 1), dim = c(1000, 4)), with_chains = TRUE)
+x
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,179 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Contribution-class</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Class <code>"Contribution"</code>
+</h2>
+
+<h3>Description</h3>
+
+<p>The <code>Contribution</code> object class contains the weight matrix between variables and the PLS components. The values in the weight matrix are a numeric representation of how much a variable from the omics datasets contributed to defining the final PLS components.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">getCompositeWeights(object, N, M)
+getAllWeights(object, N)
+getFinalWeights(object)
+getTop(object, N = 1)
+pickSignificant(object, alpha)
+## S4 method for signature 'Contribution'
+summary(object, ...)
+## S4 method for signature 'Contribution'
+image(x, col = viridis(64), mai = c(1.82, 1.52, 0.32, 0.32), ...)
+## S4 method for signature 'Contribution'
+heat(object, main = "Contributions", col = viridis(64),
+                                           mai = c(1.52, 0.32, 0.82, 1.82), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>In the first four functions, an object of the
+<code>plasma</code> class. In the methods described here, an object
+of the <code>Contributions</code> class.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N</code></td>
+<td>
+<p>in the function <code>getCompositeWeights</code>, the name of the dataset being modeled. <br> in the function <code>getTop</code>, the number of significant components you want to print.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M</code></td>
+<td>
+<p>name of the dataset being modeled pairwise with dataset <code>N</code> in the <code>getCompositeWeights</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>level of significance used in the <code>pickSignificant</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>other graphical parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>an object of the <code>Contributions</code> class.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>main</code></td>
+<td>
+<p>A character vector of length one; the main plot title.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>col</code></td>
+<td>
+<p>A vector of color descriptors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mai</code></td>
+<td>
+<p>A vector of four nonnegative numbers.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The <code>plasma</code> function returns a newly constructed object of the
+<code>plasma</code> class. 
+</p>
+
+
+<h3>Objects from the Class</h3>
+
+<p>Objects are defined using the <code>getAllWeights</code>, <code>getCompositeWeights</code>, <code>getTop</code>, or <code>pickSignificant</code> functions. In the simplest scenario, one would enter an object of class <code>plasma</code> and any specific parameters associated with the function (see arguments section for more info).
+</p>
+
+
+<h3>Slots</h3>
+
+
+<dl>
+<dt>
+<code>contrib</code>:</dt>
+<dd>
+<p>a matrix of the original variables in dataset <code>N</code> as rows and the PLS components <code>M</code> as columns.</p>
+</dd>
+<dt>
+<code>datasets</code>:</dt>
+<dd>
+<p>a character vector that stores the names of the datasets that were specified for the function.</p>
+</dd>
+</dl>
+<h3>Methods</h3>
+
+
+<dl>
+<dt>
+<code>summary</code>:</dt>
+<dd>
+<p>outputs summary statistics for the contributions of dataset <code>N</code> to components from all datasets in the case of <code>getAllWeights</code> or dataset <code>M</code> in the case of <code>getCompositeWeights</code>.</p>
+</dd>
+<dt>
+<code>image</code>:</dt>
+<dd>
+<p>outputs a heatmap of the transposed <code>contrib</code> matrix.</p>
+</dd>
+<dt>
+<code>heat</code>:</dt>
+<dd>
+<p>outputs a clustered heatmap of the <code>contrib</code> matrix.</p>
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p>Kevin R. Coombes <a href="mailto:krc@silicovore.com">krc@silicovore.com</a>,
+Kyoko Yamaguchi <a href="mailto:kyoko.yamaguchi@osumc.edu">kyoko.yamaguchi@osumc.edu</a></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">fls &lt;- try(loadESCAdata())
+if (inherits(fls, "try-error")) {
+  stop("Unable to load data from remote server.")
+}
+# restrict data set size
+MO &lt;- with(plasmaEnv, prepareMultiOmics(
+    assemble[c("ClinicalBin", "ClinicalCont", "RPPA")], Outcome))
+
+splitVec &lt;- with(plasmaEnv, rbinom(nrow(Outcome), 1, 0.6))
+trainD &lt;- MO[, splitVec == 1]
+testD &lt;- MO[, splitVec == 0]
+
+firstPass &lt;- fitCoxModels(trainD, "Days", "vital_status", "dead")
+pl &lt;- plasma(object = trainD, multi = firstPass)
+
+getCompositeWeights(object = pl, N = "ClinicalBin", M = "RPPA")
+
+cbin &lt;- getAllWeights(object = pl, N = "ClinicalBin")
+summary(cbin)
+image(cbin)
+heat(cbin, cexCol = 0.5)
+
+cbin01 &lt;- pickSignificant(object = cbin, alpha = 0.01)
+image(cbin01)
+heat(cbin01, cexCol = 0.5)
+
+getTop(object = cbin01, N = 3)
+</code></pre>
+
+
+</div>

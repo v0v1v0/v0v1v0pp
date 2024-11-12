@@ -1,0 +1,693 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>policy_eval</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Policy Evaluation</h2>
+
+<h3>Description</h3>
+
+<p><code>policy_eval()</code> is used to estimate
+the value of a given fixed policy
+or a data adaptive policy (e.g. a policy
+learned from the data). <code>policy_eval()</code>
+is also used to estimate the average
+treatment effect among the subjects who would
+get the treatment under the policy.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">policy_eval(
+  policy_data,
+  policy = NULL,
+  policy_learn = NULL,
+  g_functions = NULL,
+  g_models = g_glm(),
+  g_full_history = FALSE,
+  save_g_functions = TRUE,
+  q_functions = NULL,
+  q_models = q_glm(),
+  q_full_history = FALSE,
+  save_q_functions = TRUE,
+  target = "value",
+  type = "dr",
+  cross_fit_type = "pooled",
+  variance_type = "pooled",
+  M = 1,
+  future_args = list(future.seed = TRUE),
+  name = NULL
+)
+
+## S3 method for class 'policy_eval'
+coef(object, ...)
+
+## S3 method for class 'policy_eval'
+IC(x, ...)
+
+## S3 method for class 'policy_eval'
+vcov(object, ...)
+
+## S3 method for class 'policy_eval'
+print(
+  x,
+  digits = 4L,
+  width = 35L,
+  std.error = TRUE,
+  level = 0.95,
+  p.value = TRUE,
+  ...
+)
+
+## S3 method for class 'policy_eval'
+summary(object, ...)
+
+## S3 method for class 'policy_eval'
+estimate(
+  x,
+  labels = get_element(x, "name", check_name = FALSE),
+  level = 0.95,
+  ...
+)
+
+## S3 method for class 'policy_eval'
+merge(x, y, ..., paired = TRUE)
+
+## S3 method for class 'policy_eval'
+x + ...
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>policy_data</code></td>
+<td>
+<p>Policy data object created by <code>policy_data()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>policy</code></td>
+<td>
+<p>Policy object created by <code>policy_def()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>policy_learn</code></td>
+<td>
+<p>Policy learner object created by <code>policy_learn()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g_functions</code></td>
+<td>
+<p>Fitted g-model objects, see nuisance_functions.
+Preferably, use <code>g_models</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g_models</code></td>
+<td>
+<p>List of action probability models/g-models for each stage
+created by <code>g_empir()</code>, <code>g_glm()</code>, <code>g_rf()</code>, <code>g_sl()</code> or similar functions.
+Only used for evaluation if <code>g_functions</code> is <code>NULL</code>.
+If a single model is provided and <code>g_full_history</code> is <code>FALSE</code>,
+a single g-model is fitted across all stages. If <code>g_full_history</code> is
+<code>TRUE</code> the model is reused at every stage.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g_full_history</code></td>
+<td>
+<p>If TRUE, the full history is used to fit each g-model.
+If FALSE, the state/Markov type history is used to fit each g-model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save_g_functions</code></td>
+<td>
+<p>If TRUE, the fitted g-functions are saved.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>q_functions</code></td>
+<td>
+<p>Fitted Q-model objects, see nuisance_functions.
+Only valid if the Q-functions are fitted using the same policy.
+Preferably, use <code>q_models</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>q_models</code></td>
+<td>
+<p>Outcome regression models/Q-models created by
+<code>q_glm()</code>, <code>q_rf()</code>, <code>q_sl()</code> or similar functions.
+Only used for evaluation if <code>q_functions</code> is <code>NULL</code>.
+If a single model is provided, the model is reused at every stage.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>q_full_history</code></td>
+<td>
+<p>Similar to g_full_history.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save_q_functions</code></td>
+<td>
+<p>Similar to save_g_functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>Character string. Either "value" or "subgroup". If "value",
+the target parameter is the policy value.
+If "subgroup", the target parameter
+is the average treatement effect among
+the subgroup of subjects that would receive
+treatment under the policy, see details.
+"subgroup" is only implemented for <code>type = "dr"</code>
+in the single-stage case with a dichotomous action set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>Character string. Type of evaluation. Either <code>"dr"</code>
+(doubly robust),
+<code>"ipw"</code> (inverse propensity weighting),
+or <code>"or"</code> (outcome regression).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cross_fit_type</code></td>
+<td>
+<p>Character string.
+Either "stacked", or "pooled", see details. (Only used if <code>M &gt; 1</code> and target = "subgroup")</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variance_type</code></td>
+<td>
+<p>Character string. Either "pooled" (default),
+"stacked" or "complete", see details. (Only used if <code>M &gt; 1</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M</code></td>
+<td>
+<p>Number of folds for cross-fitting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>future_args</code></td>
+<td>
+<p>Arguments passed to <code>future.apply::future_apply()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>Character string.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object, x, y</code></td>
+<td>
+<p>Objects of class "policy_eval".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>digits</code></td>
+<td>
+<p>Integer. Number of printed digits.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>width</code></td>
+<td>
+<p>Integer. Width of printed parameter name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>std.error</code></td>
+<td>
+<p>Logical. Should the std.error be printed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>level</code></td>
+<td>
+<p>Numeric. Level of confidence limits.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.value</code></td>
+<td>
+<p>Logical. Should the p.value for associated confidence level be printed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>labels</code></td>
+<td>
+<p>Name(s) of the estimate(s).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>paired</code></td>
+<td>
+<p><code>TRUE</code> indicates that the estimates are based on
+the same data sample.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Each observation has the sequential form
+</p>
+<p style="text-align: center;"><code class="reqn">O= {B, U_1, X_1, A_1, ..., U_K, X_K, A_K, U_{K+1}},</code>
+</p>
+
+<p>for a possibly stochastic number of stages K.
+</p>
+
+<ul>
+<li> <p><code class="reqn">B</code> is a vector of baseline covariates.
+</p>
+</li>
+<li> <p><code class="reqn">U_k</code> is the reward at stage k
+(not influenced by the action <code class="reqn">A_k</code>).
+</p>
+</li>
+<li> <p><code class="reqn">X_k</code> is a vector of state
+covariates summarizing the state at stage k.
+</p>
+</li>
+<li> <p><code class="reqn">A_k</code> is the categorical action
+within the action set <code class="reqn">\mathcal{A}</code> at stage k.
+</p>
+</li>
+</ul>
+<p>The utility is given by the sum of the rewards, i.e.,
+<code class="reqn">U = \sum_{k = 1}^{K+1} U_k</code>.
+</p>
+<p>A policy is a set of functions
+</p>
+<p style="text-align: center;"><code class="reqn">d = \{d_1, ..., d_K\},</code>
+</p>
+
+<p>where <code class="reqn">d_k</code> for <code class="reqn">k\in \{1, ..., K\}</code>
+maps <code class="reqn">\{B, X_1, A_1, ..., A_{k-1}, X_k\}</code> into the
+action set.
+</p>
+<p>Recursively define the Q-models (<code>q_models</code>):
+</p>
+<p style="text-align: center;"><code class="reqn">Q^d_K(h_K, a_K) = E[U|H_K = h_K, A_K = a_K]</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">Q^d_k(h_k, a_k) = E[Q_{k+1}(H_{k+1},
+d_{k+1}(B,X_1, A_1,...,X_{k+1}))|H_k = h_k, A_k = a_k].</code>
+</p>
+
+<p>If <code>q_full_history = TRUE</code>,
+<code class="reqn">H_k = \{B, X_1, A_1, ..., A_{k-1}, X_k\}</code>, and if
+<code>q_full_history = FALSE</code>, <code class="reqn">H_k = \{B, X_k\}</code>.
+</p>
+<p>The g-models (<code>g_models</code>) are defined as
+</p>
+<p style="text-align: center;"><code class="reqn">g_k(h_k, a_k) = P(A_k = a_k|H_k = h_k).</code>
+</p>
+
+<p>If <code>g_full_history = TRUE</code>,
+<code class="reqn">H_k = \{B, X_1, A_1, ..., A_{k-1}, X_k\}</code>, and if
+<code>g_full_history = FALSE</code>, <code class="reqn">H_k = \{B, X_k\}</code>.
+Furthermore, if <code>g_full_history = FALSE</code> and <code>g_models</code> is a
+single model, it is assumed that <code class="reqn">g_1(h_1, a_1) = ... = g_K(h_K, a_K)</code>.
+</p>
+<p>If <code>target = "value"</code> and <code>type = "or"</code>
+<code>policy_eval()</code> returns the empirical estimate of
+the value (<code>coef</code>):
+</p>
+<p style="text-align: center;"><code class="reqn">E\left[Q^d_1(H_1, d_1(\cdot))\right]</code>
+</p>
+
+<p>If <code>target = "value"</code> and <code>type = "ipw"</code> <code>policy_eval()</code>
+returns the empirical estimates of
+the value (<code>coef</code>) and influence curve (<code>IC</code>):
+</p>
+<p style="text-align: center;"><code class="reqn">E\left[\left(\prod_{k=1}^K I\{A_k = d_k(\cdot)\}
+g_k(H_k, A_k)^{-1}\right) U\right].</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\left(\prod_{k=1}^K I\{A_k =
+d_k(\cdot)\} g_k(H_k, A_k)^{-1}\right) U -
+E\left[\left(\prod_{k=1}^K
+I\{A_k = d_k(\cdot)\} g_k(H_k, A_k)^{-1}\right) U\right].</code>
+</p>
+
+<p>If <code>target = "value"</code> and
+<code>type = "dr"</code> <code>policy_eval</code> returns the empirical estimates of
+the value (<code>coef</code>) and influence curve (<code>IC</code>):
+</p>
+<p style="text-align: center;"><code class="reqn">E[Z_1(d,g,Q^d)(O)],</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">Z_1(d, g, Q^d)(O) - E[Z_1(d,g, Q^d)(O)],</code>
+</p>
+
+<p>where
+</p>
+<p style="text-align: center;"><code class="reqn">
+Z_1(d, g, Q^d)(O) = Q^d_1(H_1 , d_1(\cdot)) +
+\sum_{r = 1}^K \prod_{j = 1}^{r}
+\frac{I\{A_j = d_j(\cdot)\}}{g_{j}(H_j, A_j)}
+\{Q_{r+1}^d(H_{r+1} , d_{r+1}(\cdot)) - Q_{r}^d(H_r , d_r(\cdot))\}.
+</code>
+</p>
+
+<p>If <code>target = "subgroup"</code>, <code>type = "dr"</code>, <code>K = 1</code>,
+and <code class="reqn">\mathcal{A} = \{0,1\}</code>, <code>policy_eval()</code>
+returns the empirical estimates of the subgroup average
+treatment effect (<code>coef</code>) and influence curve (<code>IC</code>):
+</p>
+<p style="text-align: center;"><code class="reqn">E[Z_1(1,g,Q)(O) - Z_1(0,g,Q)(O) | d_1(\cdot) = 1],</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\frac{1}{P(d_1(\cdot) = 1)} I\{d_1(\cdot) = 1\}
+\Big\{Z_1(1,g,Q)(O) - Z_1(0,g,Q)(O) - E[Z_1(1,g,Q)(O)
+- Z_1(0,g,Q)(O) | d_1(\cdot) = 1]\Big\}.</code>
+</p>
+
+<p>Applying <code class="reqn">M</code>-fold cross-fitting using the {M} argument, let
+</p>
+<p style="text-align: center;"><code class="reqn">\mathcal{Z}_{1,m}(a) = \{Z_1(a, g_m, Q_m^d)(O): O\in \mathcal{O}_m \}.</code>
+</p>
+
+<p>If <code>target = "subgroup"</code>, <code>type = "dr"</code>, <code>K = 1</code>,
+<code class="reqn">\mathcal{A} = \{0,1\}</code>, and <code>cross_fit_type = "pooled"</code>,
+<code>policy_eval()</code> returns the estimate </p>
+<p style="text-align: center;"><code class="reqn">\frac{1}{{N^{-1} \sum_{i =
+1}^N I\{d(H_i) = 1\}}} N^{-1} \sum_{m=1}^M \sum_{(Z, H) \in \mathcal{Z}_{1,m}
+\times \mathcal{H}_{1,m}} I\{d_1(H) = 1\} \left\{Z(1)-Z(0)\right\}</code>
+</p>
+<p> If
+<code>cross_fit_type = "stacked"</code> the returned estimate is </p>
+<p style="text-align: center;"><code class="reqn">M^{-1}
+\sum_{m = 1}^M \frac{1}{{n^{-1} \sum_{h \in \mathcal{H}_{1,m}} I\{d(h) =
+1\}}} n^{-1} \sum_{(Z, H) \in \mathcal{Z}_{1,m} \times \mathcal{H}_{1,m}}
+I\{d_1(H) = 1\} \left\{Z(1)-Z(0)\right\},</code>
+</p>
+<p> where for ease of notation we let
+the integer <code class="reqn">n</code> be the number of oberservations in each fold.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>policy_eval()</code> returns an object of class "policy_eval".
+The object is a list containing the following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>coef</code></td>
+<td>
+<p>Numeric vector. The estimated target parameter:
+policy value or subgroup average treatment effect.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>IC</code></td>
+<td>
+<p>Numeric matrix. Estimated influence curve associated with
+<code>coef</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>Character string. The type of evaluation ("dr", "ipw",
+"or").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>Character string. The target parameter ("value" or "subgroup")</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>Character vector. The IDs of the observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>Character vector. Names for the each element in <code>coef</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coef_ipw</code></td>
+<td>
+<p>(only if <code>type = "dr"</code>) Numeric vector.
+Estimate of <code>coef</code> based solely on inverse probability weighting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coef_or</code></td>
+<td>
+<p>(only if <code>type = "dr"</code>) Numeric vector.
+Estimate of <code>coef</code> based solely on outcome regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>policy_actions</code></td>
+<td>
+<p>data.table::data.table with keys id and stage. Actions
+associated with the policy for every observation and stage.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>policy_object</code></td>
+<td>
+<p>(only if <code>policy = NULL</code> and <code>M = 1</code>)
+The policy object returned by <code>policy_learn</code>, see policy_learn.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g_functions</code></td>
+<td>
+<p>(only if <code>M = 1</code>) The
+fitted g-functions. Object of class "nuisance_functions".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g_values</code></td>
+<td>
+<p>The fitted g-function values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>q_functions</code></td>
+<td>
+<p>(only if <code>M = 1</code>) The
+fitted Q-functions. Object of class "nuisance_functions".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>q_values</code></td>
+<td>
+<p>The fitted Q-function values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Z</code></td>
+<td>
+<p>(only if <code>target = "subgroup"</code>)
+Matrix with the doubly robust stage 1 scores for each action.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subgroup_indicator</code></td>
+<td>
+<p>(only if <code>target = "subgroup"</code>)
+Logical matrix identifying subjects in the subgroup.
+Each column represents a different subgroup threshold.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cross_fits</code></td>
+<td>
+<p>(only if <code>M &gt; 1</code>) List containing the
+"policy_eval" object for every (validation) fold.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>folds</code></td>
+<td>
+<p>(only if <code>M &gt; 1</code>) The (validation) folds used
+for cross-fitting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cross_fit_type</code></td>
+<td>
+<p>Character string.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variance_type</code></td>
+<td>
+<p>Character string.</p>
+</td>
+</tr>
+</table>
+<h3>S3 generics</h3>
+
+<p>The following S3 generic functions are available for an object of
+class <code>policy_eval</code>:
+</p>
+
+<dl>
+<dt><code>get_g_functions()</code></dt>
+<dd>
+<p> Extract the fitted g-functions.</p>
+</dd>
+<dt><code>get_q_functions()</code></dt>
+<dd>
+<p> Extract the fitted Q-functions.</p>
+</dd>
+<dt><code>get_policy()</code></dt>
+<dd>
+<p> Extract the fitted policy object.</p>
+</dd>
+<dt><code>get_policy_functions()</code></dt>
+<dd>
+<p>Extract the fitted policy function for a given stage.</p>
+</dd>
+<dt><code>get_policy_actions()</code></dt>
+<dd>
+<p> Extract the (fitted) policy actions.</p>
+</dd>
+<dt><code>plot.policy_eval()</code></dt>
+<dd>
+<p>Plot diagnostics.</p>
+</dd>
+</dl>
+<h3>References</h3>
+
+<p>van der Laan, Mark J., and Alexander R. Luedtke.
+"Targeted learning of the mean outcome under an optimal dynamic treatment rule."
+Journal of causal inference 3.1 (2015): 61-95.
+<a href="https://doi.org/10.1515/jci-2013-0022">doi:10.1515/jci-2013-0022</a>
+<br><br>
+Tsiatis, Anastasios A., et al. Dynamic
+treatment regimes: Statistical methods for precision medicine. Chapman and
+Hall/CRC, 2019. <a href="https://doi.org/10.1201/9780429192692">doi:10.1201/9780429192692</a>.
+<br><br>
+Victor Chernozhukov, Denis
+Chetverikov, Mert Demirer, Esther Duflo, Christian Hansen, Whitney Newey,
+James Robins, Double/debiased machine learning for treatment and structural
+parameters, The Econometrics Journal, Volume 21, Issue 1, 1 February 2018,
+Pages C1–C68, <a href="https://doi.org/10.1111/ectj.12097">doi:10.1111/ectj.12097</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>lava::IC, lava::estimate.default.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library("polle")
+### Single stage:
+d1 &lt;- sim_single_stage(5e2, seed=1)
+pd1 &lt;- policy_data(d1,
+                   action = "A",
+                   covariates = list("Z", "B", "L"),
+                   utility = "U")
+pd1
+
+# defining a static policy (A=1):
+pl1 &lt;- policy_def(1)
+
+# evaluating the policy:
+pe1 &lt;- policy_eval(policy_data = pd1,
+                   policy = pl1,
+                   g_models = g_glm(),
+                   q_models = q_glm(),
+                   name = "A=1 (glm)")
+
+# summarizing the estimated value of the policy:
+# (equivalent to summary(pe1)):
+pe1
+coef(pe1) # value coefficient
+sqrt(vcov(pe1)) # value standard error
+
+# getting the g-function and Q-function values:
+head(predict(get_g_functions(pe1), pd1))
+head(predict(get_q_functions(pe1), pd1))
+
+# getting the fitted influence curve (IC) for the value:
+head(IC(pe1))
+
+# evaluating the policy using random forest nuisance models:
+set.seed(1)
+pe1_rf &lt;- policy_eval(policy_data = pd1,
+                      policy = pl1,
+                      g_models = g_rf(),
+                      q_models = q_rf(),
+                      name = "A=1 (rf)")
+
+# merging the two estimates (equivalent to pe1 + pe1_rf):
+(est1 &lt;- merge(pe1, pe1_rf))
+coef(est1)
+head(IC(est1))
+
+### Two stages:
+d2 &lt;- sim_two_stage(5e2, seed=1)
+pd2 &lt;- policy_data(d2,
+                   action = c("A_1", "A_2"),
+                   covariates = list(L = c("L_1", "L_2"),
+                                     C = c("C_1", "C_2")),
+                   utility = c("U_1", "U_2", "U_3"))
+pd2
+
+# defining a policy learner based on cross-fitted doubly robust Q-learning:
+pl2 &lt;- policy_learn(
+   type = "drql",
+   control = control_drql(qv_models = list(q_glm(~C_1),
+                                           q_glm(~C_1+C_2))),
+   full_history = TRUE,
+   L = 2) # number of folds for cross-fitting
+
+# evaluating the policy learner using 2-fold cross fitting:
+pe2 &lt;- policy_eval(type = "dr",
+                   policy_data = pd2,
+                   policy_learn = pl2,
+                   q_models = q_glm(),
+                   g_models = g_glm(),
+                   M = 2, # number of folds for cross-fitting
+                   name = "drql")
+# summarizing the estimated value of the policy:
+pe2
+
+# getting the cross-fitted policy actions:
+head(get_policy_actions(pe2))
+</code></pre>
+
+
+</div>

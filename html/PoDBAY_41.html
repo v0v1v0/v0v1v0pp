@@ -1,0 +1,116 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PoDMLE</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Setup for the maximum likelihood estimation (MLE)</h2>
+
+<h3>Description</h3>
+
+<p>Function estimates the optimal PoD curve parameters (pmax, et50, slope) using diseased and non-diseased titers. Initial guess of the slope parameter needs to be provided as an input to the optimization, as well as the lowTiterPercent parameter, which is needed for initial guess of the pmax parameter calculation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PoDMLE(nondiseasedTiters,
+              diseasedTiters,
+              adjustTiters = FALSE,
+              adjustFrom = log2(10),
+              adjustTo = log2(5),
+              initialSlope = 6,
+              lowTiterPercent = 0.2)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>nondiseasedTiters</code></td>
+<td>
+<p>numeric vector: non-diseased subjects titers</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>diseasedTiters</code></td>
+<td>
+<p>numeric vector: diseased subjects titers</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjustTiters</code></td>
+<td>
+<p>boolean: set to TRUE if titer values should be adjusted, for details see <code>PoD</code> function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjustFrom</code></td>
+<td>
+<p>numeric: value specifying the detection limit, all values below the detection limit will be adjusted to adjustTo value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjustTo</code></td>
+<td>
+<p>numeric: value to which titers below the detection limit will be adjusted</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initialSlope</code></td>
+<td>
+<p>numeric: initial guess of the slope parameter for the optimization function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lowTiterPercent</code></td>
+<td>
+<p>numeric: value in the interval (0,1) - it represents a fraction of bottom titer values of the whole clinical trial used for calculation of inital guess of the pmax parameter.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Initial guess of pmax = (number of diseased in the bottom titers + 0.5) / (number of non-diseased and diseased in the bottom titers + 0.5),
+Initial et50 = intersection point of distributions of non-diseased and diseased groups. If L-BFGS-B optimization fails to converge, a new et50 initial guess is set to median value of all titers.
+</p>
+<p>PoDMLE function estimates the PoD curve parameters by maximizing the likelihood value (see <code>MLE</code> function for details) based on the provided titers for diseased and non-diseased groups.
+</p>
+<p>The <code>optim</code> function is used for optimization with method = "L-BFGS-B", 500 maximum iterations, (0.1,Inf) boundaries for et50, (1e-6,1) boundaries for pmax and (-slopeBoundary, slopeBoundary) boundaries for slope.
+</p>
+<p>NOTE: The reason for slope boundary settings is because from certain value of slope parameter the shape of the PoD curve and the corresponding PoD values for given titers are almost identical. This parameter is expected to limit the resulting slope value and help MLE to converge to optimal parameters.
+The value of "slopeBoundaries" is calculated as described by Dunning, 2015 (https://doi.org/10.1186/s12874-015-0096-9).
+</p>
+
+
+<h3>Value</h3>
+
+<p>list("et50", "slope", "pmax"), named list of PoD paraters: if MLE converges.
+</p>
+<p>Null: if MLE does not converge.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## EXAMPLE 1:
+# Data preparation
+data(diseased)
+data(nondiseased)
+
+# PoD curve parameter estimation
+PoDMLE(nondiseased$titers,
+       diseased$titers)
+
+## EXAMPLE 2:
+## initialSlope and lowTiterPercent variables are adjusted.
+PoDMLE(nondiseased$titers,
+       diseased$titers,
+       initialSlope = 5,
+       lowTiterPercent = 0.3)
+
+</code></pre>
+
+
+</div>

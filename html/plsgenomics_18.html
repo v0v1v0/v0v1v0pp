@@ -1,0 +1,172 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mgsim</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>GSIM for categorical data</h2>
+
+<h3>Description</h3>
+
+<p>The function <code>mgsim</code> performs prediction using Lambert-Lacroix and Peyre's MGSIM algorithm.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mgsim(Ytrain,Xtrain,Lambda,h,Xtest=NULL,NbIterMax=50)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Xtrain</code></td>
+<td>
+<p>a (ntrain x p) data matrix of predictors. <code>Xtrain</code> must be a matrix. 
+Each row corresponds to an observation and each column to a predictor variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Ytrain</code></td>
+<td>
+<p>a ntrain vector of responses. <code>Ytrain</code> must be a vector. 
+<code>Ytrain</code> is a {1,...,c+1}-valued vector and contains the response variable for each
+observation. c+1 is the number of classes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xtest</code></td>
+<td>
+<p>a (ntest x p) matrix containing the predictors for the test data
+set. <code>Xtest</code> may also be a vector of length p (corresponding to only one 
+test observation). If <code>Xtest</code> is not equal to NULL, then the prediction 
+step is made for these new predictor variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Lambda</code></td>
+<td>
+<p>a positive real value. <code>Lambda</code> is the ridge regularization parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h</code></td>
+<td>
+<p>a strictly positive real value. <code>h</code> is the bandwidth for GSIM step A.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>NbIterMax</code></td>
+<td>
+<p>a positive integer. <code>NbIterMax</code> is the maximal number of iterations in the 
+Newton-Rapson parts.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The columns of the data matrices <code>Xtrain</code> and <code>Xtest</code> may not be standardized, 
+since standardizing is performed by the function <code>mgsim</code> as a preliminary step
+before the algorithm is run. 
+</p>
+<p>The procedure described in Lambert-Lacroix and Peyre (2005) is used to estimate 
+the c projection directions and the coefficients of the parametric fit obtained 
+after projecting predictor variables onto the estimated directions. When <code>Xtest</code> 
+is not equal to NULL, the procedure predicts the labels for these new predictor variables.  
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>Ytest</code></td>
+<td>
+<p>the ntest vector containing the predicted labels for the observations from 
+<code>Xtest</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>the (p x c) matrix containing the c estimated projection directions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Coefficients</code></td>
+<td>
+<p>the (2 x c) matrix containing the coefficients of the parametric fit obtained 
+after projecting predictor variables onto these estimated directions. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>DeletedCol</code></td>
+<td>
+<p>the vector containing the column number of <code>Xtrain</code> when the 
+variance of the corresponding predictor variable is null. Otherwise <code>DeletedCol</code>=NULL</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Cvg</code></td>
+<td>
+<p>the 0-1 value indicating convergence of the algorithm (1 for convergence, 
+0 otherwise).</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Sophie Lambert-Lacroix 
+(<a href="http://membres-timc.imag.fr/Sophie.Lambert/">http://membres-timc.imag.fr/Sophie.Lambert/</a>) 
+and 
+Julie Peyre (<a href="https://membres-ljk.imag.fr/Julie.Peyre/">https://membres-ljk.imag.fr/Julie.Peyre/</a>).
+</p>
+
+
+<h3>References</h3>
+
+<p>S. Lambert-Lacroix,  J. Peyre . (2006) Local likelyhood regression in  generalized linear 
+single-index models with applications to microarrays data. Computational Statistics and 
+Data Analysis, vol 51, n 3, 2091-2113. 
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>mgsim.cv</code>, <code>gsim</code>, <code>gsim.cv</code>.</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load plsgenomics library
+library(plsgenomics)
+
+# load SRBCT data
+data(SRBCT)
+IndexLearn &lt;- c(sample(which(SRBCT$Y==1),10),sample(which(SRBCT$Y==2),4),
+			sample(which(SRBCT$Y==3),7),sample(which(SRBCT$Y==4),9))
+
+# perform prediction by MGSIM
+res &lt;- mgsim(Ytrain=SRBCT$Y[IndexLearn],Xtrain=SRBCT$X[IndexLearn,],Lambda=0.001,h=19,
+			Xtest=SRBCT$X[-IndexLearn,])
+res$Cvg
+sum(res$Ytest!=SRBCT$Y[-IndexLearn])
+
+# prediction for another sample
+Xnew &lt;- SRBCT$X[83,]
+# projection of Xnew onto the c estimated direction
+Xproj &lt;- Xnew %*% res$beta
+# Compute the linear predictor for each classes expect class 1
+eta &lt;- diag(cbind(rep(1,3),t(Xproj)) %*% res$Coefficients)
+Ypred &lt;- which.max(c(0,eta))
+Ypred
+SRBCT$Y[83]
+
+</code></pre>
+
+
+</div>

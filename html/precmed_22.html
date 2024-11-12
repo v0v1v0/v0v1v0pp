@@ -1,0 +1,480 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>catefitsurv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimation of the conditional average treatment effect (CATE) score for survival data</h2>
+
+<h3>Description</h3>
+
+<p>Provides singly robust and doubly robust estimation of CATE score for survival data with
+up to 5 scoring methods among the following: Random forest, boosting, poisson regression,
+two regressions, and contrast regression.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">catefitsurv(
+  data,
+  score.method,
+  cate.model,
+  ps.model,
+  ps.method = "glm",
+  initial.predictor.method = "randomForest",
+  ipcw.model = NULL,
+  ipcw.method = "breslow",
+  minPS = 0.01,
+  maxPS = 0.99,
+  followup.time = NULL,
+  tau0 = NULL,
+  higher.y = TRUE,
+  prop.cutoff = seq(0.5, 1, length = 6),
+  surv.min = 0.025,
+  tree.depth = 2,
+  n.trees.rf = 1000,
+  n.trees.boosting = 200,
+  B = 3,
+  Kfold = 5,
+  plot.gbmperf = TRUE,
+  error.maxNR = 0.001,
+  max.iterNR = 100,
+  tune = c(0.5, 2),
+  seed = NULL,
+  verbose = 0,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame containing the variables in the outcome, propensity score, and inverse
+probability of censoring models (if specified); a data frame with <code>n</code> rows (1 row per observation).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>score.method</code></td>
+<td>
+<p>A vector of one or multiple methods to estimate the CATE score.
+Allowed values are: <code>'randomForest'</code>, <code>'boosting'</code>, <code>'poisson'</code>, <code>'twoReg'</code>, and
+<code>'contrastReg'</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cate.model</code></td>
+<td>
+<p>A standard <code>Surv</code> formula describing the outcome model to be fitted.
+The outcome must appear on the left-hand side.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ps.model</code></td>
+<td>
+<p>A formula describing the propensity score (PS) model to be fitted. The treatment must
+appear on the left-hand side. The treatment must be a numeric vector coded as 0/1.
+If data are from a randomized controlled trial, specify <code>ps.model = ~1</code> as an intercept-only model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ps.method</code></td>
+<td>
+<p>A character value for the method to estimate the propensity score.
+Allowed values include one of:
+<code>'glm'</code> for logistic regression with main effects only (default), or
+<code>'lasso'</code> for a logistic regression with main effects and LASSO penalization on
+two-way interactions (added to the model if interactions are not specified in <code>ps.model</code>).
+Relevant only when <code>ps.model</code> has more than one variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initial.predictor.method</code></td>
+<td>
+<p>A character vector for the method used to get initial
+outcome predictions conditional on the covariates specified in <code>cate.model</code>. Only applies
+when <code>score.method</code> includes <code>'twoReg'</code> or <code>'contrastReg'</code>. Allowed values include
+one of <code>'randomForest'</code>, <code>'boosting'</code> and <code>'logistic'</code> (fastest).
+Default is <code>'randomForest'</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ipcw.model</code></td>
+<td>
+<p>A formula describing the inverse probability of censoring weighting (IPCW)
+model to be fitted. The left-hand side must be empty. Default is <code>ipcw.model = NULL</code>,
+which corresponds to specifying the IPCW model with the same covariates as the outcome model
+<code>cate.model</code> plus the treatment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ipcw.method</code></td>
+<td>
+<p>A character value for the censoring model. Allowed values are:
+<code>'breslow'</code> (Cox regression with Breslow estimator of the baseline survivor function),
+<code>'aft (exponential)'</code>, <code>'aft (weibull)'</code>, <code>'aft (lognormal)'</code>
+or <code>'aft (loglogistic)'</code> (accelerated failure time model with different distributions for
+y variable). Default is <code>'breslow'</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minPS</code></td>
+<td>
+<p>A numerical value (in '[0, 1]') below which estimated propensity scores should be
+truncated. Default is <code>0.01</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxPS</code></td>
+<td>
+<p>A numerical value (in '(0, 1]') above which estimated propensity scores should be
+truncated. Must be strictly greater than <code>minPS</code>. Default is <code>0.99</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>followup.time</code></td>
+<td>
+<p>A column name in <code>data</code> specifying the maximum follow-up time,
+interpreted as the potential censoring time. Default is <code>followup.time = NULL</code>,
+which corresponds to unknown potential censoring time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau0</code></td>
+<td>
+<p>The truncation time for defining restricted mean time lost. Default is <code>NULL</code>,
+which corresponds to setting the truncation time as the maximum survival time in the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>higher.y</code></td>
+<td>
+<p>A logical value indicating whether higher (<code>TRUE</code>) or
+lower (<code>FALSE</code>) values of the outcome are more desirable. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prop.cutoff</code></td>
+<td>
+<p>A vector of numerical values (in '(0, 1]') specifying percentiles of the
+estimated log CATE scores to define nested subgroups. Each element represents the cutoff to
+separate observations in nested subgroups (below vs above cutoff).
+The length of <code>prop.cutoff</code> is the number of nested subgroups.
+An equally-spaced sequence of proportions ending with 1 is recommended.
+Default is <code>seq(0.5, 1, length = 6)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>surv.min</code></td>
+<td>
+<p>Lower truncation limit for the probability of being censored.
+It must be a positive value and should be chosen close to 0. Default is <code>0.025</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tree.depth</code></td>
+<td>
+<p>A positive integer specifying the depth of individual trees in boosting
+(usually 2-3). Used only if <code>score.method = 'boosting'</code> or
+if <code>initial.predictor.method = 'boosting'</code> with <code>score.method = 'twoReg'</code> or
+<code>'contrastReg'</code>. Default is 2.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.trees.rf</code></td>
+<td>
+<p>A positive integer specifying the maximum number of trees in random forest.
+Used if <code>score.method = 'ranfomForest'</code> or if <code>initial.predictor.method = 'randomForest'</code>
+with <code>score.method = 'twoReg'</code> or <code>'contrastReg'</code>. Only applies for survival outcomes.
+Default is <code>1000</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.trees.boosting</code></td>
+<td>
+<p>A positive integer specifying the maximum number of trees in boosting
+(usually 100-1000). Used if <code>score.method = 'boosting'</code> or
+if <code>initial.predictor.method = 'boosting'</code> with <code>score.method = 'twoReg'</code> or
+<code>'contrastReg'</code>. Default is <code>200</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>A positive integer specifying the number of time cross-fitting is repeated in
+<code>score.method = 'twoReg'</code> and <code>'contrastReg'</code>. Default is <code>3</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Kfold</code></td>
+<td>
+<p>A positive integer specifying the number of folds used in cross-fitting
+to partition the data in <code>score.method = 'twoReg'</code> and <code>'contrastReg'</code>.
+Default is <code>5</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.gbmperf</code></td>
+<td>
+<p>A logical value indicating whether to plot the performance measures in
+boosting. Used only if <code>score.method = 'boosting'</code> or if <code>score.method = 'twoReg'</code>
+or <code>'contrastReg'</code> and <code>initial.predictor.method = 'boosting'</code>. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>error.maxNR</code></td>
+<td>
+<p>A numerical value &gt; 0 indicating the minimum value of the mean absolute
+error in Newton Raphson algorithm. Used only if <code>score.method = 'contrastReg'</code>.
+Default is <code>0.001</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.iterNR</code></td>
+<td>
+<p>A positive integer indicating the maximum number of iterations in the
+Newton Raphson algorithm. Used only if <code>score.method = 'contrastReg'</code>.
+Default is <code>150</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tune</code></td>
+<td>
+<p>A vector of 2 numerical values &gt; 0 specifying tuning parameters for the
+Newton Raphson algorithm. <code>tune[1]</code> is the step size, <code>tune[2]</code> specifies a
+quantity to be added to diagonal of the slope matrix to prevent singularity.
+Used only if <code>score.method = 'contrastReg'</code>. Default is <code>c(0.5, 2)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>An optional integer specifying an initial randomization seed for reproducibility.
+Default is <code>NULL</code>, corresponding to no seed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>An integer value indicating what kind of intermediate progress messages should
+be printed. <code>0</code> means no outputs. <code>1</code> means only progress and run time.
+<code>2</code> means progress, run time, and all errors and warnings. Default is <code>0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments for <code>gbm()</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The CATE score represents an individual-level treatment effect for survival data,
+estimated with random forest, boosting, Poisson regression, and the doubly
+robust estimator (two regressions, Yadlowsky, 2020) applied separately by treatment group
+or with the other doubly robust estimators (contrast regression, Yadlowsky, 2020) applied
+to the entire data set.
+</p>
+<p><code>catefitsurv()</code> provides the coefficients of the CATE score for each scoring method requested
+through <code>score.method</code>. Currently, contrast regression is the only method which allows
+for inference of the CATE coefficients by providing standard errors of the coefficients.
+The coefficients can be used to learn the effect size of each variable and predict the
+CATE score for a new observation.
+</p>
+<p><code>catefitsurv()</code> also provides the predicted CATE score of each observation in the data set,
+for each scoring method. The predictions allow ranking the observations from potentially
+high responders to the treatment to potentially low or standard responders.
+</p>
+<p>The estimated ATE among nested subgroups of high responders are also provided by scoring method.
+Note that the ATEs in <code>catefitsurv()</code> are derived based on the CATE score which is estimated
+using the same data sample. Therefore, overfitting may be an issue. <code>catecvsurv()</code> is more
+suitable to inspect the estimated ATEs across scoring methods as it implements internal cross
+validation to reduce optimism.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns an object of the class <code>catefit</code> containing the following components:
+</p>
+
+<ul>
+<li>
+<p><code>ate.randomForest</code>:  A vector of numerical values of length <code>prop.cutoff</code>
+containing the estimated ATE by the RMTL ratio in nested subgroups (defined by <code>prop.cutoff</code>)
+constructed based on the estimated CATE scores with random forest method.
+Only provided if <code>score.method</code> includes <code>'randomForest'</code>.
+</p>
+</li>
+<li>
+<p><code>ate.boosting</code>: Same as <code>ate.randomForest</code>, but with the nested subgroups based
+the estimated CATE scores with boosting. Only provided if <code>score.method</code>
+includes <code>'boosting'</code>.
+</p>
+</li>
+<li>
+<p><code>ate.poisson</code>: Same as <code>ate.randomForest</code>, but with the nested subgroups based
+the estimated CATE scores with poisson regression.
+Only provided if <code>score.method</code> includes <code>'poisson'</code>.
+</p>
+</li>
+<li>
+<p><code>ate.twoReg</code>: Same as <code>ate.randomForest</code>, but with the nested subgroups based
+the estimated CATE scores with two regressions.
+Only provided if <code>score.method</code> includes <code>'twoReg'</code>.
+</p>
+</li>
+<li>
+<p><code>ate.contrastReg</code>: Same as <code>ate.randomForest</code>, but with the nested subgroups based
+the estimated CATE scores with contrast regression.
+Only provided if <code>score.method</code> includes <code>'contrastReg'</code>.
+</p>
+</li>
+<li>
+<p><code>hr.randomForest</code>: A vector of numerical values of length <code>prop.cutoff</code>
+containing the adjusted hazard ratio in nested subgroups (defined by <code>prop.cutoff</code>)
+constructed based on the estimated CATE scores with random forest method.
+Only provided if <code>score.method</code> includes <code>'randomForest'</code>.
+</p>
+</li>
+<li>
+<p><code>hr.boosting</code>: Same as <code>hr.randomForest</code>, but with the nested subgroups based
+the estimated CATE scores with boosting. Only provided if <code>score.method</code>
+includes <code>'boosting'</code>.
+</p>
+</li>
+<li>
+<p><code>hr.poisson</code>: Same as <code>hr.randomForest</code>, but with the nested subgroups based
+the estimated CATE scores with poisson regression.
+Only provided if <code>score.method</code> includes <code>'poisson'</code>.
+</p>
+</li>
+<li>
+<p><code>hr.twoReg</code>: Same as <code>hr.randomForest</code>, but with the nested subgroups based
+the estimated CATE scores with two regressions.
+Only provided if <code>score.method</code> includes <code>'twoReg'</code>.
+</p>
+</li>
+<li>
+<p><code>hr.contrastReg</code>: Same as <code>hr.randomForest</code>, but with the nested subgroups based
+the estimated CATE scores with contrast regression.
+Only provided if <code>score.method</code> includes <code>'contrastReg'</code>.
+</p>
+</li>
+<li>
+<p><code>score.randomForest</code>: A vector of numerical values of length n
+(number of observations in <code>data</code>) containing the estimated log-CATE scores
+according to random forest. Only provided if <code>score.method</code>
+includes <code>'randomForest'</code>.
+</p>
+</li>
+<li>
+<p><code>score.boosting</code>: Same as <code>score.randomForest</code>, but with estimated log-CATE score
+according to boosting. Only provided if <code>score.method</code> includes
+<code>'boosting'</code>.
+</p>
+</li>
+<li>
+<p><code>score.poisson</code>: Same as <code>score.randomForest</code>, but with estimated log-CATE score
+according to the Poisson regression. Only provided if <code>score.method</code>
+includes <code>'poisson'</code>.
+</p>
+</li>
+<li>
+<p><code>score.twoReg</code>: Same as <code>score.randomForest</code>, but with estimated log-CATE score
+according to two regressions. Only provided if <code>score.method</code> includes
+<code>'twoReg'</code>.
+</p>
+</li>
+<li>
+<p><code>score.contrastReg</code>: Same as <code>score.randomForest</code>, but with estimated log-CATE score
+according to contrast regression. Only provided if <code>score.method</code> includes
+<code>'contrastReg'</code>.
+</p>
+</li>
+<li>
+<p><code>fit</code>: Additional details on model fitting if <code>score.method</code>
+includes 'randomForest', 'boosting' or 'contrastReg':
+</p>
+
+<ul>
+<li>
+<p><code>result.randomForest</code>: Details on the random forest model fitted to observations
+with treatment = 0 <code>($fit0.rf)</code> and to observations with treatment = 1 <code>($fit1.rf)</code>.
+Only provided if <code>score.method</code> includes <code>'randomForest'</code>.
+</p>
+</li>
+<li>
+<p><code>result.boosting</code>: Details on the boosting model fitted to observations
+with treatment = 0, <code>($fit0.boosting)</code> and <code>($fit0.gam)</code> and to observations with treatment = 1,
+<code>($fit1.boosting)</code> and <code>($fit1.gam)</code>.
+Only provided if <code>score.method</code> includes <code>'boosting'</code>.
+</p>
+</li>
+<li>
+<p><code>result.contrastReg$converge.contrastReg</code>: Whether the contrast regression algorithm converged
+or not. Only provided if <code>score.method</code> includes <code>'contrastReg'</code>.
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p><code>coefficients</code>: A data frame with the coefficients of the estimated log-CATE
+score by <code>score.method</code>. The data frame has number of rows equal to the number of
+covariates in <code>cate.model</code> and number of columns equal to <code>length(score.method)</code>.
+If <code>score.method</code> includes <code>'contrastReg'</code>, the data frame has an additional
+column containing the standard errors of the coefficients estimated with contrast regression.
+<code>'randomForest'</code> and <code>'boosting'</code> do not have coefficient results because
+tree-based methods typically do not express the log-CATE as a linear combination of coefficients
+and covariates.
+</p>
+</li>
+<li>
+<p><code>errors/warnings</code>: A nested list of errors and warnings that were wrapped during the
+calculation of ATE. Errors and warnings are organized by <code>score.method</code>.
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Yadlowsky, S., Pellegrini, F., Lionetto, F., Braune, S., &amp; Tian, L. (2020).
+<em>Estimation and validation of ratio-based conditional average treatment effects using
+observational data. Journal of the American Statistical Association, 1-18.</em> DOI: 10.1080/01621459.2020.1772080.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>catecvsurv()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(survival)
+
+tau0 &lt;- with(survivalExample, min(quantile(y[trt == "drug1"], 0.95),
+                               quantile(y[trt == "drug0"], 0.95)))
+
+fit &lt;- catefitsurv(data = survivalExample,
+                   score.method = "randomForest",
+                   cate.model = Surv(y, d) ~ age + female + previous_cost +
+                                             previous_number_relapses,
+                   ps.model = trt ~ age + previous_treatment,
+                   ipcw.model = ~ age + previous_cost + previous_treatment,
+                   tau0 = tau0,
+                   seed = 999)
+
+coef(fit)
+
+
+</code></pre>
+
+
+</div>

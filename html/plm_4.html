@@ -1,0 +1,234 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>detect.lindep</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Functions to detect linear dependence</h2>
+
+<h3>Description</h3>
+
+<p>Little helper functions to aid users to detect linear dependent columns in a
+two-dimensional data structure, especially in a (transformed) model matrix -
+typically useful in interactive mode during model building phase.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">detect.lindep(object, ...)
+
+## S3 method for class 'matrix'
+detect.lindep(object, suppressPrint = FALSE, ...)
+
+## S3 method for class 'data.frame'
+detect.lindep(object, suppressPrint = FALSE, ...)
+
+## S3 method for class 'plm'
+detect.lindep(object, suppressPrint = FALSE, ...)
+
+## S3 method for class 'plm'
+alias(object, ...)
+
+## S3 method for class 'pdata.frame'
+alias(
+  object,
+  model = c("pooling", "within", "Between", "between", "mean", "random", "fd"),
+  effect = c("individual", "time", "twoways"),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>for <code>detect.lindep</code>: an object which should be checked
+for linear dependence (of class <code>"matrix"</code>, <code>"data.frame"</code>, or
+<code>"plm"</code>); for <code>alias</code>: either an estimated model of class
+<code>"plm"</code> or a <code>"pdata.frame"</code>. Usually, one wants to input a model
+matrix here or check an already estimated plm model,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>suppressPrint</code></td>
+<td>
+<p>for <code>detect.lindep</code> only: logical indicating
+whether a message shall be printed; defaults to printing the message, i. e.,
+to <code>suppressPrint = FALSE</code>,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>(see <code>plm</code>),</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>effect</code></td>
+<td>
+<p>(see <code>plm</code>),</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Linear dependence of columns/variables is (usually) readily avoided when
+building one's model.  However, linear dependence is sometimes not obvious
+and harder to detect for less experienced applied statisticians. The so
+called "dummy variable trap" is a common and probably the best–known
+fallacy of this kind (see e. g. Wooldridge (2016), sec. 7-2.). When building
+linear models with <code>lm</code> or <code>plm</code>'s <code>pooling</code> model, linear
+dependence in one's model is easily detected, at times post hoc.
+</p>
+<p>However, linear dependence might also occur after some transformations of
+the data, albeit it is not present in the untransformed data. The within
+transformation (also called fixed effect transformation) used in the
+<code>"within"</code> model can result in such linear dependence and this is
+harder to come to mind when building a model. See <strong>Examples</strong> for two
+examples of linear dependent columns after the within transformation: ex. 1)
+the transformed variables have the opposite sign of one another; ex. 2) the
+transformed variables are identical.
+</p>
+<p>During <code>plm</code>'s model estimation, linear dependent columns and their
+corresponding coefficients in the resulting object are silently dropped,
+while the corresponding model frame and model matrix still contain the
+affected columns.  The plm object contains an element <code>aliased</code> which
+indicates any such aliased coefficients by a named logical.
+</p>
+<p>Both functions, <code>detect.lindep</code> and <code>alias</code>, help to
+detect linear dependence and accomplish almost the same:
+<code>detect.lindep</code> is a stand alone implementation while
+<code>alias</code> is a wrapper around
+<code>stats::alias.lm()</code>, extending the <code>alias</code>
+generic to classes <code>"plm"</code> and <code>"pdata.frame"</code>.
+<code>alias</code> hinges on the availability of the package
+<a href="https://CRAN.R-project.org/package=MASS"><span class="pkg">MASS</span></a> on the system. Not all arguments of <code>alias.lm</code>
+are supported.  Output of <code>alias</code> is more informative as it
+gives the linear combination of dependent columns (after data
+transformations, i. e., after (quasi)-demeaning) while
+<code>detect.lindep</code> only gives columns involved in the linear
+dependence in a simple format (thus being more suited for automatic
+post–processing of the information).
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>detect.lindep</code>: A named numeric vector containing column
+numbers of the linear dependent columns in the object after data
+transformation, if any are present. <code>NULL</code> if no linear dependent
+columns are detected.
+</p>
+<p>For <code>alias</code>: return value of <code>stats::alias.lm()</code> run on the
+(quasi-)demeaned model, i. e., the information outputted applies to
+the transformed model matrix, not the original data.
+</p>
+
+
+<h3>Note</h3>
+
+<p>function <code>detect.lindep</code> was called <code>detect_lin_dep</code>
+initially but renamed for naming consistency later.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Kevin Tappe
+</p>
+
+
+<h3>References</h3>
+
+<p>Wooldridge JM (2013).
+<em>Introductory Econometrics: a modern approach</em>, 5th edition.
+South-Western (Cengage Learning).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>stats::alias()</code>, <code>stats::model.matrix()</code> and especially
+<code>plm</code>'s <code>model.matrix()</code> for (transformed) model matrices,
+plm's <code>model.frame()</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+### Example 1 ###
+# prepare the data
+data("Cigar" , package = "plm")
+Cigar[ , "fact1"] &lt;- c(0,1)
+Cigar[ , "fact2"] &lt;- c(1,0)
+Cigar.p &lt;- pdata.frame(Cigar)
+
+# setup a formula and a model frame
+form &lt;- price ~ 0 + cpi + fact1 + fact2
+mf &lt;- model.frame(Cigar.p, form)
+# no linear dependence in the pooling model's model matrix
+# (with intercept in the formula, there would be linear depedence)
+detect.lindep(model.matrix(mf, model = "pooling"))
+# linear dependence present in the FE transformed model matrix
+modmat_FE &lt;- model.matrix(mf, model = "within")
+detect.lindep(modmat_FE)
+mod_FE &lt;- plm(form, data = Cigar.p, model = "within")
+detect.lindep(mod_FE) 
+alias(mod_FE) # =&gt; fact1 == -1*fact2
+plm(form, data = mf, model = "within")$aliased # "fact2" indicated as aliased
+
+# look at the data: after FE transformation fact1 == -1*fact2
+head(modmat_FE)
+all.equal(modmat_FE[ , "fact1"], -1*modmat_FE[ , "fact2"])
+
+### Example 2 ###
+# Setup the data:
+# Assume CEOs stay with the firms of the Grunfeld data
+# for the firm's entire lifetime and assume some fictional
+# data about CEO tenure and age in year 1935 (first observation
+# in the data set) to be at 1 to 10 years and 38 to 55 years, respectively.
+# =&gt; CEO tenure and CEO age increase by same value (+1 year per year).
+data("Grunfeld", package = "plm")
+set.seed(42)
+# add fictional data
+Grunfeld$CEOtenure &lt;- c(replicate(10, seq(from=s&lt;-sample(1:10,  1), to=s+19, by=1)))
+Grunfeld$CEOage    &lt;- c(replicate(10, seq(from=s&lt;-sample(38:65, 1), to=s+19, by=1)))
+
+# look at the data
+head(Grunfeld, 50)
+
+form &lt;- inv ~ value + capital + CEOtenure + CEOage
+mf &lt;- model.frame(pdata.frame(Grunfeld), form)
+# no linear dependent columns in original data/pooling model
+modmat_pool &lt;- model.matrix(mf, model="pooling")
+detect.lindep(modmat_pool)
+mod_pool &lt;- plm(form, data = Grunfeld, model = "pooling")
+alias(mod_pool)
+
+# CEOtenure and CEOage are linear dependent after FE transformation
+# (demeaning per individual)
+modmat_FE &lt;- model.matrix(mf, model="within")
+detect.lindep(modmat_FE)
+mod_FE &lt;- plm(form, data = Grunfeld, model = "within")
+detect.lindep(mod_FE)
+alias(mod_FE)
+
+# look at the transformed data: after FE transformation CEOtenure == 1*CEOage
+head(modmat_FE, 50)
+all.equal(modmat_FE[ , "CEOtenure"], modmat_FE[ , "CEOage"])
+
+</code></pre>
+
+
+</div>

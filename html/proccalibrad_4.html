@@ -1,0 +1,155 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>run_swath2grid_mod02nrt</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Run MRTSwath swath2grid tool</h2>
+
+<h3>Description</h3>
+
+<p>MRTSwath is the "MODIS Reprojection Tool for swath products".  See:
+<a href="https://lpdaac.usgs.gov/tools/modis_reprojection_tool_swath">https://lpdaac.usgs.gov/tools/modis_reprojection_tool_swath</a>).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">run_swath2grid_mod02nrt(mrtpath = "swath2grid", prmfn = "tmpMRTparams.prm",
+  tifsdir, modfn, geoloc_fn, ul_lon, ul_lat, lr_lon, lr_lat)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>mrtpath</code></td>
+<td>
+<p>This is the path to the MRTSwath executable <code>swath2grid</code>. If your <code>~/.Rprofile</code>
+file has the location of <code>swath2grid</code> in the PATH, then you can just use <code>mrtpath="swath2grid"</code>.
+Otherwise, the user must provide the full path to swath2grid.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prmfn</code></td>
+<td>
+<p>The name of the parameter/control file which will be the input to MRTSwath's <code>swath2grid</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tifsdir</code></td>
+<td>
+<p>The directory to save the output TIF files in</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>modfn</code></td>
+<td>
+<p>The filename of the MODIS data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>geoloc_fn</code></td>
+<td>
+<p>The filename of the corresponding geolocation file (annoyingly, this is a much larger
+file than the data file!)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ul_lon</code></td>
+<td>
+<p>Upper left (ul) longitude (x-coordinate) for subsetting</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ul_lat</code></td>
+<td>
+<p>Upper left (ul) latitude (y-coordinate) for subsetting</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lr_lon</code></td>
+<td>
+<p>Lower right (lr) longitude (x-coordinate) for subsetting</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lr_lat</code></td>
+<td>
+<p>Lower right (lr) latitude (y-coordinate) for subsetting</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If you want this function to use MRTSwath tool successfully, you should
+add the directory with the MRTSwath executable to the default R PATH
+by editing <code>~/.Rprofile</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>cmdstr</code> The string giving the system command that ran <code>swath2grid</code>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>write_MRTSwath_param_file_mod02nrt</code>
+</p>
+<p><a href="http://landweb.nascom.nasa.gov/cgi-bin/QA_WWW/newPage.cgi?fileName=hdf_filename">http://landweb.nascom.nasa.gov/cgi-bin/QA_WWW/newPage.cgi?fileName=hdf_filename</a>
+@cite NASA2001
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#######################################################
+# Run MRTSwath tool "swath2grid"
+#######################################################
+
+# Source MODIS files (both data and geolocation)
+# Code excluded from CRAN check because it depends on modiscdata
+## Not run: 
+library(devtools)
+library(modiscdata)
+moddir = system.file("extdata/2002raw/", package="modiscdata")
+
+# Get the matching data/geolocation file pairs
+fns_df = check_for_matching_geolocation_files(moddir, modtxt="MOD02", geoloctxt="MOD03")
+fns_df
+
+# Resulting TIF files go in this directory
+tifsdir = getwd()
+
+
+# Box to subset
+ul_lat = 13
+ul_lon = -87
+lr_lat = 8
+lr_lon = -82
+
+for (i in 1:nrow(fns_df))
+	{
+
+prmfn = write_MRTSwath_param_file_mod02nrt(prmfn="tmpMRTparams.prm", tifsdir=tifsdir,
+ modfn=fns_df$mod02_fns[i], geoloc_fn=fns_df$mod03_fns[i], ul_lon=ul_lon, ul_lat=ul_lat,
+  lr_lon=lr_lon, lr_lat=lr_lat)
+print(scan(file=prmfn, what="character", sep="\n"))
+
+run_swath2grid_mod02nrt(mrtpath="swath2grid", prmfn="tmpMRTparams.prm", tifsdir=tifsdir,
+ modfn=fns_df$mod302_fns[i], geoloc_fn=fns_df$mod03_fns[i], ul_lon=ul_lon, ul_lat=ul_lat,
+  lr_lon=lr_lon, lr_lat=lr_lat)
+
+	}
+
+list.files(tifsdir, pattern=".tif", full.names=TRUE)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,184 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>linksrm_gif</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Ground Intensity for Linked Stress Release Model
+</h2>
+
+<h3>Description</h3>
+
+<p>Calculates the value of the ground intensity of a Linked Stress Release Model (LSRM). This model allows for multiple linked regions, where the stress can be transferred between the regions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">linksrm_gif(data, evalpts, params, TT=NA, tplus=FALSE, eta=0.75)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+
+<p>a data frame containing the event history, where each row represents one event. There must be columns named <code>"time"</code>, usually the number of days from some origin; <code>"magnitude"</code> which is the event magnitude less the magnitude threshold, i.e. <code class="reqn">M_k - M_0</code>; and <code>"region"</code> which are consecutively numbered starting at 1.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>evalpts</code></td>
+<td>
+
+<p>a <code>matrix</code> or <code>data.frame</code>. It must include two columns named <code>"time"</code> and <code>"region"</code> that can be referred to as <code>evalpts[,"time"]</code> and <code>evalpts[,"region"]</code>, respectively. The function will be evaluated at these points.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params</code></td>
+<td>
+
+<p>vector of parameters of length <code class="reqn">n^2+2n</code>, where <code class="reqn">n</code> is the number of regions, for the proposed LSRM in the following order:
+</p>
+<p style="text-align: center;"><code class="reqn">
+(a_1, \cdots, a_n, b_1, \cdots, b_n, c_{11}, c_{12}, c_{13}, \cdots, c_{nn}).
+</code>
+</p>
+
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>TT</code></td>
+<td>
+
+<p>vector of length 2, being the time interval over which the integral of the ground intensity function is to be evaluated.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tplus</code></td>
+<td>
+<p>logical, <code class="reqn">\lambda_g(t,i|{\cal H}_t)</code> is evaluated as <code class="reqn">\lambda_g(t^+,i|{\cal H}_t)</code> if <code>TRUE</code>, else <code class="reqn">\lambda_g(t^-,i|{\cal H}_t)</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eta</code></td>
+<td>
+<p>a scalar used in the stress calculations, see Details below.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The ground intensity for the <code class="reqn">i</code>th region is assumed to have the form
+</p>
+<p style="text-align: center;"><code class="reqn">
+\lambda_g(t,i | {\cal H}_t) = \exp\left\{ a_i + b_i\left[t - \sum_{j=1}^n c_{ij} S_j(t)\right]\right\}
+</code>
+</p>
+
+<p>with <code>params</code><code class="reqn">= \code{c}(a_1, \cdots, a_n, b_1, \cdots, b_n, c_{11}, c_{12}, c_{13}, \cdots, c_{nn})</code>; and
+</p>
+<p style="text-align: center;"><code class="reqn">
+S_j(t) = \sum_k 10^{\eta(M_k-M_0)},
+</code>
+</p>
+
+<p>where the summation is taken over those events in region <code class="reqn">j</code> with time <code class="reqn">t_k &lt; t</code>. This model has been discussed by Bebbington &amp; Harte (2001, 2003). The default value of <code class="reqn">\eta = \code{eta} = 0.75</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Two usages are as follows.
+</p>
+<pre>
+linksrm_gif(data, evalpts, params, tplus=FALSE, eta=0.75)
+linksrm_gif(data, evalpts=NULL, params, TT, eta=0.75)
+</pre>
+<p>The first usage returns a vector containing the values of <code class="reqn">\lambda_g(t,i)</code> evaluated at the specified “time-region” points. In the second usage, it returns a vector containing the value of the integral for each region.
+</p>
+
+
+<h3>Function Attributes</h3>
+
+
+<dl>
+<dt><code>rate</code></dt>
+<dd>
+<p>is <code>"increasing"</code>.</p>
+</dd>
+<dt><code>regions</code></dt>
+<dd>
+<p>is <code>expression(sqrt(length(params) + 1) - 1)</code>.</p>
+</dd>
+</dl>
+<h3>Modify Function to Decrease Calculation Time</h3>
+
+<p>The function <code>linksrm_gif</code> calculates the stress reduction matrices <code>St1</code> and <code>St2</code> every time that the function is called. Ideally, these should be calculated once and be included within the model object. Currently, the structure of the model object is not sufficiently flexible. However, the user can create a new function to calculate <code>St1</code> and <code>St2</code> once. This will only work if the event <em>history</em> is not changing between successive calls (e.g. parameter estimation). However, in a simulation, the history changes with the addition of each new event, and in this situation <code>St1</code> and <code>St2</code> need to be calculated with every function call.
+</p>
+<p>The modified function, as described below, will write the objects <code>St1</code> and <code>St2</code> to a temporary database (position 2 in the search path). Consequently, it cannot be defined within the package itself because this violates the CRAN rules. The function <code>linksrm_gif</code> contains markers indicating the beginning and ending of the parts where <code>St1</code> and <code>St2</code> are calculated. The modified function is made by editing the function <code>linksrm_gif</code>. We firstly <code>deparse</code> the function <code>linksrm_gif</code> (i.e. put the contents into a character vector). We initially create a temporary database called <code>PtProcess.tmp</code> in which to write <code>St1</code> and <code>St2</code>. We then search for the line numbers that mark the beginning and ending of the parts where <code>St1</code> and <code>St2</code> are calculated. We replace the beginning of each with a conditional statement so that the contents are only run if these two objects do not already exist. We then <code>parse</code> the lines of code in the character vector back into a function, and call this new function <code>linksrm1_gif</code>. The same thing can be achieved by dumping <code>linksrm_gif</code> to a text file and editing manually.
+</p>
+<pre>
+#   define linksrm1_gif by modifying linksrm_gif
+
+#   put function linksrm_gif into a character vector
+tmp &lt;- deparse(linksrm_gif)
+
+#   remove "if (FALSE)" lines
+linenum &lt;- grep("if \(FALSE\)", tmp)
+tmp &lt;- tmp[-linenum]
+
+#   attach new database at pos=2 in search path called PtProcess.tmp
+linenum &lt;- grep("attach new database to search path", tmp)
+tmp[linenum] &lt;- "if (!any(search()==\"PtProcess.tmp\")) attach(NULL,
+                      pos=2L, name=\"PtProcess.tmp\", warn.conflicts=TRUE)"
+
+#   calc St1 if St1 does not exist
+linenum &lt;- grep("this loop calculates St1", tmp)
+tmp[linenum] &lt;- "if (!exists(\"St1\", mode = \"numeric\")) {"
+linenum &lt;- grep("assign statement for St1", tmp)
+tmp[linenum] &lt;- "assign(\"St1\", St1, pos=\"PtProcess.tmp\")"
+linenum &lt;- grep("end loop St1", tmp)
+tmp[linenum] &lt;- "}"
+
+
+#   calc St2 if St2 does not exist
+linenum &lt;- grep("this loop calculates St2", tmp)
+tmp[linenum] &lt;- "if (!exists(\"St2\", mode = \"numeric\")) {"
+linenum &lt;- grep("assign statement for St2", tmp)
+tmp[linenum] &lt;- "assign(\"St2\", St2, pos=\"PtProcess.tmp\")"
+linenum &lt;- grep("end loop St2", tmp)
+tmp[linenum] &lt;- "}"
+
+linksrm1_gif &lt;- eval(parse(text=tmp))
+</pre>
+<p><em>Warning</em>: The function <code>linksrm1_gif</code> checks to see whether the matrices <code>St1</code> and <code>St2</code> exist. If so, these existing matrices are used, and new ones are not calculated. Therefore when using <code>linksrm1_gif</code> for parameter estimation, one <b>must</b> check for the existence of such matrices, and delete upon starting to fit a new model:
+</p>
+<pre>
+if (exists("St1")) rm(St1)
+if (exists("St2")) rm(St2)
+</pre>
+<p>or detach the database as <code>detach(2)</code>. The objects <code>St1</code> and <code>St2</code> will exist for the duration of the current R session, so should be deleted when no longer required.
+</p>
+
+
+<h3>References</h3>
+
+<p>Cited references are listed on the PtProcess manual page.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>General details about the structure of ground intensity functions are given in the topic <code>gif</code>.
+</p>
+
+
+</div>

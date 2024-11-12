@@ -1,0 +1,668 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>btest</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Backtesting Investment Strategies
+</h2>
+
+<h3>Description</h3>
+
+<p>Testing trading and investment strategies.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">btest(prices, signal,
+      do.signal = TRUE, do.rebalance = TRUE,
+      print.info = NULL, b = 1, fraction = 1,
+      initial.position = 0, initial.cash = 0,
+      final.position = FALSE,
+      cashflow = NULL, tc = 0, ...,
+      add = FALSE, lag = 1, convert.weights = FALSE,
+      trade.at.open = TRUE, tol = 1e-5, tol.p = NA,
+      Globals = list(),
+      prices0 = NULL,
+      include.data = FALSE, include.timestamp = TRUE,
+      timestamp, instrument,
+      progressBar = FALSE,
+      variations, variations.settings, replications)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>prices</code></td>
+<td>
+
+<p>For a single asset, a matrix of prices with four
+columns: open, high, low and close. For <code>n</code>
+assets, a list of length four: <code>prices[[1]]</code>
+is then a matrix with <code>n</code> columns containing
+the open prices for the assets; <code>prices[[2]]</code>
+is a matrix with the high prices, and so on. If
+only close prices are used, then for a single asset
+either a matrix of one column or a numeric vector;
+for multiple assets a list of length one,
+containing the matrix of close prices. For example,
+with 100 close prices of 5 assets, the prices
+should be arranged in a matrix <code>p</code> of size 100
+times 5; and <code>prices = list(p)</code>.
+</p>
+<p>The series in <code>prices</code> are used both as
+transaction prices and for valuing open
+positions. If signals are to be based on other
+series, such other series should be passed via the
+... argument.
+</p>
+<p>Prices must be ordered by time (though the
+timestamps need not be provided).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>signal</code></td>
+<td>
+
+<p>A function that evaluates to the position in units
+of the instruments suggested by the trading
+rule. If <code>convert.weights</code> is <code>TRUE</code>,
+<code>signal</code> should return the suggested position
+as weights (which need not sum to 1).  If <code>signal</code>
+returns <code>NULL</code>, the current position is kept.
+See Details.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>do.signal</code></td>
+<td>
+
+<p>Logical or numeric vector, a function that
+evaluates to <code>TRUE</code> or <code>FALSE</code>, or a
+string.
+</p>
+<p>When a logical vector, its length must match the
+number of observations in prices: <code>do.signal</code>
+then corresponds to the rows in <code>prices</code> at
+which a signal is computed. Alternatively, these
+rows may also be specified as integers.  If a
+length-one <code>TRUE</code> or <code>FALSE</code>, the value
+is recycled to match the number of observations in
+prices.  Default is <code>TRUE</code>: a signal is then
+computed in every period.
+</p>
+<p><code>do.signal</code> may also be the string
+“firstofmonth”, “lastofmonth”,
+“firstofquarter” or “lastofquarter”;
+in these cases, <code>timestamp</code> needs to specified
+and must be coercable to <code>Date</code>.
+</p>
+<p>If <code>timestamp</code> is specified, <code>do.signal</code> may
+also be a vector of the same class as <code>timestamp</code>
+(typically <code>Date</code> or <code>POSIXct</code>).
+If the timestamps specified in <code>do.signal</code> do not
+occur in <code>timestamp</code>, a signal is computed on the
+next possible time instance.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>do.rebalance</code></td>
+<td>
+
+<p>Same as <code>do.signal</code>, but it may return a logical
+vector of length equal to the number of assets, which
+indicates which assets to rebalance. Can also be the
+string <code>"do.signal"</code>, in which case the value of
+<code>do.signal</code> is copied. <code>do.rebalance</code> is called
+after signal computation, so it can access the suggested
+position of the current period (via <code>SuggestedPortfolio(0)</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>print.info</code></td>
+<td>
+
+<p>A function, called at the very end of each period,
+i.e. after rebalancing.  Can also be <code>NULL</code>, in
+which case nothing is printed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cashflow</code></td>
+<td>
+
+<p>A function or <code>NULL</code> (default).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+
+<p>burn-in (an integer). Defaults to 1. This may also
+be a length-one timestamp of the same class as
+<code>timestamp</code>, in which case the data up to (and
+including) <code>b</code> are skipped.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fraction</code></td>
+<td>
+
+<p>amount of rebalancing to be done: a scalar between
+0 and 1
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initial.position</code></td>
+<td>
+
+<p>a numeric vector: initial portfolio in units of
+instruments.  If supplied, this will also be the
+initial suggested position.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initial.cash</code></td>
+<td>
+
+<p>a numeric vector of length 1. Defaults to 0.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>final.position</code></td>
+<td>
+
+<p>logical
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tc</code></td>
+<td>
+
+<p>transaction costs as a fraction of turnover (e.g.,
+0.001 means 0.1%). May also be a function that
+evaluates to such a fraction. More-complex
+computations may be specified with
+argument <code>cashflow</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>other named arguments. All functions (signal,
+do.signal, do.rebalance, print.info, cashflow) will
+have access to these arguments. See Details for
+reserved argument names.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add</code></td>
+<td>
+
+<p>Default is <code>FALSE</code>. <code>TRUE</code> is <strong>not
+implemented</strong> – but would mean that <code>signal</code>
+should evaluate to <em>changes</em> in position,
+i.e. orders.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lag</code></td>
+<td>
+
+<p>default is 1
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convert.weights</code></td>
+<td>
+
+<p>Default is <code>FALSE</code>.  If <code>TRUE</code>, the value
+of signal will be considered a weight vector and
+automatically translated into (fractional) position
+sizes.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trade.at.open</code></td>
+<td>
+
+<p>A logical vector of length one; default is <code>TRUE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+
+<p>A numeric vector of length one: only rebalance if
+the maximum absolute suggested change for at least
+one position is greater than <code>tol</code>. Default is
+0.00001 (which practically means always rebalance).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol.p</code></td>
+<td>
+
+<p>A numeric vector of length one: only rebalance
+those positions for which the relative suggested
+change is greater than <code>tol.p</code>. Default is
+<code>NA</code>: always rebalance.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Globals</code></td>
+<td>
+
+<p>A <code>list</code> of named elements. See Details.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prices0</code></td>
+<td>
+
+<p>A numeric vector (default is <code>NULL</code>). Only
+used if <code>b</code> is 0 and an initial portfolio
+(<code>initial.position</code>) is specified.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>include.data</code></td>
+<td>
+
+<p>logical. If <code>TRUE</code>, all passed data are stored
+in final <code>btest</code> object. See Section
+Value. See also argument <code>include.timestamp</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>include.timestamp</code></td>
+<td>
+
+<p>logical. If <code>TRUE</code>, <code>timestamp</code> is stored
+in final <code>btest</code> object. If <code>timestamp</code>
+is missing, integers 1, 2, ... are used. See
+Section Value.  See also argument
+<code>include.data</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timestamp</code></td>
+<td>
+
+<p>a vector of timestamps, along prices (optional; mainly used for
+print method and journal)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>instrument</code></td>
+<td>
+
+<p>character vector of instrument names (optional; mainly used for
+print method and journal)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progressBar</code></td>
+<td>
+
+<p>logical: display <code>txtProgressBar</code>?
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variations</code></td>
+<td>
+
+<p>a list. See Details.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variations.settings</code></td>
+<td>
+
+<p>a list. See Details.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>replications</code></td>
+<td>
+
+<p>an integer. If set, the function returns a list of
+<code>btest</code> objects.  Each <code>btest</code> has an
+attribute <code>replication</code>, which records the
+replication number.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function provides infrastructure for testing
+trading rules. Essentially, <code>btest</code> does
+accounting: keep track of transactions and positions,
+value open positions, etc. The ingredients are price
+time-series (single series or <abbr><span class="acronym">OHLC</span></abbr>
+bars), which need not be equally spaced; and several
+functions that map these series and other pieces of
+information into positions.
+</p>
+
+
+<h4>How <code>btest</code> works</h4>
+
+
+<p><code>btest</code> runs a loop from <code>b + 1</code> to
+<code>NROW(prices)</code>. In iteration <code>t</code>, a
+<code>signal</code> can be computed based on information
+from periods prior to <code>t</code>. Trading then takes
+place at the opening price of <code>t</code>.
+</p>
+<pre>
+t    time      open  high  low   close
+1    HH:MM:SS                             &lt;--\
+2    HH:MM:SS                             &lt;-- - use information
+3    HH:MM:SS  _________________________  &lt;--/
+4    HH:MM:SS     X                       &lt;- trade here
+5    HH:MM:SS
+    </pre>
+<p>For slow-to-compute signals this is reasonable if
+there is a time lag between close and open. For
+daily prices, for instance, signals could be
+computed overnight. For higher frequencies, such as
+every minute, the signal function should be fast to
+compute. Alternatively, it may be better to use a
+larger time offset (i.e. use a longer time lag) and
+to trade at the close of <code>t</code> by setting
+argument <code>trade.at.open</code> to <code>FALSE</code>.
+</p>
+<pre>
+t    time      open  high  low   close
+1    HH:MM:SS                             &lt;-- \
+2    HH:MM:SS                             &lt;-- - use information
+3    HH:MM:SS  _________________________  &lt;-- /
+4    HH:MM:SS                        X    &lt;-- trade here
+5    HH:MM:SS
+    </pre>
+<p>If no <abbr><span class="acronym">OHLC</span></abbr> bars are available, a single
+series per asset (assumed to be close prices) can
+be used.  <code>trade.at.open</code> will automaticall be
+set to <code>FALSE</code>.
+</p>
+<p>The trade logic needs to be coded in the function
+<code>signal</code>. Arguments to that function must be
+named and need to be passed with <code>...</code>.
+Certain names are reserved and cannot be used as
+arguments: <code>Open</code>, <code>High</code>, <code>Low</code>,
+<code>Close</code>, <code>Wealth</code>, <code>Cash</code>,
+<code>Time</code>, <code>Timestamp</code>, <code>Portfolio</code>,
+<code>SuggestedPortfolio</code>, <code>Globals</code>. Further
+reserved names may be added in the future:
+<strong>it is suggested to not start an argument
+name with a capital letter</strong>.
+</p>
+<p>The function <code>signal</code> must evaluate to the
+target position in units of the instruments. To
+work with weights, set <code>convert.weights</code> to
+<code>TRUE</code>, and <code>btest</code> will translate the
+weights into positions, based on the value of the
+portfolio at <code>t - 1</code>.
+</p>
+
+
+
+<h4>Accessing data</h4>
+
+
+<p>Within <code>signal</code> (and also other function
+arguments, such as <code>do.signal</code>), you can
+access data via special functions such as
+<code>Close</code>. These are automatically added as
+arguments to <code>signal</code>. Currently, the
+following functions are available: <code>Open</code>,
+<code>High</code>, <code>Low</code>, <code>Close</code>,
+<code>Wealth</code>, <code>Cash</code>, <code>Time</code>,
+<code>Timestamp</code>, <code>Portfolio</code>,
+<code>SuggestedPortfolio</code>, <code>Globals</code>.
+<code>Globals</code> is special: it is an
+<code>environment</code>, which can be used to
+persistently store data during the run of
+<code>btest</code>. Use the argument <code>Globals</code> to
+add initial objects. See the Examples below and the
+manual.
+</p>
+<p>Additional functions may be added to <code>btest</code>
+in the future. The names of those functions will
+always be in title case. Hence, it is recommended
+to not use argument names for <code>signal</code>,
+etc. that start with a capital letter.
+</p>
+
+
+
+<h4>Replications and variations</h4>
+
+
+<p><code>btest</code> allows to run backtests in
+parallel. See the examples at
+<a href="https://enricoschumann.net/notes/parallel-backtests.html">https://enricoschumann.net/notes/parallel-backtests.html</a>.
+</p>
+<p>The argument <code>variations.settings</code> is a list with the
+following defaults:
+</p>
+
+<dl>
+<dt><code>method</code></dt>
+<dd>
+<p>character: supported are
+<code>"loop"</code>, <code>"parallel"</code> (or <code>"snow"</code>)
+and <code>"multicore"</code></p>
+</dd>
+<dt><code>load.balancing</code></dt>
+<dd>
+<p>logical</p>
+</dd>
+<dt><code>cores</code></dt>
+<dd>
+<p>numeric</p>
+</dd>
+</dl>
+<h3>Value</h3>
+
+<p>A list with class attribute <code>btest</code>. The list comprises:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>position</code></td>
+<td>
+<p>actual portfolio holdings</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>suggested.position</code></td>
+<td>
+<p>suggested holdings
+(aka target position)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cash</code></td>
+<td>
+<p>cash</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wealth</code></td>
+<td>
+<p>time-series of total portfolio
+value (aka equity curve)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cum.tc</code></td>
+<td>
+<p>transaction costs</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>journal</code></td>
+<td>
+<p><code>journal</code> of trades.
+Only includes trades done during the backtest, not initial positions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initial.wealth</code></td>
+<td>
+<p>initial wealth</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>burn-in</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>final.position</code></td>
+<td>
+<p>final position if <code>final.position</code> is
+<code>TRUE</code>; otherwise <code>NA</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Globals</code></td>
+<td>
+<p>environment <code>Globals</code></p>
+</td>
+</tr>
+</table>
+<p>When <code>include.timestamp</code> is <code>TRUE</code>, the
+timestamp is included. If no <code>timestamp</code> was
+specified, integers <code>1, 2, ...</code> are used
+instead.
+</p>
+<p>When <code>include.data</code> is <code>TRUE</code>, essentially
+all information (prices, instrument, the
+actual <code>call</code> and functions <code>signal</code> etc.)
+are stored in the list as well.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Enrico Schumann <a href="mailto:es@enricoschumann.net">es@enricoschumann.net</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Schumann, E. (2023) <em>Portfolio Management with R</em>.
+<a href="https://enricoschumann.net/PMwR/">https://enricoschumann.net/PMwR/</a>;
+in particular, see the chapter on backtesting:<br><a href="https://enricoschumann.net/R/packages/PMwR/manual/PMwR.html#backtesting">https://enricoschumann.net/R/packages/PMwR/manual/PMwR.html#backtesting</a>
+</p>
+<p>Schumann, E. (2018) <em>Backtesting</em>.<br><a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3374195">https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3374195</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## For more examples, please see the Manual
+## https://enricoschumann.net/R/packages/PMwR/manual/PMwR.html
+
+## 1 - a simple rule
+timestamp &lt;- structure(c(16679L, 16680L, 16681L, 16682L,
+                         16685L, 16686L, 16687L, 16688L,
+                         16689L, 16692L, 16693L),
+                       class = "Date")
+prices &lt;- c(3182, 3205, 3272, 3185, 3201,
+            3236, 3272, 3224, 3194, 3188, 3213)
+data.frame(timestamp, prices)
+
+
+signal &lt;- function()     ## buy when last price is
+    if (Close() &lt; 3200)  ## below 3200, else sell
+        1 else 0         ## (more precisely: build position of 1
+                         ##  when price &lt; 3200, else reduce
+                         ##  position to 0)
+
+solution &lt;- btest(prices = prices, signal = signal)
+journal(solution)
+
+
+## with Date timestamps
+solution &lt;- btest(prices = prices, signal = signal,
+                  timestamp = timestamp)
+journal(solution)
+
+
+
+## 2 - a simple MA model
+## Not run: 
+library("PMwR")
+library("NMOF")
+
+dax &lt;- DAX[[1]]
+
+n &lt;- 5
+ma &lt;- MA(dax, n, pad = NA)
+
+ma_strat &lt;-  function(ma) {
+    if (Close() &gt; ma[Time()])
+        1
+    else
+        0
+}
+
+
+plot(as.Date(row.names(DAX)), dax, type = "l", xlab = "", ylab = "DAX")
+lines(as.Date(row.names(DAX)), ma, type = "l")
+
+res &lt;- btest(prices = dax,
+             signal = ma_strat,
+             b = n, ma = ma)
+
+par(mfrow = c(3, 1))
+plot(as.Date(row.names(DAX)), dax, type = "l",
+     xlab = "", ylab = "DAX")
+plot(as.Date(row.names(DAX)), res$wealth, type = "l",
+     xlab = "", ylab = "Equity")
+plot(as.Date(row.names(DAX)), position(res), type = "s",
+     xlab = "", ylab = "Position")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,397 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>phylolm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Phylogenetic Linear Model</h2>
+
+<h3>Description</h3>
+
+<p>Fits a phylogenetic linear regression model. The likelihood is calculated with an algorithm that is linear in the number of tips in the tree.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">phylolm(formula, data = list(), phy, model = c("BM", "OUrandomRoot",
+       "OUfixedRoot", "lambda", "kappa", "delta", "EB", "trend"),
+       lower.bound = NULL, upper.bound = NULL,
+       starting.value = NULL, measurement_error = FALSE,
+       boot=0,full.matrix = TRUE, save = FALSE, REML = FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a model formula.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a data frame containing variables in the model. If not
+found in <code>data</code>, the variables are taken from current environment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phy</code></td>
+<td>
+<p>a phylogenetic tree of type phylo with branch lengths.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a model for the covariance (see Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower.bound</code></td>
+<td>
+<p>optional lower bound for the optimization of the phylogenetic model parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper.bound</code></td>
+<td>
+<p>optional upper bound for the optimization of the phylogenetic model parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>starting.value</code></td>
+<td>
+<p>optional starting value for the optimization of the phylogenetic model parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>measurement_error</code></td>
+<td>
+<p>a logical value indicating whether there is measurement error <code>sigma2_error</code> (see Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>boot</code></td>
+<td>
+<p>number of independent bootstrap replicates, 0 means no bootstrap.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>full.matrix</code></td>
+<td>
+<p>if <code>TRUE</code>, the full matrix of bootstrap estimates (coefficients and covariance parameters) will be returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save</code></td>
+<td>
+<p>if <code>TRUE</code>, the simulated bootstrap data will be returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>REML</code></td>
+<td>
+<p>Use ML (default) or REML for estimating the parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments to be passed to the function <code>optim</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function uses an algorithm that is linear in the number of
+tips in the tree to calculate the likelihood. Possible phylogenetic
+models for the error term are the Brownian motion model (<code>BM</code>), the
+Ornstein-Uhlenbeck model with an ancestral state to be estimated at
+the root (<code>OUfixedRoot</code>), the Ornstein-Uhlenbeck model with the
+ancestral state at the root having the stationary distribution
+(<code>OUrandomRoot</code>), Pagel's <code class="reqn">\lambda</code> model
+(<code>lambda</code>), Pagel's <code class="reqn">\kappa</code> model (<code>kappa</code>),
+Pagel's <code class="reqn">\delta</code> model (<code>delta</code>), the early burst
+model (<code>EB</code>), and the Brownian motion model with a trend
+(<code>trend</code>).
+</p>
+<p>Using measurement error means that the covariance matrix is taken
+to be <code class="reqn">\sigma^2*V + \sigma^2_{error}*I</code>
+where <code class="reqn">V</code> is the phylogenetic covariance matrix from the chosen model,
+<code class="reqn">I</code> is the identity matrix, and <code class="reqn">\sigma^2_{error}</code> is the
+variance of the measurement error (which could include environmental variability,
+sampling error on the species mean, etc.).
+</p>
+<p>By default, the bounds on the phylogenetic parameters are
+<code class="reqn">[10^{-7}/T,50/T]</code> for <code class="reqn">\alpha</code>,
+<code class="reqn">[10^{-7},1]</code> for <code class="reqn">\lambda</code>,
+<code class="reqn">[10^{-6},1]</code> for <code class="reqn">\kappa</code>,
+<code class="reqn">[10^{-5},3]</code> for <code class="reqn">\delta</code> and
+<code class="reqn">[-3/T,0]</code> for <code>rate</code>, where <code class="reqn">T</code> is the mean root-to-tip distance.
+<code class="reqn">[10^{-16}, 10^{16}]</code> for the ratio <code>sigma2_error</code>/<code>sigma2</code> (if measurement errors is used).
+</p>
+<p>Bootstrapping can be parallelized using the <code>future</code> package on any future
+compatible back-end. For example, run <code>library(future); plan(multiprocess))</code>,
+after which bootstrapping will automatically occur in parallel. See
+<code>plan</code> for options.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>coefficients</code></td>
+<td>
+<p>the named vector of coefficients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma2</code></td>
+<td>
+<p>the maximum likelihood estimate of the variance rate <code class="reqn">\sigma^2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma2_error</code></td>
+<td>
+<p>the maximum likelihood estimate of the variance of the measurement errors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optpar</code></td>
+<td>
+<p>the optimized value of the phylogenetic correlation parameter (alpha, lambda, kappa, delta or rate).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>logLik</code></td>
+<td>
+<p>the maximum of the log likelihood.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>the number of all parameters of the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aic</code></td>
+<td>
+<p>AIC value of the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vcov</code></td>
+<td>
+<p>covariance matrix for the regression coefficients, given
+the phylogenetic correlation parameter (if any).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fitted.values</code></td>
+<td>
+<p>fitted values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>residuals</code></td>
+<td>
+<p>raw residuals</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>response</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>design matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>number of observations (tips in the tree)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>number of dependent variables</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mean.tip.height</code></td>
+<td>
+<p>mean root-to-tip distance, which can help
+choose good starting values for the correlation parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>the model formula</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>the original call to the function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>the phylogenetic model for the covariance</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootmean</code></td>
+<td>
+<p>(<code>boot &gt; 0</code> only) bootstrap means of the parameters estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootsd</code></td>
+<td>
+<p>(<code>boot &gt; 0</code> only) bootstrap standard deviations of the estimated parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootconfint95</code></td>
+<td>
+<p>(<code>boot &gt; 0</code> only) bootstrap 95% confidence interval.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootmeansdLog</code></td>
+<td>
+<p>(<code>boot &gt; 0</code> only) bootstrap mean and standard deviation of the logs of the estimated covariance parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootnumFailed</code></td>
+<td>
+<p>(<code>boot &gt; 0</code> only) number of independent bootstrap replicates for which
+<code>phylolm</code> failed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootstrap</code></td>
+<td>
+<p>(<code>boot &gt; 0</code> and <code>full.matrix</code> = <code>TRUE</code> only) matrix of all bootstrap estimates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootdata</code></td>
+<td>
+<p>(<code>boot &gt; 0</code> and <code>save</code> = <code>TRUE</code> only) matrix of all bootstrap data (each column is a dataset).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r.squared</code></td>
+<td>
+<p>The r^2 for the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adj.r.squared</code></td>
+<td>
+<p>The adjusted r^2 for the model.</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>The tip labels in the tree are matched to the data names (row names in
+the data frame). If no data frame is provided through the argument data,
+taxon labels in the tree are matched to taxon labels in the response
+variable based on the row names of the response vector, and the taxa are
+assumed to come in the same order for all variables in the model.
+</p>
+<p>For the delta model, the tree is rescaled back to its original height
+after each node's distance from the root is raised to the power
+delta. This is to provide a stable estimate of the variance parameter
+<code class="reqn">\sigma^2</code>. For non-ultrametric trees, the tree is rescaled
+to maintain the longest distance from the root to its original value.
+</p>
+<p>The trend model can only be used with non-ultrametric trees. For this
+model, one predictor variable is added to the model whose values are the
+distances from the root to every tip of the tree. The estimate of the
+coefficent for this variable forms the trend value.
+</p>
+<p>Pagel's <code class="reqn">\lambda</code> model and measurement error cannot be used together:
+the parameters <code class="reqn">\lambda</code>, <code class="reqn">\sigma^2</code> and
+<code class="reqn">\sigma^2_{error}</code> are not distinguishable (identifiable) from each other.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lam Si Tung Ho</p>
+
+
+<h3>References</h3>
+
+<p>Ho, L. S. T. and Ane, C. 2014.  "A linear-time algorithm for Gaussian and non-Gaussian trait evolution models". Systematic Biology <b>63</b>(3):397-408.
+</p>
+<p>Butler, M. A. and King, A. A. 2004. "Phylogenetic comparative analysis:
+A modeling approach for adaptive evolution". The American Naturalist <b>164</b>:683-695.
+</p>
+<p>Hansen, T. F. 1997. "Stabilizing selection and the comparative analysis
+of adaptation". Evolution <b>51</b>:1341-1351.
+</p>
+<p>Harmon, L. J. et al. 2010. "Early bursts of body size and shape
+evolution are rare in comparative data". Evolution <b>64</b>:2385-2396.
+</p>
+<p>Ho, L. S. T. and Ane, C. 2013. "Asymptotic theory with hierarchical
+autocorrelation: Ornstein-Uhlenbeck tree models". The Annals of Statistics <b>41</b>(2):957-981.
+</p>
+<p>Pagel, M. 1997. "Inferring evolutionary processes from
+phylogenies". Zoologica Scripta <b>26</b>:331-348.
+</p>
+<p>Pagel, M. 1999. "Inferring the historical patterns of biological
+evolution". Nature <b>401</b>:877-884.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>corBrownian</code>, <code>corMartins</code>,
+<code>corPagel</code>, <code>fitContinuous</code>, <code>pgls</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(123456)
+tre = rcoal(60)
+taxa = sort(tre$tip.label)
+b0=0; b1=1;
+x &lt;- rTrait(n=1, phy=tre,model="BM",
+            parameters=list(ancestral.state=0,sigma2=10))
+y &lt;- b0 + b1*x +
+     rTrait(n=1,phy=tre,model="lambda",parameters=list(
+              ancestral.state=0,sigma2=1,lambda=0.5))
+dat = data.frame(trait=y[taxa],pred=x[taxa])
+fit = phylolm(trait~pred,data=dat,phy=tre,model="lambda")
+summary(fit)
+
+# adding measurement errors and bootstrap
+z &lt;- y + rnorm(60,0,1)
+dat = data.frame(trait=z[taxa],pred=x[taxa])
+fit = phylolm(trait~pred,data=dat,phy=tre,model="BM",measurement_error=TRUE,boot=100)
+summary(fit)
+
+</code></pre>
+
+
+</div>

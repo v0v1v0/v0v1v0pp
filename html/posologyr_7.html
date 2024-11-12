@@ -1,0 +1,261 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>poso_dose_conc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate the optimal dose to achieve a target concentration at any given time</h2>
+
+<h3>Description</h3>
+
+<p>Estimates the optimal dose to achieve a target concentration at any given
+time given a population pharmacokinetic model, a set of individual
+parameters, a selected point in time, and a target concentration.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">poso_dose_conc(
+  dat = NULL,
+  prior_model = NULL,
+  tdm = FALSE,
+  time_c,
+  time_dose = NULL,
+  target_conc,
+  cmt_dose = 1,
+  endpoint = "Cc",
+  estim_method = "map",
+  nocb = FALSE,
+  p = NULL,
+  greater_than = TRUE,
+  starting_dose = 100,
+  interdose_interval = NULL,
+  add_dose = NULL,
+  duration = 0,
+  indiv_param = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dat</code></td>
+<td>
+<p>Dataframe. An individual subject dataset following the
+structure of NONMEM/rxode2 event records.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior_model</code></td>
+<td>
+<p>A <code>posologyr</code> prior population pharmacokinetics
+model, a list of six objects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tdm</code></td>
+<td>
+<p>A boolean. If <code>TRUE</code>: estimates the optimal dose for a selected
+target concentration at a selected point in time following the events from
+<code>dat</code>, and using Maximum A Posteriori estimation. Setting <code>tdm</code> to <code>TRUE</code> causes the
+following to occur:
+</p>
+
+<ul><li>
+<p> the arguments <code>estim_method</code>, <code>p</code>, <code>greater_than</code>, <code>interdose_interval</code>,
+<code>add_dose</code>, <code>indiv_param</code> and <code>starting_time</code> are ignored.
+</p>
+</li></ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time_c</code></td>
+<td>
+<p>Numeric. Point in time for which the dose is to be
+optimized.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time_dose</code></td>
+<td>
+<p>Numeric. Time when the dose is to be given.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target_conc</code></td>
+<td>
+<p>Numeric. Target concentration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cmt_dose</code></td>
+<td>
+<p>Character or numeric. The compartment in which the dose is
+to be administered. Must match one of the compartments in the prior model.
+Defaults to 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>endpoint</code></td>
+<td>
+<p>Character. The endpoint of the prior model to be optimised
+for. The default is "Cc", which is the central concentration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estim_method</code></td>
+<td>
+<p>A character string. An estimation method to be used for
+the individual parameters. The default method "map" is the Maximum A
+Posteriori estimation, the method "prior" simulates from the prior
+population model, and "sir" uses the Sequential Importance Resampling
+algorithm to estimate the a posteriori distribution of the individual
+parameters. This argument is ignored if <code>indiv_param</code> is provided or if
+<code>tdm</code> is set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nocb</code></td>
+<td>
+<p>A boolean. for time-varying covariates: the next observation
+carried backward (nocb) interpolation style, similar to NONMEM.  If
+<code>FALSE</code>, the last observation carried forward (locf) style will be used.
+Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>Numeric. The proportion of the distribution of concentrations to
+consider for the optimization. Mandatory for <code>estim_method=sir</code>. This
+argument is ignored if <code>tdm</code> is set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>greater_than</code></td>
+<td>
+<p>A boolean. If <code>TRUE</code>: targets a dose leading to a
+proportion <code>p</code> of the concentrations to be greater than <code>target_conc</code>.
+Respectively, lower if <code>FALSE</code>. This argument is ignored if <code>tdm</code> is
+set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>starting_dose</code></td>
+<td>
+<p>Numeric. Starting dose for the optimization
+algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interdose_interval</code></td>
+<td>
+<p>Numeric. Time for the interdose interval
+for multiple dose regimen. Must be provided when add_dose is used. This
+argument is ignored if <code>tdm</code> is set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add_dose</code></td>
+<td>
+<p>Numeric. Additional doses administered at inter-dose interval
+after the first dose. Optional. This argument is ignored if <code>tdm</code> is set
+to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>duration</code></td>
+<td>
+<p>Numeric. Duration of infusion, for zero-order
+administrations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indiv_param</code></td>
+<td>
+<p>Optional. A set of individual parameters : THETA,
+estimates of ETA, and covariates. This argument is ignored if <code>tdm</code> is
+set to <code>TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing the following components:
+</p>
+
+<dl>
+<dt>dose</dt>
+<dd>
+<p>Numeric. An optimal dose for the selected target
+concentration.</p>
+</dd>
+<dt>type_of_estimate</dt>
+<dd>
+<p>Character string. The type of estimate of the
+individual parameters. Either a point estimate, or a distribution.</p>
+</dd>
+<dt>conc_estimate</dt>
+<dd>
+<p>A vector of numeric estimates of the conc. Either a
+single value (for a point estimate of ETA), or a distribution.</p>
+</dd>
+<dt>indiv_param</dt>
+<dd>
+<p>A <code>data.frame</code>. The set of individual parameters used
+for the determination of the optimal dose : THETA, estimates of ETA, and
+covariates</p>
+</dd>
+</dl>
+<h3>Examples</h3>
+
+<pre><code class="language-R">rxode2::setRxThreads(2L) # limit the number of threads
+
+# model
+mod_run001 &lt;- function() {
+  ini({
+    THETA_Cl &lt;- 4.0
+    THETA_Vc &lt;- 70.0
+    THETA_Ka &lt;- 1.0
+    ETA_Cl ~ 0.2
+    ETA_Vc ~ 0.2
+    ETA_Ka ~ 0.2
+    prop.sd &lt;- sqrt(0.05)
+  })
+  model({
+    TVCl &lt;- THETA_Cl
+    TVVc &lt;- THETA_Vc
+    TVKa &lt;- THETA_Ka
+
+    Cl &lt;- TVCl*exp(ETA_Cl)
+    Vc &lt;- TVVc*exp(ETA_Vc)
+    Ka &lt;- TVKa*exp(ETA_Ka)
+
+    K20 &lt;- Cl/Vc
+    Cc &lt;- centr/Vc
+
+    d/dt(depot) = -Ka*depot
+    d/dt(centr) = Ka*depot - K20*centr
+    Cc ~ prop(prop.sd)
+  })
+}
+# df_patient01: event table for Patient01, following a 30 minutes intravenous
+# infusion
+df_patient01 &lt;- data.frame(ID=1,
+                        TIME=c(0.0,1.0,14.0),
+                        DV=c(NA,25.0,5.5),
+                        AMT=c(2000,0,0),
+                        EVID=c(1,0,0),
+                        DUR=c(0.5,NA,NA))
+# estimate the optimal dose to reach a concentration of 80 mg/l
+# one hour after starting the 30-minutes infusion
+poso_dose_conc(dat=df_patient01,prior_model=mod_run001,
+time_c=1,duration=0.5,target_conc=80)
+
+</code></pre>
+
+
+</div>

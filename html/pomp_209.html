@@ -1,0 +1,347 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>nlf</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Nonlinear forecasting</h2>
+
+<h3>Description</h3>
+
+<p>Parameter estimation by maximum simulated quasi-likelihood.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S4 method for signature 'data.frame'
+nlf_objfun(
+  data,
+  est = character(0),
+  lags,
+  nrbf = 4,
+  ti,
+  tf,
+  seed = NULL,
+  transform.data = identity,
+  period = NA,
+  tensor = TRUE,
+  fail.value = NA_real_,
+  params,
+  rinit,
+  rprocess,
+  rmeasure,
+  ...,
+  verbose = getOption("verbose")
+)
+
+## S4 method for signature 'pomp'
+nlf_objfun(
+  data,
+  est = character(0),
+  lags,
+  nrbf = 4,
+  ti,
+  tf,
+  seed = NULL,
+  transform.data = identity,
+  period = NA,
+  tensor = TRUE,
+  fail.value = NA,
+  ...,
+  verbose = getOption("verbose")
+)
+
+## S4 method for signature 'nlf_objfun'
+nlf_objfun(
+  data,
+  est,
+  lags,
+  nrbf,
+  ti,
+  tf,
+  seed = NULL,
+  period,
+  tensor,
+  transform.data,
+  fail.value,
+  ...,
+  verbose = getOption("verbose", FALSE)
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>either a data frame holding the time series data,
+or an object of class ‘pomp’,
+i.e., the output of another <span class="pkg">pomp</span> calculation.
+Internally, <code>data</code> will be coerced to an array with storage-mode <code>double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est</code></td>
+<td>
+<p>character vector; the names of parameters to be estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lags</code></td>
+<td>
+<p>A vector specifying the lags to use when constructing the nonlinear autoregressive prediction model.
+The first lag is the prediction interval.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nrbf</code></td>
+<td>
+<p>integer scalar;
+the number of radial basis functions to be used at each lag.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ti, tf</code></td>
+<td>
+<p>required numeric values.
+NLF works by generating simulating long time series from the model.
+The simulated time series will be from <code>ti</code> to <code>tf</code>, with the same sampling frequency as the data.
+<code>ti</code> should be chosen large enough so that transient dynamics have died away.
+<code>tf</code> should be chosen large enough so that sufficiently many data points are available to estimate the nonlinear forecasting model well.
+An error will be generated unless the data-to-parameter ratio exceeds 10 and
+a warning will be given if the ratio is smaller than 30.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>integer.
+When fitting, it is often best to fix the seed of the random-number generator (RNG).
+This is accomplished by setting <code>seed</code> to an integer.
+By default, <code>seed = NULL</code>, which does not alter the RNG state.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transform.data</code></td>
+<td>
+<p>optional function.
+If specified, forecasting is performed using data and model simulations transformed by this function.
+By default, <code>transform.data</code> is the identity function,
+i.e., no transformation is performed.
+The main purpose of <code>transform.data</code> is to achieve approximately multivariate normal forecasting errors.
+If the data are univariate, <code>transform.data</code> should take a scalar and return a scalar.
+If the data are multivariate, <code>transform.data</code> should assume a vector input and return a vector of the same length.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>period</code></td>
+<td>
+<p>numeric; <code>period=NA</code> means the model is nonseasonal.
+<code>period &gt; 0</code> is the period of seasonal forcing.
+<code>period &lt;= 0</code> is equivalent to <code>period = NA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tensor</code></td>
+<td>
+<p>logical;
+if FALSE, the fitted model is a generalized additive model with time mod period as one of the predictors,
+i.e., a gam with time-varying intercept.
+If TRUE, the fitted model is a gam with lagged state variables as predictors and time-periodic coefficients, constructed using tensor products of basis functions of state variables with basis
+functions of time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fail.value</code></td>
+<td>
+<p>optional numeric scalar;
+if non-<code>NA</code>, this value is substituted for non-finite values of the objective function.
+It should be a large number (i.e., bigger than any legitimate values the objective function is likely to take).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params</code></td>
+<td>
+<p>optional; named numeric vector of parameters.
+This will be coerced internally to storage mode <code>double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rinit</code></td>
+<td>
+<p>simulator of the initial-state distribution.
+This can be furnished either as a C snippet, an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function, or the name of a pre-compiled native routine available in a dynamically loaded library.
+Setting <code>rinit=NULL</code> sets the initial-state simulator to its default.
+For more information, see rinit specification.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rprocess</code></td>
+<td>
+<p>simulator of the latent state process, specified using one of the rprocess plugins.
+Setting <code>rprocess=NULL</code> removes the latent-state simulator.
+For more information, see rprocess specification for the documentation on these plugins.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rmeasure</code></td>
+<td>
+<p>simulator of the measurement model, specified either as a C snippet, an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function, or the name of a pre-compiled native routine available in a dynamically loaded library.
+Setting <code>rmeasure=NULL</code> removes the measurement model simulator.
+For more information, see rmeasure specification.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments are passed to <code>pomp</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical; if <code>TRUE</code>, diagnostic messages will be printed to the console.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Nonlinear forecasting (NLF) is an ‘indirect inference’ method.
+The NLF approximation to the log likelihood of the data series is computed by simulating data from a model, fitting a nonlinear autoregressive model to the simulated time series, and quantifying the ability of the resulting fitted model to predict the data time series.
+The nonlinear autoregressive model is implemented as a generalized additive model (GAM), conditional on lagged values, for each observation variable.
+The errors are assumed multivariate normal.
+</p>
+<p>The NLF objective function constructed by <code>nlf_objfun</code> simulates long time series (<code>nasymp</code> is the number of observations in the simulated times series), perhaps after allowing for a transient period (<code>ntransient</code> steps).
+It then fits the GAM for the chosen lags to the simulated time series.
+Finally, it computes the quasi-likelihood of the data under the fitted GAM.
+</p>
+<p>NLF assumes that the observation frequency (equivalently the time between successive observations) is uniform.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>nlf_objfun</code> constructs a stateful objective function for NLF estimation.
+Specfically, <code>nlf_objfun</code> returns an object of class ‘nlf_objfun’, which is a function suitable for use in an <code>optim</code>-like optimizer.
+In particular, this function takes a single numeric-vector argument that is assumed to contain the parameters named in <code>est</code>, in that order.
+When called, it will return the negative log quasilikelihood.
+It is a stateful function:
+Each time it is called, it will remember the values of the parameters and its estimate of the log quasilikelihood.
+</p>
+
+
+<h3>Periodically-forced systems (seasonality)</h3>
+
+<p>Unlike other <span class="pkg">pomp</span> estimation methods, NLF cannot accommodate general time-dependence in the model via explicit time-dependence or dependence on time-varying covariates.
+However, NLF can accommodate periodic forcing.
+It does this by including forcing phase as a predictor in the nonlinear autoregressive model.
+To accomplish this, one sets <code>period</code> to the period of the forcing (a positive numerical value).
+In this case, if <code>tensor = FALSE</code>, the effect is to add a periodic intercept in the autoregressive model.
+If <code>tensor = TRUE</code>, by contrast, the fitted model includes time-periodic coefficients,
+constructed using tensor products of basis functions of observables with
+basis functions of time.
+</p>
+
+
+<h3>Note for Windows users</h3>
+
+<p>Some Windows users report problems when using C snippets in parallel computations.
+These appear to arise when the temporary files created during the C snippet compilation process are not handled properly by the operating system.
+To circumvent this problem, use the <code>cdir</code> and <code>cfile</code> options to cause the C snippets to be written to a file of your choice, thus avoiding the use of temporary files altogether.
+</p>
+
+
+<h3>Important Note</h3>
+
+<p>Since <span class="pkg">pomp</span> cannot guarantee that the <em>final</em> call an optimizer makes to the function is a call <em>at</em> the optimum, it cannot guarantee that the parameters stored in the function are the optimal ones.
+Therefore, it is a good idea to evaluate the function on the parameters returned by the optimization routine, which will ensure that these parameters are stored.
+</p>
+
+
+<h3>Warning! Objective functions based on C snippets</h3>
+
+<p>If you use C snippets (see <code>Csnippet</code>), a dynamically loadable library will be built.
+As a rule, <span class="pkg">pomp</span> functions load this library as needed and unload it when it is no longer needed.
+The stateful objective functions are an exception to this rule.
+For efficiency, calls to the objective function do not execute <code>pompLoad</code> or <code>pompUnload</code>:
+rather, it is assumed that <code>pompLoad</code> has been called before any call to the objective function.
+When a stateful objective function using one or more C snippets is created, <code>pompLoad</code> is called internally to build and load the library:
+therefore, within a single <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session, if one creates a stateful objective function, one can freely call that objective function and (more to the point) pass it to an optimizer that calls it freely, without needing to call <code>pompLoad</code>.
+On the other hand, if one retrieves a stored objective function from a file, or passes one to another <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session, one must call <code>pompLoad</code> before using it.
+<strong>Failure to do this will typically result in a segmentation fault (i.e., it will crash the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session).</strong>
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Stephen P. Ellner, Bruce E. Kendall, Aaron A. King
+</p>
+
+
+<h3>References</h3>
+
+<p>S.P. Ellner, B.A. Bailey, G.V. Bobashev, A.R. Gallant, B.T. Grenfell, and D.W. Nychka. Noise and nonlinearity in measles epidemics: combining mechanistic and statistical approaches to population modeling. <em>American Naturalist</em> <b>151</b>, 425–440, 1998. <a href="https://doi.org/10.1086/286130">doi:10.1086/286130</a>.
+</p>
+<p>B.E. Kendall, C.J. Briggs, W.W. Murdoch, P. Turchin, S.P. Ellner, E. McCauley, R.M. Nisbet, and S.N. Wood. Why do populations cycle? A synthesis of statistical and mechanistic modeling approaches. <em>Ecology</em> <b>80</b>, 1789–1805, 1999. <a href="https://doi.org/10.2307/176658">doi:10.2307/176658</a>.
+</p>
+<p>B.E. Kendall, S.P. Ellner, E. McCauley, S.N. Wood, C.J. Briggs, W.W. Murdoch, and P. Turchin. Population cycles in the pine looper moth (<em>Bupalus piniarius</em>): dynamical tests of mechanistic hypotheses. <em>Ecological Monographs</em> <b>75</b> 259–276, 2005. <a href="https://doi.org/10.1890/03-4056">doi:10.1890/03-4056</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>optim</code> <code>subplex</code> <code>nloptr</code>
+</p>
+<p>More on <span class="pkg">pomp</span> estimation algorithms:
+<code>abc()</code>,
+<code>bsmc2()</code>,
+<code>estimation_algorithms</code>,
+<code>mif2()</code>,
+<code>pmcmc()</code>,
+<code>pomp-package</code>,
+<code>probe_match</code>,
+<code>spect_match</code>
+</p>
+<p>More on methods based on summary statistics: 
+<code>abc()</code>,
+<code>basic_probes</code>,
+<code>probe()</code>,
+<code>probe_match</code>,
+<code>spect()</code>,
+<code>spect_match</code>
+</p>
+<p>More on maximization-based estimation methods:
+<code>mif2()</code>,
+<code>probe_match</code>,
+<code>spect_match</code>,
+<code>traj_match</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+  if (require(subplex)) {
+
+    ricker() |&gt;
+      nlf_objfun(est=c("r","sigma","N_0"),lags=c(4,6),
+        partrans=parameter_trans(log=c("r","sigma","N_0")),
+        paramnames=c("r","sigma","N_0"),
+        ti=100,tf=2000,seed=426094906L) -&gt; m1
+
+    subplex(par=log(c(20,0.5,5)),fn=m1,control=list(reltol=1e-4)) -&gt; out
+
+    m1(out$par)
+    coef(m1)
+    plot(simulate(m1))
+
+  }
+
+</code></pre>
+
+
+</div>

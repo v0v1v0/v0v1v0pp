@@ -1,0 +1,175 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>AddAlleleLinkages</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Identify and Utilize Linked Alleles for Estimating Genotype Priors
+</h2>
+
+<h3>Description</h3>
+
+<p><code>AddAlleleLinkages</code> finds alleles, if any, in linkage disequilibrium 
+with each allele in a <code>RADdata</code> object, and computes a correlation
+coefficient representing the strength of the linkage.  
+<code>AddGenotypePriorProb_LD</code> adds a second set of prior genotype 
+probabilities to a <code>RADdata</code> object based on the genotype posterior
+probabilities at linked alleles.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">AddAlleleLinkages(object, ...)
+## S3 method for class 'RADdata'
+AddAlleleLinkages(object, type, linkageDist, minCorr,
+                  excludeTaxa = character(0), ...)
+                  
+AddGenotypePriorProb_LD(object, ...)
+## S3 method for class 'RADdata'
+AddGenotypePriorProb_LD(object, type, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+
+<p>A <code>RADdata</code> object with genomic alignment data stored in 
+<code>object$locTable$Chr</code> and <code>object$locTable$pos</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+
+<p>A character string, either “mapping”, “hwe”, or 
+“popstruct”, to indicate the type of population being analyzed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>linkageDist</code></td>
+<td>
+
+<p>A number, indicating the distance in basepairs from a locus within which to
+search for linked alleles.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minCorr</code></td>
+<td>
+
+<p>A number ranging from zero to one indicating the minimum correlation needed
+for an allele to be used for genotype prediction at another allele.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>excludeTaxa</code></td>
+<td>
+
+<p>A character vector listing taxa to be excluded from correlation estimates.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Additional arguments (none implemented).
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>These functions are primarily designed to be used internally by the
+pipeline functions.
+</p>
+<p><code>AddAlleleLinkages</code> obtains genotypic values using 
+<code>GetWeightedMeanGenotypes</code>, then regresses those values for a given 
+allele against those values for nearby alleles to obtain correlation coefficients.
+For the population structure model, the genotypic values for an allele are
+first regressed on the PC axes from <code>object$PCA</code>, then the residuals are
+regressed on the genotypic values at nearby alleles to obtain correlation
+coefficients.
+</p>
+<p><code>AddGenotypePriorProb_LD</code> makes a second set of priors in addition to
+<code>object$priorProb</code>.  This second set of priors has one value per
+inheritance mode per taxon per allele per possible allele copy number.
+Where <code class="reqn">K</code> is the ploidy, with allele copy number <code class="reqn">c</code> ranging from 0 to
+<code class="reqn">K</code>, <code class="reqn">i</code> is an allele, <code class="reqn">j</code> is a linked allele at a different locus
+out of <code class="reqn">J</code> total alleles linked to <code class="reqn">i</code>,
+<code class="reqn">r_{ij}</code> is the correlation coefficient between those alleles, <code class="reqn">t</code> is a
+taxon, <code class="reqn">post_{cjt}</code> is the posterior probability of a given allele copy
+number for a given allele in a given taxon, and <code class="reqn">prior_{cit}</code> is the
+prior probability for a given allele copy number for a given allele in a given
+taxon based on linkage alone:
+</p>
+<p style="text-align: center;"><code class="reqn">prior_{cit} = \frac{\prod_{j = 1}^J{post_{cjt} * r_{ij} + (1 - r_{ij})/(K + 1)}}{\sum_{c = 0}^K{\prod_{j = 1}^J{post_{cjt} * r_{ij} + (1 - r_{ij})/(K + 1)}}}</code>
+</p>
+
+<p>For mapping populations, <code>AddGenotypePriorProb_LD</code> uses the above formula
+when each allele only has two possible genotypes (i.e. test-cross segregation).
+When more genotypes are possible, <code>AddGenotypePriorProb_LD</code> instead estimates 
+prior probabilities as fitted values when the posterior probabilities for
+a given allele are regressed on the posterior probabilities for a linked allele.
+This allows loci with different segregation patterns to be informative for
+predicting genotypes, and for cases where two alleles are in phase for some but not
+all parental copies.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>RADdata</code> object is returned.  For <code>AddAlleleLinkages</code>, it has a new slot
+called <code>$alleleLinkages</code> that is a list, with one item in the list for each
+allele in the dataset.  Each item is a data frame, with indices for linked alleles
+in the first column, and correlation coefficients in the second column.
+</p>
+<p>For <code>AddGenotypePriorProb_LD</code>, the object has a new slot called 
+<code>$priorProbLD</code>.  This is a list much like <code>$posteriorProb</code>, with one list
+item per inheritance mode, and each item being an array with allele copy number in
+the first dimension, taxa in the second dimension, and alleles in the third dimension.
+Values indicate genotype prior probabilities based on linked alleles alone.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>AddGenotypePriorProb_HWE</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load example dataset
+data(Msi01genes)
+
+# Run non-LD pop structure pipeline
+Msi01genes &lt;- IteratePopStruct(Msi01genes, tol = 0.01, nPcsInit = 10)
+
+# Add linkages
+Msi01genes &lt;- AddAlleleLinkages(Msi01genes, "popstruct", 1e4, 0.05)
+# Get new posterior probabilities based on those linkages
+Msi01genes &lt;- AddGenotypePriorProb_LD(Msi01genes, "popstruct")
+
+# Preview results
+Msi01genes$priorProbLD[[1,2]][,1:10,1:10]
+</code></pre>
+
+
+</div>

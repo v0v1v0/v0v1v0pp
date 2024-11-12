@@ -1,0 +1,129 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>convert_notes</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Extracts information from notes free text.</h2>
+
+<h3>Description</h3>
+
+<p>Analyzes notes loaded using <em>load_notes</em> or <em>load_lno</em>. Extracts information from the free text present in <em>abc_rep_txt</em>,
+where <em>abc</em> stands for the three letter abbreviation of the given type of note.
+An array of string is provided using the <em>anchors</em> argument. The function will return as many columns as there are anchor points.
+Each column will contain the text between the given anchor point and the next following anchor point.
+This way the free text report is split into corresponding smaller texts. By default, these are the common standard elements of given note types.
+Here are provided potential anchor points for the given types of notes:
+</p>
+
+<dl>
+<dt>Cardiology: </dt>
+<dd>
+<p>c("Report Number:", "Report Status:", "Type:", "Date:", "Ordering Provider:", "SYSTOLIC BLOOD PRESSURE",  "DIASTOLIC BLOOD PRESSURE", "VENTRICULAR RATE EKG/MIN", "ATRIAL RATE", "PR INTERVAL", "QRS DURATION", "QT INTERVAL", "QTC INTERVAL",  "P AXIS", "R AXIS", "T WAVE AXIS", "LOC", "DX:", "REF:", "Electronically Signed", "report_end")</p>
+</dd>
+<dt>Discharge: </dt>
+<dd>
+<p>c("***This text report", "Patient Information", "Physician Discharge Summary", "Surgeries this Admission", "Items for Post-Hospitalization Follow-Up:", "Pending Results", "Hospital Course", "ED Course:", "Diagnosis", "Prescriptions prior to admission", "Family History:", "Physical Exam on Admission:", "Discharge Exam", "report_end")</p>
+</dd>
+<dt>Endoscopy: </dt>
+<dd>
+<p>c("NAME:", "DATE:", "Patient Information", "report_end")</p>
+</dd>
+<dt>History &amp; Physical: </dt>
+<dd>
+<p>c("***This text report", "Patient Information", "H&amp;P by", "Author:", "Service:", "Author Type:", "Filed:", "Note Time:", "Status:", "Editor:", "report_end")</p>
+</dd>
+<dt>Operative: </dt>
+<dd>
+<p>c("NAME:", "UNIT NO:, "DATE:", "SURGEON:", "ASST:", "PREOPERATIVE DIAGNOSIS:", "POSTOPERATIVE DIAGNOSIS:", "NAME OF OPERATION:", "ANESTHESIA:", "INDICATIONS", "OPERATIVE FINDINGS:", "DESCRIPTION OF PROCEDURE:", "Electronically Signed", "report_end")</p>
+</dd>
+<dt>Pathology: </dt>
+<dd>
+<p>c("Accession Number:", "Report Status:", "Type:", "Report:", "CASE:", "PATIENT:", "Date", "Source Care Unit:", "Path Subspecialty Service:", "Results To:", "Signed Out by:", "CLINICAL DATA:", "FINAL DIAGNOSIS:", "GROSS DESCRIPTION:", "report_end")</p>
+</dd>
+<dt>Progress: </dt>
+<dd>
+<p>c("***This text report", "Patient Information", "History", "Overview", "Progress Notes", "Medications", "Relevant Orders", "Level of Service", "report_end")</p>
+</dd>
+<dt>Pulmonary: </dt>
+<dd>
+<p>c("The Pulmonary document", "Name:", "Unit #:", "Date:", "Location:", "Smoking Status:", "Pack Years:", "SPIROMETRY:", "LUNG VOLUMES:", "DIFFUSION:", "PLETHYSMOGRAPHY:" "Pulmonary Function Test Interpretation", "Spirometry", "report_end")</p>
+</dd>
+<dt>Radiology: </dt>
+<dd>
+<p>c("Exam Code", "Ordering Provider", "HISTORY", "Associated Reports", "Report Below", "REASON", "REPORT",  "TECHNIQUE", "COMPARISON", "FINDINGS", "IMPRESSION", "RECOMMENDATION", "SIGNATURES", "report_end")</p>
+</dd>
+<dt>Visit: </dt>
+<dd>
+<p>c("***This text report", "Reason for Visit", "Reason for Visit", "Vital Signs", "Chief Complaint", "History", "Overview", "Medications", "Relevant Orders", "Level of Service", "report_end"</p>
+</dd>
+<dt>LMR: </dt>
+<dd>
+<p>c("Subject", "Patient Name:", "Reason for visit", "report_end"</p>
+</dd>
+</dl>
+<p>However, these may be modified and extended to include sections of interest, i.e. if a given score is reported in a standard fashion, then adding this phrase (i.e. "CAD-RADS")
+would create a column where the text following this statement is returned. After this the resulting columns can be easily cleaned up if needed.
+Be aware to always include <em>"report_end"</em> in the anchors array, to provide the function of the last occurring statement in the report.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">convert_notes(
+  d,
+  code = NULL,
+  anchors = NULL,
+  nThread = parallel::detectCores() - 1
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>data.table, database containing notes loaded using the <em>load_notes</em> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>code</code></td>
+<td>
+<p>string vector, column name containing the results, which should be <em>"abc_rep_txt"</em>, where <em>abc</em> stands for the three letter abbreviation of the given type of note.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>anchors</code></td>
+<td>
+<p>string array, elements to search for in the text report.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nThread</code></td>
+<td>
+<p>integer, number of threads to use for parallelization. If it is set to 1, then no parallel backends are created and the function is executed sequentially.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>data.table, with new columns corresponding to elements in <em>anchors</em>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+#Create columns with specific parts of the radiological report defined by anchors
+data_rad_parsed &lt;- convert_notes(d = data_rad, code = "rad_rep_txt",
+anchors = c("Exam Code", "Ordering Provider", "HISTORY", "Associated Reports",
+"Report Below", "REASON", "REPORT", "TECHNIQUE", "COMPARISON", "FINDINGS",
+"IMPRESSION", "RECOMMENDATION", "SIGNATURES", "report_end"), nThread = 2)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

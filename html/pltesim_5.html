@@ -1,0 +1,160 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plte_builder</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create simulations for long-term effects in models with temporal dependence</h2>
+
+<h3>Description</h3>
+
+<p>Create simulations for long-term effects in models with temporal dependence
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">plte_builder(obj, obj_tvar, cf, cf_duration = "permanent", t_points,
+  FUN = logistic_prob_FUN, ci = 0.95, nsim = 1000)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>obj</code></td>
+<td>
+<p>a fitted model object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obj_tvar</code></td>
+<td>
+<p>character string specifying the name of the base time variable
+in <code>obj</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cf</code></td>
+<td>
+<p>a data frame with the first row containing the counterfactual.
+An optional second row could be supplied with values for the baseline
+scenario. If not supplied then all values are set to zero for the baseline.
+Columns should have names that match variables in <code>obj</code> and contain
+fitted values to find quantities of interest for. Note, this should not
+include your time variable as this is handled using <code>t_points</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cf_duration</code></td>
+<td>
+<p>a character string or numeric specifying the
+counterfactual's duration. If <code>'permanent'</code> then the
+counterfacutal lasts for the full time span in <code>t_points</code>. If
+<code>'one-time'</code> then the counterfactual only lasts for one period.
+If <code>cf_duration</code> is numeric then the number specifies the
+number of time increments at which the counterfactual resets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t_points</code></td>
+<td>
+<p>a numeric vector with a minimum length of 2 and a maximum
+lentgh of 3. The first and last values should be the time starting and ending
+points for the simulatinos. The (optional) middle value can specify a point
+between the first and last time points where a subsequent event occurs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FUN</code></td>
+<td>
+<p>a function for finding a quantity of interest from the linear
+systematic component. See <code>qi_builder</code>. The default is a function
+for finding the predicted probability from a logistic regression model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ci</code></td>
+<td>
+<p>the proportion of the central interval of the simulations to
+return. Must be in (0, 1] or equivalently (0, 100].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsim</code></td>
+<td>
+<p>number of simulations to draw.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A data frame with the medians and central intervals of the
+simulated scenarios. Note that the column <code>scenario_name</code>
+encodes scenarios where y = 0 as <code>baseline</code> and y = 1 as
+<code>counterfactual</code>.
+</p>
+
+
+<h3>Source</h3>
+
+<p>Williams, Laron K. 2016. "Long-Term Effects in Models with Temporal
+Dependence". Political Analysis: 24(2): 243-262.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data('negative')
+
+# BTSCS set the data
+neg_set &lt;- btscs(df = negative, event = 'y', t_var = 'tim',
+                cs_unit = 'group', pad_ts = FALSE)
+
+# Create temporal dependence variable
+neg_set$t &lt;- neg_set$spell + 1
+
+m1 &lt;- glm(y ~ x + t + I(t^2) + I(t^3),
+          family = binomial(link = 'logit'), data = neg_set)
+
+# Create fitted counterfactual
+counterfactual &lt;- data.frame(x = 0.5)
+
+# Permanent counterfactual, one event
+sim1 &lt;- plte_builder(obj = m1, obj_tvar = 't',
+                     cf = counterfactual, t_points = c(13, 25))
+
+# Multiple events
+sim2 &lt;- plte_builder(obj = m1, obj_tvar = 't',
+                     cf = counterfactual, t_points = c(13, 18, 25))
+
+# One-time counterfactual
+sim3 &lt;- plte_builder(obj = m1, obj_tvar = 't',
+                     cf = counterfactual, t_points = c(13, 25),
+                     cf_duration = 'one-time')
+
+# Temporary (4 period counterfactual)
+sim4 &lt;- plte_builder(obj = m1, obj_tvar = 't',
+                     cf = counterfactual, t_points = c(13, 25),
+                     cf_duration = 4)
+
+# Custom baseline scenario
+# Note: the second row is the custom baseline
+counterfactual_baseline &lt;- data.frame(x = c(1, 0.5))
+
+sim5 &lt;- plte_builder(obj = m1, obj_tvar = 't', cf_duration = 4,
+                     cf = counterfactual_baseline, t_points = c(13, 25))
+
+# Time splines
+library(splines)
+m2 &lt;- glm(y ~ x + bs(t, degree = 3), family = binomial(link = 'logit'),
+          data = neg_set)
+
+sim6 &lt;- plte_builder(obj = m2, obj_tvar = 't', cf_duration = 4,
+                     cf = counterfactual, t_points = c(13, 25))
+
+</code></pre>
+
+
+</div>

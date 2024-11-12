@@ -1,0 +1,162 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>poso_estim_mcmc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate the posterior distribution of individual parameters by MCMC</h2>
+
+<h3>Description</h3>
+
+<p>Estimates the posterior distribution of individual parameters by Markov
+Chain Monte Carlo (using a Metropolis-Hastings algorithm)
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">poso_estim_mcmc(
+  dat = NULL,
+  prior_model = NULL,
+  return_model = TRUE,
+  burn_in = 50,
+  n_iter = 1000,
+  n_chains = 4,
+  nocb = FALSE,
+  control = list(n_kernel = c(2, 2, 2), stepsize_rw = 0.4, proba_mcmc = 0.3, nb_max = 3)
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dat</code></td>
+<td>
+<p>Dataframe. An individual subject dataset following the
+structure of NONMEM/rxode2 event records.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior_model</code></td>
+<td>
+<p>A <code>posologyr</code> prior population pharmacokinetics
+model, a list of six objects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_model</code></td>
+<td>
+<p>A boolean. Returns a rxode2 model using the estimated
+ETAs if set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>burn_in</code></td>
+<td>
+<p>Number of burn-in iterations for the Metropolis-Hastings
+algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_iter</code></td>
+<td>
+<p>Total number of iterations (following the burn-in iterations)
+for each Markov chain of the Metropolis-Hastings algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_chains</code></td>
+<td>
+<p>Number of Markov chains</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nocb</code></td>
+<td>
+<p>A boolean. for time-varying covariates: the next observation
+carried backward (nocb) interpolation style, similar to NONMEM.  If
+<code>FALSE</code>, the last observation carried forward (locf) style will be used.
+Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>A list of parameters controlling the Metropolis-Hastings
+algorithm.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>If <code>return_model</code> is set to <code>FALSE</code>, a list of one element: a
+dataframe <code style="white-space: pre;">⁠$eta⁠</code> of ETAs from the posterior distribution, estimated by
+Markov Chain Monte Carlo.
+If <code>return_model</code> is set to <code>TRUE</code>, a list of the dataframe of the posterior
+distribution of ETA, and a rxode2 model using the estimated distributions of
+ETAs.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Emmanuelle Comets, Audrey Lavenu, Marc Lavielle, Cyril Leven
+</p>
+
+
+<h3>References</h3>
+
+<p>Comets  E, Lavenu A, Lavielle M. Parameter estimation in
+nonlinear mixed effect models using saemix, an R implementation of the SAEM
+algorithm. Journal of Statistical Software 80, 3 (2017), 1-41.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># model
+mod_run001 &lt;- function() {
+  ini({
+    THETA_Cl &lt;- 4.0
+    THETA_Vc &lt;- 70.0
+    THETA_Ka &lt;- 1.0
+    ETA_Cl ~ 0.2
+    ETA_Vc ~ 0.2
+    ETA_Ka ~ 0.2
+    prop.sd &lt;- sqrt(0.05)
+  })
+  model({
+    TVCl &lt;- THETA_Cl
+    TVVc &lt;- THETA_Vc
+    TVKa &lt;- THETA_Ka
+
+    Cl &lt;- TVCl*exp(ETA_Cl)
+    Vc &lt;- TVVc*exp(ETA_Vc)
+    Ka &lt;- TVKa*exp(ETA_Ka)
+
+    K20 &lt;- Cl/Vc
+    Cc &lt;- centr/Vc
+
+    d/dt(depot) = -Ka*depot
+    d/dt(centr) = Ka*depot - K20*centr
+    Cc ~ prop(prop.sd)
+  })
+}
+# df_patient01: event table for Patient01, following a 30 minutes intravenous
+# infusion
+df_patient01 &lt;- data.frame(ID=1,
+                        TIME=c(0.0,1.0,14.0),
+                        DV=c(NA,25.0,5.5),
+                        AMT=c(2000,0,0),
+                        EVID=c(1,0,0),
+                        DUR=c(0.5,NA,NA))
+# estimate the posterior distribution of population parameters
+poso_estim_mcmc(dat=df_patient01,prior_model=mod_run001,
+n_iter=50,n_chains=2)
+
+</code></pre>
+
+
+</div>

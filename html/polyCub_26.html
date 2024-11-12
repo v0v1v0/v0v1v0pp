@@ -1,0 +1,214 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>polyCub.iso</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Cubature of Isotropic Functions over Polygonal Domains</h2>
+
+<h3>Description</h3>
+
+<p><code>polyCub.iso</code> numerically integrates a radially symmetric function
+<code class="reqn">f(x,y) = f_r(||(x,y)-\boldsymbol{\mu}||)</code>,
+with <code class="reqn">\mu</code> being the center of isotropy, over a polygonal domain.
+It internally approximates a line integral along the polygon boundary using
+<code>integrate</code>. The integrand requires the antiderivative of
+<code class="reqn">r f_r(r)</code>), which should be supplied as argument <code>intrfr</code>
+(<code>f</code> itself is only required if <code>check.intrfr=TRUE</code>).
+The two-dimensional integration problem thereby reduces to an efficient
+adaptive quadrature in one dimension.
+If <code>intrfr</code> is not available analytically, <code>polyCub.iso</code> can use a
+numerical approximation (meaning <code>integrate</code> within <code>integrate</code>),
+but the general-purpose cubature method <code>polyCub.SV</code> might be
+more efficient in this case.
+See Meyer and Held (2014, Supplement B, Section 2.4) for mathematical
+details.
+</p>
+<p><code>.polyCub.iso</code> is a “bare-bone” version of <code>polyCub.iso</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">polyCub.iso(polyregion, f, intrfr, ..., center, control = list(),
+  check.intrfr = FALSE, plot = FALSE)
+
+.polyCub.iso(polys, intrfr, ..., center, control = list(),
+  .witherror = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>polyregion</code></td>
+<td>
+<p>a polygonal domain.
+The following classes are supported:
+<code>"owin"</code> from package <span class="pkg">spatstat.geom</span>,
+<code>"gpc.poly"</code> from <span class="pkg">gpclib</span>,
+<code>"SpatialPolygons"</code>, <code>"Polygons"</code>,
+and <code>"Polygon"</code> from package <span class="pkg">sp</span>, as well as
+<code>"(MULTI)POLYGON"</code> from package <span class="pkg">sf</span>.
+(For these classes, <span class="pkg">polyCub</span> knows how to get an <code>xylist</code>.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>a two-dimensional real-valued function.
+As its first argument it must take a coordinate matrix, i.e., a
+numeric matrix with two columns, and it must return a numeric vector of
+length the number of coordinates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intrfr</code></td>
+<td>
+<p>a <code>function(R, ...)</code>, which implements the (analytical)
+antiderivative of <code class="reqn">r f_r(r)</code> from 0 to <code>R</code>. The first argument
+must be vectorized but not necessarily named <code>R</code>.<br>
+If <code>intrfr</code> is missing, it will be approximated numerically via
+<code>integrate(function(r, ...)
+r * f(cbind(x0 + r, y0), ...), 0, R, ..., control=control)</code>,
+where <code>c(x0, y0)</code> is the <code>center</code> of isotropy.
+Note that <code>f</code> will <em>not</em> be checked for isotropy.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments for <code>f</code> or <code>intrfr</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>numeric vector of length 2, the center of isotropy.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>list of arguments passed to <code>integrate</code>, the
+quadrature rule used for the line integral along the polygon boundary.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>check.intrfr</code></td>
+<td>
+<p>logical (or numeric vector) indicating if
+(for which <code>r</code>'s) the supplied <code>intrfr</code> function should be
+checked against a numeric approximation. This check requires <code>f</code>
+to be specified. If <code>TRUE</code>, the set of test
+<code>r</code>'s defaults to a <code>seq</code> of length 20 from 1 to
+the maximum absolute x or y coordinate of any edge of the <code>polyregion</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>logical indicating if an image of the function should be plotted
+together with the polygonal domain, i.e.,
+<code>plotpolyf(polyregion, f, ...)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>polys</code></td>
+<td>
+<p>something like <code>owin$bdry</code>, but see <code>xylist</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.witherror</code></td>
+<td>
+<p>logical indicating if an upper bound for the absolute
+integration error should be attached as an attribute to the result?</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The approximate integral of the isotropic function
+<code>f</code> over <code>polyregion</code>.<br>
+If the <code>intrfr</code> function is provided (which is assumed to be exact), an
+upper bound for the absolute integration error is appended to the result as
+attribute <code>"abs.error"</code>. It equals the sum of the absolute errors
+reported by all <code>integrate</code> calls
+(there is one for each edge of <code>polyregion</code>).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Sebastian Meyer
+</p>
+<p>The basic mathematical formulation of this efficient integration for radially
+symmetric functions was ascertained with great support by
+Emil Hedevang (2013), Dept. of Mathematics, Aarhus University, Denmark.
+</p>
+
+
+<h3>References</h3>
+
+<p>Hedevang, E. (2013). Personal communication at the Summer School on Topics in
+Space-Time Modeling and Inference (May 2013, Aalborg, Denmark).
+</p>
+<p>Meyer, S. and Held, L. (2014).
+Power-law models for infectious disease spread.
+<em>The Annals of Applied Statistics</em>, <b>8</b> (3), 1612-1639.
+<a href="https://doi.org/10.1214/14-AOAS743">doi:10.1214/14-AOAS743</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>system.file("include", "polyCubAPI.h", package = "polyCub")</code>
+for a full C-implementation of this cubature method (for a <em>single</em>
+polygon). The corresponding C-routine <code>polyCub_iso</code> can be used by
+other <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> packages, notably <a href="https://CRAN.R-project.org/package=surveillance"><span class="pkg">surveillance</span></a>, via ‘<span class="samp">⁠LinkingTo: polyCub⁠</span>’
+(in the ‘<span class="file">DESCRIPTION</span>’) and ‘<span class="samp">⁠#include &lt;polyCubAPI.h&gt;⁠</span>’ (in suitable
+‘<span class="file">/src</span>’ files). Note that the <code>intrfr</code> function must then also be
+supplied as a C-routine. An example can be found in the package tests.
+</p>
+<p>Other polyCub-methods: 
+<code>polyCub()</code>,
+<code>polyCub.SV()</code>,
+<code>polyCub.exact.Gauss()</code>,
+<code>polyCub.midpoint()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## we use the example polygon and f (exponential decay) from
+example(plotpolyf)
+
+## numerical approximation of 'intrfr' (not recommended)
+(intISOnum &lt;- polyCub.iso(letterR, f, center = fcenter))
+
+## analytical 'intrfr'
+## intrfr(R) = int_0^R r*f(r) dr, for f(r) = dexp(r), gives
+intrfr &lt;- function (R, rate = 1) pgamma(R, 2, rate) / rate
+(intISOana &lt;- polyCub.iso(letterR, f, intrfr = intrfr, center = fcenter,
+                          check.intrfr = TRUE))
+## f is only used to check 'intrfr' against a numerical approximation
+
+stopifnot(all.equal(intISOana, intISOnum, check.attributes = FALSE))
+
+
+### polygon area: f(r) = 1, f(x,y) = 1, center does not really matter
+
+## intrfr(R) = int_0^R r*f(r) dr = int_0^R r dr = R^2/2
+intrfr.const &lt;- function (R) R^2/2
+(area.ISO &lt;- polyCub.iso(letterR, intrfr = intrfr.const, center = c(0,0)))
+
+if (require("spatstat.geom")) { # check against area.owin()
+    stopifnot(all.equal(area.owin(owin(poly = letterR)),
+                        area.ISO, check.attributes = FALSE))
+}
+</code></pre>
+
+
+</div>

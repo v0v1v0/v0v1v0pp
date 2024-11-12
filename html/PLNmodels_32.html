@@ -1,0 +1,739 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PLNfit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>An R6 Class to represent a PLNfit in a standard, general framework</h2>
+
+<h3>Description</h3>
+
+<p>The function <code>PLN()</code> fit a model which is an instance of a object with class <code>PLNfit</code>.
+Objects produced by the functions <code>PLNnetwork()</code>, <code>PLNPCA()</code>, <code>PLNmixture()</code> and <code>PLNLDA()</code> also enjoy the methods of <code>PLNfit()</code> by inheritance.
+</p>
+<p>This class comes with a set of R6 methods, some of them being useful for the user and exported as S3 methods.
+See the documentation for <code>coef()</code>, <code>sigma()</code>, <code>predict()</code>, <code>vcov()</code> and <code>standard_error()</code>.
+</p>
+<p>Fields are accessed via active binding and cannot be changed by the user.
+</p>
+
+
+<h3>Active bindings</h3>
+
+<div class="r6-active-bindings">
+
+<dl>
+<dt><code>n</code></dt>
+<dd>
+<p>number of samples</p>
+</dd>
+<dt><code>q</code></dt>
+<dd>
+<p>number of dimensions of the latent space</p>
+</dd>
+<dt><code>p</code></dt>
+<dd>
+<p>number of species</p>
+</dd>
+<dt><code>d</code></dt>
+<dd>
+<p>number of covariates</p>
+</dd>
+<dt><code>nb_param</code></dt>
+<dd>
+<p>number of parameters in the current PLN model</p>
+</dd>
+<dt><code>model_par</code></dt>
+<dd>
+<p>a list with the matrices of the model parameters: B (covariates), Sigma (covariance), Omega (precision matrix), plus some others depending on the variant)</p>
+</dd>
+<dt><code>var_par</code></dt>
+<dd>
+<p>a list with the matrices of the variational parameters: M (means) and S2 (variances)</p>
+</dd>
+<dt><code>optim_par</code></dt>
+<dd>
+<p>a list with parameters useful for monitoring the optimization</p>
+</dd>
+<dt><code>latent</code></dt>
+<dd>
+<p>a matrix: values of the latent vector (Z in the model)</p>
+</dd>
+<dt><code>latent_pos</code></dt>
+<dd>
+<p>a matrix: values of the latent position vector (Z) without covariates effects or offset</p>
+</dd>
+<dt><code>fitted</code></dt>
+<dd>
+<p>a matrix: fitted values of the observations (A in the model)</p>
+</dd>
+<dt><code>vcov_coef</code></dt>
+<dd>
+<p>matrix of sandwich estimator of the variance-covariance of B (need fixed -ie known- covariance at the moment)</p>
+</dd>
+<dt><code>vcov_model</code></dt>
+<dd>
+<p>character: the model used for the residual covariance</p>
+</dd>
+<dt><code>weights</code></dt>
+<dd>
+<p>observational weights</p>
+</dd>
+<dt><code>loglik</code></dt>
+<dd>
+<p>(weighted) variational lower bound of the loglikelihood</p>
+</dd>
+<dt><code>loglik_vec</code></dt>
+<dd>
+<p>element-wise variational lower bound of the loglikelihood</p>
+</dd>
+<dt><code>BIC</code></dt>
+<dd>
+<p>variational lower bound of the BIC</p>
+</dd>
+<dt><code>entropy</code></dt>
+<dd>
+<p>Entropy of the variational distribution</p>
+</dd>
+<dt><code>ICL</code></dt>
+<dd>
+<p>variational lower bound of the ICL</p>
+</dd>
+<dt><code>R_squared</code></dt>
+<dd>
+<p>approximated goodness-of-fit criterion</p>
+</dd>
+<dt><code>criteria</code></dt>
+<dd>
+<p>a vector with loglik, BIC, ICL and number of parameters</p>
+</dd>
+</dl>
+</div>
+
+
+<h3>Methods</h3>
+
+
+
+<h4>Public methods</h4>
+
+
+<ul>
+<li> <p><a href="#method-PLNfit-new"><code>PLNfit$new()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PLNfit-update"><code>PLNfit$update()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PLNfit-optimize"><code>PLNfit$optimize()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PLNfit-optimize_vestep"><code>PLNfit$optimize_vestep()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PLNfit-postTreatment"><code>PLNfit$postTreatment()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PLNfit-predict"><code>PLNfit$predict()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PLNfit-predict_cond"><code>PLNfit$predict_cond()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PLNfit-show"><code>PLNfit$show()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PLNfit-print"><code>PLNfit$print()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PLNfit-clone"><code>PLNfit$clone()</code></a>
+</p>
+</li>
+</ul>
+<hr>
+<a id="method-PLNfit-new"></a>
+
+
+
+<h4>Method <code>new()</code>
+</h4>
+
+<p>Initialize a <code>PLNfit</code> model
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PLNfit$new(responses, covariates, offsets, weights, formula, control)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>responses</code></dt>
+<dd>
+<p>the matrix of responses (called Y in the model). Will usually be extracted from the corresponding field in PLNfamily-class</p>
+</dd>
+<dt><code>covariates</code></dt>
+<dd>
+<p>design matrix (called X in the model). Will usually be extracted from the corresponding field in PLNfamily-class</p>
+</dd>
+<dt><code>offsets</code></dt>
+<dd>
+<p>offset matrix (called O in the model). Will usually be extracted from the corresponding field in PLNfamily-class</p>
+</dd>
+<dt><code>weights</code></dt>
+<dd>
+<p>an optional vector of observation weights to be used in the fitting process.</p>
+</dd>
+<dt><code>formula</code></dt>
+<dd>
+<p>model formula used for fitting, extracted from the formula in the upper-level call</p>
+</dd>
+<dt><code>control</code></dt>
+<dd>
+<p>a list-like structure for controlling the fit, see <code>PLN_param()</code>.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-PLNfit-update"></a>
+
+
+
+<h4>Method <code>update()</code>
+</h4>
+
+<p>Update a <code>PLNfit</code> object
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PLNfit$update(
+  B = NA,
+  Sigma = NA,
+  Omega = NA,
+  M = NA,
+  S = NA,
+  Ji = NA,
+  R2 = NA,
+  Z = NA,
+  A = NA,
+  monitoring = NA
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>B</code></dt>
+<dd>
+<p>matrix of regression matrix</p>
+</dd>
+<dt><code>Sigma</code></dt>
+<dd>
+<p>variance-covariance matrix of the latent variables</p>
+</dd>
+<dt><code>Omega</code></dt>
+<dd>
+<p>precision matrix of the latent variables. Inverse of Sigma.</p>
+</dd>
+<dt><code>M</code></dt>
+<dd>
+<p>matrix of variational parameters for the mean</p>
+</dd>
+<dt><code>S</code></dt>
+<dd>
+<p>matrix of variational parameters for the variance</p>
+</dd>
+<dt><code>Ji</code></dt>
+<dd>
+<p>vector of variational lower bounds of the log-likelihoods (one value per sample)</p>
+</dd>
+<dt><code>R2</code></dt>
+<dd>
+<p>approximate R^2 goodness-of-fit criterion</p>
+</dd>
+<dt><code>Z</code></dt>
+<dd>
+<p>matrix of latent vectors (includes covariates and offset effects)</p>
+</dd>
+<dt><code>A</code></dt>
+<dd>
+<p>matrix of fitted values</p>
+</dd>
+<dt><code>monitoring</code></dt>
+<dd>
+<p>a list with optimization monitoring quantities</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>Update the current <code>PLNfit</code> object
+</p>
+
+
+<hr>
+<a id="method-PLNfit-optimize"></a>
+
+
+
+<h4>Method <code>optimize()</code>
+</h4>
+
+<p>Call to the NLopt or TORCH optimizer and update of the relevant fields
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PLNfit$optimize(responses, covariates, offsets, weights, config)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>responses</code></dt>
+<dd>
+<p>the matrix of responses (called Y in the model). Will usually be extracted from the corresponding field in PLNfamily-class</p>
+</dd>
+<dt><code>covariates</code></dt>
+<dd>
+<p>design matrix (called X in the model). Will usually be extracted from the corresponding field in PLNfamily-class</p>
+</dd>
+<dt><code>offsets</code></dt>
+<dd>
+<p>offset matrix (called O in the model). Will usually be extracted from the corresponding field in PLNfamily-class</p>
+</dd>
+<dt><code>weights</code></dt>
+<dd>
+<p>an optional vector of observation weights to be used in the fitting process.</p>
+</dd>
+<dt><code>config</code></dt>
+<dd>
+<p>part of the <code>control</code> argument which configures the optimizer</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-PLNfit-optimize_vestep"></a>
+
+
+
+<h4>Method <code>optimize_vestep()</code>
+</h4>
+
+<p>Result of one call to the VE step of the optimization procedure: optimal variational parameters (M, S) and corresponding log likelihood values for fixed model parameters (Sigma, B). Intended to position new data in the latent space.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PLNfit$optimize_vestep(
+  covariates,
+  offsets,
+  responses,
+  weights,
+  B = self$model_par$B,
+  Omega = self$model_par$Omega,
+  control = PLN_param(backend = "nlopt")
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>covariates</code></dt>
+<dd>
+<p>design matrix (called X in the model). Will usually be extracted from the corresponding field in PLNfamily-class</p>
+</dd>
+<dt><code>offsets</code></dt>
+<dd>
+<p>offset matrix (called O in the model). Will usually be extracted from the corresponding field in PLNfamily-class</p>
+</dd>
+<dt><code>responses</code></dt>
+<dd>
+<p>the matrix of responses (called Y in the model). Will usually be extracted from the corresponding field in PLNfamily-class</p>
+</dd>
+<dt><code>weights</code></dt>
+<dd>
+<p>an optional vector of observation weights to be used in the fitting process.</p>
+</dd>
+<dt><code>B</code></dt>
+<dd>
+<p>Optional fixed value of the regression parameters</p>
+</dd>
+<dt><code>Omega</code></dt>
+<dd>
+<p>precision matrix of the latent variables. Inverse of Sigma.</p>
+</dd>
+<dt><code>control</code></dt>
+<dd>
+<p>a list-like structure for controlling the fit, see <code>PLN_param()</code>.</p>
+</dd>
+<dt><code>Sigma</code></dt>
+<dd>
+<p>variance-covariance matrix of the latent variables</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>A list with three components:
+</p>
+
+<ul>
+<li>
+<p> the matrix <code>M</code> of variational means,
+</p>
+</li>
+<li>
+<p> the matrix <code>S2</code> of variational variances
+</p>
+</li>
+<li>
+<p> the vector <code>log.lik</code> of (variational) log-likelihood of each new observation
+</p>
+</li>
+</ul>
+<hr>
+<a id="method-PLNfit-postTreatment"></a>
+
+
+
+<h4>Method <code>postTreatment()</code>
+</h4>
+
+<p>Update R2, fisher and std_err fields after optimization
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PLNfit$postTreatment(
+  responses,
+  covariates,
+  offsets,
+  weights = rep(1, nrow(responses)),
+  config_post,
+  config_optim,
+  nullModel = NULL
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>responses</code></dt>
+<dd>
+<p>the matrix of responses (called Y in the model). Will usually be extracted from the corresponding field in PLNfamily-class</p>
+</dd>
+<dt><code>covariates</code></dt>
+<dd>
+<p>design matrix (called X in the model). Will usually be extracted from the corresponding field in PLNfamily-class</p>
+</dd>
+<dt><code>offsets</code></dt>
+<dd>
+<p>offset matrix (called O in the model). Will usually be extracted from the corresponding field in PLNfamily-class</p>
+</dd>
+<dt><code>weights</code></dt>
+<dd>
+<p>an optional vector of observation weights to be used in the fitting process.</p>
+</dd>
+<dt><code>config_post</code></dt>
+<dd>
+<p>a list for controlling the post-treatments (optional bootstrap, jackknife, R2, etc.). See details</p>
+</dd>
+<dt><code>config_optim</code></dt>
+<dd>
+<p>a list for controlling the optimization (optional bootstrap, jackknife, R2, etc.). See details</p>
+</dd>
+<dt><code>nullModel</code></dt>
+<dd>
+<p>null model used for approximate R2 computations. Defaults to a GLM model with same design matrix but not latent variable.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Details</h5>
+
+<p>The list of parameters <code>config</code> controls the post-treatment processing, with the following entries:
+</p>
+
+<ul>
+<li>
+<p> jackknife boolean indicating whether jackknife should be performed to evaluate bias and variance of the model parameters. Default is FALSE.
+</p>
+</li>
+<li>
+<p> bootstrap integer indicating the number of bootstrap resamples generated to evaluate the variance of the model parameters. Default is 0 (inactivated).
+</p>
+</li>
+<li>
+<p> variational_var boolean indicating whether variational Fisher information matrix should be computed to estimate the variance of the model parameters (highly underestimated). Default is FALSE.
+</p>
+</li>
+<li>
+<p> rsquared boolean indicating whether approximation of R2 based on deviance should be computed. Default is TRUE
+</p>
+</li>
+<li>
+<p> trace integer for verbosity. should be &gt; 1 to see output in post-treatments
+</p>
+</li>
+</ul>
+<hr>
+<a id="method-PLNfit-predict"></a>
+
+
+
+<h4>Method <code>predict()</code>
+</h4>
+
+<p>Predict position, scores or observations of new data.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PLNfit$predict(
+  newdata,
+  responses = NULL,
+  type = c("link", "response"),
+  level = 1,
+  envir = parent.frame()
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>newdata</code></dt>
+<dd>
+<p>A data frame in which to look for variables with which to predict. If omitted, the fitted values are used.</p>
+</dd>
+<dt><code>responses</code></dt>
+<dd>
+<p>Optional data frame containing the count of the observed variables (matching the names of the provided as data in the PLN function), assuming the interest in in testing the model.</p>
+</dd>
+<dt><code>type</code></dt>
+<dd>
+<p>Scale used for the prediction. Either <code>link</code> (default, predicted positions in the latent space) or <code>response</code> (predicted counts).</p>
+</dd>
+<dt><code>level</code></dt>
+<dd>
+<p>Optional integer value the level to be used in obtaining the predictions. Level zero corresponds to the population predictions (default if <code>responses</code> is not provided) while level one (default) corresponds to predictions after evaluating the variational parameters for the new data.</p>
+</dd>
+<dt><code>envir</code></dt>
+<dd>
+<p>Environment in which the prediction is evaluated</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Details</h5>
+
+<p>Note that <code>level = 1</code> can only be used if responses are provided,
+as the variational parameters can't be estimated otherwise. In the absence of responses, <code>level</code> is ignored and the fitted values are returned
+</p>
+
+
+
+<h5>Returns</h5>
+
+<p>A matrix with predictions scores or counts.
+</p>
+
+
+<hr>
+<a id="method-PLNfit-predict_cond"></a>
+
+
+
+<h4>Method <code>predict_cond()</code>
+</h4>
+
+<p>Predict position, scores or observations of new data, conditionally on the observation of a (set of) variables
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PLNfit$predict_cond(
+  newdata,
+  cond_responses,
+  type = c("link", "response"),
+  var_par = FALSE,
+  envir = parent.frame()
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>newdata</code></dt>
+<dd>
+<p>a data frame containing the covariates of the sites where to predict</p>
+</dd>
+<dt><code>cond_responses</code></dt>
+<dd>
+<p>a data frame containing the count of the observed variables (matching the names of the provided as data in the PLN function)</p>
+</dd>
+<dt><code>type</code></dt>
+<dd>
+<p>Scale used for the prediction. Either <code>link</code> (default, predicted positions in the latent space) or <code>response</code> (predicted counts).</p>
+</dd>
+<dt><code>var_par</code></dt>
+<dd>
+<p>Boolean. Should new estimations of the variational parameters of mean and variance be sent back, as attributes of the matrix of predictions. Default to <code>FALSE</code>.</p>
+</dd>
+<dt><code>envir</code></dt>
+<dd>
+<p>Environment in which the prediction is evaluated</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>A matrix with predictions scores or counts.
+</p>
+
+
+<hr>
+<a id="method-PLNfit-show"></a>
+
+
+
+<h4>Method <code>show()</code>
+</h4>
+
+<p>User friendly print method
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PLNfit$show(
+  model = paste("A multivariate Poisson Lognormal fit with", self$vcov_model,
+    "covariance model.\n")
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>model</code></dt>
+<dd>
+<p>First line of the print output</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-PLNfit-print"></a>
+
+
+
+<h4>Method <code>print()</code>
+</h4>
+
+<p>User friendly print method
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PLNfit$print()</pre></div>
+
+
+<hr>
+<a id="method-PLNfit-clone"></a>
+
+
+
+<h4>Method <code>clone()</code>
+</h4>
+
+<p>The objects of this class are cloneable with this method.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PLNfit$clone(deep = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>deep</code></dt>
+<dd>
+<p>Whether to make a deep clone.</p>
+</dd>
+</dl>
+</div>
+
+
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+data(trichoptera)
+trichoptera &lt;- prepare_data(trichoptera$Abundance, trichoptera$Covariate)
+myPLN &lt;- PLN(Abundance ~ 1, data = trichoptera)
+class(myPLN)
+print(myPLN)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,146 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PIC.lm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>PIC method for Linear Models</h2>
+
+<h3>Description</h3>
+
+<p>Computation of predictive information criteria for linear models.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'lm'
+PIC(object, newdata, group_sizes = NULL, bootstraps = NULL, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A fitted model object of <code>class</code> "lm".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>An optional dataframe to be used as validation data in computing PIC. If omitted, the training data contained within <code>object</code> are used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group_sizes</code></td>
+<td>
+<p>An optional scalar or numeric vector indicating the sizes of <code>newdata</code> partitions. If omitted, <code>newdata</code> is not partitioned. See 'Details'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootstraps</code></td>
+<td>
+<p>An optional numeric value indicating the number of bootstrap samples to use for a bootstrapped PIC. See 'Details'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to or from other methods.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>PIC.lm</code> computes PIC values based on the supplied regression model. Candidate models with relatively smaller criterion values are preferred.
+Depending on the value(s) supplied to <strong><code>group_sizes</code></strong>, one of three implementations of PIC are computed:
+</p>
+
+<ul>
+<li> <p><strong>iPIC</strong>: The individualized predictive information criterion (iPIC) is computed when <strong><code>group_sizes = 1</code></strong>. A value
+of iPIC is determined for each <em>individual</em> observation in <strong><code>newdata</code></strong>. Using iPIC, one may thus select optimal predictive
+models specific to each particular validation datapoint.
+</p>
+</li>
+<li> <p><strong>gPIC</strong>: The group predictive information criterion (gPIC) is computed when <strong><code>group_sizes &gt; 1</code></strong> or
+<strong><code>is.vector(group_sizes) == TRUE</code></strong>. A value of gPIC is determined for each cohort or <em>group</em> of observations
+defined by the partitions of <strong><code>newdata</code></strong>. Using gPIC, one may thus select optimal predictive models specific to each
+group of validation datapoints. For the class of regression models, the gPIC value of a group of validation observations
+is equivalent to the sum of their individual iPIC values.
+</p>
+</li>
+<li> <p><strong>tPIC</strong>: The total predictive information criterion (tPIC) is computed when <strong><code>group_sizes = NULL</code></strong>. Computation of
+the tPIC is the default, and one may use the tPIC to select the optimal predictive model for the entire set of validation
+datapoints. The tPIC and gPIC are equivalent when <strong><code>group_sizes = m</code></strong>, where <code>m</code> is the number of observations in
+<strong><code>newdata</code></strong>. When <strong><code>newdata</code></strong> is not supplied, tPIC is exactly equivalent to the Akaike Information Criterion (AIC).
+</p>
+</li>
+</ul>
+<p>If a numeric value is supplied to <strong><code>bootstraps</code></strong> the total Predictive information criterion (tPIC) is computed <strong><code>bootstraps</code></strong> times, where
+generated bootstrap samples are each used as sets of validation data in computing the tPIC. The resulting tPIC values are then averaged to generate a single,
+bootstrapped tPIC value. Model selection based on this bootstrapped tPIC value may lead to the selection of a more generally applicable predictive model whose
+predictive accuracy is not strictly optimized to a particular set of validation data.
+</p>
+<p>For further details, see <a href="https://iro.uiowa.edu/esploro/outputs/doctoral/A-new-class-of-information-criteria/9984097169902771?institution=01IOWA_INST"><em>A new class of information criteria for improved prediction in the presence of training/validation data heterogeneity</em></a>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>group_sizes = NULL</code> or <code>bootstraps &gt; 0</code>, a scalar is returned. Otherwise, <code>newdata</code> is
+returned with an appended column labeled 'PIC' containing either iPIC or gPIC values,
+depending on the value provided to <code>group_sizes</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Flores, J.E. (2021), <em>A new class of information criteria for improved prediction in the presence of training/validation data heterogeneity</em> [Unpublished PhD dissertation]. University of Iowa.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>PIC</code>, <code>PIC.mlm</code>, <code>lm</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(iris)
+
+# Fit a regression model
+mod &lt;- lm(Sepal.Length ~ ., data = iris)
+class(mod)
+
+# Hypothetical validation data
+set.seed(1)
+vdat &lt;- iris[sample(1:nrow(iris), 10),]
+
+# tPIC, newdata not supplied
+PIC(object = mod)
+AIC(mod) # equivalent to PIC since training and validation data are the same above
+
+# tPIC, newdata supplied
+PIC(object = mod, newdata = vdat)
+AIC(mod) # not equivalent to PIC since training and validation data differ above
+
+# gPIC
+PIC(object = mod, newdata = vdat, group_sizes = c(5,3,2))
+PIC(object = mod, newdata = vdat, group_sizes = 5)
+
+# iPIC
+PIC(object = mod, newdata = vdat, group_sizes = rep(1, 10))
+PIC(object = mod, newdata = vdat, group_sizes = 1)
+
+# bootstrapped tPIC (based on 10 bootstrap samples)
+set.seed(1)
+PIC(object = mod, bootstraps = 10)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,180 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>chisquare</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Perform chisquare-text.</h2>
+
+<h3>Description</h3>
+
+<p>Perform Chisquare-Test based on a table with counts
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">chisquare(.Object)
+
+## S4 method for signature 'features'
+chisquare(.Object)
+
+## S4 method for signature 'context'
+chisquare(.Object)
+
+## S4 method for signature 'cooccurrences'
+chisquare(.Object)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>.Object</code></td>
+<td>
+<p>A <code>features</code> object, or an object inheriting from it
+(<code>context</code>, <code>cooccurrences</code>).</p>
+</td>
+</tr></table>
+<h3>Details</h3>
+
+<p>The basis for computing for the chi square test is a contingency table of
+observationes, which is prepared for every single token in the corpus. It
+reports counts for a token to inspect and all other tokens in a corpus of
+interest (coi) and a reference corpus (ref):
+</p>
+
+<table>
+<tr>
+<td style="text-align: right;">
+</td>
+<td style="text-align: center;"> coi   </td>
+<td style="text-align: center;"> ref </td>
+<td style="text-align: center;"> TOTAL</td>
+</tr>
+<tr>
+<td style="text-align: right;">
+count token </td>
+<td style="text-align: center;"> <code class="reqn">o_{11}</code>  </td>
+<td style="text-align: center;"> <code class="reqn">o_{12}</code> </td>
+<td style="text-align: center;"> <code class="reqn">r_{1}</code>
+</td>
+</tr>
+<tr>
+<td style="text-align: right;">
+other tokens </td>
+<td style="text-align: center;"> <code class="reqn">o_{21}</code>    </td>
+<td style="text-align: center;"> <code class="reqn">o_{22}</code> </td>
+<td style="text-align: center;"> <code class="reqn">r_{2}</code>
+</td>
+</tr>
+<tr>
+<td style="text-align: right;">
+TOTAL </td>
+<td style="text-align: center;"> <code class="reqn">c_{1}</code>    </td>
+<td style="text-align: center;"> <code class="reqn">c_{2}</code> </td>
+<td style="text-align: center;"> N</td>
+</tr>
+<tr>
+<td style="text-align: right;">
+</td>
+</tr>
+</table>
+<p>Based on the contingency table, expected values are calculated for each cell,
+as the product of the column and margin sums, divided by the overall number
+of tokens (see example). The standard formula for calculating the chi-square
+test is computed as follows. </p>
+<p style="text-align: center;"><code class="reqn">X^{2} = \sum{\frac{(O_{ij} -
+E_{ij})^2}{O_{ij}}}</code>
+</p>
+
+<p>Results from the chisquare test are only robust for at least 5 observed
+counts in the corpus of interest. Usually, results need to be filtered
+accordingly (see examples).
+</p>
+
+
+<h3>Value</h3>
+
+<p>Same class as input object, with enriched table in the
+<code>stat</code>-slot.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Andreas Blaette
+</p>
+
+
+<h3>References</h3>
+
+<p>Manning, Christopher D.; Schuetze, Hinrich (1999):
+<em>Foundations of Statistical Natural Language Processing</em>. MIT Press:
+Cambridge, Mass., pp. 169-172.
+</p>
+<p>Kilgarriff, A. and Rose, T. (1998): Measures for corpus
+similarity and homogeneity. <em>Proc. 3rd Conf. on Empirical Methods in
+Natural Language Processing</em>. Granada, Spain, pp 46-52.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other statistical methods: 
+<code>ll()</code>,
+<code>pmi()</code>,
+<code>t_test()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">use("polmineR")
+library(data.table)
+m &lt;- partition(
+  "GERMAPARLMINI", speaker = "Merkel", interjection = "speech",
+  regex = TRUE, p_attribute = "word"
+)
+f &lt;- features(m, "GERMAPARLMINI", included = TRUE)
+f_min &lt;- subset(f, count_coi &gt;= 5)
+summary(f_min)
+
+## Not run: 
+
+# A sample do-it-yourself calculation for chisquare:
+
+# (a) prepare matrix with observed values
+o &lt;- matrix(data = rep(NA, 4), ncol = 2) 
+o[1,1] &lt;- as.data.table(m)[word == "Weg"][["count"]]
+o[1,2] &lt;- count("GERMAPARLMINI", query = "Weg")[["count"]] - o[1,1]
+o[2,1] &lt;- size(f)[["coi"]] - o[1,1]
+o[2,2] &lt;- size(f)[["ref"]] - o[1,2]
+
+
+# prepare matrix with expected values, calculate margin sums first
+
+r &lt;- rowSums(o)
+c &lt;- colSums(o)
+N &lt;- sum(o)
+
+e &lt;- matrix(data = rep(NA, 4), ncol = 2) 
+e[1,1] &lt;- r[1] * (c[1] / N)
+e[1,2] &lt;- r[1] * (c[2] / N)
+e[2,1] &lt;- r[2] * (c[1] / N)
+e[2,2] &lt;- r[2] * (c[2] / N)
+
+
+# compute chisquare statistic
+
+y &lt;- matrix(rep(NA, 4), ncol = 2)
+for (i in 1:2) for (j in 1:2) y[i,j] &lt;- (o[i,j] - e[i,j])^2 / e[i,j]
+chisquare_value &lt;- sum(y)
+
+as(f, "data.table")[word == "Weg"][["chisquare"]]
+
+## End(Not run)
+</code></pre>
+
+
+</div>

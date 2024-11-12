@@ -1,0 +1,295 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pgee.fit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Penalized Generalized Estimating Equations</h2>
+
+<h3>Description</h3>
+
+<p>Estimate regression coefficients using Penalized Generalized Estimating
+Equations (PGEEs). Linear and binary logistic models are currently supported.
+In particular, can handle the case of bivariate correlated mixed outcomes, in
+which each cluster consists of one continuous outcome and one binary outcome.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pgee.fit(N, m, X, Z = NULL, y = NULL, yc = NULL, yb = NULL,
+  wctype = "Ind", family = "Gaussian", lambda = 0, eps = 1e-06,
+  maxiter = 1000, tol.coef = 0.001, tol.score = 0.001, init = NULL,
+  standardize = TRUE, penalty = "SCAD", weights = rep(1, N),
+  FDR = FALSE, fdr.corr = NULL, fdr.type = "all")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>N</code></td>
+<td>
+<p>Number of clusters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m</code></td>
+<td>
+<p>Cluster size. Assumed equal across all clusters. Should be set to 2
+for family=="Mixed".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>Design matrix. If family=="Mixed", then design matrix for continuous
+responses. For family!="Mixed", should have N*m rows. For family=="Mixed",
+should have N rows. For standardize=TRUE, the first column should be a
+column vector of ones, corresponding to the intercept.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Z</code></td>
+<td>
+<p>Design matrix for binary responses for family=="Mixed". Should not
+be provided for other family types. If not provided for family=="Mixed", is
+set equal to X. For family!="Mixed", should have N*m rows. For
+family=="Mixed", should have N rows. For standardize=TRUE, the first
+column should be a column vector of ones, corresponding to the intercept.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Response vector. Don't use this argument for family == "Mixed".
+Instead, use arguments yc and yb. Since the cluster size is assumed equal
+across clusters, the vector is assumed to have the form c(y_1,
+y_2,...,y_N), with y_i = c(y_i1,...,y_im).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yc</code></td>
+<td>
+<p>Continuous response vector. Use only for family=="Mixed".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yb</code></td>
+<td>
+<p>Binary (0/1) response vector. Use only for family=="Mixed".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wctype</code></td>
+<td>
+<p>Working correlation type; one of "Ind", "CS", or "AR1". For
+family=="Mixed", "CS" and "AR1" are equivalent.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>"Gaussian", "Binomial", or "Mixed" (use the last for bivariate
+mixed outcomes). Note that for "Binomial", currently only binary outcomes
+are supported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>Tuning parameter(s). A vector of two tuning parameters should
+be provided for family=="Mixed" (one for the continuous outcome
+coefficients, and one of the binary outcome coefficients). Otherwise, a
+single tuning parameter should be provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps</code></td>
+<td>
+<p>Disturbance in the Linear Quadratic Approximation algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxiter</code></td>
+<td>
+<p>The maximum number of iterations the Newton algorithm tries
+before declaring failure to converge.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol.coef</code></td>
+<td>
+<p>Converge of the Newton algorithm is declared if two
+conditions are met: The L1-norm of the difference of successive iterates
+should be less than tol.coef AND the L1-norm of the penalized score should
+be less than tol.score.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol.score</code></td>
+<td>
+<p>See <code>tol.coef</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+<p>Vector of initial values for regression coefficients. For
+family=="Mixed", should be c(init_c, init_b). Defaults to glm values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardize</code></td>
+<td>
+<p>Standardize the design matrices prior to estimation?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalty</code></td>
+<td>
+<p>"SCAD", "MCP", or "LASSO".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>Vector of cluster weights. All observations in a cluster are
+assumed to have the same weight.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FDR</code></td>
+<td>
+<p>Should the false discovery rate be estimated for family=="Mixed"?
+Currently, FDR cannot be estimated for other family types.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fdr.corr</code></td>
+<td>
+<p>Association parameter to use in FDR estimation. The default
+is to use the association parameter estimated from the PGEEs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fdr.type</code></td>
+<td>
+<p>Estimate the FDR for only the coefficients corresponding to
+the continuous outcomes ("continuous"), for only the coefficients
+corresponding to the binary outcomes ("binary"), or for all coefficients
+("all", the default).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>pgee.fit</code> estimates the regression coefficients for a single value of the
+tuning paramter (or a single pair of tuning parameters in the mixed outcomes
+case). To select optimal tuning parameter(s) via k-fold cross validation, see
+<code>cv.pgee</code>.
+</p>
+<p>For bivariate mixed outcomes, the false discovery rate can be estimated.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>coefficients</code></td>
+<td>
+<p>Vector of estimated regression
+coefficients. For family=="Mixed", this takes the form c(coef_c, coef_b).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vcov</code></td>
+<td>
+<p>Sandwich formula based covariance matrix of estimated
+regression coefficients (other than the intercept(s)). The row/column
+names correspond to elements of <code>coefficients</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phi</code></td>
+<td>
+<p>Estimated dispersion parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Estimated association parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num_iterations</code></td>
+<td>
+<p>Number of iterations the Newton algorithm ran.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>converge</code></td>
+<td>
+<p>0=converged, 1=did not converge.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>PenScore</code></td>
+<td>
+<p>Vector of penalized score functions at the estimated
+regression coefficients. If the algorithm converges, then these should be
+close to zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FDR</code></td>
+<td>
+<p>Estimated FDR for family=="Mixed", if requested.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(100)
+# Gaussian
+N &lt;- 100
+m &lt;- 10
+p &lt;- 10
+y &lt;- rnorm(N * m)
+# If you want standardize = TRUE, you must provide an intercept.
+X &lt;- cbind(1, matrix(rnorm(N * m * (p - 1)), N * m, p - 1))
+fit &lt;- pgee.fit(X = X, y = y, N = N, m = m, lambda = 0.5, wctype = "CS",
+            family = "Gaussian")
+str(fit)
+fit$coefficients
+fit$vcov
+
+# Binary
+y &lt;- sample(0:1, N*m, replace = TRUE)
+fit &lt;- pgee.fit(X = X, y = y, N = N, m = m, lambda = 0.1, wctype = "CS",
+            family = "Binomial")
+str(fit)
+fit$coefficients
+fit$vcov
+
+# Bivariate mixed outcomes
+# Generate some data
+Bc &lt;- c(2.0, 3.0, 1.5, 2.0, rep(0, times = p - 4))
+Bb &lt;- c(0.7, -0.7, -0.4, rep(0, times = p - 3))
+dat &lt;- gen_mixed_data(Bc, Bc, N, 0.5)
+# Estimate regression coefficients and false discovery rate
+fit &lt;- pgee.fit(X = dat$X, yc = dat$yc, yb = dat$yb, N = N, m = 2,
+            wctype = "CS", family = "Mixed", lambda = c(0.1, 0.05),
+            FDR = TRUE)
+str(fit)
+fit$coefficients
+fit$vcov
+</code></pre>
+
+
+</div>

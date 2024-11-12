@@ -1,0 +1,165 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>permutation</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Permutation-based non-parametric analysis to infer differential abundance of features between groups.
+</h2>
+
+<h3>Description</h3>
+
+<p>This function performs multiple simulations for every feature present in your dataset. All observations are randomly distributed between groups and the median's differences are calculated for all simulations. Differences calculated from simulations are fitted to the normal distribution, Z-scores are obtained, and the respective probability to reject the null hypothesis is then calculated. A multiple testing correction based on Benjamini-Hochberg method is done to uncover the biomarkers associated with your dataset classes. FDR threshold for differential abundance can be set at 0.1.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">permutation(nperm = 1000, write.output = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>nperm</code></td>
+<td>
+
+<p>The number of permutations to be executed during the analysis (1000 as default). The higher the number of permutations, the more precise will be the p-value returned and the function becomes more time-consuming. We recommend to use <em>nperm</em> = 1000 as the minimum. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>write.output</code></td>
+<td>
+
+<p>When <em>TRUE</em> (as default), a sorted output file is generated and stored in the working directory. Control for the number of features to be present in the output is allowed with the "all" or "selected" parameters prompted.
+</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Alfonso Benitez-Paez
+</p>
+
+
+<h3>References</h3>
+
+<p>Benitez-Paez A. 2023. Permubiome: an R package to perform permutation based test for biomarker discovery in microbiome analyses. [https://cran.r-project.org].
+Benitez-Paez A, et al. mSystems. 2020;5:e00857-19. doi: 10.1128/mSystems.00857-19.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## The function is currently defined as
+function (nperm = 1000, write.output = TRUE) 
+{
+    Class &lt;- NULL
+    load("permubiome.RData")
+    df_norm &lt;- df_norm
+    selected_features &lt;- selected_features
+    tags.in &lt;- selected_features[, 1]
+    tags.out &lt;- setdiff(colnames(df_norm[3:ncol(df_norm)]), tags.in)
+    for (a in ncol(df_norm):3) {
+        if ((colnames(df_norm[a]) %in% tags.out)) {
+            df_norm[, a] &lt;- NULL
+        }
+    }
+    classes &lt;- levels(df_norm$Class)
+    if (REFERENCE == "") {
+        REFERENCE &lt;- classes[1]
+    }
+    else if (REFERENCE == classes[2]) {
+        classes[2] &lt;- classes[1]
+        classes[1] &lt;- REFERENCE
+    }
+    df_norm$Class &lt;- factor(df$Class, levels = (c(classes[1], 
+        classes[2])))
+    group1 &lt;- subset(df_norm, Class == classes[1])
+    group2 &lt;- subset(df_norm, Class == classes[2])
+    categories &lt;- colnames(df_norm)
+    size1 &lt;- nrow(group1)
+    size2 &lt;- nrow(group2)
+    size &lt;- size1 + size2
+    pvalue_matrix &lt;- matrix(, nrow = ncol(df_norm) - 2, ncol = 5, 
+        byrow = T)
+    colnames(pvalue_matrix) &lt;- c("Category", paste("Median ", 
+        classes[1], sep = ""), paste("Median ", classes[2], sep = ""), 
+        "p.value", "p.adj (fdr)")
+    print(paste("Permutation test in progress - This can take some seconds or minutes!"))
+    for (i in 3:(ncol(df_norm))) {
+        category &lt;- categories[i]
+        diff &lt;- median(group1[, i]) - median(group2[, i])
+        x &lt;- c(group1[, i], group2[, i])
+        y &lt;- array(, nperm)
+        for (j in 1:nperm) {
+            set &lt;- sample(size, size2, replace = FALSE)
+            diff_iter &lt;- median(x[set]) - median(x[-set])
+            y[j] &lt;- diff_iter
+            ref_score &lt;- (diff - mean(y))/sd(y)
+        }
+        if (ref_score &gt;= 0) {
+            pvalue.i &lt;- pnorm(ref_score, lower.tail = F)
+        }
+        else {
+            pvalue.i &lt;- pnorm(ref_score)
+        }
+        if (pvalue.i != 0) {
+            pvalue_matrix[(i - 2), 1] &lt;- category
+        }
+        if (pvalue.i != 0) {
+            pvalue_matrix[(i - 2), 2] &lt;- round(median(group1[, 
+                i]), digits = 0)
+        }
+        if (pvalue.i != 0) {
+            pvalue_matrix[(i - 2), 3] &lt;- round(median(group2[, 
+                i]), digits = 0)
+        }
+        if (pvalue.i != 0) {
+            pvalue_matrix[(i - 2), 4] &lt;- format((pvalue.i * 2), 
+                digits = 7, scientific = F)
+        }
+        else {
+            pvalue_matrix[(i - 2), 2] &lt;- 1
+        }
+        pb = txtProgressBar(min = 0, max = (ncol(df_norm) - 2), 
+            initial = 0, style = 3)
+        setTxtProgressBar(pb, (i - 2))
+        invisible()
+    }
+    pvalue_matrix &lt;- pvalue_matrix[order(pvalue_matrix[, 4]), 
+        ]
+    pvalue_matrix[, 5] &lt;- format(p.adjust(as.numeric(pvalue_matrix[, 
+        4], n = nrow(pvalue_matrix), method = "fdr")), digits = 7, 
+        scientific = F)
+    cat("\n")
+    if (write.output == TRUE) {
+        all &lt;- readline("Do you want to include all fetures in the output? (yes/no) : ")
+        if (substr(all, 1, 1) == "n") {
+            select &lt;- as.numeric(readline("Level of significance to output features (i.e. 0.2) : "))
+            significant &lt;- subset(pvalue_matrix, pvalue_matrix[, 
+                5] &lt;= select)
+        }
+        else {
+            significant &lt;- pvalue_matrix
+        }
+        write.table(significant, file = "permutation.output", 
+            quote = F, row.names = F, sep = "\t")
+        print(paste("Permutation test done and output table printed!"))
+    }
+    else {
+        significant &lt;- pvalue_matrix
+        significant
+        print(paste("Permutation test done!"))
+    }
+    save(df, df_norm, REFERENCE, classes, selected_features, 
+        nperm, tags.in, tags.out, pvalue_matrix, file = "permubiome.RData")
+  }
+</code></pre>
+
+
+</div>

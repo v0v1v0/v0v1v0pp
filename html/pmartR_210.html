@@ -1,0 +1,217 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>trelli_abundance_boxplot</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Boxplot trelliscope building function for abundance data</h2>
+
+<h3>Description</h3>
+
+<p>Specify a boxplot design and cognostics for the abundance
+boxplot trelliscope. Each boxplot will have its own groups as specified by
+the first main effect in group_designation. Use "trelli_rnaseq_boxplot"
+for RNA-Seq data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">trelli_abundance_boxplot(
+  trelliData,
+  cognostics = c("count", "mean abundance"),
+  ggplot_params = NULL,
+  interactive = FALSE,
+  include_points = TRUE,
+  path = .getDownloadsFolder(),
+  name = "Trelliscope",
+  test_mode = FALSE,
+  test_example = 1,
+  single_plot = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>trelliData</code></td>
+<td>
+<p>A trelliscope data object made by as.trelliData or
+as.trelliData.edata, and grouped by trelli_panel_by. Required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cognostics</code></td>
+<td>
+<p>A vector of cognostic options for each plot. Valid entries
+are "count", "mean abundance", "median abundance", and "cv abundance". 
+If data are paneled by a biomolecule, the count will be "sample count".
+If data are paneled by a sample or a biomolecule class, the count will be "biomolecule count". 
+If statRes data is included, "anova p-value" and "fold change" data per comparisons
+may be added. If grouping information is included, only "sample count" and 
+"mean abundance" will be calculated, along with "anova p-value" and "fold change"
+if specified. "anova p-value" will not be included if paneling a trelliscope
+display by a biomolecule class. Default is "sample count" and "mean abundance".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ggplot_params</code></td>
+<td>
+<p>An optional vector of strings of ggplot parameters to
+the backend ggplot function. For example, c("ylab(”)", "ylim(c(2,20))").
+Default is NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interactive</code></td>
+<td>
+<p>A logical argument indicating whether the plots should be
+interactive or not. Interactive plots are ggplots piped to ggplotly (for
+now). Default is FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>include_points</code></td>
+<td>
+<p>Add points as a geom_jitter. Default is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path</code></td>
+<td>
+<p>The base directory of the trelliscope application. Default is
+Downloads.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>The name of the display. Default is Trelliscope.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test_mode</code></td>
+<td>
+<p>A logical to return a smaller trelliscope to confirm plot
+and design. Default is FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test_example</code></td>
+<td>
+<p>A vector of plot indices to return for test_mode. Default
+is 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>single_plot</code></td>
+<td>
+<p>A TRUE/FALSE to indicate whether 1 plot (not a
+trelliscope) should be returned. Default is FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments to be passed on to the trelli builder</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>No return value, builds a trelliscope display of boxplots that is stored in 'path'
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David Degnan, Lisa Bramer
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+if (interactive()) {
+library(pmartRdata)
+
+trelliData1 &lt;- as.trelliData.edata(e_data = pep_edata,
+                                   edata_cname = "Peptide",
+                                   omics_type = "pepData")
+# Transform the data
+omicsData &lt;- edata_transform(omicsData = pep_object, data_scale = "log2")
+
+# Group the data by condition
+omicsData &lt;- group_designation(omicsData = omicsData, main_effects = c("Phenotype"))
+
+# Apply the IMD ANOVA filter
+imdanova_Filt &lt;- imdanova_filter(omicsData = omicsData)
+omicsData &lt;- applyFilt(filter_object = imdanova_Filt, omicsData = omicsData,
+                       min_nonmiss_anova = 2)
+
+# Normalize my pepData
+omicsData &lt;- normalize_global(omicsData, "subset_fn" = "all", "norm_fn" = "median",
+                             "apply_norm" = TRUE, "backtransform" = TRUE)
+
+# Implement the IMD ANOVA method and compute all pairwise comparisons 
+# (i.e. leave the `comparisons` argument NULL)
+statRes &lt;- imd_anova(omicsData = omicsData, test_method = 'combined')
+
+# Generate the trelliData object
+trelliData2 &lt;- as.trelliData(omicsData = omicsData)
+trelliData4 &lt;- as.trelliData(omicsData = omicsData, statRes = statRes)
+
+# Build the abundance boxplot with an edata file where each panel is a biomolecule. 
+trelli_panel_by(trelliData = trelliData1, panel = "Peptide") %&gt;% 
+   trelli_abundance_boxplot(test_mode = TRUE, test_example = 1:10, path = tempdir())
+
+# Build the abundance boxplot wher each panel is a sample.
+# Include all applicable cognostics. Remove points. 
+trelli_panel_by(trelliData = trelliData1, panel = "Sample") %&gt;% 
+   trelli_abundance_boxplot(test_mode = TRUE, test_example = 1:10, 
+                            include_points = FALSE,
+                            cognostics = c("count", 
+                                           "mean abundance", 
+                                           "median abundance", 
+                                           "cv abundance"),
+                             path = tempdir()
+                           )
+
+# Build the abundance boxplot with an omicsData object.
+# Let the panels be biomolecules. Here, grouping information is included.
+trelli_panel_by(trelliData = trelliData2, panel = "Peptide") %&gt;% 
+   trelli_abundance_boxplot(test_mode = TRUE, test_example = 1:10, path = tempdir())
+
+# Build the abundance boxplot with an omicsData object. The panel is a biomolecule class,
+# which is proteins in this case.
+trelli_panel_by(trelliData = trelliData2, panel = "RazorProtein") %&gt;% 
+   trelli_abundance_boxplot(test_mode = TRUE, test_example = 1:10, path = tempdir())
+
+# Build the abundance boxplot with an omicsData and statRes object.
+# Panel by a biomolecule, and add statistics data to the cognostics
+trelli_panel_by(trelliData = trelliData4, panel = "Peptide") %&gt;%
+   trelli_abundance_boxplot(test_mode = TRUE, test_example = 1:10, path = tempdir(),
+                            cognostics = c("mean abundance", "anova p-value", "fold change"))
+
+# Other options include modifying the ggplot  
+trelli_panel_by(trelliData = trelliData1, panel = "Peptide") %&gt;% 
+   trelli_abundance_boxplot(test_mode = TRUE, test_example = 1:10, path = tempdir(),
+     ggplot_params = c("ylab('')", "ylim(c(20,30))"))
+
+# Or making the plot interactive 
+trelli_panel_by(trelliData = trelliData4, panel = "RazorProtein") %&gt;% 
+    trelli_abundance_boxplot(
+     interactive = TRUE, test_mode = TRUE, test_example = 1:10, path = tempdir())
+
+
+}
+
+
+</code></pre>
+
+
+</div>

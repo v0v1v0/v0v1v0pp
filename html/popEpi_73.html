@@ -1,0 +1,201 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>splitMulti</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Split case-level observations</h2>
+
+<h3>Description</h3>
+
+<p>Split a <code>Lexis</code> object along multiple time scales
+with speed and ease
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">splitMulti(
+  data,
+  breaks = NULL,
+  ...,
+  drop = TRUE,
+  merge = TRUE,
+  verbose = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a Lexis object with event cases as rows</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>breaks</code></td>
+<td>
+<p>a list of named numeric vectors of breaks; see Details and Examples</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>alternate way of supplying breaks as named vectors;
+e.g. <code>fot = 0:5</code> instead of <code>breaks = list(fot = 0:5)</code>;
+if <code>breaks</code> is not <code>NULL</code>, <code>breaks</code> is used and any breaks
+passed through <code>...</code> are NOT used; note also that due to partial 
+matching of argument names in R, 
+if you supply e.g. <code>dat = my_breaks</code> and you 
+do not pass argument <code>data</code> explicitly (<code>data = my_data</code>), then R
+interprets this as <code>data = my_breaks</code> — so choose the names of your
+time scales wisely</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop</code></td>
+<td>
+<p>logical; if <code>TRUE</code>, drops all resulting rows 
+after expansion that reside outside the time window
+defined by the given breaks</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>merge</code></td>
+<td>
+<p>logical; if <code>TRUE</code>, retains all variables 
+from the original data - i.e. original variables are
+repeated for all the rows by original subject</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical; if <code>TRUE</code>, the function is chatty 
+and returns some messages along the way</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>splitMulti</code> is in essence a <span class="pkg">data.table</span> version of
+<code>splitLexis</code> or <code>survSplit</code> for splitting along multiple
+time scales.
+It requires a Lexis object as input.
+</p>
+<p>The <code>breaks</code> must be a list of named vectors of the appropriate type. 
+The breaks are fully explicit and
+left-inclusive and right exclusive, e.g. <code>fot=c(0,5)</code> 
+forces the data to only include time between
+<code>[0,5)</code> for each original row (unless <code>drop = FALSE</code>). 
+Use <code>Inf</code> or <code>-Inf</code> for open-ended intervals,
+e.g. <code>per=c(1990,1995,Inf)</code> creates the intervals 
+<code>[1990,1995), [1995, Inf)</code>.
+</p>
+<p>Instead of specifying <code>breaks</code>, one may make use of the <code>...</code>
+argument to pass breaks: e.g. 
+</p>
+<p><code>splitMulti(x, breaks = list(fot = 0:5))</code> 
+</p>
+<p>is equivalent to
+</p>
+<p><code>splitMulti(x, fot = 0:5)</code>.
+</p>
+<p>Multiple breaks can be supplied in the same manner. However, if both
+<code>breaks</code> and <code>...</code> are used, only the breaks in <code>breaks</code>
+are utilized within the function. 
+</p>
+<p>The <code>Lexis</code> time scale variables can be of any arbitrary 
+format, e.g. <code>Date</code>,
+fractional years (see <code>cal.yr</code>) and <code>get.yrs</code>,
+or other. However, using <code>date</code> variables (from package <span class="pkg">date</span>)
+are not recommended, as <code>date</code> variables are always stored as integers,
+whereas <code>Date</code> variables (see <code>?as.Date</code>) are typically stored
+in double ("numeric") format. This allows for breaking days into fractions
+as well, when using e.g. hypothetical years of 365.25 days.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>data.table</code> or <code>data.frame</code> 
+(depending on <code>options("popEpi.datatable")</code>; see <code>?popEpi</code>) 
+object expanded to accommodate split observations.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Joonas Miettinen
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>splitLexis</code>, <code>Lexis</code>,  
+<code>survSplit</code>
+</p>
+<p>Other splitting functions: 
+<code>lexpand()</code>,
+<code>splitLexisDT()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#### let's prepare data for computing period method survivals
+#### in case there are problems with dates, we first 
+#### convert to fractional years.
+
+library("Epi")
+library("data.table")
+data("sire", package = "popEpi")
+x &lt;- Lexis(data=sire[dg_date &lt; ex_date, ], 
+           entry = list(fot=0, per=get.yrs(dg_date), age=dg_age), 
+           exit=list(per=get.yrs(ex_date)), exit.status=status)
+x2 &lt;- splitMulti(x, breaks = list(fot=seq(0, 5, by = 3/12), per=c(2008, 2013)))
+# equivalently:
+x2 &lt;- splitMulti(x, fot=seq(0, 5, by = 3/12), per=c(2008, 2013))
+
+## using dates; note: breaks must be expressed as dates or days!
+x &lt;- Lexis(data=sire[dg_date &lt; ex_date, ], 
+           entry = list(fot=0, per=dg_date, age=dg_date-bi_date), 
+           exit=list(per=ex_date), exit.status=status)
+BL &lt;- list(fot = seq(0, 5, by = 3/12)*365.242199,
+           per = as.Date(paste0(c(1980:2014),"-01-01")),
+           age = c(0,45,85,Inf)*365.242199)
+x2 &lt;- splitMulti(x, breaks = BL, verbose=TRUE)
+
+
+## multistate example (healty - sick - dead)
+sire2 &lt;- data.frame(sire)
+sire2 &lt;- sire2[sire2$dg_date &lt; sire2$ex_date, ]
+
+set.seed(1L) 
+not_sick &lt;- sample.int(nrow(sire2), 6000L, replace = FALSE)
+sire2$dg_date[not_sick] &lt;- NA
+sire2$status[!is.na(sire2$dg_date) &amp; sire2$status == 0] &lt;- -1
+
+sire2$status[sire2$status==2] &lt;- 1
+sire2$status &lt;- factor(sire2$status, levels = c(0, -1, 1), 
+                       labels = c("healthy", "sick", "dead"))
+ 
+xm &lt;- Lexis(data = sire2, 
+            entry = list(fot=0, per=get.yrs(bi_date), age=0), 
+            exit = list(per=get.yrs(ex_date)), exit.status=status)
+xm2 &lt;- cutLexis(xm, cut = get.yrs(xm$dg_date), 
+                timescale = "per", 
+                new.state = "sick")
+xm2[xm2$lex.id == 6L, ]
+
+xm2 &lt;- splitMulti(xm2, breaks = list(fot = seq(0,150,25)))
+xm2[xm2$lex.id == 6L, ]
+
+
+</code></pre>
+
+
+</div>

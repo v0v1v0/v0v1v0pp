@@ -1,0 +1,425 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pl</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Profit and Loss
+</h2>
+
+<h3>Description</h3>
+
+<p>Compute profit and (or) loss of financial transactions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pl(amount, ... )
+
+## Default S3 method:
+pl(amount, price, timestamp = NULL,
+   instrument = NULL, multiplier = 1,
+   multiplier.regexp = FALSE,
+   along.timestamp = FALSE, approx = FALSE,
+   initial.position = NULL, initial.price = NULL,
+   vprice = NULL, tol = 1e-10, do.warn = TRUE,
+   do.sum = FALSE, pl.only = FALSE,
+   footnotes = TRUE, ... )
+
+## S3 method for class 'journal'
+pl(amount, multiplier = 1,
+   multiplier.regexp = FALSE,
+   along.timestamp = FALSE, approx = FALSE,
+   initial.position = NULL, initial.price = NULL,
+   vprice = NULL, tol = 1e-10, do.warn = TRUE, ... )
+
+## S3 method for class 'pl'
+pl(amount, ... )
+
+## S3 method for class 'pl'
+print(x, ..., use.crayon = NULL, na.print = ".",
+        footnotes = TRUE)
+
+## S3 method for class 'pl'
+as.data.frame(x, ... )
+
+.pl(amount, price, tol = 1e-10, do.warn = TRUE)
+.pl_stats(amount, price, tol = sqrt(.Machine$double.eps))
+
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>amount</code></td>
+<td>
+<p>numeric or a <code>journal</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>price</code></td>
+<td>
+<p>numeric</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>instrument</code></td>
+<td>
+<p>character or numeric (though
+typically character)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timestamp</code></td>
+<td>
+<p>An atomic vector of mode
+<code>numeric</code> or <code>character</code>.
+Timestamps should typically be sortable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>along.timestamp</code></td>
+<td>
+<p>logical; or a a vector of
+timestamps. If the latter, <code>vprice</code> must be
+specified as well. See the vignette
+“Profit/Loss for Open Positions”
+(<code>pl_open_positions</code>) for details.  Timestamps
+must be in ascending order and will be sorted if
+they are not (and <code>vprice</code> will then be sorted
+as well).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initial.position</code></td>
+<td>
+
+<p>a <code>position</code>
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initial.price</code></td>
+<td>
+
+<p>prices to evaluate initial position
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vprice</code></td>
+<td>
+
+<p>valuation price; a numeric vector. With several instruments, the
+prices must be named, e.g. <code>c(stock1 = 100, stock2 = 101)</code>.
+See Details.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multiplier</code></td>
+<td>
+
+<p>numeric vector. When <code>instrument</code> is specified
+and the vector is named, the names will be matched
+against instruments.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multiplier.regexp</code></td>
+<td>
+
+<p>logical. If <code>TRUE</code>, the names of
+<code>multiplier</code> are interpreted as regular
+expressions. See Examples.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>approx</code></td>
+<td>
+<p>logical</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>numeric: threshold to consider a position zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a <code>pl</code> object to be printed or to be coerced to a data.frame</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further argument</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use.crayon</code></td>
+<td>
+<p>logical</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.print</code></td>
+<td>
+<p>character: how to print <code>NA</code> values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>do.warn</code></td>
+<td>
+<p>logical: issue warnings?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>do.sum</code></td>
+<td>
+<p>logical: sum profit/loss across instruments?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pl.only</code></td>
+<td>
+<p>logical: if <code>TRUE</code>, return only
+numeric vector of profit/loss</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>footnotes</code></td>
+<td>
+
+<p>logical, with default <code>TRUE</code>:
+collect and print notes?</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Computes profit and/or loss and returns a list with
+several statistics (see Section Value, below). To get only
+the profit/loss numbers as a numeric vector, set argument
+<code>pl.only</code> to <code>TRUE</code>.
+</p>
+<p><code>pl</code> is a generic function: The default input is
+vectors for amount, price, etc. Alternatively (and often
+more conveniently), the function may also be called with a
+<code>journal</code> or a <code>data.frame</code> as its
+input. For data frames, columns must be named
+<code>amount</code>, <code>price</code>, and so on, as in a
+<code>journal</code>.
+</p>
+<p><code>pl</code> may be called in two ways: either to compute
+<em>total profit/loss</em> from a list of trades, possibly
+broken down by <code>instrument</code> and <code>account</code>; or to
+compute <em>profit/loss over time</em>. The latter case
+typically requires setting arguments
+<code>along.timestamp</code> and/or <code>vprice</code> (see
+Examples).  Profit/loss over time is always computed with
+time in ascending order: so if the timestamps in
+<code>along.timestamp</code> are not sorted, the function will
+sort them (and <code>vprice</code> as well).
+</p>
+<p>Using <code>vprice</code>: when <code>along.timestamp</code> is
+logical (<code>FALSE</code> or <code>TRUE</code>),
+<code>vprice</code> can be used to value an open
+position. For a single asset, it should be a single
+number; for several assets, it should be named
+vector, with names indicating the <code>instrument</code>.
+When <code>along.timestamp</code> is used to pass a
+custom timestamp: for a single asset, <code>vprice</code>
+must be a vector with the same length as
+<code>along.timestamp</code>; for several assets, it must
+be a numeric matrix with dimension
+<code>length(along.timestamp)</code> times number of
+assets.
+</p>
+<p><code>.pl</code> and <code>.pl_stats</code> are helper functions
+that are called by <code>pl</code>.  <code>.pl_stats</code>
+requires amount and price to be sorted in time, and
+to be of length &gt; 0.
+</p>
+<p>To use package <span class="pkg">crayon</span> – which is only sensible
+in interactive use –, either explicitly set
+<code>use.crayon</code> to <code>TRUE</code> or set an option
+<code>PMwR.use.crayon</code> to <code>TRUE</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>pl</code>, an object of class <code>pl</code>, which is
+a list of lists: one list for each instrument. Each
+such list contains numeric vectors: <code>pl</code>,
+<code>realised</code>, <code>unrealised</code>, <code>buy</code>,
+<code>sell</code>, <code>volume</code>. If <code>along.timestamp</code>
+is not <code>FALSE</code>, a vector <code>timestamp</code>
+is also present.
+</p>
+<p>For <code>.pl</code>, a numeric vector with four elements:
+profit/loss in units of the instrument, sum of
+absolute amounts, average buy price, average sell
+price. For zero-length vector, the function evaluates to
+<code>c(0, 0, NaN, NaN)</code>.
+</p>
+<p>For <code>.pl_stats</code>, a list of two elements:
+the average entry-price, and the realized profit/loss.
+profit/loss in units of the instrument, sum of
+absolute amounts, average buy price, average sell
+price. For zero-length vector, the function evaluates to
+<code>c(0, 0, NaN, NaN)</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Enrico Schumann &lt;es@enricoschumann.net&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>Schumann, E. (2023) <em>Portfolio Management with R</em>.
+<a href="https://enricoschumann.net/PMwR/">https://enricoschumann.net/PMwR/</a>; in particular
+<a href="https://enricoschumann.net/R/packages/PMwR/manual/PMwR.html#profit-and-loss">https://enricoschumann.net/R/packages/PMwR/manual/PMwR.html#profit-and-loss</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>btest</code>, <code>returns</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">J &lt;- journal(timestamp = c(  1,   2,   3),
+             amount    = c(  1,   1,  -2),
+             price     = c(100, 102, 101))
+pl(J)
+
+pl(amount = c(  1,   1,  -2),
+   price  = c(100, 102, 101))  ## without a 'journal'
+
+
+J &lt;- journal(timestamp  = c(  1,   2,   3,   1,   2,   3),
+             amount     = c(  1,   1,  -2,   1,   1,  -2),
+             price      = c(100, 102, 101, 100, 102, 105),
+             instrument = c(rep("Bond A", 3), rep("Bond B", 3)))
+
+pl(J)
+## Bond A
+##   P/L total       0
+##   average buy   101
+##   average sell  101
+##   cum. volume     4
+##
+## Bond B
+##   P/L total       8
+##   average buy   101
+##   average sell  105
+##   cum. volume     4
+##
+## 'P/L total' is in units of instrument;
+## 'volume' is sum of /absolute/ amounts.
+
+as.data.frame(pl(J))  ## a single data.frame
+##        pl buy sell volume
+## Bond A  0 101  101      4
+## Bond B  8 101  105      4
+
+lapply(pl(J), as.data.frame)  ## =&gt; a list of data.frames
+## $`Bond A`
+##   pl realised unrealised buy sell volume
+## 1  0       NA         NA 101  101      4
+##
+## $`Bond B`
+##   pl realised unrealised buy sell volume
+## 1  8       NA         NA 101  105      4
+
+pl(pl(J))  ## P/L as a numeric vector
+## Bond A Bond B
+##      0      8
+
+
+
+
+## Example for 'vprice'
+instrument  &lt;- c(rep("Bond A", 2), rep("Bond B", 2))
+amount &lt;- c(1, -2, 2, -1)
+price &lt;- c(100, 101, 100, 105)
+
+## ... no p/l because positions not closed:
+pl(amount, price, instrument = instrument, do.warn = FALSE)
+
+## ... but with vprice specified, p/l is computed:
+pl(amount, price, instrument = instrument,
+   vprice = c("Bond A" = 103, "Bond B" = 100))
+
+### ... and is, except for volume, the same as here:
+instrument  &lt;- c(rep("Bond A", 3), rep("Bond B", 3))
+amount &lt;- c(1, -2, 1, 2, -1, -1)
+price &lt;- c(100, 101, 103, 100, 105, 100)
+pl(amount, price, instrument = instrument)
+
+
+
+## p/l over time: example for 'along.timestamp' and 'vprice'
+j &lt;- journal(amount = c(1, -1),
+             price = c(100, 101),
+             timestamp  = as.Date(c("2017-07-05", "2017-07-06")))
+pl(j)
+
+pl(j,
+   along.timestamp = TRUE)
+
+pl(j,
+   along.timestamp = seq(from = as.Date("2017-07-04"),
+                         to = as.Date("2017-07-07"),
+                         by = "1 day"),
+   vprice = 101:104)
+
+
+
+## Example for 'multiplier'
+jnl &lt;- read.table(text =
+"instrument, price, amount
+ FGBL MAR 16, 165.20,  1
+ FGBL MAR 16, 165.37, -1
+ FGBL JUN 16, 164.12,  1
+ FGBL JUN 16, 164.13, -1
+ FESX JUN 16,   2910,  5
+ FESX JUN 16,   2905, -5",
+header = TRUE, stringsAsFactors = FALSE, sep = ",")
+
+
+jnl &lt;- as.journal(jnl)
+pl(jnl,  multiplier.regexp = TRUE, ## regexp matching is case sensitive
+   multiplier = c("FGBL" = 1000, "FESX" = 10))
+
+
+
+## use package 'crayon'
+## Not run: 
+## on Windows, you may also need 'options(crayon.enabled = TRUE)'
+options(PMwR.use.crayon = FALSE)
+pl(amount = c(1, -1), price = c(1, 2))
+options(PMwR.use.crayon = TRUE)
+pl(amount = c(1, -1), price = c(1, 2))
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

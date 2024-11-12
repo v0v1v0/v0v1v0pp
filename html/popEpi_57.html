@@ -1,0 +1,171 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>relpois_ag</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Excess hazard Poisson model</h2>
+
+<h3>Description</h3>
+
+<p>Estimate a Poisson Piecewise Constant Excess
+Hazards Model
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">relpois_ag(
+  formula,
+  data,
+  d.exp,
+  offset = NULL,
+  breaks = NULL,
+  subset = NULL,
+  piecewise = TRUE,
+  check = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a formula with the counts of events as the response.
+Passed on to <code>glm</code>. May contain usage of the <code>offset()</code> function
+instead of supplying the offset for the Poisson model via the argument
+<code>offset</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>an <code>aggre</code> object (an aggregated data set; 
+see <code>as.aggre</code> and <code>aggre</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d.exp</code></td>
+<td>
+<p>the counts of expected cases. Mandatory.
+E.g. <code>d.exp = EXC_CASES</code>, where <code>EXC_CASES</code> is a column in data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offset</code></td>
+<td>
+<p>the offset for the Poisson model, supplied as e.g.
+<code>offset = log(PTIME)</code>, where <code>PTIME</code> is a subject-time
+variable in data. Not mandatory, but almost always should be supplied.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>breaks</code></td>
+<td>
+<p>optional; a numeric vector of [a,b) breaks to specify
+survival intervals over the follow-up time; if <code>NULL</code>, the 
+existing breaks along the mandatory time scale mentioned in <code>formula</code>
+are used</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+<p>a logical vector or condition; e.g. <code>subset = sex == 1</code>;
+limits the data before estimation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>piecewise</code></td>
+<td>
+<p><code>logical</code>; if <code>TRUE</code>, and if any time scale
+from data is used (mentioned) in the formula, the time scale is 
+transformed into a factor variable indicating intervals on the time scale.
+Otherwise the time scale left as it is, usually a numeric variable.
+E.g. if <code>formula = counts ~ TS1*VAR1</code>, <code>TS1</code> is transformed
+into a factor before fitting model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>check</code></td>
+<td>
+<p><code>logical</code>; if <code>TRUE</code>, performs check on the 
+negativity excess cases by factor-like covariates in formula - 
+negative excess cases will very likely lead to non-converging model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>any other argument passed on to <code>glm</code> such as 
+<code>control</code> or <code>weights</code></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>relpois</code> object created using a custom Poisson family construct.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Joonas Miettinen, Karri Seppa
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>lexpand</code>, <code>poisson</code>, <code>glm</code>
+</p>
+<p>Other main functions: 
+<code>Surv()</code>,
+<code>rate()</code>,
+<code>relpois()</code>,
+<code>sir()</code>,
+<code>sirspline()</code>,
+<code>survmean()</code>,
+<code>survtab()</code>,
+<code>survtab_ag()</code>
+</p>
+<p>Other relpois functions: 
+<code>RPL</code>,
+<code>relpois()</code>,
+<code>rpcurve()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## use the simulated rectal cancer cohort
+data(sire, package = "popEpi")
+sire$agegr &lt;- cut(sire$dg_age, c(0,45,60,Inf), right=FALSE)
+
+## create aggregated example data
+fb &lt;- c(0,3/12,6/12,1,2,3,4,5)
+x &lt;- lexpand(sire, birth = bi_date, entry = dg_date,
+             exit = ex_date, status=status %in% 1:2,
+             breaks = list(fot=fb), 
+             pophaz=popmort, pp = FALSE,
+             aggre = list(agegr, fot))
+             
+## fit model using aggregated data
+rpm &lt;- relpois_ag(formula = from0to1 ~ fot + agegr,  data = x,
+                  d.exp = d.exp, offset = log(pyrs))
+summary(rpm)
+ 
+## the usual functions for handling glm models work
+rpm2 &lt;- update(rpm, . ~ fot*agegr)
+anova(rpm, rpm2, test="LRT")
+AIC(rpm, rpm2)
+
+## other features such as residuals or predicting are not guaranteed
+## to work as intended.
+</code></pre>
+
+
+</div>

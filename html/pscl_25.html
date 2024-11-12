@@ -1,0 +1,400 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>hurdle</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Hurdle Models for Count Data Regression</h2>
+
+<h3>Description</h3>
+
+<p>Fit hurdle regression models for count data via maximum likelihood. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">hurdle(formula, data, subset, na.action, weights, offset,
+  dist = c("poisson", "negbin", "geometric"),
+  zero.dist = c("binomial", "poisson", "negbin", "geometric"),
+  link = c("logit", "probit", "cloglog", "cauchit", "log"),
+  control = hurdle.control(...),
+  model = TRUE, y = TRUE, x = FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>symbolic description of the model, see details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data, subset, na.action</code></td>
+<td>
+<p>arguments controlling formula processing
+via <code>model.frame</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>optional numeric vector of weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offset</code></td>
+<td>
+<p>optional numeric vector with an a priori known component to be
+included in the linear predictor of the count model. See below for more
+information on offsets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dist</code></td>
+<td>
+<p>character specification of count model family.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zero.dist</code></td>
+<td>
+<p>character specification of the zero hurdle model family.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>link</code></td>
+<td>
+<p>character specification of link function in the binomial
+zero hurdle (only used if <code>zero.dist = "binomial"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>a list of control arguments specified via
+<code>hurdle.control</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model, y, x</code></td>
+<td>
+<p>logicals. If <code>TRUE</code> the corresponding components
+of the fit (model frame, response, model matrix) are returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>arguments passed to <code>hurdle.control</code> in the
+default setup.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Hurdle count models are two-component models with a truncated count
+component for positive counts and a hurdle component that models the
+zero counts. Thus, unlike zero-inflation models, there are <em>not</em> two
+sources of zeros: the count model is only employed if the hurdle for
+modeling the occurrence of zeros is exceeded. The count model is typically
+a truncated Poisson or negative binomial regression (with log link).
+The geometric distribution is a special case of the negative binomial with
+size parameter equal to 1. For modeling the hurdle, either a binomial model
+can be employed or a censored count distribution. The outcome of the hurdle
+component of the model is the occurrence of a non-zero (positive) count.
+Thus, for most models, positive coefficients in the hurdle component indicate
+that an increase in the regressor increases the probability of a non-zero count.
+Binomial logit and censored geometric models as the hurdle part both lead to 
+the same likelihood function and thus to the same coefficient estimates.
+A censored negative binomial model for the zero hurdle is only identified
+if there is at least one non-constant regressor with (true) coefficient different
+from zero (and if all coefficients are close to zero the model can be poorly
+conditioned).
+</p>
+<p>The <code>formula</code> can be used to specify both components of the model:
+If a <code>formula</code> of type <code>y ~ x1 + x2</code> is supplied, then the same
+regressors are employed in both components. This is equivalent to
+<code>y ~ x1 + x2 | x1 + x2</code>. Of course, a different set of regressors
+could be specified for the zero hurdle component, e.g.,
+<code>y ~ x1 + x2 | z1 + z2 + z3</code> giving the count data model <code>y ~ x1 + x2</code>
+conditional on (<code>|</code>) the zero hurdle model <code>y ~ z1 + z2 + z3</code>.
+</p>
+<p>Offsets can be specified in both parts of the model pertaining to count and
+zero hurdle model: <code>y ~ x1 + offset(x2) | z1 + z2 + offset(z3)</code>, where
+<code>x2</code> is used as an offset (i.e., with coefficient fixed to 1) in the
+count part and <code>z3</code> analogously in the zero hurdle part. By the rule
+stated above <code>y ~ x1 + offset(x2)</code> is expanded to
+<code>y ~ x1 + offset(x2) | x1 + offset(x2)</code>. Instead of using the
+<code>offset()</code> wrapper within the <code>formula</code>, the <code>offset</code> argument
+can also be employed which sets an offset only for the count model. Thus,
+<code>formula = y ~ x1</code> and <code>offset = x2</code> is equivalent to
+<code>formula = y ~ x1 + offset(x2) | x1</code>.
+</p>
+<p>All parameters are estimated by maximum likelihood using <code>optim</code>,
+with control options set in <code>hurdle.control</code>.
+Starting values can be supplied, otherwise they are estimated by <code>glm.fit</code>
+(the default). By default, the two components of the model are estimated separately
+using two <code>optim</code> calls. Standard errors are derived numerically using
+the Hessian matrix returned by <code>optim</code>. See
+<code>hurdle.control</code> for details.
+</p>
+<p>The returned fitted model object is of class <code>"hurdle"</code> and is similar
+to fitted <code>"glm"</code> objects. For elements such as <code>"coefficients"</code> or
+<code>"terms"</code> a list is returned with elements for the zero and count components,
+respectively. For details see below.
+</p>
+<p>A set of standard extractor functions for fitted model objects is available for
+objects of class <code>"hurdle"</code>, including methods to the generic functions
+<code>print</code>, <code>summary</code>, <code>coef</code>, 
+<code>vcov</code>, <code>logLik</code>, <code>residuals</code>, 
+<code>predict</code>, <code>fitted</code>, <code>terms</code>,
+<code>model.matrix</code>. See <code>predict.hurdle</code> for more details
+on all methods.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"hurdle"</code>, i.e., a list with components including
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>coefficients</code></td>
+<td>
+<p>a list with elements <code>"count"</code> and <code>"zero"</code>
+containing the coefficients from the respective models,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>residuals</code></td>
+<td>
+<p>a vector of raw residuals (observed - fitted),</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fitted.values</code></td>
+<td>
+<p>a vector of fitted means,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optim</code></td>
+<td>
+<p>a list (of lists) with the output(s) from the <code>optim</code> call(s) for
+minimizing the negative log-likelihood(s),</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>the control arguments passed to the <code>optim</code> call,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start</code></td>
+<td>
+<p>the starting values for the parameters passed to the <code>optim</code> call(s),</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>the case weights used,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offset</code></td>
+<td>
+<p>a list with elements <code>"count"</code> and <code>"zero"</code>
+containing the offset vectors (if any) from the respective models,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>number of observations (with weights &gt; 0),</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df.null</code></td>
+<td>
+<p>residual degrees of freedom for the null model (= <code>n - 2</code>),</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df.residual</code></td>
+<td>
+<p>residual degrees of freedom for fitted model,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>terms</code></td>
+<td>
+<p>a list with elements <code>"count"</code>, <code>"zero"</code> and
+<code>"full"</code> containing the terms objects for the respective models,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta</code></td>
+<td>
+<p>estimate of the additional <code class="reqn">\theta</code> parameter of the
+negative binomial model(s) (if negative binomial component is used),</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SE.logtheta</code></td>
+<td>
+<p>standard error(s) for <code class="reqn">\log(\theta)</code>,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loglik</code></td>
+<td>
+<p>log-likelihood of the fitted model,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vcov</code></td>
+<td>
+<p>covariance matrix of all coefficients in the model (derived from the
+Hessian of the <code>optim</code> output(s)),</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dist</code></td>
+<td>
+<p>a list with elements <code>"count"</code> and <code>"zero"</code> with character
+strings describing the respective distributions used,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>link</code></td>
+<td>
+<p>character string describing the link if a binomial zero hurdle model
+is used,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>linkinv</code></td>
+<td>
+<p>the inverse link function corresponding to <code>link</code>,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>converged</code></td>
+<td>
+<p>logical indicating successful convergence of <code>optim</code>,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>the original function call,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>the original formula,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>levels</code></td>
+<td>
+<p>levels of the categorical regressors,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contrasts</code></td>
+<td>
+<p>a list with elements <code>"count"</code> and <code>"zero"</code>
+containing the contrasts corresponding to <code>levels</code> from the
+respective models,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>the full model frame (if <code>model = TRUE</code>),</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>the response count vector (if <code>y = TRUE</code>),</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a list with elements <code>"count"</code> and <code>"zero"</code>
+containing the model matrices from the respective models
+(if <code>x = TRUE</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Achim Zeileis &lt;Achim.Zeileis@R-project.org&gt;</p>
+
+
+<h3>References</h3>
+
+<p>Cameron, A. Colin and Pravin K. Trivedi. 1998. <em>Regression Analysis of Count 
+Data</em>. New York: Cambridge University Press.
+</p>
+<p>Cameron, A. Colin and Pravin K. Trivedi 2005. <em>Microeconometrics: Methods and Applications</em>.
+Cambridge: Cambridge University Press.
+</p>
+<p>Mullahy, J. 1986. Specification and Testing of Some Modified Count Data Models.
+<em>Journal of Econometrics</em>. <b>33</b>:341–365.
+</p>
+<p>Zeileis, Achim, Christian Kleiber and Simon Jackman 2008.
+“Regression Models for Count Data in R.” 
+<em>Journal of Statistical Software</em>, <b>27</b>(8).
+URL <a href="https://www.jstatsoft.org/v27/i08/">https://www.jstatsoft.org/v27/i08/</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>hurdle.control</code>, <code>glm</code>,
+<code>glm.fit</code>, <code>glm.nb</code>,
+<code>zeroinfl</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## data
+data("bioChemists", package = "pscl")
+
+## logit-poisson
+## "art ~ ." is the same as "art ~ . | .", i.e.
+## "art ~ fem + mar + kid5 + phd + ment | fem + mar + kid5 + phd + ment"
+fm_hp1 &lt;- hurdle(art ~ ., data = bioChemists)
+summary(fm_hp1)
+
+## geometric-poisson
+fm_hp2 &lt;- hurdle(art ~ ., data = bioChemists, zero = "geometric")
+summary(fm_hp2)
+
+## logit and geometric model are equivalent
+coef(fm_hp1, model = "zero") - coef(fm_hp2, model = "zero")
+
+## logit-negbin
+fm_hnb1 &lt;- hurdle(art ~ ., data = bioChemists, dist = "negbin")
+summary(fm_hnb1)
+
+## negbin-negbin
+## (poorly conditioned zero hurdle, note the standard errors)
+fm_hnb2 &lt;- hurdle(art ~ ., data = bioChemists, dist = "negbin", zero = "negbin")
+summary(fm_hnb2)
+</code></pre>
+
+
+</div>

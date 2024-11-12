@@ -1,0 +1,166 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>parabolic_weights_rcpp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>parabolic_weights_field</h2>
+
+<h3>Description</h3>
+
+<p>The resampled spectrum involves summing weighted tapers; this produces
+the weighting factors. 
+<code>parabolic_weights_rcpp</code> is the fastest implementation, used by
+<code>resample_fft_rcpp</code>, but it takes only a single value.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">parabolic_weights_rcpp(ntap = 1L)
+
+parabolic_weights_field(ntap)
+
+parabolic_weights(ntap, ...)
+
+## S3 method for class 'tapers'
+parabolic_weights(ntap, tap.index = 1L, ...)
+
+## Default S3 method:
+parabolic_weights(ntap = 1L, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ntap</code></td>
+<td>
+<p>integer (or <code>tapers</code> object); the number of tapers to provide weightings for.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>optional arguments</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tap.index</code></td>
+<td>
+<p>integer; if <code>ntap</code> is a <code>tapers</code> object, the index from which to produce a sequence of weights for</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If one has a <code>tapers</code> object, specify the <code>taper.index</code> to
+produce a sequence of weights up to the value at that index; the user
+is likely to never need to use this function though.
+</p>
+<p>Weighting factors, <code class="reqn">W</code>, are calculated as follows:
+</p>
+<p style="text-align: center;"><code class="reqn">
+ W \equiv \frac{6 (n^2 - K^2)}{n (4 * n - 1) (n + 1)}
+</code>
+</p>
+
+<p>where <code class="reqn">n</code> is the total number of tapers, and 
+<code class="reqn">K</code> is the integer sequence <code class="reqn">[0,n-1]</code>.
+</p>
+<p>The sum of tapers should equal 1, within machine precision, when <code class="reqn">n&gt;0</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with the number of tapers, indices of the taper sequence, and the weights <code class="reqn">W_N</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>A.J. Barbour adapted the original algorithm (R.L. Parker), and authored the optimized versions.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>resample_fft_rcpp</code>, <code>psdcore</code>, <code>riedsid2</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: #REX
+library(psd)
+library(grDevices)
+library(RColorBrewer)
+
+##
+## Show parabolic weighting factors as a function of maximum tapers
+##
+
+# maximum number of tapers
+maxx &lt;- 1e3
+# sequence in logspace
+xseq &lt;- seq(from=1,to=2.8,by=0.2)
+
+# plot palette
+pal &lt;- "Spectral"
+npal &lt;- switch(pal, RdYlBu=11, Spectral=11, Blues=9)
+pal.col &lt;- RColorBrewer::brewer.pal(npal, pal)
+cols &lt;- rev(grDevices::colorRampPalette(pal.col)(maxx))
+
+to_df &lt;- function(W){
+  # convert parabolic results to data.frame
+  with(W, data.frame(taper_seq=as.vector(taper_seq), taper_weights=as.vector(taper_weights)))
+}
+
+## a roundabout way of bootstrapping y-axis limits:
+#  upper
+WgtsU &lt;- parabolic_weights(5)
+DfU &lt;- to_df(WgtsU)
+#  lower
+WgtsL &lt;- parabolic_weights(maxx)
+DfL &lt;- to_df(WgtsL)
+
+ylims &lt;- range(pretty(dB(c(DfL$taper_weights, DfU$taper_weights)))) + c(-2,5)
+
+# function for plotting text
+TFUN &lt;- function(Df.){
+  tx &lt;- max(Df.$taper_seq)
+  ty &lt;- mean(Df.$taper_weights)
+  text(log10(tx)+0.1, dB(ty), sprintf("%i", tx), col=cols[tx])
+}
+
+# function for weighting factors and plotting
+WFUN &lt;- function(x){
+  message(x)
+  Wgts &lt;- parabolic_weights(x)
+  Df &lt;- to_df(Wgts)
+  lcol &lt;- cols[x]
+  lines(dB(taper_weights) ~ log10(taper_seq), Df, type="s", lwd=2, col=lcol)
+  TFUN(Df)
+}
+
+## Plot parabolic weighting, in dB, colored by maximum num tapers
+plot(dB(taper_weights) ~ log10(taper_seq), DfU, type="s", 
+     xlim=c(0, log10(maxx)+0.2), 
+     ylim=ylims, yaxs="i",
+     col=cols[5], lwd=2,  
+     main="Multitaper weighting factors by maximum tapers applied",
+     xlab="log10 taper sequence", 
+     ylab="dB")
+TFUN(DfU)
+invisible(lapply(round(10**xseq), FUN=WFUN))
+WFUN(maxx)
+
+##
+
+## End(Not run)#REX
+</code></pre>
+
+
+</div>

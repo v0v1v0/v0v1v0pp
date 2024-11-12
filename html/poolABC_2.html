@@ -1,0 +1,298 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ABC</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Parameter estimation with Approximate Bayesian Computation with several
+targets</h2>
+
+<h3>Description</h3>
+
+<p>Perform multivariate parameter estimation based on summary statistics using
+an Approximate Bayesian Computation (ABC) algorithm. This function always
+uses a rejection sampling algorithm while a local linear regression algorithm
+might or might not be used.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ABC(
+  nPops,
+  ntrials,
+  freqs,
+  positions,
+  range,
+  rMajor,
+  rMinor,
+  coverage,
+  window,
+  nLoci,
+  limits,
+  params,
+  sumstats,
+  tol,
+  method,
+  parallel = FALSE,
+  ncores = NA
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>nPops</code></td>
+<td>
+<p>is an integer indicating how many different populations are
+present in the dataset you are analysing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ntrials</code></td>
+<td>
+<p>indicates how many different trials should be performed. Each
+trial corresponds to a different target for the parameter estimation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>freqs</code></td>
+<td>
+<p>is a list containing the allelic frequencies. Each entry of that
+list should represent a different contig and be a matrix where each row
+corresponds to a different site and each column to a different population.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>positions</code></td>
+<td>
+<p>is a list containing the position of the SNPs. Each entry
+should represent a different contig and be a vector containing the position
+of each SNP present in the contig.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>range</code></td>
+<td>
+<p>is a list containing the range of the contig. Each entry should
+represent a different contig and be a vector with two entries: the first
+detailing the minimum position of the contig and the second the maximum
+position of the contig.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rMajor</code></td>
+<td>
+<p>a list containing the number of major allele reads. Each entry
+should represent a different contig. For each contig (matrix), each row
+should be a different site and each column a different population.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rMinor</code></td>
+<td>
+<p>a list containing the number of minor allele reads. Each entry
+should represent a different contig. For each contig (matrix), each row
+should be a different site and each column a different population.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coverage</code></td>
+<td>
+<p>is a list containing the depth of coverage. Each entry should
+represent a different contig and be a matrix with the sites as rows and the
+different populations as columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>window</code></td>
+<td>
+<p>is a non-negative integer indicating the size, in base pairs,
+of the block of the contig to keep.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nLoci</code></td>
+<td>
+<p>is a non-negative integer indicating how many different contigs
+should be kept in the output. If each randomly selected <code>window</code> is a
+different loci, then how many different <code>window</code> should be selected?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>limits</code></td>
+<td>
+<p>is a matrix with two columns and as many rows as there are
+parameters. Each row should contain the minimum value of the prior for a
+given parameter in the first column and the maximum value in the second
+column.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params</code></td>
+<td>
+<p>is a vector or matrix of simulated parameter values i.e.
+numbers from the simulations. Each row or vector entry should be a
+different simulation and each column of a matrix should be a different
+parameter. This is the dependent variable for the regression, if a
+regression step is performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sumstats</code></td>
+<td>
+<p>is a vector or matrix of simulated summary statistics. Each
+row or vector entry should be a different simulation and each column of a
+matrix should be a different statistic. These act as the independent
+variables if a regression step is performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>is the tolerance rate, indicating the required proportion of
+points accepted nearest the target values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>either "rejection" or "regression" indicating whether a
+regression step should be performed during ABC parameter estimation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>logical, indicating whether this function should be run using
+parallel execution. The default setting is FALSE, meaning that this
+function will utilize a single core.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+<p>a non-negative integer that is required when <code>parallel</code> is
+TRUE. It specifies the number of cores to use for parallel execution.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>To use this function, the usual steps of ABC parameter estimation have to be
+performed. Briefly, data should have been simulated based on random draws
+from the prior distributions of the parameters of interest and a set of
+summary statistics should have been calculated from that data. This function
+requires as input the observed data and computes the same set of summary
+statistics from that observed data. Multiple sets of observed summary
+statistics are computed from <code>ntrials</code> sets of <code>nLoci</code> blocks of size
+<code>window</code>. Parameter estimation is performed for each one of those sets of
+observed summary statistics i.e. each set corresponds to a different target.
+</p>
+<p>After computing this set of observed summary statistics, a simple rejection
+is performed by calling the <code>rejABC()</code> function. In this step, parameter
+values are accepted if the Euclidean distance between the set of summary
+statistics computed from the simulated data and the set of summary statistics
+computed from the observed data is sufficiently small. The percentage of
+accepted simulations is determined by <code>tol</code>.
+</p>
+<p>When <code>method</code> is "regression", a local linear regression method is used to
+correct for the imperfect match between the summary statistics computed from
+the simulated data and the summary statistics computed from the observed
+data. The output of the <code>rejABC()</code> function is used as the input of the
+<code>regABC()</code> function to apply this correction. The parameter values accepted
+in the rejection step are weighted by a smooth function (kernel) of the
+distance between the simulated and observed summary statistics and corrected
+according to a linear transformation.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a list with seven different entries.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>observed summary statistics.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ss</code></td>
+<td>
+<p>set of accepted summary statistics from the simulations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>unadjusted</code></td>
+<td>
+<p>parameter estimates obtained with the rejection
+sampling.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjusted</code></td>
+<td>
+<p>regression adjusted parameter values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predmean</code></td>
+<td>
+<p>estimates of the posterior mean for each parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>regression weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>position</code></td>
+<td>
+<p>position of each SNP used for calculating the observed
+summary statistics.</p>
+</td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+<p>For more details see the poolABC vignette:
+<code>vignette("poolABC", package = "poolABC")</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Note that this example is limited to a few of the options available
+# you should check the poolABC vignette for more details
+
+# this creates a variable with the path for the toy example data
+mypath &lt;- system.file('extdata', package = 'poolABC')
+
+# import data for two populations from all files
+mydata &lt;- importContigs(path = mypath, pops = c(8, 10))
+
+# to perform parameter inference for two populations using the rejection method
+# and with a tolerance of 0.01
+myabc &lt;- ABC(nPops = 2, ntrials = 10, freqs = mydata$freqs, positions = mydata$positions,
+range = mydata$range, rMajor = mydata$rMajor, rMinor = mydata$rMinor, coverage = mydata$coverage,
+window = 1000, nLoci = 4, limits, params, sumstats, tol = 0.01, method = "rejection")
+
+# the previous will perform parameter inference for 10 different targets (ntrials = 100)
+# each of those trials will be comprised of 4 loci, each with 1000 base pairs
+
+# to perform parameter inference for two populations using the regression method
+# and with a tolerance of 0.01
+myabc &lt;- ABC(nPops = 2, ntrials = 10, freqs = mydata$freqs, positions = mydata$positions,
+range = mydata$range, rMajor = mydata$rMajor, rMinor = mydata$rMinor, coverage = mydata$coverage,
+window = 1000, nLoci = 4, limits, params, sumstats, tol = 0.01, method = "regression")
+
+</code></pre>
+
+
+</div>

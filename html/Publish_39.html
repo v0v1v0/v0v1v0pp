@@ -1,0 +1,205 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>regressionTable</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Regression table</h2>
+
+<h3>Description</h3>
+
+<p>Tabulate the results of a regression analysis.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">regressionTable(
+  object,
+  param.method = "coef",
+  confint.method = c("default", "profile", "robust", "simultaneous"),
+  pvalue.method = c("default", "robust", "simultaneous"),
+  factor.reference = "extraline",
+  intercept = 0L,
+  units = NULL,
+  noterms = NULL,
+  probindex = 0L,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>Fitted regression model obtained with <code>lm</code>,
+<code>glm</code> or <code>coxph</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>param.method</code></td>
+<td>
+<p>Method to obtain model coefficients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>confint.method</code></td>
+<td>
+<p>Method to obtain confidence
+intervals. Default is 'default' which leads to Wald
+type intervals using the model based estimate of standard
+error. 'profile' yields profile likelihood confidence
+intervals, available from library MASS for <code>lm</code> and
+<code>glm</code> objects. 'robust' uses the sandwich form
+standard error to construct Wald type intervals (see
+<code>lava::estimate.default</code>). 'simultaneous' calls
+<code>multcomp::glht</code> to obtain simultaneous confidence
+intervals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pvalue.method</code></td>
+<td>
+<p>Method to obtain p-values. If
+<code>'default'</code> show raw p-values.  If <code>'robust'</code> use
+p-value corresponding to robust standard error as provided by
+<code>lava::estimate.default</code>. If <code>'simultaneous'</code> call
+<code>multcomp::glht</code> to obtain p-values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>factor.reference</code></td>
+<td>
+<p>Style for showing results for categorical
+variables. If <code>'extraline'</code> show an additional line for
+the reference category. If <code>'inline'</code> display as level
+vs. reference.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intercept</code></td>
+<td>
+<p>Logical. If <code>FALSE</code> suppress intercept.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>units</code></td>
+<td>
+<p>List of units for continuous variables. See examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>noterms</code></td>
+<td>
+<p>Position of terms that should be ignored. E.g., for
+a Cox model with a cluster(id) term, there will be no hazard
+ratio for variable id.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>probindex</code></td>
+<td>
+<p>Logical. If <code>TRUE</code> show coefficients on probabilistic index scale instead of hazard ratio scale.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Not yet used</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The basic use of this function is to generate a near publication worthy table from a regression
+object. As with summary(object) reference levels of factor variables are not included. Expansion
+of the table with such values can be performed using the "fixRegressionTable" function. Forest
+plot can be added to the output with "plotRegressionTable".
+</p>
+<p>regressionTable produces an object (list) with the parameters deriveds. The summary function creates
+a data frame which can be used as a (near) publication ready table.
+</p>
+<p>The table shows changes in mean for linear regression, odds ratios
+for logistic regression (family = binomial) and hazard ratios for
+Cox regression.
+</p>
+
+
+<h3>Value</h3>
+
+<p>List of regression blocks
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Thomas A. Gerds &lt;tag@biostat.ku.dk&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># linear regression
+data(Diabetes)
+f1 &lt;- glm(bp.1s~age+gender+frame+chol,data=Diabetes)
+summary(regressionTable(f1))
+summary(regressionTable(f1,units=list("chol"="mmol/L","age"="years")))
+## with interaction
+f2 &lt;- glm(bp.1s~age*gender+frame+chol,data=Diabetes)
+summary(regressionTable(f2))
+#Add reference values
+summary(regressionTable(f2))
+f3 &lt;- glm(bp.1s~age+gender*frame+chol,data=Diabetes)
+publish(f3)
+regressionTable(f3)
+
+# logistic regression
+Diabetes$hyp1 &lt;- factor(1*(Diabetes$bp.1s&gt;140))
+l1 &lt;- glm(hyp1~age+gender+frame+chol,data=Diabetes,family="binomial")
+regressionTable(l1)
+publish(l1)
+plot(regressionTable(l1))
+
+## with interaction
+l2 &lt;- glm(hyp1~age+gender+frame*chol,data=Diabetes,family="binomial")
+regressionTable(l2)
+l3 &lt;- glm(hyp1~age*gender+frame*chol,data=Diabetes,family="binomial")
+regressionTable(l3)
+
+# Cox regression
+library(survival)
+data(pbc)
+pbc$edema &lt;- factor(pbc$edema,levels=c("0","0.5","1"),labels=c("0","0.5","1"))
+c1 &lt;- coxph(Surv(time,status!=0)~log(bili)+age+protime+sex+edema,data=pbc)
+regressionTable(c1)
+# with interaction
+c2 &lt;- coxph(Surv(time,status!=0)~log(bili)+age+protime*sex+edema,data=pbc)
+regressionTable(c2)
+c3 &lt;- coxph(Surv(time,status!=0)~edema*log(bili)+age+protime+sex+edema+edema:sex,data=pbc)
+regressionTable(c3)
+
+
+if (requireNamespace("nlme",quietly=TRUE)){ 
+## gls regression
+library(lava)
+library(nlme)
+m &lt;- lvm(Y ~ X1 + gender + group + Interaction)
+distribution(m, ~gender) &lt;- binomial.lvm()
+distribution(m, ~group) &lt;- binomial.lvm(size = 2)
+constrain(m, Interaction ~ gender + group) &lt;- function(x){x[,1]*x[,2]}
+d &lt;- sim(m, 1e2)
+d$gender &lt;- factor(d$gender, labels = letters[1:2])
+d$group &lt;- factor(d$group)
+
+e.gls &lt;- gls(Y ~ X1 + gender*group, data = d,
+             weights = varIdent(form = ~1|group))
+regressionTable(e.gls)
+summary(regressionTable(e.gls))
+}
+</code></pre>
+
+
+</div>

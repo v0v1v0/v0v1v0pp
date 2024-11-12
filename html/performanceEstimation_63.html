@@ -1,0 +1,217 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>standardPRE</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+A function for applying data pre-processing steps
+</h2>
+
+<h3>Description</h3>
+
+<p>This function implements a series of simple data pre-processing steps
+and also allows the user to supply hers/his own functions to be
+applied to the data. The result of the function is a list containing
+the new (pre-processed) versions of the given train and test sets.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">standardPRE(form, train, test, steps, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>form</code></td>
+<td>
+
+<p>A formula specifying the predictive task.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>train</code></td>
+<td>
+
+<p>A data frame containing the training set.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test</code></td>
+<td>
+
+<p>A data frame containing the test set.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>steps</code></td>
+<td>
+
+<p>A vector with function names that are to be applied in the sequence
+they appear in this vector to both the training and testing sets, to
+obtain new versions of these two data samples.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Any further parameters that will be passed to all functions
+specified in <code>steps</code>
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is mainly used by both <code>standardWF</code> and
+<code>timeseriesWF</code> as a means to allow for users of these two
+standard workflows to specify some data pre-processing steps. These
+are steps one wishes to apply to the different train and test samples
+involved in an experimental comparison, before any model is learned or
+any predictions are obtained.
+</p>
+<p>Nevertheless, the function can also be used outside of these standard
+workflows for obtaining pre-processed versions of train and test
+samples.
+</p>
+<p>The function accepts as pre-processing functions both some already
+implemented functions as well as any function defined by the user
+provided these follow some protocol. Namely, these user-defined
+pre-processing functions should be aware that they will be called with
+a formula, a training data frame and a testing data frame in the first
+three arguments. Moreover, any arguments used in the call to
+<code>standardPRE</code> will also be forwarded to these user-defined
+functions. Finally, these functions should return a list with two
+components: "train" and "test", containing the pre-processed versions
+of the supplied train and test data frames.
+</p>
+<p>The function already contains implementations of the following
+pre-processing steps that can be used in the <code>steps</code> parameter:
+</p>
+<p>"scale" - that scales (subtracts the mean and divides by the standard
+deviation) any knnumeric features on both the training and testing
+sets. Note that the mean and standard deviation are calculated using
+only the training sample.
+</p>
+<p>"centralImp" - that fills in any <code>NA</code> values in both sets using
+the median value for numeric predictors and the mode for nominal
+predictors. Once again these centrality statistics are calculated
+using only the training set although they are applied to both train
+and test sets.
+</p>
+<p>"knnImp" - that fills in any <code>NA</code> values in both sets using
+the median value for numeric predictors and the mode for nominal
+predictors, but using only the k-nearest neighbors to calculate these satistics.
+</p>
+<p>"na.omit" - that uses the R function <code>na.omit</code> to remove
+any rows containing <code>NA</code>'s  from both the training and test sets.
+</p>
+<p>"undersampl" - this undersamples the training data cases that do not
+belong to the minority class (this pre-processing step is only
+available for classification tasks!). It takes the parameter
+<code>perc.under</code> that controls the level of undersampling
+(defaulting to 1, which means that there would be as many cases from
+the minority as from the other(s) class(es)).
+</p>
+<p>"smote" - this operation uses the SMOTE (Chawla et. al. 2002)
+resampling algorithm to  generate a new training sample with a more
+"balanced" distributions of the target class (this pre-processing step
+is only available for classification tasks!). It takes the parameters
+<code>perc.under</code>,  <code>perc.over</code> and <code>k</code> to control the
+algorithm. Read the  documentation of function <code>smote</code> to
+know more details. 
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with components "train" and "test" with both containing a data frame.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p> Luis Torgo <a href="mailto:ltorgo@dcc.fc.up.pt">ltorgo@dcc.fc.up.pt</a> </p>
+
+
+<h3>References</h3>
+
+<p>Chawla, N. V., Bowyer, K. W., Hall, L. O., and Kegelmeyer, W. P. (2002).
+<em>Smote: Synthetic minority over-sampling technique</em>. Journal of Artificial
+Intelligence Research, 16:321-357.
+</p>
+<p>Torgo, L. (2014) <em>An Infra-Structure for Performance
+Estimation and Experimental Comparison of Predictive Models in R</em>. arXiv:1412.0436 [cs.MS]
+<a href="http://arxiv.org/abs/1412.0436">http://arxiv.org/abs/1412.0436</a>  
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>standardPOST</code>,
+<code>standardWF</code>,
+<code>timeseriesWF</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+
+##  A small example with standard pre-preprocessing: clean NAs and scale
+data(algae,package="DMwR")
+
+idx &lt;- sample(1:nrow(algae),150)
+tr &lt;- algae[idx,1:12]
+ts &lt;- algae[-idx,1:12]
+summary(tr)
+summary(ts)
+
+preData &lt;- standardPRE(a1 ~ ., tr, ts, steps=c("centralImp","scale"))
+summary(preData$train)
+summary(preData$test)
+
+######
+## Using in the context of an experiment
+library(e1071)
+res &lt;- performanceEstimation(
+  PredTask(a1 ~ .,algae[,1:12],"alga1"),
+  Workflow(learner="svm",pre=c("centralImp","scale")),
+  EstimationTask(metrics="mse")
+  )
+
+summary(res)
+
+######
+## A user-defined pre-processing function
+myScale &lt;- function(f,tr,ts,avg,std,...) {
+    tgtVar &lt;- deparse(f[[2]])
+    allPreds &lt;- setdiff(colnames(tr),tgtVar)
+    numPreds &lt;- allPreds[sapply(allPreds,
+                          function(p) is.numeric(tr[[p]]))]
+    tr[,numPreds] &lt;- scale(tr[,numPreds],center=avg,scale=std)
+    ts[,numPreds] &lt;- scale(ts[,numPreds],center=avg,scale=std)
+    list(train=tr,test=ts)
+}
+
+## now using it with some random averages and stds for the 8 numeric
+## predictors (just for illustration)
+newData &lt;- standardPRE(a1 ~ .,tr,ts,steps="myScale",
+                       avg=rnorm(8),std=rnorm(8))
+
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

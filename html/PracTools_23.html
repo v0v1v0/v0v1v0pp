@@ -1,0 +1,141 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>GeoDistPSU</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Form PSUs based on geographic distances
+</h2>
+
+<h3>Description</h3>
+
+<p>Combine geographic areas into primary sampling units to limit travel distances
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">GeoDistPSU(lat, long, dist.sw, max.dist, Input.ID = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>lat</code></td>
+<td>
+<p>latitude variable in an input file. Must be in decimal format.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>long</code></td>
+<td>
+<p>longitude variable in an input file. Must be in decimal format.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dist.sw</code></td>
+<td>
+<p>units for distance; either <code>"miles"</code> or <code>"kms"</code> (for kilometers)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.dist</code></td>
+<td>
+<p>maximum distance allowed within a PSU between centroids of geographic units</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Input.ID</code></td>
+<td>
+<p>ID field in the input file if present</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>GeoDistPSU</code> combines geographic secondary sampling units (SSUs), like cities or census block groups, into primary sampling units (PSUs) given a maximum distance allowed between the centroids of the SSUs within each grouped PSU. The input file must have one row for each geographic unit. If the input file does not have an ID field, the function will create a sequential ID that is appended to the output. The latitude and longitude input vectors define the centroid of each input SSU. The complete linkage method for clustering is used. <code>GeoDistPSU</code> calls the functions <code>distm</code> and <code>distHaversine</code> from the <code>geosphere</code> package to calculate the distances between centroids.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with two components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>PSU.ID</code></td>
+<td>
+<p>A data frame with the same number of rows as the input file. Column names are <code>Input.file.ID</code> and <code>psuID</code>. The <code>psuID column</code> contains the PSU number assigned to each geographic unit in the input file; multiple rows of the input file will typically be assigned to the same PSU.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>PSU.Info</code></td>
+<td>
+<p>A data frame with the number of rows equal to the number of PSUs that are created. Column names are <code>Num.SSUs</code>, number of SSUs assigned to each PSU; <code>PSU.Mean.Latitude</code>, mean of the latitudes of the units assigned to a PSU; <code>PSU.Mean.Longitude</code>, mean of the longitudes of the units assigned to a PSU; <code>PSU.Max.Dist</code>, maximum distance among the SSUs in a PSU</p>
+</td>
+</tr>
+</table>
+<p>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>George Zipf, Richard Valliant
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>GeoDistMOS</code>, <code>GeoMinMOS</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(Test_Data_US)
+g &lt;- GeoDistPSU(Test_Data_US$lat,
+                Test_Data_US$long,
+                "miles", 100,
+                Input.ID = Test_Data_US$ID)
+    # Plot GeoDistPSU output
+plot(g$PSU.Info$PSU.Mean.Longitude,
+     g$PSU.Info$PSU.Mean.Latitude,
+     col  = 1:nrow(g$PSU.Info),
+     pch  = 19,
+     main = "Plot of PSU Centers",
+     xlab = "Longitude",
+     ylab = "Latitude")
+grid(col = "grey40")
+
+    # Plot GeoDistPSU output with map
+## Not run: 
+  # install package sf to run usmap_transform
+library(ggplot2)
+library(sp)
+library(usmap)
+    # Transform PSUs into usmap projection
+g.map  &lt;- cbind(long = g$PSU.Info$PSU.Mean.Longitude,
+                lat  = g$PSU.Info$PSU.Mean.Latitude)
+g.map  &lt;- as.data.frame(g.map)
+g.proj &lt;- usmap::usmap_transform(g.map,
+                          input_names  = c("long", "lat"),
+                          output_names = c("Long", "Lat"))
+usmap::plot_usmap(color = "gray") +
+  geom_point(data = g.proj,
+             aes(x = Long,
+                 y = Lat))
+    # Create histogram of maximum distance
+hist(g$PSU.Info$PSU.Max.Dist,
+     main = "Histogram of Maximum Within-PSU Distance",
+     xlab = "Distance",
+     ylab = "Frequency")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

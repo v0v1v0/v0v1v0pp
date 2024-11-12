@@ -1,0 +1,208 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>bootPolywog</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Bootstrap a fitted polywog model</h2>
+
+<h3>Description</h3>
+
+<p>Nonparametric bootstrap of the <code>polywog</code> regression procedure.
+Can be run on a fitted model of class <code>"polywog"</code>, or within the
+original procedure via the <code>boot</code> argument.  The function
+<code>control.bp</code> can be used to pass options to <code>bootPolywog</code> when
+bootstrapping within <code>polywog</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">bootPolywog(model, nboot = 100, .parallel = FALSE, reuse.lambda = FALSE,
+  reuse.penwt = FALSE, nlambda = 100, lambda.min.ratio = 1e-04,
+  nfolds = 10, thresh = NULL, maxit = NULL, maxtries = 1000,
+  min.prop = 0, report = FALSE, .matrixOnly = FALSE)
+
+control.bp(.parallel = FALSE, reuse.lambda = FALSE, reuse.penwt = FALSE,
+  nlambda = 100, lambda.min.ratio = 1e-04, nfolds = 10, thresh = NULL,
+  maxit = NULL, maxtries = 1000, min.prop = 0, report = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a fitted model of class <code>"polywog"</code>, typically the output
+of <code>polywog</code> or the <code>"polywog.fit"</code> element of the output
+of <code>cv.polywog</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nboot</code></td>
+<td>
+<p>number of bootstrap iterations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.parallel</code></td>
+<td>
+<p>logical: whether to perform computations in parallel
+using a backend registered with <code>foreach</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reuse.lambda</code></td>
+<td>
+<p>logical: whether to use the penalization parameter from
+the original fit (<code>TRUE</code>), or to cross-validate within each iteration
+(<code>FALSE</code>, default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reuse.penwt</code></td>
+<td>
+<p>logical: whether to use the penalty weights from the
+original fit (<code>TRUE</code>), or to re-calculate them within each iteration
+(<code>FALSE</code>, default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlambda</code></td>
+<td>
+<p>number of values of the penalty factor to examine in
+cross-validation, as in <code>polywog</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.min.ratio</code></td>
+<td>
+<p>ratio of the smallest value of the penalty factor
+to the largest, as in <code>polywog</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nfolds</code></td>
+<td>
+<p>number of cross-validation folds to use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thresh</code></td>
+<td>
+<p>convergence threshold, as in <code>polywog</code>.  If
+<code>NULL</code>, use the same value as in the original model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit</code></td>
+<td>
+<p>iteration limit for fitting, as in <code>polywog</code>.  If
+<code>NULL</code>, use the same value as in the original model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxtries</code></td>
+<td>
+<p>maximum number of attempts to generate a bootstrap sample
+with a non-collinear model matrix (often problematic with lopsided binary
+regressors) before stopping and issuing an error message.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.prop</code></td>
+<td>
+<p>for models with a binary response variable, minimum proportion of
+non-modal outcome to ensure is included in each bootstrap iteration (for
+example, set <code>min.prop = 0.1</code> to throw out any bootstrap iteration
+where less than 10 percent or more than 90 percent of the observations are 1's).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>report</code></td>
+<td>
+<p>logical: whether to print a status bar.  Not available if
+<code>.parallel = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.matrixOnly</code></td>
+<td>
+<p>logical: whether to return just the matrix of bootstrap
+coefficients (<code>TRUE</code>), or the originally supplied model with the
+bootstrap matrix as the <code>boot.matrix</code> element (<code>FALSE</code>, default).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Parallel computation via the <code>.parallel</code> argument requires
+registation of a backend for <code>%dopar%</code>, as
+in <code>polywog</code>.  In the case of <code>bootPolywog</code>, bootstrap
+fitting is carried out in parallel, while cross-validation to choose the
+penalization factor (assuming <code>reuse.lambda = FALSE</code>) is carried
+out sequentially within each iteration.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>.matrixOnly = FALSE</code>, the returned object is <code>model</code>
+with the bootstrap matrix included as its <code>boot.matrix</code> element.  If
+<code>.matrixOnly = TRUE</code>, just the matrix is returned.  In either case, the
+bootstrap matrix is a sparse matrix of class
+<code>"dgCMatrix"</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Brenton Kenkel and Curtis S. Signorino
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Using occupational prestige data
+data(Prestige, package = "carData")
+Prestige &lt;- transform(Prestige, income = income / 1000)
+
+## Fit a polywog model without bootstrapping
+## (note: using low convergence threshold to shorten computation time of the
+## example, *not* recommended in practice!)
+fit1 &lt;- polywog(prestige ~ education + income + type,
+                data = Prestige,
+                degree = 2,
+                thresh = 1e-4)
+summary(fit1)
+
+## Bootstrap the fitted model
+fit2 &lt;- bootPolywog(fit1, nboot = 5)
+summary(fit2)
+
+## Example of parallel processing on Mac/Unix via 'doMC'
+## Not run: 
+library(doMC)
+registerDoMC()
+
+fit2 &lt;- bootPolywog(fit1, nboot = 100, .parallel = TRUE)
+
+## End(Not run)
+
+## Example of parallel processing on Windows via 'doSMP'
+## Not run: 
+library(doSMP)
+w &lt;- startWorkers()
+registerDoSMP(w)
+
+fit2 &lt;- bootPolywog(fit1, nboot = 100, .parallel = TRUE)
+
+stopWorkers(w)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,110 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>calculatePi</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate population frequency at each SNP</h2>
+
+<h3>Description</h3>
+
+<p>The frequency at a given SNP is calculated according to: <code>pi = c/r</code>, where c
+= number of minor-allele reads and r = total number of observed reads.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">calculatePi(listPool, nLoci)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>listPool</code></td>
+<td>
+<p>a list containing the "minor" element, representing the
+number of reads with the minor-allele and the "total" element that contains
+information about the total number of reads. The list should also contain a
+"major" entry with the information about reads containing the major-allele.
+The output of the <code>poolPops</code> function should be used as input here.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nLoci</code></td>
+<td>
+<p>an integer that represents the total number of independent loci
+in the dataset.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function takes as input a list that contains the number of reads with
+the minor allele and the number of total reads per population at a given
+site. The names of the respective elements of the list should be minor and
+total. It works with lists containing just one set of minor and total reads,
+corresponding to a single locus, and with lists where each entry contains a
+different set of minor and total number of reads, corresponding to different
+loci.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a list with two named entries
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>pi</code></td>
+<td>
+<p>a list with the allele frequencies of each population. Each list
+entry is a matrix, corresponding to a different locus. Each row of a matrix
+corresponds to a different population and each column to a different site.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pool</code></td>
+<td>
+<p>a list with three different entries: major, minor and total.
+This list is similar to the one obtained with the <code>findMinor</code>
+function.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># simulate coverage at 5 SNPs for two populations, assuming 20x mean coverage
+reads &lt;- simulateCoverage(mean = c(20, 20), variance = c(100, 100), nSNPs = 5, nLoci = 1)
+
+# simulate the number of reads contributed by each individual
+# for each population there are two pools, each with 5 individuals
+indContribution &lt;- popsReads(list_np = rep(list(rep(5, 2)), 2), coverage = reads, pError = 5)
+
+# set seed and create a random matrix of genotypes for the 20 individuals - 10 per population
+set.seed(10)
+genotypes &lt;- matrix(rpois(100, 0.5), nrow = 20)
+
+# simulate the number of reference reads for the two populations
+readsReference &lt;- numberReferencePop(genotypes = genotypes, indContribution = indContribution,
+size = rep(list(rep(5, 2)), 2), error = 0.01)
+
+# create Pooled DNA sequencing data for these two populations and for a single locus
+pools &lt;- poolPops(nPops = 2, nLoci = 1, indContribution = indContribution,
+readsReference = readsReference)
+
+# define the major and minor alleles for this pool-seq data
+# note that we have to select the first entry of the pools list
+# because this function works for matrices
+pools &lt;- findMinor(reference = pools$reference[[1]], alternative = pools$alternative[[1]],
+coverage = pools$total[[1]])
+
+# calculate population frequency at each SNP of this locus
+calculatePi(listPool = pools, nLoci = 1)
+
+</code></pre>
+
+
+</div>

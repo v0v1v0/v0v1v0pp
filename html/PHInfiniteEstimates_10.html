@@ -1,0 +1,102 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>convertmtol</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Convert a polytomous regression to a conditional logistic regression.</h2>
+
+<h3>Description</h3>
+
+<p>Convert a polytomous regression to a conditional logistic regression.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">convertmtol(xmat, str, yvec, subjects)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>xmat</code></td>
+<td>
+<p>regression matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>str</code></td>
+<td>
+<p>stratum label</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yvec</code></td>
+<td>
+<p>vector of responses</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subjects</code></td>
+<td>
+<p>vector of subject labels passed directly to the output.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Implements version of (Kolassa 2016).  
+The multinomial regression is converted to a conditional logistic regression, and methods of (Kolassa 1997) may be applied.
+This function differs from <code>convertbaselineltolr</code> of this package in that the former treats the richer data structure of package <code>mlogit</code>, and this function treats a less complicated structure.
+Data in the example is the breast cancer data set <code>breast</code> of package <code>coxphf</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a data set on which to apply conditional logistic regression, corresponding to the multinomial regression model.
+</p>
+
+
+<h3>References</h3>
+
+<p>Kolassa JE (1997).
+“Infinite Parameter Estimates in Logistic Regression.”
+<em>Scandinavian Journal of Statistics</em>, <b>24</b>, 523–530.
+<a href="https://doi.org/10.1111/1467-9469.00078">doi:10.1111/1467-9469.00078</a>.
+</p>
+<p>Kolassa JE (2016).
+“Inference in the Presence of Likelihood Monotonicity for Polytomous and Logistic Regression.”
+<em>Advances in Pure Mathematics</em>, <b>6</b>, 331-341.
+<a href="https://doi.org/10.4236/apm.2016.65024">doi:10.4236/apm.2016.65024</a>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#Uses data set breast from package coxphf.
+data(breast)
+out&lt;-convertstoml(Surv(breast$TIME,breast$CENS),breast[,c("T","N","G","CD")])
+out1&lt;-convertmtol(out[,c("T","N","G","CD")],out[,"chid"],out[,"choice"],
+   out[,"patients"])
+glmout&lt;-glm.fit(out1$xmat,out1$y,family=binomial())
+#In many practice examples, the following line shows which observations to retain
+#in the logistic regression example.
+moderate&lt;-(fitted(glmout)&lt;1-1.0e-8)&amp;(fitted(glmout)&gt;1.0e-8)
+# Proportional hazards fit illustrating infinite estimates.
+coxph(Surv(TIME,CENS)~ T+ N+ G+ CD,data=breast)
+# Wrong analysis naively removing covariate with infinite estimate
+coxph(Surv(TIME,CENS)~ T+ N+ CD,data=breast)
+summary(glm((CENS&gt;22)~T+N+G+CD,family=binomial,data=breast))
+
+out2&lt;-reduceLR(out1$xmat,yvec=out1$y,keep="CD")
+bestcoxout&lt;-coxph(Surv(TIME,CENS)~ T+ N+ G+ CD,data=breast,
+   subset=as.numeric(unique(out1$subjects[out2$moderate])))
+
+</code></pre>
+
+
+</div>

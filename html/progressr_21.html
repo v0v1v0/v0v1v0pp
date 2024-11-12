@@ -1,0 +1,233 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>make_progression_handler</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Creates a Progression Calling Handler</h2>
+
+<h3>Description</h3>
+
+<p>A progression calling handler is a function that takes a base::condition
+as its first argument and that can be use together with
+<code>base::withCallingHandlers()</code>.  This function helps creating such
+progression calling handler functions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">make_progression_handler(
+  name,
+  reporter = list(),
+  handler = NULL,
+  enable = getOption("progressr.enable", interactive()),
+  enable_after = getOption("progressr.enable_after", 0),
+  times = getOption("progressr.times", +Inf),
+  interval = getOption("progressr.interval", 0),
+  intrusiveness = 1,
+  clear = getOption("progressr.clear", TRUE),
+  target = "terminal",
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>(character) Name of progression handler.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reporter</code></td>
+<td>
+<p>(list) A named list of reporter functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>handler</code></td>
+<td>
+<p>(function) Function take a progression condition
+as the first argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>enable</code></td>
+<td>
+<p>(logical) If FALSE, then progress is not reported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>enable_after</code></td>
+<td>
+<p>(numeric) Delay (in seconds) before progression
+updates are reported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>times</code></td>
+<td>
+<p>(numeric) The maximum number of times this handler
+should report progression updates.
+If zero, then progress is not reported.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interval</code></td>
+<td>
+<p>(numeric) The minimum time (in seconds) between
+successive progression updates from this handler.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intrusiveness</code></td>
+<td>
+<p>(numeric) A non-negative scalar on how intrusive
+(disruptive) the reporter to the user.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clear</code></td>
+<td>
+<p>(logical) If TRUE, any output, typically visual, produced
+by a reporter will be cleared/removed upon completion, if possible.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>(character vector) Specifies where progression updates are
+rendered.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed to <code>make_progression_handler()</code>
+or not used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The inner details of progression handlers and how to use this function
+are still to be documented.  Until then, see the source code of existing
+handlers for how it is used, e.g. <code>progressr::handler_txtprogressbar</code>.
+Please use with care as things might change.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A function of class <code>progression_handler</code> that takes a
+progression condition as its first and only argument.
+</p>
+
+
+<h3>Reporter functions</h3>
+
+<p>The <code>reporter</code> argument should be a named list of zero or more of the
+following functions:
+</p>
+
+<ul>
+<li> <p><code>initiate</code>
+</p>
+</li>
+<li> <p><code>update</code>
+</p>
+</li>
+<li> <p><code>finish</code>
+</p>
+</li>
+</ul>
+<p>These functions are called whenever a progression condition of type
+<code>"initiate"</code>, <code>"update"</code>, or <code>"finish"</code> are received, but only if the
+condition is for the progression that is currently handled.
+These functions are called with the following arguments (in order):
+</p>
+
+<ul>
+<li> <p><code>config</code> - a named list of the configuration of the progression handler:
+<code>max_steps</code> (integer),
+<code>interval</code> (numeric),
+<code>enable_after</code> (numeric),
+<code>auto_finish</code> (logical),
+<code>clear</code> (logical),
+<code>target</code> (character vector)
+</p>
+</li>
+<li> <p><code>state</code> - a named list of the current progress state after accounting
+for the most recent <code>progression</code> condition:
+<code>step</code> (integer), <code>message</code> (character),
+<code>delta</code> (integer),
+<code>enabled</code> (logical),
+<code>timestamps</code> (POSIXct vector)
+</p>
+</li>
+<li> <p><code>progression</code> - a progression condition
+</p>
+</li>
+<li> <p>... - not used (reserved for future needs)
+</p>
+</li>
+</ul>
+<p>In addition to the above functions, the following functions:
+</p>
+
+<ul>
+<li> <p><code>hide</code>
+</p>
+</li>
+<li> <p><code>unhide</code>
+</p>
+</li>
+<li> <p><code>reset</code>
+</p>
+</li>
+<li> <p><code>interrupt</code>
+</p>
+</li>
+</ul>
+<p>are called whenever the handler "should" hide or unhide the rendered
+progress, or reset it, or when an interrupt is detected.  In these cases,
+the <code>progression</code> argument is of class <code>control_progression</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>base::withCallingHandlers()</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Create a progression handler that reports on the current progress
+## step, the relative change, and the current progress message. This
+## is only reported on positive progressions updated
+my_handler &lt;- make_progression_handler(name = "my", reporter = list(
+  update = function(config, state, progression, ...) {
+    if (progression$amount &gt; 0) {
+      message(sprintf("step = %d (+%g): message = %s",
+                      state$step,
+                      progression$amount,
+                      sQuote(state$message)))
+    }
+  }
+))
+
+handlers(my_handler)
+
+with_progress({
+  y &lt;- slow_sum(1:5)
+})
+
+</code></pre>
+
+
+</div>

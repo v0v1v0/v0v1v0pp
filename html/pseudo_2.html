@@ -1,0 +1,104 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pseudomean</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Pseudo-observations for the restricted mean</h2>
+
+<h3>Description</h3>
+
+<p>Computes pseudo-observations for modeling survival function based on the restricted mean.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pseudomean(time,event, tmax)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>the follow up time.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>event</code></td>
+<td>
+
+<p>the status indicator: 0=alive, 1=dead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tmax</code></td>
+<td>
+
+<p>the maximum cut-off point for the restricted mean. If missing or larger than the maximum follow up time, it is
+replaced by the maximum follow up time. 
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function calculates the pseudo-observations for the restricted mean survival for each individual at prespecified time-points.
+The pseudo-observations can be used for fitting a regression model with a generalized estimating equation.
+No missing values in either <code>time</code> or <code>event</code>
+vector are allowed.
+</p>
+<p>Please note that the output of the function has changed and the usage is thus no longer the same as in the reference paper - the new usage is described in the example below.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A vector of pseudo-observations for each individual.
+</p>
+
+
+<h3>References</h3>
+
+<p>Klein J.P., Gerster M., Andersen P.K., Tarima S., POHAR PERME, M.: "SAS and R Functions to Compute Pseudo-values for Censored Data Regression." <em>Comput. methods programs biomed.</em>, 2008, 89 (3): 289-300 
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pseudosurv</code>,
+<code>pseudoci</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(KMsurv)
+data(bmt)
+
+#compute the pseudo-observations:
+pseudo = pseudomean(time=bmt$t2, event=bmt$d3,tmax=2000)
+
+#arrange the data
+a &lt;- cbind(bmt,pseudo = pseudo,id=1:nrow(bmt))
+
+#fit a regression model for the mean time
+
+library(geepack)
+summary(fit &lt;- geese(pseudo ~ z1 + as.factor(z8) + as.factor(group),
+	data = a, id=id, jack = TRUE, family=gaussian, 
+	corstr="independence", scale.fix=FALSE))
+
+
+#rearrange the output
+round(cbind(mean = fit$beta,SD = sqrt(diag(fit$vbeta.ajs)),
+	Z = fit$beta/sqrt(diag(fit$vbeta.ajs)),	PVal =
+	2-2*pnorm(abs(fit$beta/sqrt(diag(fit$vbeta.ajs))))),4)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,149 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PBIR2</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate and compare PBIR curves from two groups over a time window</h2>
+
+<h3>Description</h3>
+
+<p>Estimate and compare PBIR curves from two groups over a time window
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PBIR2(
+  t2PROGRESSION,
+  STATUS_PROGRESSION,
+  t2RESPONSE,
+  STATUS_RESPONSE,
+  TRT,
+  time = NULL,
+  alpha = 0.95
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>t2PROGRESSION</code></td>
+<td>
+<p>time to progression/death or censoring</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>STATUS_PROGRESSION</code></td>
+<td>
+<p>binary indicator for progression status: 1 for progression/death; 0 for censoring</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t2RESPONSE</code></td>
+<td>
+<p>time to response or censoring</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>STATUS_RESPONSE</code></td>
+<td>
+<p>binary indicator for response status: 1 for response; 0 for censoring</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>TRT</code></td>
+<td>
+<p>treatment indicator: 1 for treatment arm; 0 for control arm</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>user-selected time points at which PBIRs are to be compared; the default value is "NULL" and PBIRs at all observed time points are compared</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>coverage level of the point-wise confidence interval for the difference in the PBIR, the default value is 0.95</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a data matrix containing "time", "estimated differences in PBIR (treatment-control)", "standard errors of estimated PBIR differences",  "confidence intervals of the PBIR difference"
+</p>
+
+
+<h3>References</h3>
+
+<p>Huang, B., Tian, L., Talukder, E., Rothenberg, M., Kim, DY., and Wei, LJ. (2018) Evaluating Treatment Effect Based on Duration of Response for a Comparative Oncology Study. JAMA Oncol, doi: 10.1001/jamaoncol.2018.0275
+</p>
+<p>Huang, B., Tian, L., McCaw, Z., Luo, Talukder, E., X., Rothenberg, M., Xie, W., Choueiri, T., Kim, DY., &amp; Wei, LJ. (2020). Analysis of Response Data for Assessing Treatment Effects in Comparative Clinical Studies. Ann Intern Med, doi: 10.7326/M20-0104.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(survival)
+n=100
+set.seed(10)
+
+# Generate the data
+
+TRT=trt=rbinom(n, 1, 0.5)
+
+error=rnorm(n)
+tr=exp(rnorm(n)+error-trt*0.5+0.5)
+tp=exp(rnorm(n)+error+trt*0.25)
+tr[tp&lt;tr]=Inf
+tc=runif(n, 3, 8.5)
+
+t2response=pmin(tr, tc)
+delta_response=1*(tr&lt;tc)
+t2progression=pmin(tp, tc)
+delta_progression=1*(tp&lt;tc)
+
+# Estimate the difference in PBIR
+# the analysis is truncated at time 8, which is slightly smaller than the largest follow-up time
+
+fit=PBIR2(t2PROGRESSION=t2progression,
+          STATUS_PROGRESSION=delta_progression,
+          t2RESPONSE=t2response,
+          STATUS_RESPONSE=delta_response,
+          TRT=trt)
+
+
+# Plot the estimated differnece in PBIR
+
+tt=fit$time
+diff=fit$diff
+low=fit$ci.low
+up=fit$ci.up
+
+tt=c(0, tt)
+diff=c(0, diff)
+low=c(0, low)
+up=c(0, up)
+B=length(tt)
+
+tt=rep(tt, rep(2, B))[-1]
+diff=rep(diff, rep(2, B))[-(2*B)]
+low=rep(low, rep(2, B))[-(2*B)]
+up=rep(up, rep(2, B))[-(2*B)]
+
+plot(range(c(fit$time, 0)), range(c(low, up)),
+     xlab="time", ylab="difference in PBIR",
+     lwd=2, type="n")
+lines(tt, diff, lwd=2, col=3)
+lines(tt, low,  col=2)
+lines(tt, up, col=2)
+lines(range(fit$time), rep(0, 2), col=4, lty=4)
+</code></pre>
+
+
+</div>

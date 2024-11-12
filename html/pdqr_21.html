@@ -1,0 +1,150 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>form_resupport</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Change support of pdqr-function</h2>
+
+<h3>Description</h3>
+
+<p>Modify support of pdqr-function using method of choice.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">form_resupport(f, support, method = "reflect")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>A pdqr-function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>support</code></td>
+<td>
+<p>Numeric vector with two increasing (or non-decreasing, see
+Details) elements describing support of the output. Values can be <code>NA</code>, in
+which case corresponding edge(s) are taken from <code>f</code>'s support.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Resupport method. One of "reflect", "trim", "winsor", "linear".</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Method "reflect" takes a density "tails" to the left of <code>support[1]</code>
+and to the right of <code>support[2]</code> and reflects them inside <code>support</code>. It means
+that values of density inside and outside of supplied <code>support</code> are added
+together in "symmetric fashion":
+<code>d(x) = d_f(x) + d_f(l - (x-l)) + d_f(r + (r-x))</code>, where <code>d_f</code> is density of
+input, <code>d</code> is density of output, <code>l</code> and <code>r</code> are left and right edges of
+input <code>support</code>. This option is useful for repairing support of
+new_*()'s output, as by default kernel density estimation in
+<code>density()</code> adds tails to the range of input <code>x</code> values. For example, if
+there is a need to ensure that distribution has only positive values, one can
+do <code>form_resupport(f, c(0, NA), method = "reflect")</code>. <strong>Notes</strong>:
+</p>
+
+<ul>
+<li>
+<p> For "discrete" pdqr-functions that might result into creating new "x"
+values of distribution.
+</p>
+</li>
+<li>
+<p> Reflection over <code>support[1]</code> is done only if it is strictly greater than
+<code>f</code>'s left edge of support. Reflection over <code>support[2]</code> - if <code>f</code>'s right
+edge is strictly smaller.
+</p>
+</li>
+</ul>
+<p>Method "trim" removes density "tails" outside of <code>support</code>, normalizes the
+rest and creates appropriate pdqr-function.
+</p>
+<p>Method "winsor" makes all density "tails" outside of input <code>support</code>
+"squashed" inside it in "dirac-like" fashion. It means that probability from
+both tails is moved inside <code>support</code> and becomes concentrated in <code>1e-8</code>
+neighborhood of nearest edge. This models a singular dirac distributions at
+the edges of <code>support</code>. <strong>Note</strong> that <code>support</code> can represent single point,
+in which case output has single element if <code>f</code>'s type is "discrete" or is a
+dirac-like distribution in case of "continuous" type.
+</p>
+<p>Method "linear" transforms <code>f</code>'s support linearly to be input <code>support</code>. For
+example, if <code>f</code>'s support is [0; 1] and <code>support</code> is <code>c(-1, 1)</code>, linear
+resupport is equivalent to <code>2*f - 1</code>. <strong>Note</strong> that <code>support</code> can represent
+single point with the same effect as in "winsor" method.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A pdqr-function with modified support and the same
+class and type as <code>f</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>form_regrid()</code> for changing grid (rows of "x_tbl" metadata) of
+pdqr-function.
+</p>
+<p><code>form_retype()</code> for changing type of pdqr-function.
+</p>
+<p>Other form functions: 
+<code>form_estimate()</code>,
+<code>form_mix()</code>,
+<code>form_regrid()</code>,
+<code>form_retype()</code>,
+<code>form_smooth()</code>,
+<code>form_tails()</code>,
+<code>form_trans()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(101)
+d_norm &lt;- as_d(dnorm)
+d_dis &lt;- new_d(data.frame(x = 1:4, prob = 1:4 / 10), "discrete")
+
+# Method "reflect"
+plot(d_norm)
+lines(form_resupport(d_norm, c(-2, 1.5), "reflect"), col = "blue")
+
+# For "discrete" functions it might create new values
+meta_x_tbl(form_resupport(d_dis, c(NA, 2.25), "reflect"))
+
+# This is often useful to ensure constraints after `new_()`
+x &lt;- runif(1e4)
+d_x &lt;- new_d(x, "continuous")
+plot(d_x)
+lines(form_resupport(d_x, c(0, NA), "reflect"), col = "red")
+lines(form_resupport(d_x, c(0, 1), "reflect"), col = "blue")
+
+# Method "trim"
+plot(d_norm)
+lines(form_resupport(d_norm, c(-2, 1.5), "trim"), col = "blue")
+
+# Method "winsor"
+plot(d_norm)
+lines(form_resupport(d_norm, c(-2, 1.5), "winsor"), col = "blue")
+
+# Method "linear"
+plot(d_norm)
+lines(form_resupport(d_norm, c(-2, 1.5), "linear"), col = "blue")
+</code></pre>
+
+
+</div>

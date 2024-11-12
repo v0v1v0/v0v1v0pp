@@ -1,0 +1,254 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pc.filter</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2> Applies a periodic ARMA filter to a time series </h2>
+
+<h3>Description</h3>
+
+<p>Filter time series with a periodic arma filter.
+If <code>whiten</code> is <code>FALSE</code> (default) the function applies
+the given ARMA filter to <code>eps</code> (<code>eps</code> is often periodic
+white noise).  If <code>whiten</code> is <code>TRUE</code> the function applies
+the “inverse filter” to <code class="reqn">x</code>, effectively computing
+residuals.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pc.filter(model, x, eps, seasonof1st = 1, from = NA, whiten = FALSE,
+          nmean = NULL, nintercept = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p> the time series to be filtered, a vector. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps</code></td>
+<td>
+<p> residuals, a vector or NULL. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+
+<p>the model parameters, a list with components <code>"phi"</code>,
+<code>"theta"</code>, <code>"p"</code>, <code>"q"</code>, <code>"period"</code>,
+<code>"mean"</code> and <code>"intercept"</code>, see Details.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seasonof1st</code></td>
+<td>
+
+<p>the season of the first observation (i.e., of x[1]).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>from</code></td>
+<td>
+<p> the index from which to start filtering. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>whiten</code></td>
+<td>
+
+<p>if TRUE use <code>x</code> as input and apply the inverse filter to
+produce <code>eps</code> ("whiten" <code>x</code>), if FALSE use <code>eps</code> as
+input and generate <code>x</code> ("colour" <code>eps</code>).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nmean</code></td>
+<td>
+
+<p>a vector of means having the length of the series, see Details.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nintercept</code></td>
+<td>
+
+<p>a vector of intercepts having the length of the series, see details.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+
+
+<p>The model is specified by argument <code>model</code>, which is a list with
+the following components:
+</p>
+
+<dl>
+<dt><code>phi</code></dt>
+<dd>
+<p> the autoregression parameters,</p>
+</dd>
+<dt><code>theta</code></dt>
+<dd>
+<p> the moving average parameters,</p>
+</dd>
+<dt><code>p</code></dt>
+<dd>
+<p>the autoregression orders, a single number or a
+vector with one element for each season,</p>
+</dd>
+<dt><code>q</code></dt>
+<dd>
+<p>the moving average orders, a single number or a
+vector with one element for each season,</p>
+</dd>
+<dt><code>period</code></dt>
+<dd>
+<p> number of seasons in a cycle,</p>
+</dd>
+<dt><code>mean</code></dt>
+<dd>
+<p> means of the seasons,</p>
+</dd>
+<dt><code>intercept</code></dt>
+<dd>
+<p>intercepts of the seasons.</p>
+</dd>
+</dl>
+<p>The relation between <code>x</code> and <code>eps</code> is assumed to be the
+following. Let
+</p>
+<p style="text-align: center;"><code class="reqn">y_t = x_t - mu_t</code>
+</p>
+
+<p>be the mean corrected series, where <code class="reqn">mu_t</code> is the mean, see below.
+The equation relating the
+mean corrected series, <code class="reqn">y_t=x_t - \mu_t</code>, and
+<code>eps</code> is the following:
+</p>
+<p style="text-align: center;"><code class="reqn"> y_t
+    =   c_t
+      + \sum_{i=1}^{p_t} \phi  _t(i)y          _{t-i}
+      + \sum_{i=1}^{q_t} \theta_t(i)\varepsilon_{t-i}
+      + \varepsilon_t
+    </code>
+</p>
+
+<p>where <code class="reqn">c_t</code> is the intercept, <code>nintercept</code>. The inverse
+filter is obtained by writing this as an equation expressing
+<code class="reqn">\varepsilon_t</code> through the remaining quantities.
+</p>
+<p>If <code>whiten = TRUE</code>, <code>pc.filter</code> uses the above formula to
+compute the filtered values of <code>x</code> for <code>t=from,...,n</code>,
+i.e. whitening the time series if <code>eps</code> is white noise.  If
+<code>whiten = FALSE</code>, <code>eps</code> is computed, i.e. the inverse filter
+is applied <code>x</code> from <code>eps</code>, i.e. “colouring” <code>x</code>.
+In both cases the first few values in <code>x</code> and/or <code>eps</code> are
+used as initial values.
+</p>
+<p>Essentially, the mean is subtracted from the series to obtain the
+mean-corrected series, say <code>y</code>. Then either <code>y</code> is filtered
+to obtain <code>eps</code> or the inverse filter is applied to obtain
+<code>y</code> from <code>eps</code>
+finally the mean is added back to <code>y</code> and the result returned.
+</p>
+<p>The mean is formed by <code>model$mean</code> and argument <code>nmean</code>.  If
+<code>model$mean</code> is supplied it is recycled periodically to the
+length of the series <code>x</code> and subtracted from <code>x</code>. If
+argument <code>nmean</code> is supplied, it is subtracted from <code>x</code>. If
+both <code>model$mean</code> and <code>nmean</code> are supplied their sum is
+subtracted from <code>x</code>.
+</p>
+<p>The above gives a vector <code>y</code>, <code class="reqn">y_t=x_t -
+  \mu_t</code>, which is then filtered.  If the mean is
+zero, <code class="reqn">y_t=x_t</code> in the formulas below.
+</p>
+<p>Finally, the mean is added back, <code class="reqn">x_t=y_t+\mu_t</code>, and the new
+<code>x</code> is returned.
+</p>
+<p>The above gives a vector <code>y</code> which is used in the filtering.  If
+the mean is zero, <code class="reqn">y_t=x_t</code> in the formulae below.
+</p>
+<p><code>pc.filter</code> can be used to simulate pc-arma series with the
+default value of <code>whiten=FALSE</code>. In this case <code>eps</code> is the
+input series and <code>y</code> the output.
+</p>
+<p style="text-align: center;"><code class="reqn"> y_t
+    = c_t
+      + \sum_{i=1}^{p_t} \phi  _t(i)y          _{t-i}
+      + \sum_{i=1}^{q_t} \theta_t(i)\varepsilon_{t-i}
+      + \varepsilon_t
+    </code>
+</p>
+
+<p>Then <code>model$mean</code> or <code>nmean</code> are added to <code>y</code> to form the
+output vector <code>x</code>.
+</p>
+<p>Residuals corresponding to a series <code>y</code> can be obtained by
+setting <code>whiten=TRUE</code>. In this case <code>y</code> is the input series.
+The elements of the output vector <code>eps</code> are calculated by the
+formula:
+</p>
+<p style="text-align: center;"><code class="reqn"> \varepsilon_t
+    = - c_t
+      - \sum_{i=1}^{q_t} \theta_t(i)\varepsilon_{t-i}
+      - \sum_{i=1}^{p_t} \phi  _t(i)y          _{t-i}
+      + y_t
+    </code>
+</p>
+
+<p>There is no need in this case to restore <code>x</code> since <code>eps</code> is
+returned.
+</p>
+<p>In both cases any necessary initial values are assumed to be already
+in the vectors. If <code>from</code> is not supplied it is chosen as the
+smallest <code>i</code> such that for all <code class="reqn">t\ge i</code>,
+<code>t-p[t]&gt;0</code> and <code>t-q[t]&gt;0</code>, i.e.  the filter will not require
+negative indices for <code>x</code> or <code>eps</code>.
+</p>
+<p><code>pc.filter</code> calls the lower level function <code>pc.filter.xarma</code>
+to do the computation.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The filtered series: the modified <code>x</code> if <code>whiten=FALSE</code>, the
+modified <code>eps</code> if <code>whiten=TRUE</code>.
+</p>
+
+
+<h3>Level</h3>
+
+<p>1</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Georgi N. Boshnakov</p>
+
+
+<h3>See Also</h3>
+
+<p>the lower level functions
+<code>pc.filter.xarma</code> 
+which do the computations
+</p>
+
+
+</div>

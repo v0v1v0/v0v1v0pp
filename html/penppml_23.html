@@ -1,0 +1,307 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mlfitppml_int</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>General Penalized PPML Estimation</h2>
+
+<h3>Description</h3>
+
+<p><code>mlfitppml_int</code> is the internal wrapper called by <code>mlfitppml</code> for penalized PPML estimation.
+This in turn calls <code>penhdfeppml_int</code>, <code>penhdfeppml_cluster_int</code> and <code>hdfeppml_int</code>
+as needed. It takes a vector with the dependent variable, a regressor matrix and a set of fixed
+effects (in list form: each element in the list should be a separate HDFE). This is a flexible tool
+that allows users to select:
+</p>
+
+<ul>
+<li>
+<p> Penalty type: either lasso or ridge.
+</p>
+</li>
+<li>
+<p> Penalty parameter: users can provide a single global value for lambda (a single regression
+is estimated), a vector of lambda values (the function estimates the regression using each of them,
+sequentially) or even coefficient-specific penalty weights.
+</p>
+</li>
+<li>
+<p> Method: plugin lasso estimates can be obtained directly from this function too.
+</p>
+</li>
+<li>
+<p> Cross-validation: if this option is enabled, the function uses IDs provided by the user
+to perform k-fold cross-validation and reports the resulting RMSE for all lambda values.
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">mlfitppml_int(
+  y,
+  x,
+  fes,
+  lambdas,
+  penalty = "lasso",
+  tol = 1e-08,
+  hdfetol = 1e-04,
+  colcheck = TRUE,
+  colcheck_x = colcheck,
+  colcheck_x_fes = colcheck,
+  post = TRUE,
+  cluster = NULL,
+  method = "bic",
+  IDs = 1:n,
+  verbose = FALSE,
+  xval = FALSE,
+  standardize = TRUE,
+  vcv = TRUE,
+  phipost = TRUE,
+  penweights = NULL,
+  K = 15,
+  gamma_val = NULL,
+  mu = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Dependent variable (a vector)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Regressor matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fes</code></td>
+<td>
+<p>List of fixed effects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambdas</code></td>
+<td>
+<p>Vector of penalty parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalty</code></td>
+<td>
+<p>A string indicating the penalty type. Currently supported: "lasso" and "ridge".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>Tolerance parameter for convergence of the IRLS algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hdfetol</code></td>
+<td>
+<p>Tolerance parameter for the within-transformation step,
+passed on to <code>collapse::fhdwithin</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colcheck</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, performs both checks in <code>colcheck_x</code> and <code>colcheck_x_fes</code>.
+If the user specifies <code>colcheck_x</code> and <code>colcheck_x_fes</code> individually, this option is overwritten.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colcheck_x</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, this checks collinearity between the independent variables and drops the
+collinear variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colcheck_x_fes</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, this checks whether the independent variables are perfectly explained
+by the fixed effects drops those that are perfectly explained.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>post</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, estimates a post-penalty regression with the selected variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cluster</code></td>
+<td>
+<p>Optional: a vector classifying observations into clusters (to use when calculating SEs).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>The user can set this equal to "plugin" to perform the plugin algorithm with
+coefficient-specific penalty weights (see details). Otherwise, a single global penalty is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>IDs</code></td>
+<td>
+<p>A vector of fold IDs for k-fold cross validation. If left unspecified, each observation
+is assigned to a different fold (warning: this is likely to be very resource-intensive).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, it prints information to the screen while evaluating.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xval</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, it carries out cross-validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardize</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, x variables are standardized before estimation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vcv</code></td>
+<td>
+<p>Logical. If <code>TRUE</code> (the default), the post-estimation model includes standard errors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phipost</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, the plugin coefficient-specific penalty weights are iteratively
+calculated using estimates from a post-penalty regression when <code>method == "plugin"</code>. Otherwise,
+these are calculated using estimates from a penalty regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penweights</code></td>
+<td>
+<p>Optional: a vector of coefficient-specific penalties to use in plugin lasso when
+<code>method == "plugin"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>Maximum number of iterations for the plugin algorithm to converge.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma_val</code></td>
+<td>
+<p>Numerical value that determines the regularization threshold as defined in Belloni, Chernozhukov, Hansen, and Kozbur (2016). NULL default sets parameter to 0.1/log(n).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>A vector of initial values for mu that can be passed to the command.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For technical details on the algorithms used, see hdfeppml_int (post-lasso regression),
+penhdfeppml_int (standard penalized regression), penhdfeppml_cluster_int (plugin lasso),
+and xvalidate (cross-validation).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with the following elements:
+</p>
+
+<ul>
+<li> <p><code>beta</code>: if <code>post = FALSE</code>, a <code>length(lambdas)</code> x <code>ncol(x)</code> matrix with
+coefficient (beta) estimates from the penalized regressions. If <code>post = TRUE</code>, this is
+the matrix of coefficients from the post-penalty regressions.
+</p>
+</li>
+<li> <p><code>beta_pre</code>: if <code>post = TRUE</code>, a <code>length(lambdas)</code> x <code>ncol(x)</code> matrix with
+coefficient (beta) estimates from the penalized regressions.
+</p>
+</li>
+<li> <p><code>bic</code>: Bayesian Information Criterion.
+</p>
+</li>
+<li> <p><code>lambdas</code>: vector of penalty parameters.
+</p>
+</li>
+<li> <p><code>ses</code>: standard errors of the coefficients of the post-penalty regression. Note that
+these are only provided when <code>post = TRUE</code>.
+</p>
+</li>
+<li> <p><code>rmse</code>: if <code>xval = TRUE</code>, a matrix with the root mean squared error (RMSE - column 2)
+for each value of lambda (column 1), obtained by cross-validation.
+</p>
+</li>
+<li> <p><code>phi</code>: coefficient-specific penalty weights (only if <code>method == "plugin"</code>).
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Breinlich, H., Corradi, V., Rocha, N., Ruta, M., Santos Silva, J.M.C. and T. Zylkin (2021).
+"Machine Learning in International Trade Research: Evaluating the Impact of Trade Agreements",
+Policy Research Working Paper; No. 9629. World Bank, Washington, DC.
+</p>
+<p>Correia, S., P. Guimaraes and T. Zylkin (2020). "Fast Poisson estimation with high dimensional
+fixed effects", <em>STATA Journal</em>, 20, 90-115.
+</p>
+<p>Gaure, S (2013). "OLS with multiple high dimensional category variables",
+<em>Computational Statistics &amp; Data Analysis</em>, 66, 8-18.
+</p>
+<p>Friedman, J., T. Hastie, and R. Tibshirani (2010). "Regularization paths for generalized linear
+models via coordinate descent", <em>Journal of Statistical Software</em>, 33, 1-22.
+</p>
+<p>Belloni, A., V. Chernozhukov, C. Hansen and D. Kozbur (2016). "Inference in high dimensional panel
+models with an application to gun control", <em>Journal of Business &amp; Economic Statistics</em>, 34, 590-605.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# First, we need to transform the data (this is what mlfitppml handles internally). Start by
+# filtering the data set to keep only countries in the Americas:
+americas &lt;- countries$iso[countries$region == "Americas"]
+trade &lt;- trade[(trade$imp %in% americas) &amp; (trade$exp %in% americas), ]
+# Now generate the needed x, y and fes objects:
+y &lt;- trade$export
+x &lt;- data.matrix(trade[, -1:-6])
+fes &lt;- list(exp_time = interaction(trade$exp, trade$time),
+            imp_time = interaction(trade$imp, trade$time),
+            pair     = interaction(trade$exp, trade$imp))
+# Finally, we try mlfitppml_int with a lasso penalty (the default) and two lambda values:
+reg &lt;- mlfitppml_int(y = y, x = x, fes = fes, lambdas = c(0.1, 0.01))
+
+# We can also try plugin lasso:
+\donttest{reg &lt;- mlfitppml_int(y = y, x = x, fes = fes, cluster = fes$pair, method = "plugin")}
+
+# For an example with cross-validation, please see the vignette.
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

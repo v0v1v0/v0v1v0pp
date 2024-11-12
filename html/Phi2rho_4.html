@@ -1,0 +1,259 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Phi2xy</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Bivariate Normal Integral</h2>
+
+<h3>Description</h3>
+
+<p>Computes the bivariate normal integral Phi2(x, y, rho).</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">Phi2xy(x, y, rho, opt = TRUE, fun = c("mOwenT", "tOwenT", "vOwenT"))</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Numeric scalar or vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Numeric scalar or vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+<p>Numeric scalar or vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt</code></td>
+<td>
+<p>If TRUE, an optimized calculation is performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fun</code></td>
+<td>
+<p>The name of the internal function being used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The parameter ‘rho’ (or at least one of its components) must be from the interval [-1,1].
+</p>
+<p>Vector parameters must be of the same length, and any scalar parameters are replicated to the same length. The calculation is performed component-wise.
+</p>
+<p>The parameter <code>fun</code> specifies which series is used:
+</p>
+
+<dl>
+<dt>“mOwenT”:</dt>
+<dd>
+<p>modified Euler's arctangent series (default).</p>
+</dd>
+<dt>“tOwenT”:</dt>
+<dd>
+<p>tetrachoric series.</p>
+</dd>
+<dt>“vOwenT”:</dt>
+<dd>
+<p>Vasicek's series.</p>
+</dd>
+</dl>
+<p>The <code>opt</code> parameter enables checking the results in the submitted article and may be dropped later.
+</p>
+<p>If <code>fun = "mOwenT"</code> and <code>opt = TRUE</code>, the external arctangent function is used, otherwise all necessary values are calculated on the fly, but usually more iterations are needed.
+</p>
+<p>If <code>fun = "tOwenT"</code> or <code>fun = "vOwenT"</code>, and <code>opt = TRUE</code>, then the parameters transformation is performed when it makes sense, which significantly reduces the number of iterations.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The value of computed function is returned, scalar or vector.  The attribute ‘nIter’ of returned value means the number of iterations.</p>
+
+
+<h3>Note</h3>
+
+<p>Function is ready to work with the <span class="pkg">Rmpfr</span> package, which enables using arbitrary precision numbers instead of double precision ones.  Assuming <span class="pkg">Rmpfr</span> is loaded, it is sufficient to be called with parameters ‘x’, ‘y’ and ‘rho’, which have class ‘mpfr’ and the same precision.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Janez Komelj</p>
+
+
+<h3>References</h3>
+
+<p>Komelj, J. (2023): The Bivariate Normal Integral via Owen's T Function as a Modified Euler's Arctangent Series, <em>American Journal of Computational Mathematics</em>, <b>13</b>, 4, 476–504, <a href="https://doi.org/10.4236/ajcm.2023.134026">doi:10.4236/ajcm.2023.134026</a> (or reprint <a href="https://arxiv.org/pdf/2312.00011.pdf">https://arxiv.org/pdf/2312.00011.pdf</a> with better typography).
+</p>
+<p>Owen, D. B. (1956): Tables for Computing Bivariate Normal Probabilities, <em>The Annals of Mathematical Statistics</em>, <b>27</b>, 4, 1075–1090, <a href="https://doi.org/10.1214/aoms/1177728074">doi:10.1214/aoms/1177728074</a>.
+</p>
+<p>Owen, D. B. (1980): A table of normal integrals, <em>Communications in Statistics – Simulation and Computation</em>, <b>9</b>, 4, 389–419, <a href="https://doi.org/10.1080/03610918008812164">doi:10.1080/03610918008812164</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>OwenT</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">Phi2xy(2, 1.3, 0.5) 
+Phi2xy(-2, 0.5, -0.3, fun = "tOwenT")
+Phi2xy(c(1, 2, -1.5), c(-1, 1, 2.3), 0.5, fun = "vOwenT")
+Phi2xy(1, 2, c(-1, -0.5, 0, 0.5, 1))
+Phi2xy(c(1, 2), c(-1,3), c(-0.5, 0.8))
+
+function (x, y, rho, opt = TRUE, fun = c("mOwenT", "tOwenT", 
+    "vOwenT")) 
+{
+    chkArgs2(x = x, y = y, rho = rho, opt = opt)
+    fun &lt;- match.arg(fun)
+    sgn &lt;- function(x) {
+        y &lt;- sign(x)
+        y[y == 0] &lt;- 1
+        return(y)
+    }
+    frx &lt;- function(x, y, rho) {
+        rx &lt;- (y - rho * x)/(x * sqrt(1 - rho^2))
+        rx[is.nan(rx)] &lt;- 0
+        return(-abs(rx) * sgn(y - rho * x) * sgn(x))
+    }
+    fprx &lt;- function(r, x) {
+        u &lt;- r * x
+        j &lt;- !is.nan(u)
+        if (fun == "mOwenT") 
+            j &lt;- j &amp; abs(r) &gt; 1
+        if (fun == "tOwenT") 
+            j &lt;- j &amp; opt &amp; abs(r) &gt; 1
+        if (fun == "vOwenT") 
+            j &lt;- j &amp; opt &amp; abs(r) &lt; 1
+        u[j] &lt;- pnorm(u[j])
+        u[is.nan(u)] &lt;- 0
+        return(u)
+    }
+    fz &lt;- function(x, y, rho, rx, ry, px, py) {
+        n &lt;- rep(0, length(x))
+        i &lt;- rho != 0 &amp; abs(rho) &lt; 1 &amp; (x != 0 | y != 0)
+        z &lt;- x
+        if (any(!i)) {
+            z[rho == 0] &lt;- px[rho == 0] * py[rho == 0]
+            z[rho == +1] &lt;- pmin(px[rho == +1], py[rho == +1])
+            z[rho == -1] &lt;- pmax(px[rho == -1] + py[rho == -1] - 
+                1, 0)
+            j &lt;- rho != 0 &amp; abs(rho) &lt; 1
+            if (any(j)) 
+                z[j] &lt;- 1/4 + asin(rho[j])/(2 * pi)
+        }
+        if (any(i)) {
+            prx &lt;- fprx(rx[i], x[i])
+            pry &lt;- fprx(ry[i], y[i])
+            zz &lt;- eval(call(fun, c(x[i], y[i]), c(rx[i], ry[i]), 
+                c(px[i], py[i]), c(prx, pry), opt, TRUE))
+            n[i] &lt;- attr(zz, "nIter")
+            z[i] &lt;- (px[i] + py[i])/2 + zz
+            j &lt;- i &amp; (x * y &lt; 0 | x * y == 0 &amp; x + y &lt; 0)
+            z[j] &lt;- z[j] - 1/2
+        }
+        attr(z, "nIter") &lt;- n
+        return(z)
+    }
+    dim &lt;- max(length(x), length(y), length(rho))
+    if (isa(x, "mpfr")) {
+        pi &lt;- Rmpfr::Const("pi", Rmpfr::getPrec(x))
+        z &lt;- mpfrArray(NA, dim = dim, precBits = Rmpfr::getPrec(x))
+    }
+    else z &lt;- array(NA, dim = dim)
+    n &lt;- array(0, dim = dim)
+    px &lt;- pnorm(x)
+    py &lt;- pnorm(y)
+    if (length(x) &lt; dim) 
+        x &lt;- rep(x, dim)
+    if (length(y) &lt; dim) 
+        y &lt;- rep(y, dim)
+    if (length(rho) &lt; dim) 
+        rho &lt;- rep(rho, dim)
+    if (length(px) &lt; dim) 
+        px &lt;- rep(px, dim)
+    if (length(py) &lt; dim) 
+        py &lt;- rep(py, dim)
+    k &lt;- !is.na(rho) &amp; abs(rho) &lt;= 1
+    x &lt;- x[k]
+    y &lt;- y[k]
+    rho &lt;- rho[k]
+    px &lt;- px[k]
+    py &lt;- py[k]
+    q &lt;- (x^2 - 2 * rho * x * y + y^2)/(2 * (1 - rho^2))
+    phi &lt;- exp(-q)/(2 * pi * sqrt(1 - rho^2))
+    phi[is.nan(phi)] &lt;- 0
+    i &lt;- phi &gt; 1
+    j &lt;- rho[i] &lt; 0
+    n1 &lt;- length(rho[i])
+    n2 &lt;- length(rho) - n1
+    dim &lt;- 2 * n1 + n2
+    if (isa(x, "mpfr")) 
+        xx &lt;- mpfrArray(0, dim = dim, precBits = Rmpfr::getPrec(x))
+    else xx &lt;- rep(0, dim)
+    yy &lt;- xx
+    rr &lt;- xx
+    pxx &lt;- xx
+    pyy &lt;- xx
+    if (n1 &gt; 0) {
+        r &lt;- rho[i]
+        u &lt;- x[i]
+        v &lt;- y[i] * sgn(r)
+        w &lt;- (u - v)/sqrt(2 * (1 - abs(r)))
+        r &lt;- -sqrt((1 - abs(r))/2)
+        i1 &lt;- 1:(2 * n1)
+        xx[i1] &lt;- c(w, -w)
+        yy[i1] &lt;- c(v, u)
+        rr[i1] &lt;- c(r, r)
+        pw &lt;- pnorm(w)
+        pv &lt;- (1 - sgn(rho[i]))/2 + sgn(rho[i]) * py[i]
+        pxx[i1] &lt;- c(pw, 1 - pw)
+        pyy[i1] &lt;- c(pv, px[i])
+    }
+    if (n2 &gt; 0) {
+        i2 &lt;- (2 * n1 + 1):(2 * n1 + n2)
+        xx[i2] &lt;- x[!i]
+        yy[i2] &lt;- y[!i]
+        rr[i2] &lt;- rho[!i]
+        pxx[i2] &lt;- px[!i]
+        pyy[i2] &lt;- py[!i]
+    }
+    rx &lt;- frx(xx, yy, rr)
+    ry &lt;- frx(yy, xx, rr)
+    zz &lt;- fz(xx, yy, rr, rx, ry, pxx, pyy)
+    nn &lt;- attr(zz, "nIter")
+    if (n1 &gt; 0) {
+        s &lt;- zz[1:n1] + zz[(n1 + 1):(2 * n1)]
+        s[j] &lt;- px[i][j] - s[j]
+        z[k][i] &lt;- s
+        n[k][i] &lt;- nn[1:n1] + nn[(n1 + 1):(2 * n1)]
+    }
+    if (n2 &gt; 0) {
+        z[k][!i] &lt;- zz[i2]
+        n[k][!i] &lt;- nn[i2]
+    }
+    attr(z, "nIter") &lt;- n
+    return(z)
+  }
+</code></pre>
+
+
+</div>

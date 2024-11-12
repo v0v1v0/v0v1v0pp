@@ -1,0 +1,212 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>HindHe</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Identify Non-Mendelian Loci and Taxa that Deviate from Ploidy Expectations
+</h2>
+
+<h3>Description</h3>
+
+<p><code>HindHe</code> and <code>HindHeMapping</code> both generate a matrix of values, with
+taxa in rows and loci in columns.  The mean value of the matrix is expected to
+be a certain value depending on the ploidy and, in the case of natural
+populations and diversity panels, the inbreeding coefficient.  <code>colMeans</code>
+of the matrix can be used to filter non-Mendelian loci from the dataset.
+<code>rowMeans</code> of the matrix can be used to identify taxa that are not the
+expected ploidy, are interspecific hybrids, or are a mix of multiple samples.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">HindHe(object, ...)
+
+## S3 method for class 'RADdata'
+HindHe(object, omitTaxa = GetBlankTaxa(object), ...)
+
+HindHeMapping(object, ...)
+
+## S3 method for class 'RADdata'
+HindHeMapping(object, n.gen.backcrossing = 0, n.gen.intermating = 0,
+              n.gen.selfing = 0, ploidy = object$possiblePloidies[[1]],
+              minLikelihoodRatio = 10,
+              omitTaxa = c(GetDonorParent(object), GetRecurrentParent(object), 
+                           GetBlankTaxa(object)), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+
+<p>A <code>RADdata</code> object.  Genotype calling does not need to have been
+performed yet.  If the population is a mapping population,
+<code>SetDonorParent</code> and <code>SetRecurrentParent</code> should have
+been run already.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>omitTaxa</code></td>
+<td>
+
+<p>A character vector indicating names of taxa not to be included in the output.
+For <code>HindHe</code>, these taxa will also be omitted from allele frequency
+estimations.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.gen.backcrossing</code></td>
+<td>
+
+<p>The number of generations of backcrossing performed in a mapping population.  
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.gen.intermating</code></td>
+<td>
+
+<p>The number of generations of intermating performed in a mapping population.
+Included for consistency with <code>PipelineMapping2Parents</code>, but
+currently will give an error if set to any value other than zero.  If the most
+recent generation in your mapping population was random mating among all
+progeny, use <code>HindHe</code> instead of <code>HindHeMapping</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.gen.selfing</code></td>
+<td>
+
+<p>The number of generations of self-fertilization performed in a mapping population.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ploidy</code></td>
+<td>
+
+<p>A single value indicating the assumed ploidy to test.  Currently, only
+autopolyploid and diploid inheritance modes are supported.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minLikelihoodRatio</code></td>
+<td>
+
+<p>Used internally by <code>EstimateParentalGenotypes</code> as a threshold for
+certainty of parental genotypes.  Decrease this value if too many markers are
+being discarded from the calculation.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Additional arguments (none implemented).
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>These functions are especially useful for highly duplicated genomes, in which
+RAD tag alignments may have been incorrect, resulting in groups of alleles that
+do not represent true Mendelian loci.  The statistic that is calculated is based
+on the principle that observed heterozygosity will be higher than expected
+heterozygosity if a "locus" actually represents two or more collapsed paralogs.
+However, the statistic uses read depth in place of genotypes, eliminating the
+need to perform genotype calling before filtering.
+</p>
+<p>For a given taxon * locus, <code class="reqn">H_{ind}</code> is the probability that two
+sequencing reads, sampled without replacement, are different alleles (RAD tags).
+</p>
+<p>In <code>HindHe</code>, <code class="reqn">H_E</code> is the expected heterozygosity, estimated from
+allele frequencies by taking the column means of <code>object$depthRatios</code>.
+This is also the estimated probability that if two alleles were sampled at
+random from the population at a given locus, they would be different alleles.
+</p>
+<p>In <code>HindHeMapping</code>, <code class="reqn">H_E</code> is the average probability that in
+a random progeny, two alleles sampled without replacement would be different.
+The number of generations of backcrossing and self-fertilization, along with the
+ploidy and estimated parental genotypes, are needed to make this calculation.
+The function essentially simulates the mapping population based on parental
+genotypes to determine <code class="reqn">H_E</code>.
+</p>
+<p>The expectation is that
+</p>
+<p style="text-align: center;"><code class="reqn">H_{ind}/H_E = \frac{ploidy - 1}{ploidy} * (1 - F)</code>
+</p>
+
+<p>in a diversity panel, where <code class="reqn">F</code> is the inbreeding coefficient, and
+</p>
+<p style="text-align: center;"><code class="reqn">H_{ind}/H_E = \frac{ploidy - 1}{ploidy}</code>
+</p>
+
+<p>in a mapping population.  Loci that have much higher average values likely
+represent collapsed paralogs that should be removed from the dataset.  Taxa
+with much higher average values may be higher ploidy than expected,
+interspecific hybrids, or multiple samples mixed together.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A named matrix, with taxa in rows and loci in columns.  For <code>HindHeMapping</code>,
+loci are omitted if consistent parental genotypes could not be determined across
+alleles.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>References</h3>
+
+<p>Clark, L. V., Mays, W., Lipka, A. E. and Sacks, E. J. (2022) A population-level
+statistic for assessing Mendelian behavior of genotyping-by-sequencing data
+from highly duplicated genomes. <em>BMC Bioinformatics</em> <b>23</b>, 101,
+doi:10.1186/s12859-022-04635-9.
+</p>
+<p>A seminar describing
+<code class="reqn">H_{ind}/H_E</code> is available at <a href="https://youtu.be/Z2xwLQYc8OA?t=1678">https://youtu.be/Z2xwLQYc8OA?t=1678</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>InbreedingFromHindHe</code>,
+<code>ExpectedHindHe</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(exampleRAD)
+
+hhmat &lt;- HindHe(exampleRAD)
+colMeans(hhmat, na.rm = TRUE) # near 0.5 for diploid loci, 0.75 for tetraploid loci
+
+data(exampleRAD_mapping)
+exampleRAD_mapping &lt;- SetDonorParent(exampleRAD_mapping, "parent1")
+exampleRAD_mapping &lt;- SetRecurrentParent(exampleRAD_mapping, "parent2")
+
+hhmat2 &lt;- HindHeMapping(exampleRAD_mapping, n.gen.backcrossing = 1)
+colMeans(hhmat2, na.rm = TRUE) # near 0.5; all loci diploid
+</code></pre>
+
+
+</div>

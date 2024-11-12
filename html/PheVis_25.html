@@ -1,0 +1,132 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>test_phevis</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>test_phevis</h2>
+
+<h3>Description</h3>
+
+<p>test_phevis
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">test_phevis(
+  train_param,
+  df_test,
+  surparam,
+  model,
+  START_DATE,
+  PATIENT_NUM,
+  ENCOUNTER_NUM
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>train_param</code></td>
+<td>
+<p>Parameters for the model training (variables used, main ICD and CUIS, half_life, gold standard, omega). Usually obtained from train_phevis() function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df_test</code></td>
+<td>
+<p>The dataframe on which to make the prediction.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>surparam</code></td>
+<td>
+<p>The parameters used to compute the surrogate. Usually obtained by train_phevis() function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>The random intercept logistic regression. Usually obtained by train_phevis() function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>START_DATE</code></td>
+<td>
+<p>Column name of the time column. The time column should be numeric</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>PATIENT_NUM</code></td>
+<td>
+<p>Column name of the patient id column.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ENCOUNTER_NUM</code></td>
+<td>
+<p>Column name of the encounter id column.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A dataframe with the predictions.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(dplyr)
+library(PRROC)
+PheVis::data_phevis
+PheVis::data_perf
+
+var_vec &lt;- c(paste0("var",1:10), "mainCUI", "mainICD")
+main_icd &lt;- "mainICD"
+main_cui &lt;- "mainCUI"
+GS &lt;- "PR_state"
+half_life &lt;- Inf
+
+df &lt;- data_phevis %&gt;%
+        mutate(ENCOUNTER_NUM = row_number(),
+               time = round(as.numeric(time)))
+
+trainsize &lt;- 0.8*length(unique(df$subject))
+trainid &lt;- sample(x = unique(df$subject), size = trainsize)
+testid &lt;- unique(df$subject)[!unique(df$subject) %in% trainid]
+
+df_train &lt;- as.data.frame(df[df$subject %in% trainid,])
+df_test &lt;- as.data.frame(df[df$subject %in% testid,])
+
+##### train and test model #####
+train_model &lt;- PheVis::train_phevis(half_life = half_life,
+                                    df = df_train,
+                                    START_DATE = "time",
+                                    PATIENT_NUM = "subject",
+                                    ENCOUNTER_NUM = "ENCOUNTER_NUM",
+                                    var_vec = var_vec,
+                                    main_icd = main_icd,
+                                    main_cui = main_cui)
+
+test_perf &lt;- PheVis::test_phevis(train_param = train_model$train_param,
+                                 df_test = df_test,
+                                 START_DATE = "time",
+                                 PATIENT_NUM = "subject",
+                                 ENCOUNTER_NUM = "ENCOUNTER_NUM",
+                                 surparam = train_model$surparam,
+                                 model = train_model$model)
+
+pr_curve &lt;-PRROC::pr.curve(scores.class0 = test_perf$df_result$PREDICTION,
+                           weights.class0 = df_test$PR_state)
+
+roc_curve &lt;- PRROC::roc.curve(scores.class0 = test_perf$df_result$PREDICTION,
+                              weights.class0 = df_test$PR_state)
+
+</code></pre>
+
+
+</div>

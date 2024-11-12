@@ -1,0 +1,209 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>p_linreg_yerrors</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Linear Regression of Y vs. Covariates with Y Measured in Pools and
+(Potentially) Subject to Additive Normal Errors</h2>
+
+<h3>Description</h3>
+
+<p>Assumes outcome given covariates is a normal-errors linear regression. Pooled
+outcome measurements can be assumed precise or subject to additive normal
+processing error and/or measurement error. Replicates are supported.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">p_linreg_yerrors(g, ytilde, x = NULL, errors = "processing",
+  estimate_var = TRUE, start_nonvar_var = c(0.01, 1),
+  lower_nonvar_var = c(-Inf, 1e-04), upper_nonvar_var = c(Inf, Inf),
+  nlminb_list = list(control = list(trace = 1, eval.max = 500, iter.max =
+  500)), hessian_list = list(method.args = list(r = 4)))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>g</code></td>
+<td>
+<p>Numeric vector with pool sizes, i.e. number of members in each pool.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ytilde</code></td>
+<td>
+<p>Numeric vector (or list of numeric vectors, if some pools have
+replicates) with poolwise sum <code>Ytilde</code> values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Numeric matrix with poolwise <strong><code>X</code></strong> values (if any), with
+one row for each pool. Can be a vector if there is only 1 covariate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>errors</code></td>
+<td>
+<p>Character string specifying the errors that <code>Y</code> is subject
+to. Choices are <code>"neither"</code>, <code>"processing"</code> for processing error
+only, <code>"measurement"</code> for measurement error only, and <code>"both"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimate_var</code></td>
+<td>
+<p>Logical value for whether to return variance-covariance
+matrix for parameter estimates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start_nonvar_var</code></td>
+<td>
+<p>Numeric vector of length 2 specifying starting value
+for non-variance terms and variance terms, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower_nonvar_var</code></td>
+<td>
+<p>Numeric vector of length 2 specifying lower bound for
+non-variance terms and variance terms, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper_nonvar_var</code></td>
+<td>
+<p>Numeric vector of length 2 specifying upper bound for
+non-variance terms and variance terms, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlminb_list</code></td>
+<td>
+<p>List of arguments to pass to <code>nlminb</code>
+for log-likelihood maximization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hessian_list</code></td>
+<td>
+<p>List of arguments to pass to
+<code>hessian</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The individual-level model of interest for Y|<strong>X</strong> is:
+</p>
+<p>Y = beta_0 + <strong>beta_x</strong>^T <strong>X</strong> + e, e ~ N(0, sigsq)
+</p>
+<p>The implied model for summed Y*|<strong>X*</strong> in a pool with g members is:
+</p>
+<p>Y* = g beta_0 + <strong>beta_x</strong>^T <strong>X*</strong> + e*, e* ~ N(0, g sigsq)
+</p>
+<p>The assay targets Ybar, the mean Y value for each pool, from which the sum Y*
+can be calculated as Y* = g Ybar. But the Ybar's may be subject to processing
+error and/or measurement error. Suppose Ybartilde is the imprecise version of
+Ybar from the assay. If both errors are present, the assumed error structure
+is:
+</p>
+<p>Ybartilde = Ybar + e_p I(g &gt; 1) + e_m, e_p ~ N(0, sigsq_p),
+e_m ~ N(0, sigsq_m)
+</p>
+<p>with the processing error e_p and measurement error e_m assumed independent
+of each other. This motivates a maximum likelihood analysis for estimating
+<strong>theta</strong> = (beta_0, <strong>beta_x</strong>^T)^T based on observed
+(Ytilde*, <strong>X</strong>*) values, where Ytilde* = g Ytildebar.
+</p>
+
+
+<h3>Value</h3>
+
+<p>List containing:
+</p>
+
+<ol>
+<li>
+<p> Numeric vector of parameter estimates.
+</p>
+</li>
+<li>
+<p> Variance-covariance matrix (if <code>estimate_var = TRUE</code>).
+</p>
+</li>
+<li>
+<p> Returned <code>nlminb</code> object from maximizing the
+log-likelihood function.
+</p>
+</li>
+<li>
+<p> Akaike information criterion (AIC).
+</p>
+</li>
+</ol>
+<h3>References</h3>
+
+<p>Schisterman, E.F., Vexler, A., Mumford, S.L. and Perkins, N.J. (2010) "Hybrid
+pooled-unpooled design for cost-efficient measurement of biomarkers."
+<em>Stat. Med.</em> <strong>29</strong>(5): 597–613.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Load dataset containing data frame with (g, X1*, X2*, Y*, Ytilde*) values
+# for 500 pools each of size 1, 2, and 3, and list of Ytilde values where 20
+# of the single-specimen pools have replicates. Ytilde values are affected by
+# processing error and measurement error; true parameter values are
+# beta_0 = 0.25, beta_x1 = 0.5, beta_x2 = 0.25, sigsq = 1.
+data(dat_p_linreg_yerrors)
+dat &lt;- dat_p_linreg_yerrors$dat
+reps &lt;- dat_p_linreg_yerrors$reps
+
+# Fit Ytilde* vs. (X1*, X2*) ignoring errors in Ytilde (leads to loss of
+# precision and overestimated sigsq, but no bias).
+fit.naive &lt;- p_linreg_yerrors(
+  g = dat$g,
+  y = dat$y,
+  x = dat[, c("x1", "x2")],
+  errors = "neither"
+)
+fit.naive$theta.hat
+
+# Account for errors in Ytilde*, without using replicates
+fit.corrected.noreps &lt;- p_linreg_yerrors(
+  g = dat$g,
+  y = dat$ytilde,
+  x = dat[, c("x1", "x2")],
+  errors = "both"
+)
+fit.corrected.noreps$theta.hat
+
+# Account for errors in Ytilde*, incorporating the 20 replicates
+fit.corrected.reps &lt;- p_linreg_yerrors(
+  g = dat$g,
+  y = reps,
+  x = dat[, c("x1", "x2")],
+  errors = "both"
+)
+fit.corrected.reps$theta.hat
+
+# In this trial, incorporating replicates resulted in much better estimates
+# of sigsq (truly 1), sigsq_p (truly 0.4), and sigsq_m (truly = 0.2) but very
+# similar regression coefficient estimates.
+fit.corrected.noreps$theta.hat
+fit.corrected.reps$theta.hat
+
+
+</code></pre>
+
+
+</div>

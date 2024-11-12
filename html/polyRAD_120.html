@@ -1,0 +1,227 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>SubsetByLocus</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Create RADdata Objects with a Subset of Loci
+</h2>
+
+<h3>Description</h3>
+
+<p>These functions take a <code>RADdata</code> object as input and generate smaller <code>RADdata</code>
+objects containing only the specified loci.  <code>SubsetByLocus</code> allows the
+user to specify which loci are kept, whereas <code>SplitByChromosome</code> creates
+multiple <code>RADdata</code> objects representing chromosomes or sets of chromosomes.
+<code>RemoveMonomorphicLoci</code> eliminates any loci with fewer than two alleles.
+<code>RemoveHighDepthLoci</code> eliminates loci that have especially high read
+depth in order to eliminate false loci originating from repetitive sequence.
+<code>RemoveUngenotypedLoci</code> is intended for datasets that have been run
+through <code>PipelineMapping2Parents</code> and may have some genotypes that
+are missing or non-variable due to how priors were determined.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">SubsetByLocus(object, ...)
+## S3 method for class 'RADdata'
+SubsetByLocus(object, loci, ...)
+
+SplitByChromosome(object, ...)
+## S3 method for class 'RADdata'
+SplitByChromosome(object, chromlist = NULL, chromlist.use.regex = FALSE, 
+                  fileprefix = "splitRADdata", ...)
+                  
+RemoveMonomorphicLoci(object, ...)
+## S3 method for class 'RADdata'
+RemoveMonomorphicLoci(object, verbose = TRUE, ...)
+
+RemoveHighDepthLoci(object, ...)
+## S3 method for class 'RADdata'
+RemoveHighDepthLoci(object, max.SD.above.mean = 2, verbose = TRUE, ...)
+
+RemoveUngenotypedLoci(object, ...)
+## S3 method for class 'RADdata'
+RemoveUngenotypedLoci(object, removeNonvariant = TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+
+<p>A <code>RADdata</code> object.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loci</code></td>
+<td>
+
+<p>A character or numeric vector indicating which loci to include in the output
+<code>RADdata</code> object.  If numeric, it refers to row numbers in 
+<code>object$locTable</code>.  If character, it refers to row names in 
+<code>object$locTable</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chromlist</code></td>
+<td>
+
+<p>An optional list indicating how chromosomes should be split into separate
+<code>RADdata</code> objects.  Each item in the list is a vector of the same 
+class as <code>object$locTable$Chr</code> (character or numeric) containing the
+names of chromosomes that should go into one group.  If not provided, each
+chromosome will be sent to a separate <code>RADdata</code> object.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chromlist.use.regex</code></td>
+<td>
+
+<p>If <code>TRUE</code>, the character strings in <code>chromlist</code> will be treated
+as regular expressions for searching chromosome names.  For example, if
+one wanted all chromosomes beginning with the string "scaffold" to go 
+into one <code>RADdata</code> object, one could include the string
+<code>"^scaffold"</code> as an item in <code>chromlist</code> and set 
+<code>chromlist.use.regex = TRUE</code>.  If <code>FALSE</code>, exact matches to
+chromosome names will be used.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fileprefix</code></td>
+<td>
+
+<p>A character string indicating the prefix of .RData files to export.  
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.SD.above.mean</code></td>
+<td>
+
+<p>The maximum number of standard deviations above the mean read depth that a
+locus can be in order to be retained.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+
+<p>If <code>TRUE</code>, print out information about the original number of loci and
+the number of loci that were retained.  For <code>RemoveHighDepthLoci</code>, a
+histogram is also plotted showing mean depth per locus, and the cutoff for
+removing loci.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>removeNonvariant</code></td>
+<td>
+
+<p>If <code>TRUE</code>, in addition to removing loci where posterior probabilities are
+missing, loci will be removed where posterior probabilities are uniform across
+the population.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Additional arguments (none implemented).
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>SubsetByLocus</code> may be useful if the user has used their own filtering
+criteria to determine a set of loci to retain, and wants to create a new
+dataset with only those loci.  It can be used at any point in the analysis
+process.
+</p>
+<p><code>SplitByChromosome</code> is intended to make large datasets more manageable
+by breaking them into smaller datasets that can be processed independently,
+either in parallel computing jobs on a cluster, or one after another on a
+computer with limited RAM.  Generally it should be used immediately after
+data import.  Rather than returning new <code>RADdata</code> objects, it saves
+them individually to separate workspace image files, which can than be 
+loaded one at a time to run analysis pipelines such as <code>IteratePopStruct</code>.
+<code>GetWeightedMeanGenotypes</code> or one of the export functions can be 
+run on each resulting <code>RADdata</code> object, and the resulting matrices
+concatenated with <code>cbind</code>.
+</p>
+<p><code>SplitByChromosome</code>, <code>RemoveMonomorphicLoci</code>, and 
+<code>RemoveHighDepthLoci</code> use <code>SubsetByLocus</code> internally.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>SubsetByLocus</code>, <code>RemoveMonomorphicLoci</code>, 
+<code>RemoveHighDepthLoci</code>, and <code>RemoveUngenotypedLoci</code> return a <code>RADdata</code>
+object with all the slots and attributes of <code>object</code>, but only 
+containing the loci listed in <code>loci</code>, only loci with two or more
+alleles, only loci without abnormally high depth, or only loci where posterior
+probabilities are non-missing and variable, respectively.
+</p>
+<p><code>SplitByChromosome</code> returns a character vector containing file names
+where .RData files have been saved.  Each .RData file contains one 
+<code>RADdata</code> object named <code>splitRADdata</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>VCF2RADdata</code>, <code>SubsetByTaxon</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load a dataset for this example
+data(exampleRAD)
+exampleRAD
+
+# just keep the first and fourth locus
+subsetRAD &lt;- SubsetByLocus(exampleRAD, c(1, 4))
+subsetRAD
+
+# split by groups of chromosomes
+exampleRAD$locTable
+tf &lt;- tempfile()
+splitfiles &lt;- SplitByChromosome(exampleRAD, list(c(1, 4), c(6, 9)),
+                                fileprefix = tf)
+load(splitfiles[1])
+splitRADdata
+
+# filter out monomorphic loci (none removed in example)
+filterRAD &lt;- RemoveMonomorphicLoci(exampleRAD)
+
+# filter out high depth loci (none removed in this example)
+filterRAD2 &lt;- RemoveHighDepthLoci(filterRAD)
+
+# filter out loci with missing or non-variable genotypes 
+# (none removed in this example)
+filterRAD3 &lt;- IterateHWE(filterRAD2)
+filterRAD3 &lt;- RemoveUngenotypedLoci(filterRAD3)
+</code></pre>
+
+
+</div>

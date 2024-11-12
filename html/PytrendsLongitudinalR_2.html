@@ -1,0 +1,111 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>convert_cross_section</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Convert the Cross-Section data for Re-scaling.</h2>
+
+<h3>Description</h3>
+
+<p>This function uses the single or concatenated reference time-series data to re-scale the cross-section data collected by the cross_section() function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">convert_cross_section(params, reference_geo_code = "US-CA", zero_replace = 0.1)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>params</code></td>
+<td>
+<p>A list containing parameters including keyword, topic, folder_name, start_date, end_date, and data_format.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reference_geo_code</code></td>
+<td>
+<p>Google Trends Geo code for the user-selected reference region. For example, UK's Geo is 'GB', Central Denmark Region's Geo is 'DK-82, and US DMA Philadelphia PA's Geo is '504'. The default is 'US'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zero_replace</code></td>
+<td>
+<p>When re-scaling data from different time periods for concatenation, the last/first data point of a time period may be zero. Then the calculation will throw an error, or every single data point will be zero. To avoid this, the user can adjust the zero to an insignificant number to continue the calculation. The default is 0.1.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This final method rescales the cross-section data based on the concatenated time series data to generate re-scaled accurate longitudinal Google Trends index.
+</p>
+
+
+<h3>Value</h3>
+
+<p>No return value, called for side effects.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Please note that this example may take a few minutes to run
+# Create a temporary folder for the example
+
+# Ensure the temporary folder is cleaned up after the example
+if (reticulate::py_module_available("pytrends")) {
+  params &lt;- initialize_request_trends(
+    keyword = "Coronavirus disease 2019",
+    topic = "/g/11j2cc_qll",
+    folder_name = file.path(tempdir(), "test_folder"),
+    start_date = "2024-05-01",
+    end_date = "2024-05-03",
+    data_format = "daily"
+  )
+  cross_section_success &lt;- TRUE
+  time_series_success &lt;- TRUE
+
+  # Run the cross_section function and handle potential errors
+  tryCatch({
+    cross_section(params, geo = "US", resolution = "REGION")
+  }, pytrends.exceptions.TooManyRequestsError = function(e) {
+    message("Too many requests error in cross_section: ", conditionMessage(e))
+    cross_section_success &lt;- FALSE # Indicate failure
+  })
+
+  # Run the time_series function and handle potential errors
+  tryCatch({
+    time_series(params, reference_geo_code = "US-CA")
+  }, pytrends.exceptions.TooManyRequestsError = function(e) {
+    message("Too many requests error in time_series: ", conditionMessage(e))
+    time_series_success &lt;- FALSE # Indicate failure
+  })
+
+  data_dir_time &lt;- file.path("test_folder", "daily", "over_time", "US-CA")
+  data_dir_region &lt;- file.path("test_folder", "daily", "by_region")
+
+  # Conditionally run convert_cross_section only if both functions succeeded
+  if (cross_section_success &amp;&amp; time_series_success &amp;&amp; length(list.files(data_dir_time)) &gt; 0
+  &amp;&amp; length(list.files(data_dir_region)) &gt; 0) {
+    convert_cross_section(params, reference_geo_code = "US-CA")
+  } else {
+    message("Skipping convert_cross_section due to previous errors.")
+  }
+
+  # Clean up temporary directory
+  on.exit(unlink("test_folder", recursive = TRUE))
+} else {
+  message("The 'pytrends' module is not available.
+  Please install it by running install_pytrendslongitudinalr()")
+}
+
+</code></pre>
+
+
+</div>

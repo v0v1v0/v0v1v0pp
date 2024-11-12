@@ -1,0 +1,494 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Compare_2D_3D</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compare 2D vs 3D prioritization algorithms</h2>
+
+<h3>Description</h3>
+
+<p>Compare 2D vs 3D prioritization algorithms
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">Compare_2D_3D(biodiv_raster, depth_raster, breaks, biodiv_df, val_depth_range = TRUE,
+priority_weights = NULL, budget_percents = seq(0,1,0.1), budget_weights = "equal",
+penalty = 0, edge_factor = 0.5, gap = 0.1, threads = 1L, sep_priority_weights = ",",
+portfolio = "gap", portfolio_opts = list(number_solutions = 10, pool_gap = 0.1),
+sep_biodiv_df = ",", locked_in_raster = NULL, locked_out_raster = NULL, verbose = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>biodiv_raster</code></td>
+<td>
+
+<p>SpatRaster object or folder path with 2D feature distributions as layers.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>depth_raster</code></td>
+<td>
+
+<p>SpatRaster object or file path with elevation/bathymetric map.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>breaks</code></td>
+<td>
+
+<p>Numeric vector defining the range of depth layers to use.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>biodiv_df</code></td>
+<td>
+
+<p><code>data.frame</code> or a file path (CSV, TXT, XLS, or XLSX) containing additional
+information about biodiversity features.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>val_depth_range</code></td>
+<td>
+
+<p>No correction of the splitted 3D distributions based on depth range of the biodiversity
+features (<code>"min_z"</code> and <code>"max_z"</code> from <code>biodiv_df</code>) is needed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>priority_weights</code></td>
+<td>
+
+<p><code>data.frame</code> object or file path (CSV, TXT, XLS, or XLSX) containing group names of
+biodiversity features in the first column and corresponding group weights in the second
+column. This data.frame attributes distinct prioritization weights to different
+biodiversity features or groups of features.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>budget_percents</code></td>
+<td>
+
+<p>Numeric value <code class="reqn">[0,1]</code> or vector containing budget percentages to use. The default is
+<code>seq(0,1,0.1)</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>budget_weights</code></td>
+<td>
+
+<p>Numeric weight vector for budget_percents allocation among depth levels.
+Otherwise it can be a string with one of the choices <code>"equal"</code>, <code>"area"</code> or
+<code>"richness"</code>.
+Alternatively, it can be a numerical vector with custom weights corresponding to each
+depth layer, where the first value corresponds to the surface and last one corresponds to
+the bottom of the sea. The weights are normalized if their sum exceeds 1. If not
+specified, an equal distribution of budget among depth levels is used, as the default.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalty</code></td>
+<td>
+
+<p>Numeric penalty applied to each depth zone, as defined in the<br><code>prioritizr::add_boundary_penalties</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>edge_factor</code></td>
+<td>
+
+<p>Numeric edge factor applied to each depth zone, as defined in the<br><code>prioritizr::add_boundary_penalties</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gap</code></td>
+<td>
+
+<p>The optimality gap for the solver, as defined in the <span class="pkg">prioritizr</span> package.
+The default gap is 0.1.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threads</code></td>
+<td>
+
+<p>The number of solver threads to be used. The default is 1.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sep_priority_weights</code></td>
+<td>
+
+<p>Separator used in priority_weights file, if priority_weights is in path format.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>portfolio</code></td>
+<td>
+
+<p>The portfolio to be used, choosing between <code>"extra"</code>,
+<code>"gap"</code>, <code>"cuts"</code> and <code>"shuffle"</code> portfolios.
+The default is <code>"gap"</code>. <code>portfolio=""</code> indicates that no portfolio is used.
+For more about <code>portfolios</code> see <span class="pkg">prioritizr</span>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>portfolio_opts</code></td>
+<td>
+
+<p>The <span class="pkg">prioritizr</span> portfolio options to be used.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sep_biodiv_df</code></td>
+<td>
+
+<p>Separator<br>
+used in biodiv_df file, if biodiv_df is in path format.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>locked_in_raster</code></td>
+<td>
+
+<p>An optional <code>locked_in_raster</code> SpatRaster to be used.
+Note that these areas are considered as zero-cost.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>locked_out_raster</code></td>
+<td>
+
+<p>An optional <code>locked_out_raster</code> SpatRaster to be used.
+Note that these areas are excluded from the solution.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+
+<p>If <code>verbose = TRUE</code>, then solver messages are printed as well. The default is
+<code>FALSE</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>To facilitate comparisons between 3D and 2D approaches, the <code>compare_2D_3D()</code>
+function is provided in the package. This function enables users to conduct all steps of
+the analysis (data generation, setting and solving the optimization problem
+and producing outputs), by executing both 2D and 3D approaches, with similar settings,
+that facilitate comparisons.  The function generates corresponding maps and graphs for
+both approaches.
+</p>
+<p>The <code>split_rast</code> function is used to convert 2D distributions of
+biodiversity features (rasters) into a 3D format.
+</p>
+<p>Here the <code>biodiv_df</code> can have the following
+column names (independently of their order and any other names are ignored):
+</p>
+
+<ul>
+<li>
+<p><code>"species_name"</code>: <b>Mandatory</b> column with the feature names, which must
+be the same with biodiv_raster.
+</p>
+</li>
+<li>
+<p><code>"pelagic"</code>: <b>Mandatory</b> column about the features' behaviour.
+<code>TRUE</code> means that this feature is pelagic and <code>FALSE</code> means that this feature is
+benthic.
+</p>
+</li>
+<li>
+<p><code>"min_z"</code>: <b>Optional</b> column about the minimum vertical range of
+features. <code>NA</code> values are translated as unlimited upward feature movement.
+</p>
+</li>
+<li>
+<p><code>"max_z"</code>: <b>Optional</b> column about the maximum vertical range of
+features. <code>NA</code> values are translated as unlimited downward feature movement.
+</p>
+</li>
+<li>
+<p><code>"group"</code>: <b>Optional</b> column with the group weights names.
+</p>
+</li>
+</ul>
+<p>Except from <code>biodiv_df</code>, an additional <code>data.frame</code> object can also be used for
+defining group weights, named <code>priority_weights</code>. If used, this <code>data.frame</code>
+object must have two columns:
+</p>
+
+<ul>
+<li>
+<p><code>"group"</code>: <b>Mandatory</b> column with the group weights names.
+</p>
+</li>
+<li>
+<p><code>"weight"</code>: <b>Mandatory</b> column with the group weights.
+</p>
+</li>
+</ul>
+<p>In case that no feature weights are desired, then <code>priority_weights</code> can be kept
+to <code>NULL</code>.
+</p>
+<p><code>breaks</code> must be in correspondence to depth_raster file.
+For example, if depth_raster has range <code class="reqn">[10, -3000]</code>, then a breaks vector of
+<code>c(0,-40,-200,-2000,-Inf)</code> will create depth levels
+<code class="reqn">[0,-40],\\(-40,-200], (-200, -2000], (-2000, -\infty)</code>
+and set to NA cells with values greater than <code class="reqn">0</code>.
+</p>
+<p>If <code>val_depth_range = TRUE</code> (default), then no correction is done and the depth range
+of the biodiversity features is derived from the corresponding feature distribution
+raster and so <code>"min_z"</code> and <code>"max_z"</code> are ignored.
+If <code>val_depth_range = FALSE</code>, then the function uses the minimum and maximum depth
+information provided in the biodiv_df, so as to remove feature occurrences outside their
+expected range.
+</p>
+<p><code>budget_percents</code>: Budget reflects the desired level of protection to be modeled.
+It ranges from 0 to 1, with 0 indicating no resources available for protection,
+while 1 signifies resources sufficient to protect the entire study area. Typically,
+setting a budget of 0.3 corresponds to the 30% conservation target (i.e. 30% of the
+total area set aside for conservation).
+Users also have the flexibility to define multiple budget levels using a vector,
+allowing for the exploration of various protection scenarios. For instance, a vector like
+<code>c(0.1, 0.3, 0.5)</code> represents three scenarios where 10%, 30%, and 50% of the
+study area are designated for protection.
+</p>
+<p><code>budget_weights</code>: The <b>Compare_2D_3D</b> function allows users to specify how the
+budget is distributed among depth levels. Three allocation methods are available:
+</p>
+
+<ol>
+<li>
+<p>Equal Distribution: Allocates an equal share of the budget to each depth level<br>
+(<code>budget_weights = "equal"</code>).
+</p>
+</li>
+<li>
+<p>Proportional to Area: Allocates budget based on the spatial extent of each depth
+level<br>
+(<code>budget_weights = "area"</code>).
+</p>
+</li>
+<li>
+<p>Proportional to Species Richness: Prioritizes budget allocation to depth levels with
+higher species diversity (number of species). (<code>budget_weights = "richness"</code>)
+</p>
+</li>
+</ol>
+<p>Otherwise, it can be a numeric vector with length equal to the number of depth levels,
+where each number indicates the budget share per depth level.
+</p>
+<p>The solver used for solving the prioritization problems is the best available on the
+computer, following the solver hierarchy of <span class="pkg">prioritizr</span>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing the following objects (non-referenced are identical to the input ones):
+</p>
+
+<ul>
+<li>
+<p>split_features: output of <code>split_rast</code>
+</p>
+</li>
+<li>
+<p>solution3D: list with 3D solution per budget percentage
+</p>
+</li>
+<li>
+<p>absolute_held3D: <code>absolute_held</code> for 3D solutions (see
+<code>evaluate_3D</code>)
+</p>
+</li>
+<li>
+<p>overall_held3D: <code>overall_held</code> for 3D solutions (see
+<code>evaluate_3D</code>)
+</p>
+</li>
+<li>
+<p>relative_helds3D: <code>relative_held</code> for 3D solutions (see
+<code>evaluate_3D</code>)
+</p>
+</li>
+<li>
+<p>mean_overall_helds3D: <code>base::mean</code> of <code>overall_held</code>
+for 3D solution (see <code>evaluate_3D</code>) per budget
+</p>
+</li>
+<li>
+<p>sd_overall_helds3D: <code>stats::sd</code> of <code>overall_held</code>
+for 3D solution (see <code>evaluate_3D</code>) per budget
+</p>
+</li>
+<li>
+<p>depth_overall_available3D: <code>depth_overall_available</code> for 3D solutions (see
+<code>evaluate_3D</code>)
+</p>
+</li>
+<li>
+<p>solution2D: list with 2D solution per budget percentage
+</p>
+</li>
+<li>
+<p>absolute_held2D: <code>absolute_held</code> for 3D solutions (see
+<code>evaluate_3D</code>)
+</p>
+</li>
+<li>
+<p>overall_held2D: <code>overall_held</code> for 2D solutions (see
+<code>evaluate_3D</code>)
+</p>
+</li>
+<li>
+<p>relative_helds2D: <code>relative_held</code> for 2D solutions (see
+<code>evaluate_3D</code>)
+</p>
+</li>
+<li>
+<p>mean_overall_helds2D: <code>base::mean</code> of <code>overall_held</code>
+for 2D solution (see <code>evaluate_3D</code>) per budget
+</p>
+</li>
+<li>
+<p>sd_overall_helds2D: <code>stats::sd</code> of <code>overall_held</code>
+for 2D solution (see <code>evaluate_3D</code>) per budget
+</p>
+</li>
+<li>
+<p>depth_overall_available2D: <code>depth_overall_available</code> for 2D solutions (see
+<code>evaluate_3D</code>)
+</p>
+</li>
+<li>
+<p>names_features: names of features used
+</p>
+</li>
+<li>
+<p>total_amount: <code>total_amount</code> of features used
+(see <code>evaluate_3D</code>)
+</p>
+</li>
+<li>
+<p>overall_total_amount: <code>overal_total_amount</code> of names of features used
+(see <code>evaluate_3D</code>)
+</p>
+</li>
+<li>
+<p>jaccard_coef: <code>terra_jaccard</code> per pair of 2D and 3D solutions,
+given each budget
+</p>
+</li>
+<li>
+<p>depth_levels_names: Depth levels names
+</p>
+</li>
+<li>
+<p>biodiv_raster: <code>biodiv_raster</code> used, after cleaning
+</p>
+</li>
+<li>
+<p>biodiv_df: <code>biodiv_df</code> used after cleaning
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Hanson, Jeffrey O, Richard Schuster, Nina Morrell, Matthew Strimas-Mackey, Brandon
+P M Edwards, Matthew E Watts, Peter Arcese, Joseph Bennett, and Hugh P Possingham. 2024.
+prioritizr: Systematic Conservation Prioritization in R. <a href="https://prioritizr.net">
+https://prioritizr.net</a>.
+</p>
+<p>Lehtomäki, Joona (2016). Comparing prioritization methods, 21 June.<br>
+Available at: <a href="https://rpubs.com/jlehtoma/priocomp">
+https://rpubs.com/jlehtoma/priocomp</a>
+(Accessed 1 June 2024).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>
+evaluate_3D,
+terra_jaccard,
+split_rast,
+plot_Compare_2D_3D
+</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+## This example requires commercial solver from 'gurobi' package for
+## portfolio = "gap". Else replace it with e.g. portfolio = "shuffle" for using
+## a free solver like the one from 'highs' package.
+
+biodiv_raster &lt;- get_biodiv_raster()
+depth_raster &lt;- get_depth_raster()
+data(biodiv_df)
+
+out_2D_3D &lt;- Compare_2D_3D(biodiv_raster = biodiv_raster,
+                           depth_raster = depth_raster,
+                           breaks = c(0, -40, -200, -2000, -Inf),
+                           biodiv_df = biodiv_df,
+                           budget_percents = seq(0, 1, 0.1),
+                           budget_weights = "richness",
+                           threads = parallel::detectCores(),
+                           portfolio = "gap",
+                           portfolio_opts = list(number_solutions = 10))
+
+plot_Compare_2D_3D(out_2D_3D, to_plot = "all", add_lines=TRUE)
+
+# Arbitrary random weights
+priority_weights &lt;- data.frame(c("A", "B", "C"), c(0.001, 1000, 1))
+names(priority_weights) &lt;- c("group", "weight")
+biodiv_df$group &lt;- rep(c("A", "B", "C"), length.out=20)
+out_2D_3D &lt;- Compare_2D_3D(biodiv_raster = biodiv_raster,
+                           depth_raster = depth_raster,
+                           breaks = c(0, -40, -200, -2000, -Inf),
+                           biodiv_df = biodiv_df,
+                           priority_weights = priority_weights,
+                           budget_percents = seq(0, 1, 0.1),
+                           budget_weights = "richness",
+                           threads = parallel::detectCores(),
+                           portfolio = "gap",
+                           portfolio_opts = list(number_solutions = 10))
+
+plot_Compare_2D_3D(out_2D_3D, to_plot = "all", add_lines=TRUE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,118 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ratios</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculation of price ratios</h2>
+
+<h3>Description</h3>
+
+<p>Calculation of regional price ratios per product with flexible setting of base prices.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ratios(p, r, n, base=NULL, static=FALSE, settings=list())
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>A numeric vector of prices.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r, n</code></td>
+<td>
+<p>A character vector or factor of regional entities <code>r</code> and products <code>n</code>, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>base</code></td>
+<td>
+<p>A character specifying the base region to be used for the calculation of price ratios, i.e., <code class="reqn">p_n^r / p_n^{base}</code>. If <code>NULL</code>, price ratios are calculated with reference to the average price of a product, i.e., <code class="reqn">p_n^r / \bar{p}_n</code>, with <code class="reqn">\bar{p}_n = (1/R) \sum_{s=1}^{R} p_n^s</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>static</code></td>
+<td>
+<p>A logical indicating whether the <code>base</code> region is static (<code>TRUE</code>), i.e. always the same as <code>base</code>, or if another region than <code>base</code> is allowed to be used when prices for <code>base</code> are not available or missing (=<code>NA</code>). Only relevant if <code>base</code> is not <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>settings</code></td>
+<td>
+<p>A list of control settings to be used. The following settings are supported:
+</p>
+
+<ul><li> <p><code>chatty</code> : A logical specifying if warnings and info messages should be printed or not. The default is <code>getOption("pricelevels.chatty")</code>.
+</p>
+</li></ul>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If <code>base</code> is not available for a specific product, <code class="reqn">n</code>, and <code>static=FALSE</code>, another base region is used instead. This is particularly important in cases of missing prices. Otherwise, for <code>static=TRUE</code>, computation is not possible and gives <code>NA</code>.
+</p>
+<p>If there are duplicated observations, only one of these duplicates is used as the base price. For example, if two prices are available for product <code class="reqn">n</code> in base region <code class="reqn">r</code>, <code>ratios()</code> divides both prices by the first one.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A numeric vector of the same length as <code>p</code>. If <code>base</code> has been adjusted for some products, the attribute <code>attr("base")</code> is added to the output, providing the respective base region.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Sebastian Weinand</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">### (1) unique price observations; no missings
+
+set.seed(123)
+dt1 &lt;- rdata(R=3, B=1, N=4)
+levels(dt1$region) &lt;- c("a","b","c")
+
+# calculate price ratios by product:
+dt1[, ratios(p=price, r=region, n=product, base="b")]
+
+
+### (2) unique price observations; missings
+
+
+# drop two observations:
+dt2 &lt;- dt1[-c(5,10), ]
+
+# now, region 'a' is base for product 2:
+(pr &lt;- dt2[, ratios(p=price, r=region, n=product, base="b")])
+
+# base region prices are stored in attributes:
+attr(pr, "base")
+
+# with static base, NAs are produced:
+dt2[, ratios(p=price, r=region, n=product, base="b", static=TRUE)]
+
+
+### (3) treatment of duplicates and missing prices (not NAs):
+
+# insert duplicates and missings:
+dt3 &lt;- rbind(dt1[2,], dt1[-c(1,10),])
+dt3[1, "price" := dt1[2,price]+abs(rnorm(1))]
+anyDuplicated(dt3, by=c("region","product"))
+
+# duplicated prices are divided by the first base price:
+dt3[, ratios(p=price, r=region, n=product, base="b")]
+</code></pre>
+
+
+</div>

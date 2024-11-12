@@ -1,0 +1,341 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>powRICLPM</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Power analysis for the RI-CLPM (and STARTS model)</h2>
+
+<h3>Description</h3>
+
+<p>Perform a Monte Carlo power analysis for the random intercept cross-lagged panel model (RI-CLPM) and the stable trait autoregressive trait state model (STARTS). This function computes performance metrics such as bias, mean square error, coverage, power, etc, for all model parameters, and can perform power analyses across multiple experimental conditions simultaneously. Conditions are defined in terms of sample size, number of time points, proportion of between-unit variance (ICC), and indicator reliability. See "Details" for information on (a) internal data simulation, (b) internal model estimation, (c) <code>powRICLPM</code>'s naming conventions of parameters, (d) parallel execution capabilities for speeding up the analysis, and (e) various extensions, such as the option to include measurement errors for data generation and estimation (i.e., the STARTS model), imposing various constraints over time, and many more.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">powRICLPM(
+  target_power = 0.8,
+  search_lower = NULL,
+  search_upper = NULL,
+  search_step = 20,
+  sample_size = NULL,
+  time_points,
+  ICC,
+  RI_cor,
+  Phi,
+  within_cor,
+  reliability = 1,
+  skewness = 0,
+  kurtosis = 0,
+  estimate_ME = FALSE,
+  significance_criterion = 0.05,
+  alpha = NULL,
+  reps = 20,
+  bootstrap_reps = NULL,
+  seed = NA,
+  constraints = "none",
+  bounds = FALSE,
+  estimator = "ML",
+  save_path = NULL,
+  software = "lavaan"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>target_power</code></td>
+<td>
+<p>A numeric value between 0 and 1, denoting the targeted power level.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>search_lower</code></td>
+<td>
+<p>A positive <code>integer</code>, denoting the lower bound of a range of sample sizes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>search_upper</code></td>
+<td>
+<p>A positive <code>integer</code>, denoting the upper bound of a range of sample sizes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>search_step</code></td>
+<td>
+<p>A positive <code>integer</code>, denoting an increment in sample size.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sample_size</code></td>
+<td>
+<p>(optional) An <code>integer</code> (vector), indicating specific sample sizes at which to evaluate power, rather than specifying a range using the <code>search_*</code> arguments.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time_points</code></td>
+<td>
+<p>An <code>integer</code> (vector) with elements at least larger than 3, indicating number of time points.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ICC</code></td>
+<td>
+<p>A <code>double</code> (vector) with elements between 0 and 1, denoting the proportion of (true score) variance at the between-unit level. When measurement error is included in the data generating model, ICC is computed as the variance of the random intercept factor divided by the true score variance (i.e., controlled for measurement error).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>RI_cor</code></td>
+<td>
+<p>A <code>double</code> between 0 and 1, denoting the correlation between random intercepts.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Phi</code></td>
+<td>
+<p>A matrix, with standardized autoregressive effects (on the diagonal) and cross-lagged effects (off-diagonal) in the population. Columns represent predictors and rows represent outcomes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>within_cor</code></td>
+<td>
+<p>A <code>double</code> between 0 and 1, denoting the correlation between the within-unit components.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reliability</code></td>
+<td>
+<p>(optional) A <code>numeric</code> vector with elements between 0 and 1, denoting the reliability of the variables (see "Details").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skewness</code></td>
+<td>
+<p>(optional) A <code>numeric</code>, denoting the skewness values for the observed variables (see <code>simulateData</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kurtosis</code></td>
+<td>
+<p>(optional) A <code>numeric</code> value, denoting the excess kurtosis values (i.e., compared to the kurtosis of a normal distribution) for the observed variables (see <code>simulateData</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimate_ME</code></td>
+<td>
+<p>(optional) A <code>logical</code>, denoting if measurement error variance should be estimated in the RI-CLPM (see "Details").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>significance_criterion</code></td>
+<td>
+<p>(optional) A <code>double</code>, denoting the significance criterion.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>(don't use) Deprecated, use <code>significance_criterion</code> instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reps</code></td>
+<td>
+<p>A positive <code>integer</code>, denoting the number of Monte Carlo replications to be used during simulations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootstrap_reps</code></td>
+<td>
+<p>(superseded) Uncertainty regarding simulation estimates is now computed analytically based on Morris et al. (2017). This argument is not used anymore.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>An <code>integer</code> of length 1. If multiple cores are used, a seed will be used to generate a full L'Ecuyer-CMRG seed for all cores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>constraints</code></td>
+<td>
+<p>(optional) A <code>character</code> string, specifying the type of constraints that should be imposed on the estimation model (see "Details").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bounds</code></td>
+<td>
+<p>(optional) A <code>logical</code>, denoting if bounded estimation should be used for the latent variable variances in the model (see "Details").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimator</code></td>
+<td>
+<p>(options) A <code>character</code> string of length 1, denoting the estimator to be used (default: <code>ML</code>, see "Details").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save_path</code></td>
+<td>
+<p>A <code>character</code> string of length 1, naming the directory to save (data) files to (used for validation purposes of this package). Variables are saved in alphabetical and numerical order.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>software</code></td>
+<td>
+<p>A <code>character</code> string of length, naming which software to use for simulations; either "lavaan" or "Mplus" (see "Details").</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>A rationale for the power analysis strategy implemented in this package can be found in Mulder (2023).
+</p>
+
+
+<h4>Data Generation</h4>
+
+<p>Data are generated using <code>simulateData</code> from the <span class="pkg">lavaan</span> package. Based on <code>Phi</code> and <code>within_cor</code>, the residual variances and covariances for the within-components at wave 2 and later are computed, such that the within-components themselves have a variance of 1. This implies that the lagged effects in <code>Phi</code> can be interpreted as standardized effects.</p>
+
+
+
+<h4>Model Estimation using lavaan</h4>
+
+<p>When <code>software = "lavaan"</code> (default), generated data are analyzed using <code>lavaan</code> from the <span class="pkg">lavaan</span> package. The default estimator is maximum likelihood (<code>ML</code>). Other maximum likelihood based estimators implemented in <a href="https://lavaan.ugent.be/tutorial/est.html"><span class="pkg">lavaan</span></a> can be specified as well. When skewed or kurtosed data are generated (using the <code>skewness</code> and <code>kurtosis</code> arguments), the estimator defaults to robust maximum likelihood <code>MLR</code>. The population parameter values are used as starting values.
+</p>
+<p>Parameter estimates from non-converged model solutions are discarded from the results. When <code>bounds = FALSE</code>, inadmissible parameter estimates from converged solutions (e.g., a negative random intercept variance) are discarded. When <code>bounds = TRUE</code>, inadmissible parameter estimates are retained following advice by De Jonckere and Rosseel (2022). The results include the minimum estimates for all parameters across replications to diagnose which parameter(s) might be the cause of the inadmissible solution.</p>
+
+
+
+<h4>Using Mplus</h4>
+
+<p>When <code>software = "Mplus"</code>, Mplus input files will be generated and saved into <code>save_path</code>. Note that it is not possible to generate skewed or kurtosed data in Mplus via the <code>powRICLPM</code> package. Furthermore, bounded estimation is not available in Mplus. Therefore, the <code>skewness</code>, <code>kurtosis</code>, and <code>bounds</code> will be ignored when <code>software = "Mplus"</code>. </p>
+
+
+
+<h4>Naming Conventions Observed and Latent Variables</h4>
+
+<p>The observed variables in the RI-CLPM are given default names, namely capital letters in alphabetical order, with numbers denoting the measurement occasion. For example, for a bivariate RICLPM with 3 time points, we observe <code>A1</code>, <code>A2</code>, <code>A3</code>, <code>B1</code>, <code>B2</code>, and <code>B3</code>. Their within-components are denoted by <code>wA1</code>, <code>wA2</code>, ..., <code>wB3</code>, respectively. The between-components have <code>RI_</code> prepended to the variable name, resulting in <code>RI_A</code> and <code>RI_B</code>.
+</p>
+<p>Parameters are denoted using <span class="pkg">lavaan</span> model syntax (see <a href="https://lavaan.ugent.be/tutorial/syntax1.html">the <span class="pkg">lavaan</span> website</a>). For example, the random intercept variances are denoted by <code>RI_A~~RI_A</code> and <code>RI_B~~RI_B</code>, the cross-lagged effects at the first wave as <code>wB2~wA1</code> and <code>wA2~wB1</code>, and the autoregressive effects as <code>wA2~wA1</code> and <code>wB2~wB1</code>. Use <code>give(object, "names")</code> to extract parameter names from the <code>powRICLPM</code> object.</p>
+
+
+
+<h4>Parallel Processing and Progress Bar</h4>
+
+<p>To speed up the analysis, power analysis for multiple experimental conditions can be executed in parallel. This has been implemented using <span class="pkg">future</span>. By default the analysis is executed sequentially (i.e., single-core). Parallel execution (i.e., multicore) can be setup using <code>plan</code>, for example <code>plan(multisession, workers = 4)</code>. For more information and options, see <a href="https://future.futureverse.org/articles/future-1-overview.html#controlling-how-futures-are-resolved">https://future.futureverse.org/articles/future-1-overview.html#controlling-how-futures-are-resolved</a>.
+</p>
+<p>A progress bar displaying the status of the power analysis has been implemented using <span class="pkg">progressr</span>. By default, a simple progress bar will be shown. For more information on how to control this progress bar and several other notification options (e.g., auditory notifications), see <a href="https://progressr.futureverse.org">https://progressr.futureverse.org</a>.</p>
+
+
+
+<h4>Extension: Measurement Errors (STARTS model)</h4>
+
+<p>Including measurement error to the RI-CLPM makes the model equivalent to the bivariate STARTS model by Kenny and Zautra (2001) without constraints over time. Measurement error can be added to the generated data through the <code>reliability</code> argument. Setting the reliability-argument to 0.8 implies that 80 percent is the true score variance, and 20 measurement error variance. <code>ICC</code> then denotes the proportion of <em>true score variance</em> captured by the random intercept factors. Estimating measurement errors (i.e., the STARTS model) is done by setting <code>estimate_ME = TRUE</code>.</p>
+
+
+
+<h4>Extension: Imposing Constraints</h4>
+
+<p>The following constraints can be imposed on the estimation model using the <code>constraints = "..."</code> argument:
+</p>
+
+<ul>
+<li> <p><code>lagged</code>: Time-invariant autoregressive and cross-lagged effects.
+</p>
+</li>
+<li> <p><code>residuals</code>: Time-invariant residual variances.
+</p>
+</li>
+<li> <p><code>within</code>: Time-invariant lagged effects and residual variances.
+</p>
+</li>
+<li> <p><code>stationarity</code>: Constraints such that at the within-unit level a stationary process is estimated. This included time-invariant lagged effects, and constraints on the residual variances.
+</p>
+</li>
+<li> <p><code>ME</code>: Time-invariant measurement error variances. Only possible when <code>estimate_ME = TRUE</code>.
+</p>
+</li>
+</ul>
+<h4>Extension: Bounded Estimation</h4>
+
+<p>Bounded estimation is useful to avoid nonconvergence in small samples. Here, automatic wide bounds are used as advised by De Jonckere and Rosseel (2022), see <code>optim.bounds</code> in <code>lavOptions</code>. This option can only be used when no constraints are imposed on the estimation model.</p>
+
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>powRICLPM</code>, upon which <code>summary()</code>, <code>print()</code>, and <code>plot()</code> can be used. The returned object is a <code>list</code> with a <code>conditions</code> and <code>session</code> element. <code>condition</code> itself is a <code>list</code> of experimental conditions, where each element is again a <code>list</code> containing the input and output of the power analysis for that particular experimental condition. <code>session</code> is a <code>list</code> containing information common to all experimental conditions.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Jeroen D. Mulder <a href="mailto:j.d.mulder@uu.nl">j.d.mulder@uu.nl</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>De Jonckere, J., &amp; Rosseel, Y. (2022). Using bounded estimation to avoid nonconvergence in small sample structural equation modeling. <em>Structural Equation Modeling</em>, <em>29</em>(3), 412-427. <a href="https://doi.org/10.1080/10705511.2021.1982716">doi:10.1080/10705511.2021.1982716</a>
+</p>
+<p>Kenny, D. A., &amp; Zautra, A. (2001). Trait–state models for longitudinal data. <em>New methods for the analysis of change</em> (pp. 243–263). American Psychological Association. <a href="https://doi.org/10.1037/10409-008">doi:10.1037/10409-008</a>
+</p>
+<p>Mulder, J. D. (2022). Power analysis for the random intercept cross-lagged panel model using the <em>powRICLPM</em> R-package. <em>Structural Equation Modeling</em>. <a href="https://doi.org/10.1080/10705511.2022.2122467">doi:10.1080/10705511.2022.2122467</a>
+</p>
+
+
+<h3>See Also</h3>
+
+
+<ul>
+<li> <p><code>summary.powRICLPM</code>: Summarize the setup of <code>powRICLPM</code> object.
+</p>
+</li>
+<li> <p><code>give</code>: Extract information from <code>powRICLPM</code> objects.
+</p>
+</li>
+<li> <p><code>plot.powRICLPM</code>: Visualize results <code>powRICLPM</code> object for a specific parameter.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Define population parameters for lagged effects
+Phi &lt;- matrix(c(.4, .1, .2, .3), ncol = 2, byrow = TRUE)
+
+# (optional) Set up parallel computing (i.e., multicore, speeding up the analysis)
+library(future)
+library(progressr)
+future::plan(multisession, workers = 6)
+
+
+# Run analysis (`reps` is small, because this is an example)
+with_progress({
+  out_preliminary &lt;- powRICLPM(
+    target_power = 0.8,
+    search_lower = 500,
+    search_upper = 700,
+    search_step = 100,
+    time_points = c(3, 4),
+    ICC = c(0.4, 0.6),
+    reliability = c(1, 0.8),
+    RI_cor = 0.3,
+    Phi = Phi,
+    within_cor = 0.3,
+    reps = 100,
+    seed = 1234
+  )
+})
+
+
+
+
+</code></pre>
+
+
+</div>

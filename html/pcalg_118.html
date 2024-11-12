@@ -1,0 +1,164 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rmvDAG</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate Multivariate Data according to a DAG</h2>
+
+<h3>Description</h3>
+
+<p>Generate multivariate data with dependency structure specified by a
+(given) DAG (<b>D</b>irected <b>A</b>cyclic <b>G</b>raph) with nodes
+corresponding to random variables.  The DAG has to be
+<b>topologically ordered</b>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rmvDAG(n, dag,
+       errDist = c("normal", "cauchy", "t4", "mix", "mixt3", "mixN100"),
+       mix = 0.1, errMat = NULL, back.compatible = FALSE,
+       use.node.names = !back.compatible)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>number of samples that should be drawn. (integer)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dag</code></td>
+<td>
+<p>a graph object describing the DAG; must contain weights for
+all the edges.  The nodes must be topologically sorted. (For
+topological sorting use <code>tsort</code> from the
+<span class="pkg">RBGL</span> package.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>errDist</code></td>
+<td>
+<p>string specifying the distribution of each node.
+Currently, the options "normal", "t4", "cauchy", "mix", "mixt3" and
+"mixN100" are supported.  The first
+three generate standard normal-, t(df=4)- and cauchy-random
+numbers.  The options containing the word "mix" create standard
+normal random variables with a mix of outliers. The outliers for the
+options "mix", "mixt3", "mixN100" are drawn from a standard cauchy,
+t(df=3) and N(0,100) distribution, respectively.  The fraction of
+outliers is determined by the <code>mix</code> argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mix</code></td>
+<td>
+<p>for the <code>"mix*"</code> error distributuion, <code>mix</code>
+specifies the fraction of “outlier” samples (i.e., Cauchy, <code class="reqn">t_3</code>
+or <code class="reqn">N(0,100)</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>errMat</code></td>
+<td>
+<p>numeric <code class="reqn">n * p</code> matrix specifiying the error vectors
+<code class="reqn">e_i</code> (see Details), instead of specifying <code>errDist</code> (and
+maybe <code>mix</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>back.compatible</code></td>
+<td>
+<p>logical indicating if the data generated should
+be the same as with <span class="pkg">pcalg</span> version 1.0-6 and earlier (where
+<code>wgtMatrix()</code> differed).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use.node.names</code></td>
+<td>
+<p>logical indicating if the column names of the
+result matrix should equal <code>nodes(dag)</code>, very sensibly, but
+new, hence the default.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Each node is visited in the topological order.  For each node <code class="reqn">i</code> we
+generate a <code class="reqn">p</code>-dimensional value <code class="reqn">X_i</code> in the following way:
+Let <code class="reqn">X_1,\ldots,X_k</code> denote the values of all neighbours of <code class="reqn">i</code>
+with lower order.
+Let <code class="reqn">w_1,\ldots,w_k</code> be the weights of the corresponding edges.
+Furthermore, generate a random vector <code class="reqn">E_i</code> according to the
+specified error distribution.  Then, the value of <code class="reqn">X_i</code> is
+computed as
+</p>
+<p style="text-align: center;"><code class="reqn">X_i = w_1*X_1 + \ldots + w_k*X_k + E_i.</code>
+</p>
+
+<p>If node <code class="reqn">i</code> has no neighbors with lower order, <code class="reqn">X_i = E_i</code> is set.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code class="reqn">n*p</code> matrix with the generated data.  The <code class="reqn">p</code> columns
+correspond to the nodes (i.e., random variables) and each of the
+<code class="reqn">n</code> rows correspond to a sample.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Markus Kalisch (<a href="mailto:kalisch@stat.math.ethz.ch">kalisch@stat.math.ethz.ch</a>) and Martin Maechler.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>randomDAG</code> for generating a random DAG;
+<code>skeleton</code> and <code>pc</code> for estimating the
+skeleton and the CPDAG of a DAG that
+corresponds to the data.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## generate random DAG
+p &lt;- 20
+rDAG &lt;- randomDAG(p, prob = 0.2, lB=0.1, uB=1)
+
+if (require(Rgraphviz)) {
+## plot the DAG
+plot(rDAG, main = "randomDAG(20, prob = 0.2, ..)")
+}
+
+## generate 1000 samples of DAG using standard normal error distribution
+n &lt;- 1000
+d.normMat &lt;- rmvDAG(n, rDAG, errDist="normal")
+
+## generate 1000 samples of DAG using standard t(df=4) error distribution
+d.t4Mat &lt;- rmvDAG(n, rDAG, errDist="t4")
+
+## generate 1000 samples of DAG using standard normal with a cauchy
+## mixture of 30 percent
+d.mixMat &lt;- rmvDAG(n, rDAG, errDist="mix",mix=0.3)
+
+require(MASS) ## for mvrnorm()
+Sigma &lt;- toeplitz(ARMAacf(0.2, lag.max = p - 1))
+dim(Sigma)# p x p
+## *Correlated* normal error matrix "e_i" (against model assumption)
+eMat &lt;- mvrnorm(n, mu = rep(0, p), Sigma = Sigma)
+d.CnormMat &lt;- rmvDAG(n, rDAG, errMat = eMat)
+</code></pre>
+
+
+</div>

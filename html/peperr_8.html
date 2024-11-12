@@ -1,0 +1,98 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ipec</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Integrated prediction error curve</h2>
+
+<h3>Description</h3>
+
+<p>Summary measures of prediction error curves
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ipec(pe, eval.times, type=c("Riemann", "Lebesgue", "relativeLebesgue"), response=NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pe</code></td>
+<td>
+<p>prediction error at different time points. Vector of length of <code>eval.times</code> or matrix (columns correspond to evaluation time points, rows to different prediction error estimates)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eval.times</code></td>
+<td>
+<p>evalutation time points</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>type of integration. 'Riemann' estimates Riemann integral, 'Lebesgue' uses the probability density as weights, while 'relativeLebesgue' delivers the difference to the null model (using the same weights as for 'Lebesgue').</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>response</code></td>
+<td>
+<p>survival object (<code>Surv(time, status)</code>), required only if <code>type</code> is 'Lebesgue' or 'relativeLebesgue'</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For survival data, prediction error at each evaluation time point can be extracted of a <code>peperr</code> object by function <code>perr</code>. A summary measure can then be obtained via intgrating over time. Note that the time points used for evaluation are stored in list element <code>attribute</code> of the <code>peperr</code> object.
+</p>
+
+
+<h3>Value</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>ipec</code></td>
+<td>
+<p>Value of integrated prediction error curve. Integer or vector, if <code>pe</code> is vector or matrix, respectively, i.e. one entry per row of the passed matrix.</p>
+</td>
+</tr></table>
+<h3>See Also</h3>
+
+<p><code>perr</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+n &lt;- 200
+p &lt;- 100
+beta &lt;- c(rep(1,10),rep(0,p-10))
+x &lt;- matrix(rnorm(n*p),n,p)
+real.time &lt;- -(log(runif(n)))/(10*exp(drop(x %*% beta)))
+cens.time &lt;- rexp(n,rate=1/10)
+status &lt;- ifelse(real.time &lt;= cens.time,1,0)
+time &lt;- ifelse(real.time &lt;= cens.time,real.time,cens.time)
+
+# Example:
+# Obtain prediction error estimate fitting a Cox proportional hazards model
+# using CoxBoost 
+# through 10 bootstrap samples 
+# with fixed complexity 50 and 75
+# and aggregate using prediction error curves
+peperr.object &lt;- peperr(response=Surv(time, status), x=x, 
+   fit.fun=fit.CoxBoost, complexity=c(50, 75), 
+   indices=resample.indices(n=length(time), method="sub632", sample.n=10))
+# 632+ estimate for both complexity values at each time point
+prederr &lt;- perr(peperr.object)
+# Integrated prediction error curve for both complexity values
+ipec(prederr, eval.times=peperr.object$attribute, response=Surv(time, status))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

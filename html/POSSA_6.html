@@ -1,0 +1,370 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pow</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Power calculation</h2>
+
+<h3>Description</h3>
+
+<p>Calculates power and local alphas based on simulated p values
+(which should be provided as created by the
+<code>POSSA::sim</code> function). The calculation for
+sequential testing involves a staircase procedure during which an initially
+provided set of local alphas is continually adjusted until the (approximate)
+specified global type 1 error rate (e.g., global alpha = .05) is reached:
+the value of adjustment is decreasing while global type 1 error rate is
+larger than specified, and increasing while global type 1 error rate is
+smaller than specified; a smaller step is chosen whenever the direction
+(increase vs. decrease) changes; the procedure stops when the global type 1
+error rate is close enough to the specified one (e.g., matches it up to 4
+fractional digits) or when the specified smallest step is passed. The
+adjustment works via a dedicated ("<code>adjust</code>") function that either
+replaces missing (<code>NA</code>) values with varying alternatives or (when there
+are no missing values) in some manner varyingly modifies the initial values
+(e.g. by addition or multiplication).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pow(
+  p_values,
+  alpha_locals = NULL,
+  alpha_global = 0.05,
+  adjust = TRUE,
+  adj_init = NULL,
+  staircase_steps = NULL,
+  alpha_precision = 5,
+  fut_locals = NULL,
+  multi_logic_a = "all",
+  multi_logic_fut = "all",
+  multi_logic_global = "any",
+  group_by = NULL,
+  alpha_loc_nonstop = NULL,
+  round_to = 5,
+  iter_limit = 100,
+  seed = 8,
+  prog_bar = FALSE,
+  hush = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>p_values</code></td>
+<td>
+<p>A <code>data.frame</code> containing the simulated
+iterations, looks, and corresponding H0 and H1 p value outcomes, as returned
+by the <code>POSSA::sim</code> function. (Custom data frames are
+also accepted, but may not work as expected.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha_locals</code></td>
+<td>
+<p>A number, a numeric vector, or a named <code>list</code>
+of numeric vectors, that specify the initial set of local alphas that decide
+on statistical significance (for interim looks as well as for the final
+look), and, if significant, stop the experiment at the given interim look;
+to be adjusted via the <code>adjust</code> function; see the <code>adjust</code>
+parameter below. Any of the numbers included can always be <code>NA</code> values
+as well (which indicates alphas to be calculated; again, see the related
+<code>adjust</code> parameter below). In case of a vector or a list of vectors,
+the length of each vector must correspond exactly to the maximum number of
+looks in the <code>p_values</code> data frame. When a <code>list</code> is given,
+the names of the list element(s) must correspond to the root of the related
+H0 and H1 p value column name pair(s) (in the <code>p_values</code> data frame),
+that is, without the "<code>_h0</code>" and "<code>_h1</code>" suffixes: for example, if
+the column name pair is "<code>p_test4_h0</code>" and "<code>p_test4_h1</code>", the
+name of the corresponding list element should be "<code>p_test4</code>". If a
+single number or a single numeric vector is given, all potential p value
+column pairs are automatically detected as starting with "<code>p_</code>" prefix
+and ending with "<code>_h0</code>" and "<code>_h1</code>". In case of a single vector
+given, each such automatically detected p value pair receives this same
+vector. In case of a single number given, all elements of all vectors will
+be assigned this same number (up to the maximum number of looks). If a list
+is given and any of the elements contain just one number, it will be
+extended into a vector (up to the maximum number of looks). The default
+<code>NULL</code> value specifies "fixed design" (no interim stopping alphas) with
+final alpha as specified as <code>alpha_global</code>, without adjustment
+procedure as long as the <code>adjust</code> argument is also left as default
+<code>TRUE</code>. (This is useful for cases where only futility bounds are to be
+set for stopping.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha_global</code></td>
+<td>
+<p>Global alpha (expected type 1 error rate in total);
+<code>0.05</code> by default. See also <code>multi_logic_global</code> for when multiple
+p values are being evaluated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjust</code></td>
+<td>
+<p>The function via which the initial vector local alphas is
+modified with each step of the staircase procedure. Three arguments are
+passed to it: <code>adj</code>, <code>orig</code>, and <code>prev</code>. The <code>adj</code>
+parameter is mandatory; it passes the pivotal changing value that, starting
+from an initial value (see <code>adj_init</code>), should, via the staircase
+steps, decrease when the global type 1 error rate is too large, and increase
+when the global type 1 error rate is too small. The <code>orig</code> parameter
+(optional) always passes the same original vector of alphas as they were
+provided via <code>alpha_locals</code>. The <code>prev</code> parameter (optional)
+passes the "latest" vector of local alphas, which were obtained in the
+previous adjustment step (or, in the initial run, it is the original vector,
+i.e., the same as <code>orig</code>). When <code>TRUE</code> (default), if the given
+<code>alpha_locals</code> contains any <code>NA</code>s, an <code>adjust</code> function is
+given internally that simply replaces <code>NA</code>s with the varying adjustment
+value (as <code>{ prev[is.na(orig)] = adj; return(prev) }</code>). If
+<code>alpha_locals</code> contains no <code>NA</code>s, an <code>adjust</code> function is
+given that multiplies each original local alpha with the varying adjustment
+value (as <code>{ return(orig * adj) }</code>). When set to <code>FALSE</code>, there
+will be no adjustment (staircase procedure omitted): this is useful to
+calculate the global type 1 error rate for any given set of local alphas.
+Furthermore, if both <code>adjust</code> and <code>alpha_locals</code> are left as
+default (<code>TRUE</code> and <code>NULL</code>), the staircase procedure will be
+omitted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adj_init</code></td>
+<td>
+<p>The initial adjustment value that is used as the "<code>adj</code>"
+parameter in the "<code>adjust</code>" function and is continually adjusted via
+the staircase steps (see <code>staircase_steps</code> parameter). When <code>NULL</code>
+(default), assuming that "<code>adj</code>" is used as a replacement for
+<code>NA</code>s, <code>adj_init</code> is calculated as the global alpha divided by the
+maximum number of looks (Bonferroni correction), as a rough initial
+approximation. However, multiplication is assumed when finding any
+multiplication sign (<code>*</code>) in a given custom <code>adjust</code> function: in
+such a case, <code>adj_init</code> will be <code>1</code> by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>staircase_steps</code></td>
+<td>
+<p>Numeric vector that specifies the (normally decreasing)
+sequence of step sizes for the staircase that narrows down on the specified
+global error error by decreasing or increasing the adjustment value
+(initially: <code>adj_init</code>): the step size (numeric value) is added for
+increase, and subtracted for decrease. Whenever the direction (decrease vs.
+increase) is changed, the staircase moves on to the next step size. When the
+direction changes and there are no more steps remaining, the procedure is
+finished (regardless of the global error rate). By default (<code>NULL</code>),
+the <code>staircase_steps</code> is either "<code>0.01 * (0.5 ^ (seq(0, 11, 1)))</code>"
+(giving: <code>0.01, 0.005, 0.0025, ...</code>) or "<code>0.5 * (0.5 ^ (seq(0, 11,
+1)))</code>" (giving: <code>0.05, 0.025, 0.0125, ...</code>). The latter is chosen when
+adjustment via multiplication is assumed, which is simply based on finding
+any multiplication sign (<code>*</code>) in a given custom <code>adjust</code> function.
+The former is chosen in any other case.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha_precision</code></td>
+<td>
+<p>During the staircase procedure, at any point when the
+simulated global type 1 error rate first matches the given
+<code>alpha_global</code> at least for the number of fractional digits given here
+(<code>alpha_precision</code>; default: <code>5</code>), the procedure stops and the
+results are printed. (Otherwise, the procedures finishes only when all steps
+given as <code>staircase_steps</code> have been used.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fut_locals</code></td>
+<td>
+<p>Specifies local futility bounds that may stop the experiment
+at the given interim looks if the corresponding p value is above the given
+futility bound value. When <code>NULL</code> (default), sets no futility bounds.
+Otherwise, it follows the same logic as <code>alpha_locals</code> and has the same
+input possibilities (number, numeric vector, or named list of numeric
+vectors).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multi_logic_a</code></td>
+<td>
+<p>When multiple p values are evaluated for local alpha
+stopping rules, <code>multi_logic_a</code> specifies the function used for how to
+evaluate the multiple significance outcomes (p values being below or above
+the given local alphas) as a single <code>TRUE</code> or <code>FALSE</code> value that
+decides whether or not to stop at a given look. The default, <code>'all'</code>,
+specifies that all of the p values must be below the local boundary for
+stopping. The other acceptable character input is <code>'any'</code>, which
+specifies that the collection stops when any of the p values pass the
+boundary for stopping. Instead of these strings, the actual
+<code>all</code> and <code>any</code> would lead to identical outcomes,
+respectively, but the processing would be far slower (since the string
+<code>'all'</code> or <code>'any'</code> inputs specify a dedicated faster internal
+solution). For custom combinations, any custom function can be given, which
+will take, as arguments, the p value columns in their given order (either in
+the <code>p_values</code> data frame, or as specified in <code>alpha_locals</code>), and
+should return a single <code>TRUE</code> or <code>FALSE</code> value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multi_logic_fut</code></td>
+<td>
+<p>Same as <code>multi_logic_a</code> (again with <code>'all'</code>
+as default), but for futility bounds (for the columns specified in
+<code>fut_locals</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multi_logic_global</code></td>
+<td>
+<p>Similar as <code>multi_logic_a</code>, but for the
+calculation of the global type 1 error rate (again: in case of multiple p
+values being evaluated; otherwise this parameter is not relevant), and with
+<code>'any'</code> by default. This default means that if any of the p values
+under evaluation (specified via <code>alpha_locals</code> or detected
+automatically) is significant (p value below the given local alpha at the
+stopping of the simulated "experiment" iteration) in case of the H0
+scenario, this is calculated as a type 1 error. If <code>'all'</code> were
+specified, only cases with all p evaluated values being significant are
+counted as type 1 errors. In either case, the ratio of outcomes with such
+type 1 errors (out of all iterations) gives the global type 1 error rate,
+which is intended to (approximately) match (via the adjustment procedure)
+the value specified as <code>alpha_global</code>. This global type 1 error is also
+what is printed to the console in the end as the "combined" global error
+rate. Furthermore, the logic given here is also used for the calculation of
+the "combined" global power printed to the console. In this case, the
+<code>'any'</code> logic, for example, would mean that, if any of the p values are
+significant at the end of the experiment, this is a positive finding. The
+global power is then the ratio of iterations with such positive findings.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group_by</code></td>
+<td>
+<p>When given as a character element or vector, specifies the
+factors by which to group the analysis: the <code>p_values</code> data will be
+divided into parts by these factors and these parts will be analyzed
+separately, with power and error information calculated per each part. By
+default (<code>NULL</code>), it identifies factors, if any, given to the
+<code>sim</code> function (via <code>fun_obs</code>) that created the given
+<code>p_values</code> data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha_loc_nonstop</code></td>
+<td>
+<p>Optional "non-stopper" alphas via which to evaluate p
+values per look, but without stopping the data collection regardless of
+statistical significance. Must be a list with names indicating p value
+column name pairs, similarly as for the <code>alpha_locals</code> argument; see
+<code>alpha_locals</code> for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>round_to</code></td>
+<td>
+<p>Number of fractional digits (default: <code>5</code>) to round to,
+for the displayed numeric information (such as alphas and power; mainly for
+default value for <code>printing</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iter_limit</code></td>
+<td>
+<p>In some specific cases of unideal/wrong input, the staircase
+may get stuck at a given step's loop process. The <code>iter_limit</code>
+parameter specifies the number (by default <code>100</code>) at which the script
+pauses the loop and offers to the user that the procedure be ceased. If the
+user chooses to continue, the offer will always be posed again after the
+same number of iterations (e.g., by default, after <code>100</code>, at
+<code>200</code>, then <code>300</code>, etc.).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Number for <code>set.seed</code>; <code>8</code> by default. Set to
+<code>NULL</code> for random seed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prog_bar</code></td>
+<td>
+<p>Logical, <code>FALSE</code> by default. If <code>TRUE</code>, shows
+progress bar.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hush</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, prevents printing any details (or the
+progress bar) to console.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The returns a <code>list</code> (with class <code>"possa_pow_list"</code>)
+that includes all details of the calculated power, T1ER, and sample
+information. This list can be printed legibly (via POSSA's
+<code>print()</code> method).
+</p>
+
+
+<h3>Note</h3>
+
+<p>For the replicability, in case the <code>adjust</code> function uses any
+randomization, <code>set.seed</code> is executed in the beginning of this
+function, each time it is called; see the <code>seed</code> parameter.
+</p>
+<p>This function uses, internally, the <code>data.table</code> R package.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>sim</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# below is a (very) minimal example
+# for more, see the vignettes via https://github.com/gasparl/possa#usage
+
+# create sampling function
+customSample = function(sampleSize) {
+    list(
+        sample1 = rnorm(sampleSize, mean = 0, sd = 10),
+        sample2_h0 = rnorm(sampleSize, mean = 0, sd = 10),
+        sample2_h1 = rnorm(sampleSize, mean = 5, sd = 10)
+    )
+}
+
+# create testing function
+customTest = function(sample1, sample2_h0, sample2_h1) {
+ c(
+   p_h0 = t.test(sample1, sample2_h0, 'less', var.equal = TRUE)$p.value,
+   p_h1 = t.test(sample1, sample2_h1, 'less', var.equal = TRUE)$p.value
+ )
+}
+
+# run simulation
+dfPvals = sim(
+    fun_obs = customSample,
+    n_obs = 80,
+    fun_test = customTest,
+    n_iter = 1000
+)
+
+# get power info
+pow(dfPvals)
+
+</code></pre>
+
+
+</div>

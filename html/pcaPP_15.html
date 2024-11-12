@@ -1,0 +1,224 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>opt.TPO</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2> Model Selection for Sparse (Robust) Principal Components </h2>
+
+<h3>Description</h3>
+
+<p>These functions compute a suggestion for the sparseness parameter 
+<code>lambda</code> which is required by function <code>sPCAgrid</code>.
+A range of different values for lambda is tested and 
+according to an objective function, the best solution is selected.
+Two different approaches (TPO and BIC) are available, which is further 
+discussed in the details section.
+A graphical summary of the optimization can be obtained by plotting 
+the function's return value (<code>plot.opt.TPO</code>, 
+<code>plot.opt.BIC</code> for tradeoff curves or <code>objplot</code>
+for an objective function plot).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">  opt.TPO (x, k.max = ncol (x), n.lambda = 30, lambda.max, ...)
+  opt.BIC (x, k.max = ncol (x), n.lambda = 30, lambda.max, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p> a numerical matrix or data frame of dimension (<code>n x p</code>), 
+which provides the data for the principal components analysis. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k.max</code></td>
+<td>
+<p> the maximum number of components which shall be considered
+for optimizing an objective function (optional). </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.lambda</code></td>
+<td>
+<p> the number of lambdas to be checked for each component 
+(optional). </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.max</code></td>
+<td>
+<p> the maximum value of lambda to be checked (optional).
+If omitted, the lambda which yields "full sparseness" (i.e. loadings of 
+only zeros and ones) is computed and used as default value. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p> further arguments passed to <code>sPCAgrid</code> </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+
+<p>The choice for a particular lambda is done by optimizing an objective function, 
+which is calculated for a set of <code>n.lambda</code> models with different 
+lambdas, ranging from 0 to <code>lambda.max</code>. If <code>lambda.max</code> is not 
+specified, the minimum lambda yielding "full sparseness" is used.
+"Full sparseness" refers to a model with minimum possible absolute sum of 
+loadings, which in general implies only zeros and ones in the loadings matrix.
+</p>
+<p>The user can choose between two optimization methods: 
+TPO (Tradeoff Product Optimization; see below), or the 
+BIC (see Guo et al., 2011; Croux et al., 2011).
+The main difference is, that optimization based on the BIC always chooses the 
+same lambda for all PCs, and refers to a particular choice of <code>k</code>, 
+the number of considered components.
+TPO however is optimized separately for each component, and so delivers 
+different lambdas within a model and does not depend on a decision on <code>k</code>.
+<br>
+This characteristic can be noticed in the return value of the function:
+<code>opt.TPO</code> returns a single model with <code>k.max</code> PCs and 
+different values of <code>lambda</code> for each PC. 
+On the contrary <code>opt.BIC</code> returns <code>k.max</code> distinct models 
+with <code>k.max</code> different lambdas, whereas for each model a different
+number of components <code>k</code> has been considered for the optimization.
+Applying the latter method, the user finally has to select one of these 
+<code>k.max</code> models manually, 
+e.g. by considering the cumulated explained variance,
+whereas the TPO method does not require any further decisions.
+</p>
+
+<p>The tradeoff made in the context of sparse PCA refers to the loss of explained
+variance vs. the gain of sparseness. TPO (Tradeoff Product Optimization) 
+maximizes the area under the tradeoff curve (see <code>plot.opt.TPO</code>),
+in particular it maximizes the explained variance multiplied by the number of 
+zero loadings of a particular component. As in this context the according 
+criterion is minimized, the negative product is considered.
+</p>
+
+<p>Note that in the context of sparse PCA, there are two sorting orders of PCs, 
+which must be considered: Either according to the objective function's value, 
+(item <code>$pc.noord</code>)or the variance of each PC(item <code>$pc</code>).
+As in none-sparse PCA the objective function is identical to the PCs' 
+variance, this is not an issue there.<br>
+The sPCAgrid algorithm delivers the components in decreasing order, according 
+to the objective function (which apart from the variance also includes sparseness
+terms), whereas the method <code>sPCAgrid</code> subsequently re-orders the 
+components according to their explained variance.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The functions return an S3 object of type "opt.TPO" or "opt.BIC" respectively, 
+containing the following items:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>pc</code></td>
+<td>
+
+<p>An S3 object of type <code>princomp</code> (<code>opt.TPO</code>), or a list of 
+such objects of length <code>k.max</code> (<code>opt.BIC</code>), 
+as returned by <code>sPCAgrid</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pc.noord</code></td>
+<td>
+<p>An S3 object of type <code>princomp</code> (<code>opt.TPO</code>), 
+or a list of such objects of length <code>k.max</code> (<code>opt.BIC</code>), 
+as returned by <code>sPCAgrid</code>.<br>
+Here the PCs have not been re-ordered according 
+to their variance, but are still ordered according to their objective 
+function's value
+as returned by the <code>sPCAgrid</code> - algorithm.
+This information is used for according tradeoff curves and the objective 
+function plot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p> The input data matrix as provided by the user. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k.ini, opt</code></td>
+<td>
+<p> These items contain optimization information, as used in 
+functions <code>plot.opt.TPO</code>, <code>plot.opt.BIC</code> and 
+<code>objplot</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Heinrich Fritz, Peter Filzmoser &lt;<a href="mailto:P.Filzmoser@tuwien.ac.at">P.Filzmoser@tuwien.ac.at</a>&gt;</p>
+
+
+<h3>References</h3>
+
+<p>C. Croux, P. Filzmoser, H. Fritz (2011).
+Robust Sparse Principal Component Analysis Based on Projection-Pursuit,
+<em>??</em> To appear.
+</p>
+
+
+<h3>See Also</h3>
+
+ <p><code>sPCAgrid</code>, <code>princomp</code> </p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+  set.seed (0)
+                      ##  generate test data
+  x &lt;- data.Zou (n = 250)
+
+  k.max &lt;- 3          ##  max number of considered sparse PCs
+
+                      ##  arguments for the sPCAgrid algorithm
+  maxiter &lt;- 25       ##    the maximum number of iterations
+  method &lt;- "sd"      ##    using classical estimations
+
+                      ##  Optimizing the TPO criterion
+  oTPO &lt;- opt.TPO (x, k.max = k.max, method = method, maxiter = maxiter)
+
+  oTPO$pc             ##  the model selected by opt.TPO
+  oTPO$pc$load        ##  and the according sparse loadings.
+
+                      ##  Optimizing the BIC criterion
+  oBIC &lt;- opt.BIC (x, k.max = k.max, method = method, maxiter = maxiter)
+
+  oBIC$pc[[1]]        ##  the first model selected by opt.BIC (k = 1)
+
+          ##  Tradeoff Curves: Explained Variance vs. sparseness
+  par (mfrow = c (2, k.max))
+  for (i in 1:k.max)        plot (oTPO, k = i)
+  for (i in 1:k.max)        plot (oBIC, k = i)
+
+          ##  Tradeoff Curves: Explained Variance vs. lambda
+  par (mfrow = c (2, k.max))
+  for (i in 1:k.max)        plot (oTPO, k = i, f.x = "lambda")
+  for (i in 1:k.max)        plot (oBIC, k = i, f.x = "lambda")
+
+          ##  Objective function vs. lambda
+  par (mfrow = c (2, k.max))
+  for (i in 1:k.max)        objplot (oTPO, k = i)
+  for (i in 1:k.max)        objplot (oBIC, k = i)
+</code></pre>
+
+
+</div>

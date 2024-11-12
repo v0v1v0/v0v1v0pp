@@ -1,0 +1,235 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ple.lma</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Main function for estimating parameters of LMA models</h2>
+
+<h3>Description</h3>
+
+<p>This function is a wrapper function that checks for errors in the input
+(i.e., ‘error.check’),  sets up required objects and data (i.e., ‘set.up’),
+calls function to fit specified model (either ‘fit.independence’,
+fit.rasch', ‘fit.gpcm’, or  ‘fit.nomial’), and outputs an extensive
+list of details and results. The required input for all models consist
+of a data frame where elements are consecutive integers (1, 2, ...)
+indicating the category chosen by each case/individual (rows) for
+each variable (columns), and the model type.  For the LMA models that
+correspond to item response theory models require an Item x Trait
+adjacency matrix (‘inItemTraitAdj’) and a Trait x Trait adjacency matrix
+(‘inTraitAdj’).  Optional input  include the tolerance  value (‘tol’)
+which is used to for determine whether the pseudo-likelihood algorithm
+has converged for a gpcm or nominal model default=1e-6).  Additional
+optional input (‘starting.sv’) is an item by category a matrix of
+starting scale values for the nominal model or fixed category scores
+for the gpcm and rasch models. The default category scale values/scores
+are eqaully spaced, centered at zero, and the sum of squared values
+equals 1. The final optional input is a trait x trait (‘starting.phi’)
+matrix of starting values for the association parameter matrix
+(default= identity matrix).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ple.lma(
+  inData,
+  model.type,
+  inItemTraitAdj = NULL,
+  inTraitAdj = NULL,
+  tol = NULL,
+  starting.sv = NULL,
+  starting.phi = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>inData</code></td>
+<td>
+<p>A person x item data matrix or data frame with elements equal to reponse options choosen by an individual.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model.type</code></td>
+<td>
+<p>Model to be fit (nominal, gpcm, rasch, independence) to data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inItemTraitAdj</code></td>
+<td>
+<p>An Item x Trait adjacency matrix indicating what trait an item loads on.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inTraitAdj</code></td>
+<td>
+<p>A Trait x Trait adjacency matrix indicating relationship among traits.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>Convergence criterion, default = 1e-6</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>starting.sv</code></td>
+<td>
+<p>Starting category scale values/fixed scores</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>starting.phi</code></td>
+<td>
+<p>Starting matrix of phi parameters (i.e., conditional covariance matrix)</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>model.type     The model (nominal, gpcm, rash, or independence) that was fit to data
+</p>
+<p>TraitByTrait   The Trait x Trait adjacency matrix used.
+</p>
+<p>ItemByTrait    The Item x Trait adjacency matrix.
+</p>
+<p>item.by.trait  One dimensional version of ItemByTrait that gives the number of trait.
+</p>
+<p>ItemNames      Names of items in inData
+</p>
+<p>PhiNames       Names of the association parameters (i.e., phi)
+</p>
+<p>formula.item   Formula used to up-date item parameters via item regressions.
+</p>
+<p>formula.phi    Formula used to up-date association parameters via stacked regression.
+</p>
+<p>npersons       Number of persons in data set.
+</p>
+<p>nitems         Number of items.
+</p>
+<p>ncat           Number of categories per item.
+</p>
+<p>nless          Number of unique marginal effects &amp; unique scale values.
+</p>
+<p>Maxnphi        Number of association parameters estimated.
+</p>
+<p>ntraits        Number of traits.
+</p>
+<p>starting.sv    Starting scale values for nominal model or fixed scores for rasch or gpcm.
+</p>
+<p>tol            Used to determine convergence default= 1e-7
+</p>
+<p>criterion      Final value criterion at convergence
+</p>
+<p>item.log       Item iteration history plus maximum of the LogLike for each item
+</p>
+<p>phi.log        Assocation parameter iteration history
+</p>
+<p>estimates      Item x Parameter matrix where 1st column is max LogLike for each item and remaining columns are item parameter estimate
+</p>
+<p>Phi.mat        Estimated conditional correlation matrix
+</p>
+<p>item.mlogit   Output from final mlogit fit to items
+</p>
+<p>phi.mlogit    Output form final mlogit fit to stacked data
+</p>
+<p>mlpl.item      Max Log(pseudo-likelihood) function from item models (i.e. sum of first column of estimates)
+</p>
+<p>mlpl.phi       Max Log(pseudo-likelihood) function from stacked regression(s).
+</p>
+<p>AIC            Akaike information criterion for pseudo-likelihood (smaller is better)
+</p>
+<p>BIC            Bayesian information criterion for pseudo-likelihood (smaller is better)
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#--- some data, 3 items from dpression, anxiety and stress scales
+#    and only 250 cases out of possible 1000
+ data(dass)
+ inData &lt;- dass[1:250,c("d1", "d2", "d3", "a1","a2","a3","s1","s2","s3")]
+
+#---  log-linear model of independence
+ ind &lt;- ple.lma(inData, model.type="independence")
+
+#---   input for uni-dimensional
+  inTraitAdj  &lt;- matrix(1, nrow=1, ncol=1)
+  inItemTraitAdj &lt;- matrix(1, nrow=9, ncol=1)
+
+#--- rasch family
+ r1 &lt;- ple.lma(inData, model.type="rasch", inItemTraitAdj, inTraitAdj)
+
+#---  rasch with alternative scores
+ scores &lt;- matrix(c(0,1,2,3),nrow=9,ncol=4,byrow=TRUE)
+ r1b &lt;- ple.lma(inData, model.type="rasch", inItemTraitAdj,
+                inTraitAdj, starting.sv=scores)
+
+
+#--- generalized partial credit model
+g1 &lt;- ple.lma(inData, model.type="gpcm", inItemTraitAdj, inTraitAdj)
+
+#--- gpcm with alternative scores
+scores &lt;- matrix(c(0,1,2,3),nrow=9,ncol=4,byrow=TRUE)
+g1b &lt;- ple.lma(inData, model.type="gpcm", inItemTraitAdj, inTraitAdj, starting.sv=scores)
+
+#--- nominal response model
+n1 &lt;- ple.lma(inData, model.type="nominal", inItemTraitAdj,inTraitAdj)
+
+#--- re-run nominal model with input starting values and phi
+#    and setting stronger convergnce criterion.
+sv &lt;- n1$estimates[, 6:9]
+phi &lt;- n1$Phi.mat
+n1b &lt;- ple.lma(inData, model.type="nominal", inItemTraitAdj,
+               inTraitAdj, starting.sv=sv, starting.phi=phi, tol=1e-8)
+
+
+
+#--- Multidimensional models
+#--- re-define inTraitAdj and inItemTraitAdj for 3 dimensional models
+  inTraitAdj  &lt;- matrix(1, nrow=3, ncol=3)
+
+  dpress &lt;- matrix(c(1,0,0), nrow=3, ncol=3, byrow=TRUE)
+  anxiety &lt;- matrix(c(0,1,0), nrow=3, ncol=3, byrow=TRUE)
+  stress &lt;- matrix(c(0,0,1), nrow=3, ncol=3, byrow=TRUE)
+  das &lt;- list(dpress, anxiety, stress)
+  inItemTraitAdj &lt;- rbind(das[[1]], das[[2]], das[[3]])
+
+#--- 3 dimensional rasch
+  r3 &lt;- ple.lma(inData, model.type="rasch", inItemTraitAdj, inTraitAdj)
+
+
+#--- 3 dimensional gpcm
+  g3 &lt;- ple.lma(inData, model.type="gpcm", inItemTraitAdj, inTraitAdj)
+
+#--- 3 dimensional nominal
+  n3 &lt;- ple.lma(inData, model.type="nominal", inItemTraitAdj, inTraitAdj)
+
+
+#--- 2 parameter logistic IRT model fit to responses to
+#    10 dichotomous Vocabulary items from from 2018 GSS
+#    by 1309 respondents
+  data(vocab)
+  inItemTraitAdj &lt;- matrix(1, nrow=10, ncol=1)
+  inTraitAdj &lt;- matrix(1, nrow=1, ncol=1)
+
+#--- rasch irt
+  rasch &lt;- ple.lma(inData=vocab, model.type="rasch", inItemTraitAdj, inTraitAdj, tol=1e-03)
+
+#--- 2 pl as a gpcm model
+  g.2pl &lt;- ple.lma(inData=vocab, model.type="gpcm", inItemTraitAdj, inTraitAdj, tol=1e-03)
+
+#--- 2 pl as a nominal model
+  n.2pl &lt;- ple.lma(inData=vocab, model.type="nominal", inItemTraitAdj, inTraitAdj, tol=1e-03)
+
+
+</code></pre>
+
+
+</div>

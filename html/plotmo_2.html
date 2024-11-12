@@ -1,0 +1,745 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plotmo</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Plot a model's response over a range of predictor values (the model surface)</h2>
+
+<h3>Description</h3>
+
+<p>Plot model surfaces for a wide variety of models.
+</p>
+<p>This function plots the model's response when varying one or two
+predictors while holding the other predictors constant (a poor man's
+partial-dependence plot).
+</p>
+<p>It can also generate partial-dependence plots (by specifying
+<code>pmethod="partdep"</code>).
+</p>
+<p>Please see the <a href="../doc/plotmo-notes.pdf">plotmo vignette</a>
+(also available <a href="http://www.milbo.org/doc/plotmo-notes.pdf">here</a>).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">plotmo(object=stop("no 'object' argument"),
+    type=NULL, nresponse=NA, pmethod="plotmo",
+    pt.col=0, jitter=.5, smooth.col=0, level=0,
+    func=NULL, inverse.func=NULL, nrug=0, grid.col=0,
+    type2="persp",
+    degree1=TRUE, all1=FALSE, degree2=TRUE, all2=FALSE,
+    do.par=TRUE, clip=TRUE, ylim=NULL, caption=NULL, trace=0,
+    grid.func=NULL, grid.levels=NULL, extend=0,
+    ngrid1=50, ngrid2=20, ndiscrete=5, npoints=3000,
+    center=FALSE, xflip=FALSE, yflip=FALSE, swapxy=FALSE, int.only.ok=TRUE,
+    ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+
+<p>The model object.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+
+<p>Type parameter passed to <code>predict</code>.
+For allowed values see the <code>predict</code> method for
+your <code>object</code> (such as <code>predict.earth</code>).
+By default, <code>plotmo</code> tries to automatically select a suitable
+value for the model in question (usually <code>"response"</code>)
+but this will not always be correct.
+Use <code>trace=1</code> to see the <code>type</code> argument passed to <code>predict</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nresponse</code></td>
+<td>
+
+<p>Which column to use when <code>predict</code> returns multiple columns.
+This can be a column index, or a column name if the <code>predict</code>
+method for the model returns column names.
+The column name may be abbreviated, partial matching is used.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pmethod</code></td>
+<td>
+
+<p>Plotting method.
+One of:
+</p>
+<p><code>"plotmo"</code> (default)
+Classic plotmo plots i.e. the background variables
+are fixed at their medians (or first level for factors).
+</p>
+<p><code>"partdep"</code> Partial dependence plots, i.e. at each point the effect
+of the background variables is averaged.
+</p>
+<p><code>"apartdep"</code> Approximate partial dependence plots.
+Faster than <code>"partdep"</code> especially for big datasets.
+Like <code>"partdep"</code> but the background variables are averaged over a
+subset of <code>ngrid1</code> cases (default 50), rather than all cases in
+the training data.
+The subset is created by selecting
+rows at equally spaced intervals from the training data
+after sorting the data on the response values
+(ties are randomly broken).
+
+
+The same background subset of <code>ngrid1</code> cases is used for both
+degree1 and degree2 plots.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pt.col</code></td>
+<td>
+
+<p>The color of response points (or response sites in degree2 plots).
+This refers to the response <code>y</code> in the data
+used to build the model.
+Note that the displayed points are jittered by default
+(see the <code>jitter</code> argument).
+<br>
+Default is <code>0</code>, display no response points.
+<br>
+This can be a vector, like all such arguments – for example
+<code>pt.col = as.numeric(survived)+2</code> to color points by their survival class.
+<br>
+You can modify the plotted points with
+<code>pt.pch</code>, <code>pt.cex</code>, etc.
+(these get passed via <code>plotmo</code>'s “<code>...</code>” argument).
+For example, <code>pt.cex = weights</code> to size points by their weight.
+To label the points, set <code>pt.pch</code> to a character vector.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>jitter</code></td>
+<td>
+
+<p>Applies only if <code>pt.col</code> is specified.<br>
+The default is <code>jitter=.5</code>, automatically apply some jitter to the points.
+Points are jittered horizontally and vertically.<br>
+Use <code>jitter=0</code> to disable this automatic jittering.
+Otherwise something like <code>jitter=1</code>, but the optimum value is data dependent.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>smooth.col</code></td>
+<td>
+
+<p>Color of smooth line through the response points.
+(The points themselves will not be plotted unless <code>pt.col</code> is specified.)
+Default is <code>0</code>, no smooth line.
+<br>
+Example:</p>
+<pre>    mod &lt;- lm(Volume~Height, data=trees)
+    plotmo(mod, pt.color=1, smooth.col=2)</pre>
+<p>You can adjust the amount of smoothing with <code>smooth.f</code>.
+This gets passed as <code>f</code> to <code>lowess</code>.
+The default is <code>.5</code>.
+Lower values make the line more wiggly.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>level</code></td>
+<td>
+
+<p>Draw estimated confidence or prediction interval bands at the given <code>level</code>,
+if the predict method for the model supports them.<br>
+Default is <code>0</code>, bands not plotted.
+Else a fraction, for example <code>level=.95</code>.
+See “<em>Prediction intervals</em>” in the <code>plotmo</code> vignette.
+Example:</p>
+<pre>    mod &lt;- lm(log(Volume)~log(Girth), data=trees)
+    plotmo(mod, level=.95)</pre>
+<p>You can modify the color of the bands with <code>level.shade</code> and <code>level.shade2</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>func</code></td>
+<td>
+
+<p>Superimpose <code>func(x)</code> on the plot.
+Example:</p>
+<pre>    mod &lt;- lm(Volume~Girth, data=trees)
+    estimated.volume &lt;- function(x) .17 * x$Girth^2
+    plotmo(mod, pt.col=2, func=estimated.volume)</pre>
+<p>The <code>func</code> is called for each plot with a single argument which
+is a dataframe with columns in the same order as the predictors
+in the <code>formula</code> or <code>x</code> used to build the model.
+Use <code>trace=2</code> to see the column names and first few rows of this dataframe.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inverse.func</code></td>
+<td>
+
+<p>A function applied to the response before plotting.
+Useful to transform a transformed response back to the original scale.
+Example:</p>
+<pre>    mod &lt;- lm(log(Volume)~., data=trees)
+    plotmo(mod, inverse.func=exp)    # exp() is inverse of log()
+
+</pre>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nrug</code></td>
+<td>
+
+<p>Number of ticks in the <code>rug</code> along the bottom of the plot
+<br>
+Default is <code>0</code>, no rug.
+<br>
+Use <code>nrug=TRUE</code> for all the points.
+<br>
+Else specify the number of quantiles
+e.g. use <code>nrug=10</code> for ticks at the 0, 10, 20, ..., 100 percentiles.
+<br>
+Modify the rug ticks with <code>rug.col</code>, <code>rug.lwd</code>, etc.
+<br>
+The special value <code>nrug="density"</code> means plot the
+density of the points along the bottom.
+Modify the <code>density</code> plot with <code>density.adjust</code> (default is <code>.5</code>),
+<code>density.col</code>, <code>density.lty</code>, etc.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grid.col</code></td>
+<td>
+
+<p>Default is <code>0</code>, no grid.
+Else add a background <code>grid</code>
+of the specified color to the degree1 plots.
+The special value <code>grid.col=TRUE</code> is treated as <code>"lightgray"</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type2</code></td>
+<td>
+
+<p>Degree2 plot type.
+One of <code>"persp"</code> (default),
+<code>"image"</code>, or <code>"contour"</code>.
+You can pass arguments to these functions if necessary by using
+<code>persp.</code>, <code>image.</code>, or <code>contour.</code> as a prefix.
+Examples:</p>
+<pre>    plotmo(mod, persp.ticktype="detailed", persp.nticks=3)
+    plotmo(mod, type2="image")
+    plotmo(mod, type2="image", image.col=heat.colors(12))
+    plotmo(mod, type2="contour", contour.col=2, contour.labcex=.4)
+    </pre>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>degree1</code></td>
+<td>
+
+<p>An index vector specifying which subset of degree1 (main effect) plots to include
+(after selecting the relevant predictors as described in
+“<em>Which variables are plotted?</em>” in the <code>plotmo</code> vignette).
+<br>
+Default is <code>TRUE</code>, meaning all (the <code>TRUE</code> gets recycled).
+To plot only the third plot use <code>degree1=3</code>.
+For no degree1 plots use <code>degree1=0</code>.
+<br><br>
+Note that <code>degree1</code> indexes plots on the page,
+not columns of <code>x</code>.
+Probably the easiest way to use this argument (and <code>degree2</code>) is to
+first use the default (and possibly <code>all1=TRUE</code>)
+to plot all figures.  This shows how the figures are numbered.
+Then replot using <code>degree1</code> to select the figures you want,
+for example <code>degree1=c(1,3,4)</code>.
+<br><br>
+Can also be a character vector
+specifying which variables to plot. Examples:<br><code>degree1="wind"</code><br><code>degree1=c("wind", "vis")</code>.
+<br><br>
+Variables names are matched with <code>grep</code>.
+Thus <code>"wind"</code> will match all variables with <code>"wind"</code>
+anywhere in their name. Use <code>"^wind$"</code> to match only the variable
+named <code>"wind"</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>all1</code></td>
+<td>
+
+<p>Default is <code>FALSE</code>.
+Use <code>TRUE</code> to plot all predictors,
+not just those usually selected by <code>plotmo</code>.
+<br>
+The <code>all1</code> argument increases the number of plots;
+the <code>degree1</code> argument reduces the number of plots.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>degree2</code></td>
+<td>
+
+<p>An index vector specifying which subset of degree2 (interaction) plots to include.
+<br>
+Default is <code>TRUE</code> meaning all
+(after selecting the relevant interaction terms as described in
+“<em>Which variables are plotted?</em>” in the <code>plotmo</code> vignette).
+<br><br>
+Can also be a character vector specifying which variables to plot
+(<code>grep</code> is used for matching).
+Examples:
+<br><code>degree2="wind"</code> plots all degree2 plots
+for the <code>wind</code> variable.
+<br><code>degree2=c("wind", "vis")</code> plots just the <code>wind:vis</code> plot.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>all2</code></td>
+<td>
+
+<p>Default is <code>FALSE</code>.
+Use <code>TRUE</code> to plot all pairs of predictors,
+not just those usually selected by <code>plotmo</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>do.par</code></td>
+<td>
+<p>One of <code>NULL</code>, <code>FALSE</code>, <code>TRUE</code>, or <code>2</code>, as follows:
+</p>
+<p><code>do.par=NULL</code>. Same as <code>do.par=FALSE</code> if the
+number of plots is one; else the same as <code>TRUE</code>.
+</p>
+<p><code>do.par=FALSE</code>. Use the current <code>par</code> settings.
+You can pass additional graphics parameters in the “<code>...</code>” argument.
+</p>
+<p><code>do.par=TRUE</code> (default). Start a new page and call <code>par</code> as
+appropriate to display multiple plots on the same page.
+This automatically sets parameters like <code>mfrow</code> and <code>mar</code>.
+You can pass additional graphics parameters in the “<code>...</code>” argument.
+
+
+
+</p>
+<p><code>do.par=2</code>.  Like <code>do.par=TRUE</code> but don't restore
+the <code>par</code> settings to their original state when <code>plotmo</code> exits,
+so you can add something to the plot.
+<br></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clip</code></td>
+<td>
+
+<p>The default is <code>clip=TRUE</code>, meaning ignore very outlying
+predictions  when determining the automatic <code>ylim</code>.
+This keeps <code>ylim</code> fairly compact while
+still covering all or nearly all the data,
+even if there are a few crazy predicted values.
+See “<em>The <code>ylim</code> and <code>clip</code> arguments</em>” in the <code>plotmo</code> vignette.
+<br>
+Use <code>clip=FALSE</code> for no clipping.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ylim</code></td>
+<td>
+<p>Three possibilities:
+<br><code>ylim=NULL</code> (default). Automatically determine a <code>ylim</code>
+to use across all graphs.
+<br><code>ylim=NA</code>. Each graph has its own <code>ylim</code>.
+<br><code>ylim=c(ymin,ymax)</code>. Use the specified limits across all graphs.
+<br></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>caption</code></td>
+<td>
+
+<p>Overall caption.  By default create the caption automatically.
+Use <code>caption=""</code> for no caption.
+(Use <code>main</code> to set the title of individual plots, can be a vector.)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace</code></td>
+<td>
+
+<p>Default is <code>0</code>.
+<br><code>trace=1</code> (or <code>TRUE</code>) for a summary trace (shows how
+<code>predict</code> is invoked for the current object).
+<br><code>trace=2</code> for detailed tracing.
+<br><code>trace=-1</code> inhibits the messages usually issued by <code>plotmo</code>,
+like the <code>plotmo grid:</code>,
+<code>calculating partdep</code>,
+and  <code>nothing to plot</code> messages.
+Error and warning messages will be printed as usual.
+<br><br></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grid.func</code></td>
+<td>
+
+<p>Function applied to columns of the <code>x</code> matrix to pin the values of
+variables not on the axis of the current plot (the “background” variables).<br>
+The default is a function which for numeric variables returns the
+median and for logical and factors variables returns the value
+occurring most often in the training data.<br>
+Examples:</p>
+<pre>    plotmo(mod, grid.func=mean)
+    grid.func &lt;- function(x, ...) quantile(x)[2] # 25% quantile
+    plotmo(mod, grid.func=grid.func)</pre>
+<p>This argument is not related to the <code>grid.col</code> argument.<br>
+This argument can be overridden for specific variables—see <code>grid.levels</code> below.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grid.levels</code></td>
+<td>
+
+<p>Default is <code>NULL</code>.
+Else a list of variables and their fixed value to be used
+when the variable is not on the axis.
+Supersedes <code>grid.func</code> for variables in the list.
+Names and values can be abbreviated, partial matching is used.
+Example:</p>
+<pre>    plotmo(mod, grid.levels=list(sex="m", age=21))
+
+</pre>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extend</code></td>
+<td>
+
+<p>Amount to extend the horizontal axis in each plot.
+The default is <code>0</code>, do not extend
+(i.e. use the range of the variable in the training data).
+Else something like <code>extend=.5</code>, which will extend both the lower
+and upper <code>xlim</code> of each plot by 50%.<br>
+This argument is useful if you want to see how the model performs
+on data that is beyond the training data;
+for example, you want to see how a time-series model performs on future data.<br>
+This argument is currently implemented only for degree1 plots.
+Factors and discrete variables (see the <code>ndiscrete</code> argument)
+are not extended.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ngrid1</code></td>
+<td>
+
+<p>Number of equally spaced x values in each degree1 plot.
+Default is <code>50</code>.
+Also used as the number of background cases for <code>pmethod="apartdep"</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ngrid2</code></td>
+<td>
+
+<p>Grid size for degree2 plots (<code>ngrid2 x ngrid2</code> points are plotted).
+Default is <code>20</code>.
+<br>
+The default will sometimes be too small for <code>contour</code> and <code>image</code> plots.
+<br>
+With large <code>ngrid2</code> values, <code>persp</code> plots look better with
+<code>persp.border=NA</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>npoints</code></td>
+<td>
+
+<p>Number of response points to be plotted
+(a sample of <code>npoints</code> points is plotted).
+Applies only if <code>pt.col</code> is specified.
+<br>
+The default is 3000 (not all, to avoid overplotting on large models).
+Use <code>npoints=TRUE</code> or <code>-1</code> for all points.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ndiscrete</code></td>
+<td>
+
+<p>Default <code>5</code> (a somewhat arbitrary value).
+Variables with no more than <code>ndiscrete</code> unique values
+are plotted as quantized in plots (a staircase rather than a curve).<br>
+Factors are always considered discrete.
+Variables with non-integer values are always considered non-discrete.<br>
+Use <code>ndiscrete=0</code> if you want to plot the response for a variable
+with just a few integer values as a line or a curve, rather than a
+staircase.<br></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>int.only.ok</code></td>
+<td>
+
+<p>Plot the model even if it is an intercept-only model (no predictors are
+used in the model).
+Do this by plotting a single degree1 plot for the first predictor.
+<br>
+The default is <code>TRUE</code>.
+Use <code>int.only.ok=FALSE</code> to instead issue an error message for intercept-only models.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+
+<p>Center the plotted response.
+Default is <code>FALSE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xflip</code></td>
+<td>
+
+<p>Default <code>FALSE</code>.
+Use <code>TRUE</code> to flip the direction of the <code>x</code> axis.
+This argument (and <code>yflip</code> and <code>swapxy</code>) is useful when comparing
+to a plot from another source and you want the axes to be the same.
+(Note that <code>xflip</code> and <code>yflip</code> cannot be used on the <code>persp</code> plots,
+a limitation of the <code>persp</code> function.)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yflip</code></td>
+<td>
+
+<p>Default <code>FALSE</code>.
+Use <code>TRUE</code> to flip the direction of the y axis of the degree2 graphs.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>swapxy</code></td>
+<td>
+
+<p>Default <code>FALSE</code>.
+Use <code>TRUE</code> to swap the x and y axes on the degree2 graphs.
+<br><br></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Dot arguments are passed to the predict and plot functions.
+Dot argument names, whether prefixed or not, should be specified in full
+and not abbreviated.
+<br><br>
+“Prefixed” arguments are passed directly to the associated function.
+For example the prefixed argument <code>persp.col="pink"</code> passes
+<code>col="pink"</code> to <code>persp()</code>, overriding the global
+<code>col</code> setting.
+To send an argument to <code>predict</code> whose name may alias with
+<code>plotmo</code>'s arguments, use <code>predict.</code> as a prefix.
+Example:</p>
+<pre>    plotmo(mod, s=1)           # error:  arg matches multiple formal args
+    plotmo(mod, predict.s=1)   # ok now: s=1 will be passed to predict()
+</pre>
+<p>The prefixes recognized by <code>plotmo</code> are:</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>predict.</code> </td>
+<td style="text-align: left;"> passed to the <code>predict</code> method for the model
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>degree1.</code> </td>
+<td style="text-align: left;"> modifies degree1 plots e.g. <code>degree1.col=3, degree1.lwd=2</code>
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>persp.</code> </td>
+<td style="text-align: left;"> arguments passed to <code>persp</code>
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>contour.</code> </td>
+<td style="text-align: left;"> arguments passed to <code>contour</code>
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>image.</code> </td>
+<td style="text-align: left;"> arguments passed to <code>image</code>
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>pt.</code> </td>
+<td style="text-align: left;"> see the <code>pt.col</code> argument
+(arguments passed to <code>points</code> and <code>text</code>)
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>smooth.</code> </td>
+<td style="text-align: left;"> see the <code>smooth.col</code> argument
+(arguments passed to <code>lines</code> and <code>lowess</code>)
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>level.</code> </td>
+<td style="text-align: left;"> see the <code>level</code> argument
+(<code>level.shade</code>, <code>level.shade2</code>, and arguments for <code>polygon</code>)
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>func.</code> </td>
+<td style="text-align: left;"> see the <code>func</code> argument
+(arguments passed to <code>lines</code>)
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>rug.</code> </td>
+<td style="text-align: left;"> see the <code>nrug</code> argument
+(<code>rug.jitter</code>, and arguments passed to <code>rug</code>)
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>density.</code> </td>
+<td style="text-align: left;"> see the <code>nrug</code> argument
+(<code>density.adjust</code>, and arguments passed to <code>lines</code>)
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>grid.</code> </td>
+<td style="text-align: left;"> see the <code>grid.col</code> argument
+(arguments passed to <code>grid</code>)
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>caption.</code> </td>
+<td style="text-align: left;"> see the <code>caption</code> argument
+(arguments passed to <code>mtext</code>)
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>par.</code> </td>
+<td style="text-align: left;"> arguments passed to <code>par</code>
+(only necessary if a <code>par</code> argument name clashes
+with a <code>plotmo</code> argument)
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>prednames.</code> </td>
+<td style="text-align: left;"> Use <code>prednames.abbreviate=FALSE</code> for
+full predictor names in graph axes.
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<p>The <code>cex</code> argument is relative, so
+specifying <code>cex=1</code> is the same as not specifying <code>cex</code>.
+</p>
+<p>For backwards compatibility, some dot arguments are supported but not
+explicitly documented.  For example, the old argument <code>col.response</code>
+is no longer in <code>plotmo</code>'s formal argument list, but is still
+accepted and treated like the new argument <code>pt.col</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>In general this function won't work on models that don't save the call
+and data with the model in a standard way.
+For further discussion please see “<em>Accessing the model
+data</em>” in the <a href="../doc/plotmo-notes.pdf">plotmo vignette</a>.
+Package authors may want to look at
+<a href="../doc/modguide.pdf">Guidelines for S3 Regression Models</a>
+(also available <a href="http://www.milbo.org/doc/modguide.pdf">here</a>).
+</p>
+<p>By default, <code>plotmo</code> tries to use sensible model-dependent
+defaults when calling <code>predict</code>.
+Use <code>trace=1</code> to see the arguments passed to <code>predict</code>.
+You can change the defaults by using <code>plotmo</code>'s <code>type</code> argument,
+and by using dot arguments prefixed with
+<code>predict.</code> (see the description of “<code>...</code>” above).
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Please see the <a href="../doc/plotmo-notes.pdf">plotmo vignette</a>
+(also available <a href="http://www.milbo.org/doc/plotmo-notes.pdf">here</a>).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">if (require(rpart)) {
+    data(kyphosis)
+    rpart.model &lt;- rpart(Kyphosis~., data=kyphosis)
+    # pass type="prob" to plotmo's internal calls to predict.rpart, and
+    # select the column named "present" from the matrix returned by predict.rpart
+    plotmo(rpart.model, type="prob", nresponse="present")
+}
+if (require(earth)) {
+    data(ozone1)
+    earth.model &lt;- earth(O3 ~ ., data=ozone1, degree=2)
+    plotmo(earth.model)
+    # plotmo(earth.model, pmethod="partdep") # partial dependence plots
+}
+</code></pre>
+
+
+</div>

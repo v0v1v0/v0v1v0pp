@@ -1,0 +1,148 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pcvpls</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Procrustes cross-validation for PLS models</h2>
+
+<h3>Description</h3>
+
+<p>Procrustes cross-validation for PLS models
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pcvpls(
+  X,
+  Y,
+  ncomp = min(nrow(X) - 1, ncol(X), 30),
+  center = TRUE,
+  scale = FALSE,
+  cv = list("ven", 4),
+  cv.scope = "global"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>matrix with predictors from the training set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>vector or matrix with response values from the training set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncomp</code></td>
+<td>
+<p>number of components to use (more than the expected optimal number).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>logical, to center or not the data sets</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>logical, to scale or not the data sets</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv</code></td>
+<td>
+<p>which split method to use for cross-validation (see description for details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv.scope</code></td>
+<td>
+<p>scope for center/scale operations inside CV loop: 'global' — using globally computed mean and std
+or 'local' — recompute new for each local calibration set.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The method computes pseudo-validation matrix Xpv, based on PLS decomposition of calibration
+set X, y and cross-validation.
+</p>
+<p>Parameter 'cv' defines how to split the rows of the training set. The split is similar
+to cross-validation splits, as PCV is based on cross-validation. This parameter can have
+the following values:
+</p>
+<p>1. A number (e.g. 'cv = 4'). In this case this number specifies number of segments for random
+splits, except 'cv = 1' which is a special case for leave-one-out (full cross-validation).
+</p>
+<p>2. A list with 2 values: 'list("name", nseg)'. In this case '"name"' defines the way to make
+the split, you can select one of the following: '"loo"' for leave-one-out, '"rand"' for random
+splits or '"ven"' for Venetian blinds (systematic) splits. The second parameter, 'nseg', is a
+number of segments for splitting the rows into. For example, 'cv = list("ven", 4)', shown in
+the code examples above, tells PCV to use Venetian blinds splits with 4 segments.
+</p>
+<p>3. A vector with integer numbers, e.g. 'cv = c(1, 2, 3, 1, 2, 3, 1, 2, 3)'. In this case number
+of values in this vector must be the same as number of rows in the training set. The values
+specify which segment a particular row will belong to. In case of the example shown here, it
+is assumed that you have 9 rows in the calibration set, which will be split into 3 segments.
+The first segment will consist of measurements from rows 1, 4 and 7.
+</p>
+<p>Parameter 'cv.scope' influences how the Procrustean rule is met. In case of "global" scope,
+the rule will be met strictly - error of predictions for PV-set and the global model will be
+identical to the error from conventional cross-validation. In case of "local" scope, every
+local model will have its own center and hence the rule will be almost met (the errors will
+be close but not identical).
+</p>
+
+
+<h3>Value</h3>
+
+<p>Pseudo-validation matrix (same size as X) with an additional attribute, 'D' which contains the
+scaling coefficients (ck/c)
+</p>
+
+
+<h3>References</h3>
+
+<p>1. S. Kucheryavskiy, O. Rodionova, A. Pomerantsev. Procrustes cross-validation of multivariate
+regression models. Analytica Chimica Acta, 1255 (2022)
+[https://doi.org/10.1016/j.aca.2023.341096]
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# load NIR spectra of Corn samples
+data(corn)
+X &lt;- corn$spectra
+Y &lt;- corn$moisture
+
+# generate Xpv set based on PCA decomposition with A = 20 and venetian blinds split with 4 segments
+Xpv &lt;- pcvpls(X, Y, ncomp = 20, center = TRUE, scale = FALSE, cv = list("ven", 4))
+
+# show the original spectra and the PV-set (as is and mean centered)
+oldpar &lt;- par(mfrow = c(2, 2))
+matplot(t(X), type = "l", lty = 1, main = "Original data")
+matplot(t(Xpv), type = "l", lty = 1, main = "PV-set")
+matplot(t(scale(X, scale = FALSE)), type = "l", lty = 1, main = "Original data (mean centered)")
+matplot(t(scale(Xpv, scale = FALSE)), type = "l", lty = 1, main = "PV-set (mean centered)")
+par(oldpar)
+
+# show the heatmap with the scaling coefficients
+plotD(Xpv)
+
+</code></pre>
+
+
+</div>

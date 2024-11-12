@@ -1,0 +1,161 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>add_hazard</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add predicted (cumulative) hazard to data set</h2>
+
+<h3>Description</h3>
+
+<p>Add (cumulative) hazard based on the provided data set and model.
+If <code>ci=TRUE</code> confidence intervals (CI) are also added. Their width can
+be controlled via the <code>se_mult</code> argument. The method by which the
+CI are calculated can be specified by <code>ci_type</code>.
+This is a wrapper around
+<code>predict.gam</code>. When <code>reference</code> is specified, the
+(log-)hazard ratio is calculated.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">add_hazard(newdata, object, ...)
+
+## Default S3 method:
+add_hazard(
+  newdata,
+  object,
+  reference = NULL,
+  type = c("response", "link"),
+  ci = TRUE,
+  se_mult = 2,
+  ci_type = c("default", "delta", "sim"),
+  overwrite = FALSE,
+  time_var = NULL,
+  ...
+)
+
+add_cumu_hazard(
+  newdata,
+  object,
+  ci = TRUE,
+  se_mult = 2,
+  overwrite = FALSE,
+  time_var = NULL,
+  interval_length = "intlen",
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p> A data frame or list containing the values of the model covariates at which predictions
+are required. If this is not provided then predictions corresponding to the
+original data are returned. If <code>newdata</code> is provided then
+it should contain all the variables needed for prediction: a
+warning is generated if not. See details for use with <code>link{linear.functional.terms}</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p> a fitted <code>gam</code> object as produced by <code>gam()</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to <code>predict.gam</code> and
+<code>get_hazard</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reference</code></td>
+<td>
+<p>A data frame with number of rows equal to <code>nrow(newdata)</code> or
+one, or a named list with (partial) covariate specifications. See examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>Either <code>"response"</code> or <code>"link"</code>. The former calculates
+hazard, the latter the log-hazard.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ci</code></td>
+<td>
+<p><code>logical</code>. Indicates if confidence intervals should be
+calculated. Defaults to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se_mult</code></td>
+<td>
+<p>Factor by which standard errors are multiplied for calculating
+the confidence intervals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ci_type</code></td>
+<td>
+<p>The method by which standard errors/confidence intervals
+will be calculated. Default transforms the linear predictor at
+respective intervals. <code>"delta"</code> calculates CIs based on the standard
+error calculated by the Delta method. <code>"sim"</code> draws the
+property of interest from its posterior based on the normal distribution of
+the estimated coefficients. See <a href="https://adibender.github.io/simpamm/confidence-intervals.html">here</a>
+for details and empirical evaluation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p>Should hazard columns be overwritten if already present in
+the data set? Defaults to <code>FALSE</code>. If <code>TRUE</code>, columns with names
+<code>c("hazard", "se", "lower", "upper")</code> will be overwritten.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time_var</code></td>
+<td>
+<p>Name of the variable used for the baseline hazard. If
+not given, defaults to <code>"tend"</code> for <code>gam</code> fits, else
+<code>"interval"</code>. The latter is assumed to be a factor, the former
+numeric.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interval_length</code></td>
+<td>
+<p>The variable in newdata containing the interval lengths.
+Can be either bare unquoted variable name or character. Defaults to <code>"intlen"</code>.</p>
+</td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+<p><code>predict.gam</code>,
+<code>add_surv_prob</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">ped &lt;- tumor[1:50,] %&gt;% as_ped(Surv(days, status)~ age)
+pam &lt;- mgcv::gam(ped_status ~ s(tend)+age, data = ped, family=poisson(), offset=offset)
+ped_info(ped) %&gt;% add_hazard(pam, type="link")
+ped_info(ped) %&gt;% add_hazard(pam, type = "response")
+ped_info(ped) %&gt;% add_cumu_hazard(pam)
+</code></pre>
+
+
+</div>

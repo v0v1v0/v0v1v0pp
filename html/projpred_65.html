@@ -1,0 +1,289 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>summary.vsel</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Summary of a <code>varsel()</code> or <code>cv_varsel()</code> run</h2>
+
+<h3>Description</h3>
+
+<p>This is the <code>summary()</code> method for <code>vsel</code> objects (returned by <code>varsel()</code> or
+<code>cv_varsel()</code>). Apart from some general information about the <code>varsel()</code> or
+<code>cv_varsel()</code> run, it shows the full-data predictor ranking, basic
+information about the (CV) variability in the ranking of the predictors (if
+available; inferred from <code>cv_proportions()</code>), and estimates for
+user-specified predictive performance statistics. For a graphical
+representation, see <code>plot.vsel()</code>. For extracting the predictive performance
+results printed at the bottom of the output created by this <code>summary()</code>
+method, see <code>performances()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'vsel'
+summary(
+  object,
+  nterms_max = NULL,
+  stats = "elpd",
+  type = c("mean", "se", "diff", "diff.se"),
+  deltas = FALSE,
+  alpha = 2 * pnorm(-1),
+  baseline = if (!inherits(object$refmodel, "datafit")) "ref" else "best",
+  resp_oscale = TRUE,
+  cumulate = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>An object of class <code>vsel</code> (returned by <code>varsel()</code> or
+<code>cv_varsel()</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nterms_max</code></td>
+<td>
+<p>Maximum submodel size (number of predictor terms) for which
+the performance statistics are calculated. Using <code>NULL</code> is effectively the
+same as <code>length(ranking(object)$fulldata)</code>. Note that <code>nterms_max</code> does not
+count the intercept, so use <code>nterms_max = 0</code> for the intercept-only model.
+For <code>plot.vsel()</code>, <code>nterms_max</code> must be at least <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stats</code></td>
+<td>
+<p>One or more character strings determining which performance
+statistics (i.e., utilities or losses) to estimate based on the
+observations in the evaluation (or "test") set (in case of
+cross-validation, these are all observations because they are partitioned
+into multiple test sets; in case of <code>varsel()</code> with <code>d_test = NULL</code>, these
+are again all observations because the test set is the same as the training
+set). Available statistics are:
+</p>
+
+<ul>
+<li> <p><code>"elpd"</code>: expected log (pointwise) predictive density (for a new
+dataset). Estimated by the sum of the observation-specific log predictive
+density values (with each of these predictive density values being
+a—possibly weighted—average across the parameter draws).
+</p>
+</li>
+<li> <p><code>"mlpd"</code>: mean log predictive density, that is, <code>"elpd"</code> divided by the
+number of observations.
+</p>
+</li>
+<li> <p><code>"gmpd"</code>: geometric mean predictive density (GMPD), that is, <code>exp()</code> of
+<code>"mlpd"</code>. The GMPD is especially helpful for discrete response families
+(because there, the GMPD is bounded by zero and one). For the corresponding
+standard error, the delta method is used. The corresponding confidence
+interval type is "exponentiated normal approximation" because the
+confidence interval bounds are the exponentiated confidence interval bounds
+of the <code>"mlpd"</code>.
+</p>
+</li>
+<li> <p><code>"mse"</code>: mean squared error (only available in the situations mentioned
+in section "Details" below).
+</p>
+</li>
+<li> <p><code>"rmse"</code>: root mean squared error (only available in the situations
+mentioned in section "Details" below). For the corresponding standard error
+and lower and upper confidence interval bounds, bootstrapping is used.
+</p>
+</li>
+<li> <p><code>"acc"</code> (or its alias, <code>"pctcorr"</code>): classification accuracy (only
+available in the situations mentioned in section "Details" below). By
+"classification accuracy", we mean the proportion of correctly classified
+observations. For this, the response category ("class") with highest
+probability (the probabilities are model-based) is taken as the prediction
+("classification") for an observation.
+</p>
+</li>
+<li> <p><code>"auc"</code>: area under the ROC curve (only available in the situations
+mentioned in section "Details" below). For the corresponding standard error
+and lower and upper confidence interval bounds, bootstrapping is used.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>One or more items from <code>"mean"</code>, <code>"se"</code>, <code>"lower"</code>, <code>"upper"</code>,
+<code>"diff"</code>, and <code>"diff.se"</code> indicating which of these to compute for each
+item from <code>stats</code> (mean, standard error, lower and upper confidence
+interval bounds, mean difference to the corresponding statistic of the
+reference model, and standard error of this difference, respectively; note
+that for the GMPD, <code>"diff"</code>, and <code>"diff.se"</code> actually refer to the ratio
+vs. the reference model, not the difference). The confidence interval
+bounds belong to normal-approximation (or bootstrap or exponentiated
+normal-approximation; see argument <code>stats</code>) confidence intervals with
+(nominal) coverage <code>1 - alpha</code>. Items <code>"diff"</code> and <code>"diff.se"</code> are only
+supported if <code>deltas</code> is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deltas</code></td>
+<td>
+<p>If <code>TRUE</code>, the submodel statistics are estimated relatively to
+the baseline model (see argument <code>baseline</code>). For the GMPD, the term
+"relatively" refers to the ratio vs. the baseline model (i.e., the submodel
+statistic divided by the baseline model statistic). For all other <code>stats</code>,
+"relatively" refers to the difference from the baseline model (i.e., the
+submodel statistic minus the baseline model statistic).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>A number determining the (nominal) coverage <code>1 - alpha</code> of the
+normal-approximation (or bootstrap or exponentiated normal-approximation;
+see argument <code>stats</code>) confidence intervals. For example, in case of the
+normal approximation, <code>alpha = 2 * pnorm(-1)</code> corresponds to a confidence
+interval stretching by one standard error on either side of the point
+estimate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>baseline</code></td>
+<td>
+<p>For <code>summary.vsel()</code>: Only relevant if <code>deltas</code> is <code>TRUE</code>.
+For <code>plot.vsel()</code>: Always relevant. Either <code>"ref"</code> or <code>"best"</code>, indicating
+whether the baseline is the reference model or the best submodel found (in
+terms of <code>stats[1]</code>), respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resp_oscale</code></td>
+<td>
+<p>Only relevant for the latent projection. A single logical
+value indicating whether to calculate the performance statistics on the
+original response scale (<code>TRUE</code>) or on latent scale (<code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cumulate</code></td>
+<td>
+<p>Passed to argument <code>cumulate</code> of <code>cv_proportions()</code>. Affects
+column <code>cv_proportions_diag</code> of the summary table.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments passed to the internal function which is used for
+bootstrapping (if applicable; see argument <code>stats</code>). Currently, relevant
+arguments are <code>B</code> (the number of bootstrap samples, defaulting to <code>2000</code>)
+and <code>seed</code> (see <code>set.seed()</code>, but defaulting to <code>NA</code> so that <code>set.seed()</code>
+is not called within that function at all).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>stats</code> options <code>"mse"</code> and <code>"rmse"</code> are only available for:
+</p>
+
+<ul>
+<li>
+<p> the traditional projection,
+</p>
+</li>
+<li>
+<p> the latent projection with <code>resp_oscale = FALSE</code>,
+</p>
+</li>
+<li>
+<p> the latent projection with <code>resp_oscale = TRUE</code> in combination with
+<code style="white-space: pre;">⁠&lt;refmodel&gt;$family$cats⁠</code> being <code>NULL</code>.
+</p>
+</li>
+</ul>
+<p>The <code>stats</code> option <code>"acc"</code> (= <code>"pctcorr"</code>) is only available for:
+</p>
+
+<ul>
+<li>
+<p> the <code>binomial()</code> family in case of the traditional projection,
+</p>
+</li>
+<li>
+<p> all families in case of the augmented-data projection,
+</p>
+</li>
+<li>
+<p> the <code>binomial()</code> family (on the original response scale) in case of the
+latent projection with <code>resp_oscale = TRUE</code> in combination with
+<code style="white-space: pre;">⁠&lt;refmodel&gt;$family$cats⁠</code> being <code>NULL</code>,
+</p>
+</li>
+<li>
+<p> all families (on the original response scale) in case of the latent
+projection with <code>resp_oscale = TRUE</code> in combination with
+<code style="white-space: pre;">⁠&lt;refmodel&gt;$family$cats⁠</code> being not <code>NULL</code>.
+</p>
+</li>
+</ul>
+<p>The <code>stats</code> option <code>"auc"</code> is only available for:
+</p>
+
+<ul>
+<li>
+<p> the <code>binomial()</code> family in case of the traditional projection,
+</p>
+</li>
+<li>
+<p> the <code>binomial()</code> family (on the original response scale) in case of the
+latent projection with <code>resp_oscale = TRUE</code> in combination with
+<code style="white-space: pre;">⁠&lt;refmodel&gt;$family$cats⁠</code> being <code>NULL</code>.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>An object of class <code>vselsummary</code>. The elements of this object are not
+meant to be accessed directly but instead via helper functions
+(<code>print.vselsummary()</code> and <code>performances.vselsummary()</code>).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>print.vselsummary()</code>, <code>performances.vselsummary()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Data:
+dat_gauss &lt;- data.frame(y = df_gaussian$y, df_gaussian$x)
+
+# The `stanreg` fit which will be used as the reference model (with small
+# values for `chains` and `iter`, but only for technical reasons in this
+# example; this is not recommended in general):
+fit &lt;- rstanarm::stan_glm(
+  y ~ X1 + X2 + X3 + X4 + X5, family = gaussian(), data = dat_gauss,
+  QR = TRUE, chains = 2, iter = 500, refresh = 0, seed = 9876
+)
+
+# Run varsel() (here without cross-validation, with L1 search, and with small
+# values for `nterms_max` and `nclusters_pred`, but only for the sake of
+# speed in this example; this is not recommended in general):
+vs &lt;- varsel(fit, method = "L1", nterms_max = 3, nclusters_pred = 10,
+             seed = 5555)
+print(summary(vs), digits = 1)
+
+</code></pre>
+
+
+</div>

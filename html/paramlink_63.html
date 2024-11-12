@@ -1,0 +1,183 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>merlin</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>MERLIN wrappers</h2>
+
+<h3>Description</h3>
+
+<p>Wrappers for the MERLIN software, providing multipoint LOD scores and other
+computations on pedigrees with marker data. These functions require MERLIN to
+be installed and correctly pointed to in the PATH environment variable.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">merlin(
+  x,
+  markers = seq_len(x$nMark),
+  model = TRUE,
+  theta = NULL,
+  options = "",
+  verbose = FALSE,
+  generate.files = TRUE,
+  cleanup = generate.files,
+  logfile = ""
+)
+
+merlinUnlikely(x, remove = FALSE, verbose = !remove)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a <code>linkdat</code> object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>markers</code></td>
+<td>
+<p>an integer vector indicating which markers to use (default:
+all).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a logical: If TRUE (and x$model is not NULL), the file
+'merlin.model' is created and '–model merlin.model' is included to the
+MERLIN command.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta</code></td>
+<td>
+<p>a numeric with values between 0 and 0.5: The recombination
+value(s) for which the LOD score is computed.  The values of <code>theta</code>
+are converted to centiMorgan positions using the Haldane map function and
+included in the MERLIN command using the <code>--position</code> parameter. Works
+only for single markers (i.e. <code>markers</code> must consist of a single
+integer).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>options</code></td>
+<td>
+<p>a character with additional options to the MERLIN command. See
+details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>a logical: Show MERLIN output and other information, or not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>generate.files</code></td>
+<td>
+<p>a logical. If TRUE, the files 'merlin.ped',
+'merlin.dat', 'merlin.map', 'merlin.freq' and (if <code>model=TRUE</code>)
+'merlin.model' are created in the working directory.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cleanup</code></td>
+<td>
+<p>a logical: Should the MERLIN files be deleted automatically?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>logfile</code></td>
+<td>
+<p>a character. If this is given, the MERLIN screen output will
+be written to a file with this name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>remove</code></td>
+<td>
+<p>a logical. If FALSE, the function returns the indices of
+markers found to unlikely.  If TRUE, a new <code>linkdat</code> object is
+returned, where the unlikely markers have been deleted.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For these functions to work, MERLIN must be installed and the path to
+merlin.exe included in the PATH variable. The <code>merlin</code> function is first
+and foremost a wrapper to the parametric linkage functionality of MERLIN.
+</p>
+<p>By default the following MERLIN command is run (via a call to
+<code>system</code>) after creating appropriate files in the current working
+directory:
+</p>
+<pre>
+_merlin.freq --model _merlin.model --tabulate --markerNames --quiet</pre>
+<p>The resulting multipoint LOD scores are extracted from the output and
+returned in R as a <code>linkres</code> object.
+</p>
+<p>Additional command parameters can be passed on using the <code>options</code>
+argument (this is simply pasted onto the MERLIN command, so dashes must be
+included). For example, to obtain singlepoint LOD scores instead of
+multipoint, set <code>options='--singlepoint'</code>. (The singlepoint scores
+should agree with the results of <code>lod(x)</code>, except in cases where some
+individuals have partial genotypes (see Examples).)
+</p>
+<p>If <code>model=FALSE</code> the <code>--model merlin.model</code> part is removed from
+the MERLIN command above. This is necessary for some calculations, e.g.
+likelihoods (see Examples).
+</p>
+<p>The <code>merlinUnlikely</code> function is a wrapper for MERLIN's '–error'
+command. The syntax is similar to that of <code>mendelianCheck</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>model=TRUE</code>, a <code>linkres</code> object. Otherwise a
+character containing the complete MERLIN output.
+</p>
+<p>For <code>merlinUnlikely</code>, a numeric containing the indices of the
+unlikely, or (if <code>remove=TRUE</code>) a new <code>linkdat</code> object where the
+unlikely markers are removed.
+</p>
+
+
+<h3>References</h3>
+
+<p><a href="http://csg.sph.umich.edu/abecasis/Merlin/">http://csg.sph.umich.edu/abecasis/Merlin/</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Not run: 
+x = linkdat(toyped, model=1)
+x
+
+# MERLIN treats partial genotypes (i.e. one known and one unknown allele) as missing:
+lod_merlin = merlin(x)
+lod_partial = lod(x)
+x = modifyMarker(x, marker=1, ids=1, genotype=0)
+lod_missing = lod(x)
+stopifnot(lod_merlin == round(lod_missing, 4))
+
+# Likelihood computation by MERLIN:
+merlin(x, model=F, options='--lik')
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

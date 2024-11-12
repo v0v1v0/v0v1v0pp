@@ -1,0 +1,139 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>AddGenotypeLikelihood</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Estimate Genotype Likelihoods in a RADdata object
+</h2>
+
+<h3>Description</h3>
+
+<p>For each possible allele copy number across each possible ploidy in each taxon,
+<code>AddGenotypeLikelihood</code> estimates the probability of observing the 
+distribution of read counts that are recorded for that taxon and locus.
+<code>AddDepthSamplingPermutations</code> is called by <code>AddGenotypeLikelihood</code>
+the first time it is run, so that part of the likelihood calcluation is
+stored in the <code>RADdata</code> object and doesn't need to be re-run on each
+iteration of the pipeline functions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">AddGenotypeLikelihood(object, ...)
+
+## S3 method for class 'RADdata'
+AddGenotypeLikelihood(object, overdispersion = 9, ...)
+
+AddDepthSamplingPermutations(object, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+
+<p>A <code>"RADdata"</code> object.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overdispersion</code></td>
+<td>
+
+<p>An overdispersion parameter.  Higher values will cause the expected read depth
+distribution to more resemble the binomial distribution.  Lower values indicate
+more overdispersion, <em>i.e.</em> sample-to-sample variance in the probability
+of observing reads from a given allele.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Other arguments; none are currently used.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If allele frequencies are not already recorded in <code>object</code>, they will 
+be added using <code>AddAlleleFreqHWE</code>.  Allele frequencies are then
+used for estimating the probability of sampling an allele from a genotype due
+to sample contamination.  Given a known genotype with <code class="reqn">x</code> copies of 
+allele <code class="reqn">i</code>, ploidy <code class="reqn">k</code>, allele frequency <code class="reqn">p_i</code> in the population used for
+making sequencing libraries, and contamination rate <code class="reqn">c</code>, the probabiity of 
+sampling a read <code class="reqn">r_i</code> from that locus corresponding to that allele is
+</p>
+<p style="text-align: center;"><code class="reqn">P(r_i | x) = \frac{x}{k} * (1 - c) + p_i * c</code>
+</p>
+
+<p>To estimate the genotype likelihood, where <code class="reqn">nr_i</code> is the number of reads 
+corresponding to allele <code class="reqn">i</code> for a given taxon and locus and <code class="reqn">nr_j</code> is the
+number of reads corresponding to all other alleles for that taxon and locus:
+</p>
+<p style="text-align: center;"><code class="reqn">P(nr_i, nr_j | x) = {{nr_i + nr_j}\choose{nr_i}} * \frac{B[P(r_i | x) * d + nr_i, [1 - P(r_i | x)] * d + nr_j]]}{B[P(r_i | x) * d, [1 - P(r_i | x)] * d]}</code>
+</p>
+
+<p>where
+</p>
+<p style="text-align: center;"><code class="reqn">{{nr_i + nr_j}\choose{nr_i}} = \frac{(nr_i + nr_j)!}{nr_i! * nr_j!}</code>
+</p>
+
+<p>B is the beta function, and <code class="reqn">d</code> is the overdispersion parameter set by 
+<code>overdispersion</code>.  <code class="reqn">{{nr_i + nr_j}\choose{nr_i}}</code>
+is calculated by <code>AddDepthSamplingPermutations</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>"RADdata"</code> object identical to that passed to the function, but with
+genotype likelihoods stored in <code>object$genotypeLikelihood</code>.  This item is a 
+two dimensional list, with one row for each ploidy listed
+in <code>object$possiblePloidies</code>, ignoring differences between 
+autopolyploids and allopolyploids, and one column for each ploidy listed in
+<code>object$taxaPloidy</code>.  Each item in the list is a three-dimensional 
+array with number of allele copies in the first dimension, taxa in the second dimension,
+and alleles in the third dimension.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>AddAlleleFreqMapping</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load example dataset and add allele frequency
+data(exampleRAD)
+exampleRAD &lt;- AddAlleleFreqHWE(exampleRAD)
+
+# estimate genotype likelihoods
+exampleRAD &lt;- AddGenotypeLikelihood(exampleRAD)
+
+# inspect the results
+# the first ten individuals and first two alleles, assuming diploidy
+exampleRAD$alleleDepth[1:10,1:2]
+exampleRAD$genotypeLikelihood[[1]][,1:10,1:2]
+# assuming tetraploidy
+exampleRAD$genotypeLikelihood[[2]][,1:10,1:2]
+</code></pre>
+
+
+</div>

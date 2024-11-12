@@ -1,0 +1,292 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>joint_estimate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Joint inference of attachment function and node fitnesses   
+</h2>
+
+<h3>Description</h3>
+
+<p>This function jointly estimates the attachment function <code class="reqn">A_k</code> and node fitnesses <code class="reqn">\eta_i</code>. It first performs a cross-validation to select the optimal parameters <code class="reqn">r</code> and <code class="reqn">s</code>, then estimates <code class="reqn">A_k</code> and <code class="reqn">eta_i</code> using that optimal pair with the full data (Ref. 2).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">joint_estimate(net_object                               , 
+              net_stat      = get_statistics(net_object), 
+              p             = 0.75                      ,
+              stop_cond     = 10^-8                     ,
+              mode_reg_A    = 0                         , 
+              ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>net_object</code></td>
+<td>
+
+<p>an object of class <code>PAFit_net</code> that contains the network.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>net_stat</code></td>
+<td>
+
+<p>An object of class <code>PAFit_data</code> which contains summarized statistics needed in estimation. This object is created by the function <code>get_statistics</code>. The default value is <code>get_statistics(net_object)</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>Numeric. This is the ratio of the number of new edges in the learning data to that of the full data. The data is then divided into two parts: learning data and testing data based on <code>p</code>. The learning data is used to learn the node fitnesses and the testing data is then used in cross-validation. Default value is <code>0.75</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stop_cond</code></td>
+<td>
+<p>Numeric. The iterative algorithm stops when <code class="reqn">abs(h(ii) - h(ii + 1)) / (abs(h(ii)) + 1) &lt; stop.cond</code> where <code class="reqn">h(ii)</code> is the value of the objective function at iteration <code class="reqn">ii</code>. We recommend to choose <code>stop.cond</code> at most equal to <code class="reqn">10^(- number of digits of h - 2)</code>, in order to ensure that when the algorithm stops, the increase in posterior probability is less than 1% of the current posterior probability. Default is <code>10^-8</code>. This threshold is good enough for most applications.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mode_reg_A</code></td>
+<td>
+<p>Binary. Indicates which regularization term is used for <code class="reqn">A_k</code>:
+</p>
+
+<ul>
+<li> <p><code>0</code>: This is the regularization term used in Ref. 1 and 2.  Please refer to Eq. (4) in the tutorial for the definition of the term. It approximately enforces the power-law form <code class="reqn">A_k = k^\alpha</code>. This is the default value. 
+</p>
+</li>
+<li> <p><code>1</code>: Unlike the default, this regularization term exactly enforces the functional form <code class="reqn">A_k = k^\alpha</code>. Please refer to Eq. (6) in the tutorial for the definition of the term. Its main drawback is it is significantly slower to converge, while its gain over the default one is marginal in most cases.  
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Other arguments to pass to the underlying algorithm.
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Outputs a <code>Full_PAFit_result</code> object, which is a list containing the following fields:
+</p>
+
+<ul>
+<li> <p><code>cv_data</code>: a <code>CV_Data</code> object which contains the cross-validation data. This is the testing data.
+</p>
+</li>
+<li> <p><code>cv_result</code>: a <code>CV_Result</code> object which contains the cross-validation result. Normally the user does not need to pay attention to this data.
+</p>
+</li>
+<li> <p><code>estimate_result</code>: this is a <code>PAFit_result</code> object which contains the estimated attachment function <code class="reqn">A_k</code>, the estimated fitnesses <code class="reqn">\eta_i</code> and their confidence intervals. In particular, the important fields are:      
+</p>
+
+<ul>
+<li> <p><code>ratio</code>: this is the selected value for the hyper-parameter <code class="reqn">r</code>.
+</p>
+</li>
+<li> <p><code>shape</code>: this is the selected value for the hyper-parameter <code class="reqn">s</code>.
+</p>
+</li>
+<li> <p><code>k</code> and <code>A</code>: a degree vector and the estimated PA function.
+</p>
+</li>
+<li> <p><code>var_A</code>: the estimated variance of <code class="reqn">A</code>.
+</p>
+</li>
+<li> <p><code>var_logA</code>: the estimated variance of <code class="reqn">log A</code>.
+</p>
+</li>
+<li> <p><code>upper_A</code>: the upper value of the interval of two standard deviations around <code class="reqn">A</code>.
+</p>
+</li>
+<li> <p><code>lower_A</code>: the lower value of the interval of two standard deviations around <code class="reqn">A</code>.
+</p>
+</li>
+<li> <p><code>center_k</code> and <code>theta</code>: when we perform binning, these are the centers of the bins and the estimated PA values for those bins. <code>theta</code> is similar to <code>A</code> but with duplicated values removed.
+</p>
+</li>
+<li> <p><code>var_bin</code>: the variance of <code>theta</code>. Same as <code>var_A</code> but with duplicated values removed.
+</p>
+</li>
+<li> <p><code>upper_bin</code>: the upper value of the interval of two standard deviations around <code>theta</code>. Same as <code>upper_A</code> but with duplicated values removed.
+</p>
+</li>
+<li> <p><code>lower_bin</code>: the lower value of the interval of two standard deviations around <code>theta</code>. Same as <code>lower_A</code> but with duplicated values removed.
+</p>
+</li>
+<li> <p><code>g</code>: the number of bins used.
+</p>
+</li>
+<li> <p><code>alpha</code> and <code>ci</code>: <code>alpha</code> is the estimated attachment exponent <code class="reqn">\alpha</code> (when assume <code class="reqn">A_k = k^\alpha</code>), while <code>ci</code> is the confidence interval.
+</p>
+</li>
+<li> <p><code>loglinear_fit</code>: this is the fitting result when we estimate <code class="reqn">\alpha</code>. 
+</p>
+</li>
+<li> <p><code>f</code>: the estimated node fitnesses.
+</p>
+</li>
+<li> <p><code>var_f</code>: the estimated variance of <code class="reqn">\eta_i</code>.
+</p>
+</li>
+<li> <p><code>upper_f</code>: the estimated upper value of the interval of two standard deviations around <code class="reqn">\eta_i</code>.
+</p>
+</li>
+<li> <p><code>lower_f</code>: the estimated lower value of the interval of two standard deviations around <code class="reqn">\eta_i</code>.
+</p>
+</li>
+<li> <p><code>objective_value</code>: values of the objective function over iterations in the final run with the full data.
+</p>
+</li>
+<li> <p><code>diverge_zero</code>: logical value indicates whether the algorithm diverged in the final run with the full data.
+</p>
+</li>
+</ul>
+</li>
+<li> <p><code>contribution</code>: a list containing an estimate of the contributions of preferential attachment and fitness mechanisms in the growth process of the network. The calculation adapts a quantification method proposed in Section 3 of Ref. 4, which is for preferential attachment and transitivity, to preferential attachment and fitness.
+</p>
+
+<ul>
+<li> <p><code>PA_contribution</code>: an array containing the contributions of preferential attachment at each time-step 
+</p>
+</li>
+<li> <p><code>fit_contribution</code>: an array containing the contributions of the fitness mechanism at each time-step 
+</p>
+</li>
+<li> <p><code>mean_PA_contrib</code>: the average contribution of preferential attachment through the whole growth process
+</p>
+</li>
+<li> <p><code>mean_fit_contrib</code>: the average contribution of the fitness mechanism through the whole growth process</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Thong Pham <a href="mailto:thongphamthe@gmail.com">thongphamthe@gmail.com</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>1. Pham, T., Sheridan, P. &amp; Shimodaira, H. (2015). PAFit: A Statistical Method for Measuring Preferential Attachment in Temporal Complex Networks. PLoS ONE 10(9): e0137796. (<a href="https://doi.org/10.1371/journal.pone.0137796">doi:10.1371/journal.pone.0137796</a>).
+</p>
+<p>2. Pham, T., Sheridan, P. &amp; Shimodaira, H. (2016). Joint Estimation of Preferential Attachment and Node Fitness in Growing Complex Networks. Scientific Reports 6, Article number: 32558. (<a href="https://doi.org/10.1038/srep32558">doi:10.1038/srep32558</a>).
+</p>
+<p>3. Pham, T., Sheridan, P. &amp; Shimodaira, H. (2020). PAFit: An R Package for the Non-Parametric Estimation of Preferential Attachment and Node Fitness in Temporal Complex Networks. Journal of Statistical Software 92 (3). (<a href="https://doi.org/10.18637/jss.v092.i03">doi:10.18637/jss.v092.i03</a>).
+</p>
+<p>4. Inoue, M., Pham, T. &amp; Shimodaira, H. (2020). Joint Estimation of Non-parametric Transitivity and Preferential Attachment Functions in Scientific Co-authorship Networks. Journal of Informetrics 14(3). (<a href="https://doi.org/10.1016/j.joi.2020.101042">doi:10.1016/j.joi.2020.101042</a>).
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See <code>get_statistics</code> for how to create summarized statistics needed in this function.
+</p>
+<p>See <code>Jeong</code>, <code>Newman</code> and <code>only_A_estimate</code> for functions to estimate the attachment function in isolation.
+</p>
+<p>See <code>only_F_estimate</code> for a function to estimate node fitnesses in isolation.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+  
+  library("PAFit")
+  #### Example 1: a linear preferential attachment kernel, i.e., A_k = k ############
+  set.seed(1)
+  # size of initial network = 100
+  # number of new nodes at each time-step = 100
+  # Ak = k; inverse variance of the distribution of node fitnesse = 5
+  net        &lt;- generate_BB(N        = 1000 , m             = 50 , 
+                            num_seed = 100  , multiple_node = 100,
+                            s        = 5)
+  net_stats  &lt;- get_statistics(net)
+  
+  # Joint estimation of attachment function Ak and node fitness
+  result     &lt;- joint_estimate(net, net_stats)
+  
+  summary(result)
+  
+  # plot the estimated attachment function
+  true_A     &lt;- pmax(result$estimate_result$center_k,1) # true function
+  plot(result , net_stats, max_A = max(true_A,result$estimate_result$theta))
+  lines(result$estimate_result$center_k, true_A, col = "red") # true line
+  legend("topleft" , legend = "True function" , col = "red" , lty = 1 , bty = "n")
+  
+  # plot the estimated node fitnesses and true node fitnesses
+  plot(result, net_stats, true = net$fitness, plot = "true_f")
+  
+  #############################################################################
+  #### Example 2: a non-log-linear preferential attachment kernel ############
+  set.seed(1)
+  # size of initial network = 100
+  # number of new nodes at each time-step = 100
+  # A_k = alpha* log (max(k,1))^beta + 1, with alpha = 2, and beta = 2
+  # inverse variance of the distribution of node fitnesse = 10
+  net        &lt;- generate_net(N       = 1000 , m             = 50 , 
+                            num_seed = 100  , multiple_node = 100,
+                            s        = 10   , mode = 3, alpha = 2, beta = 2)
+  net_stats  &lt;- get_statistics(net)
+  
+  # Joint estimation of attachment function Ak and node fitness
+  result     &lt;- joint_estimate(net, net_stats)
+  
+  summary(result)
+  
+  # plot the estimated attachment function
+  true_A     &lt;- 2 * log(pmax(result$estimate_result$center_k,1))^2 + 1 # true function
+  plot(result , net_stats, max_A = max(true_A,result$estimate_result$theta))
+  lines(result$estimate_result$center_k, true_A, col = "red") # true line
+  legend("topleft" , legend = "True function" , col = "red" , lty = 1 , bty = "n")
+  
+  # plot the estimated node fitnesses and true node fitnesses
+  plot(result, net_stats, true = net$fitness, plot = "true_f")
+  #############################################################################
+  #### Example 3: another non-log-linear preferential attachment kernel ############
+  set.seed(1)
+  # size of initial network = 100
+  # number of new nodes at each time-step = 100
+  # A_k = min(max(k,1),sat_at)^alpha, with alpha = 1, and sat_at = 100
+  # inverse variance of the distribution of node fitnesse = 10
+  net        &lt;- generate_net(N       = 1000 , m             = 50 , 
+                            num_seed = 100  , multiple_node = 100,
+                            s        = 10   , mode = 2, alpha = 1, sat_at = 100)
+  net_stats  &lt;- get_statistics(net)
+  
+  # Joint estimation of attachment function Ak and node fitness
+  result     &lt;- joint_estimate(net, net_stats)
+  
+  summary(result)
+  
+  # plot the estimated attachment function
+  true_A     &lt;- pmin(pmax(result$estimate_result$center_k,1),100)^1 # true function
+  plot(result , net_stats, max_A = max(true_A,result$estimate_result$theta))
+  lines(result$estimate_result$center_k, true_A, col = "red") # true line
+  legend("topleft" , legend = "True function" , col = "red" , lty = 1 , bty = "n")
+  
+  # plot the estimated node fitnesses and true node fitnesses
+  plot(result, net_stats, true = net$fitness, plot = "true_f")
+  
+## End(Not run)
+</code></pre>
+
+
+</div>

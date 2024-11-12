@@ -1,0 +1,218 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>summary.penPHcure</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Summary method for penPHcure.object</h2>
+
+<h3>Description</h3>
+
+<p>Produces a summary of a fitted penalized PH cure model, after selection of the tuning parameters, based on AIC or BIC criteria.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'penPHcure'
+summary(object,crit.type=c("BIC","AIC"),...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>an object of class <code>penPHcure.object</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>crit.type</code></td>
+<td>
+<p>a character string indicating the criterion used to select the tuning parameters, either <code>"AIC"</code> or <code>"BIC"</code>. By default <code>crit.type = "BIC"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>ellipsis to pass extra arguments.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An object of class <code>summary.penPHcure</code>, a list including the following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>N</code></td>
+<td>
+<p>the sample size (number of individuals).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>censoring</code></td>
+<td>
+<p>the proportion of censored individuals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>the number of unique failure times.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>isTies</code></td>
+<td>
+<p>logical value: <code>TRUE</code> in case of tied event times.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pen.type</code></td>
+<td>
+<p>a character string indicating the type of penalty used, either <code>"SCAD"</code> or <code>"LASSO"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>crit.type</code></td>
+<td>
+<p>a character string indicating the criterion used to select tuning parameters, either <code>"AIC"</code> or <code>"BIC"</code>. By default <code>crit.type = "BIC"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tune_params</code></td>
+<td>
+<p>a list with elements named <code>CURE</code> and <code>SURV</code> containing the selected tuning parameters, which minimize the AIC/BIC criterion.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>crit</code></td>
+<td>
+<p>value of the minimized AIC/BIC criterion.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CURE</code></td>
+<td>
+<p>a matrix where in the first column the estimated regression coefficients in the cure (incidence) component are provided. If the argument <code>inference</code> (in the <code>penPHcure</code> function) was set equal to <code>TRUE</code>, two additional columns for the confidence intervals are provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SURV</code></td>
+<td>
+<p>a matrix where in the first column the estimated regression coefficients in the survival (latency) component are provided. If the argument <code>inference</code> (in the <code>penPHcure</code> function) was set equal to <code>TRUE</code>, two additional columns for the confidence intervals are provided.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Generate some data (for more details type ?penPHcure.simulate in your console)
+set.seed(12) # For reproducibility
+data &lt;- penPHcure.simulate(N=250)
+
+### Tune penalized cure model with SCAD penalties
+# First define the grid of possible values for the tuning parameters.
+pen.tuneGrid &lt;- list(CURE = list(lambda = c(0.01,0.03,0.05,0.07,0.09),
+                                 a = 3.7),
+                     SURV = list(lambda = c(0.01,0.03,0.05,0.07,0.09),
+                                 a = 3.7))
+# Tune the penalty parameters.
+tuneSCAD &lt;- penPHcure(Surv(time = tstart,time2 = tstop,
+                           event = status) ~ z.1 + z.2 + z.3 + z.4,
+                      cureform = ~ x.1 + x.2 + x.3 + x.4,
+                      data = data,pen.type = "SCAD",
+                      pen.tuneGrid = pen.tuneGrid,
+                      print.details = FALSE)
+# Use the summary method to see the results
+summary(tuneSCAD)
+# 
+# ------------------------------------------------------
+# +++   PH cure model with time-varying covariates   +++
+# +++             [ Variable selection ]             +++
+# ------------------------------------------------------
+# Sample size:  250
+# Censoring proportion:  0.5
+# Number of unique event times: 125
+# Tied failure times:  FALSE
+# Penalty type:  SCAD
+# Selection criterion:  BIC
+# 
+# ------------------------------------------------------
+# +++               Tuning parameters                +++
+# ------------------------------------------------------
+#  Cure (incidence) --- lambda:  0.07 
+#                            a:  3.7 
+# 
+#  Survival (latency) - lambda:  0.07 
+#                            a:  3.7 
+# 
+#  BIC =  -118.9359 
+# 
+# ------------------------------------------------------
+# +++                Cure (incidence)                +++
+# +++     [ Coefficients of selected covariates ]    +++
+# ------------------------------------------------------
+#              Estimate
+# (Intercept)  0.872374
+# x.1         -0.958260
+# x.3          0.685916
+# 
+# ------------------------------------------------------
+# +++              Survival (latency)                +++
+# +++     [ Coefficients of selected covariates ]    +++
+# ------------------------------------------------------
+#      Estimate
+# z.1  0.991754
+# z.3 -1.008180
+
+# By default, the summary method for the penPHcure.object returns the selected 
+#  variables based on the BIC criterion. For AIC, the user can set the 
+#  argument crit.type equal to "AIC". 
+summary(tuneSCAD,crit.type = "AIC")
+# 
+# ------------------------------------------------------
+# +++   PH cure model with time-varying covariates   +++
+# +++             [ Variable selection ]             +++
+# ------------------------------------------------------
+# Sample size:  250
+# Censoring proportion:  0.5
+# Number of unique event times: 125
+# Tied failure times:  FALSE
+# Penalty type:  SCAD
+# Selection criterion:  AIC
+# 
+# ------------------------------------------------------
+# +++               Tuning parameters                +++
+# ------------------------------------------------------
+#  Cure (incidence) --- lambda:  0.07 
+#                            a:  3.7 
+# 
+#  Survival (latency) - lambda:  0.07 
+#                            a:  3.7 
+# 
+#  AIC =  -136.5432 
+# 
+# ------------------------------------------------------
+# +++                Cure (incidence)                +++
+# +++     [ Coefficients of selected covariates ]    +++
+# ------------------------------------------------------
+#              Estimate
+# (Intercept)  0.872374
+# x.1         -0.958260
+# x.3          0.685916
+# 
+# ------------------------------------------------------
+# +++              Survival (latency)                +++
+# +++     [ Coefficients of selected covariates ]    +++
+# ------------------------------------------------------
+#      Estimate
+# z.1  0.991754
+# z.3 -1.008180
+
+</code></pre>
+
+
+</div>

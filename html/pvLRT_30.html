@@ -1,0 +1,163 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>r_contin_table_zip</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate random contingency tables for adverse event
+(across rows) and drug (across columns) combinations
+given row and column marginal totals, embedded signals,
+and possibly with zero inflation</h2>
+
+<h3>Description</h3>
+
+<p>Generate random contingency tables for adverse event
+(across rows) and drug (across columns) combinations
+given row and column marginal totals, embedded signals,
+and possibly with zero inflation
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">r_contin_table_zip(
+  n = 1,
+  row_marginals,
+  col_marginals,
+  signal_mat = matrix(1, length(row_marginals), length(col_marginals)),
+  omega_vec = rep(0, length(col_marginals)),
+  no_zi_idx = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>number of random matrices to generate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>row_marginals, col_marginals</code></td>
+<td>
+<p>(possibly named) vector of row and column
+marginal totals. Must add up to the same total. If named, the names are passed
+on to the randomly generated matrix/matrices.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>signal_mat</code></td>
+<td>
+<p>numeric matrix of dimension
+length(row_marginals) x length(col_marginals). The (i, j)-th entry of
+signal_mat determines the signal strength of the i-th adverse event and
+j-th drug pair. The default is 1 for each pair, which means no signal for the pair.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>omega_vec</code></td>
+<td>
+<p>vector of zero inflation probabilities. Must be of the same length
+as col_marginals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>no_zi_idx</code></td>
+<td>
+<p>List of pairs (i, j) where zero inflation is not allowed. To
+specify the entirety i-th row (or j-th column) use c(i, 0) (or c(0, j)). See examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments. Currently unused.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list of length <code>n</code>, with each entry being a
+<code>length(row_marginal)</code> by <code>length(col_marginal)</code> matrix.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+set.seed(42)
+
+# first load the 46 statin data
+data(statin46)
+# zero inflation probabilities
+omega_tru &lt;- c(rep(0.15, ncol(statin46) - 1), 0)
+
+# signal matrix
+signal_mat &lt;- matrix(1, nrow(statin46), ncol(statin46))
+
+# "positive" signal at the (1, 1) entry
+# the first column
+signal_mat[1, 1] &lt;- 10
+
+# Now simulate data with the same row/column marginals
+# as in statin46, with embedded signals as specified in
+# the above signal_mat
+
+# no zero inflation at (1, 1)
+# (where signal is elicited) and the last row ("Other PT")
+# and at the last column ("Other drugs") of the simulated matrix
+
+sim_statin &lt;- r_contin_table_zip(
+  n = 1,
+  row_marginals = rowSums(statin46),
+  col_marginals = colSums(statin46),
+  signal_mat = signal_mat,
+  omega_vec = omega_tru,
+  no_zi_idx = list(
+    c(1, 1),
+    c(nrow(statin46), 0), # the entire last row
+    c(0, ncol(statin46)) # the entire last column
+  )
+)[[1]]
+
+# now analyze the above simulated data
+
+# using a pseudo LRT with a ZIP model
+test1 &lt;- pvlrt(
+  contin_table = sim_statin,
+  nsim = 500
+  # set to 500 for demonstration purposes only,
+  # we recommend the default 10000 or bigger
+)
+extract_zi_probability(test1)
+extract_significant_pairs(test1)
+
+# LRT with a poisson model
+test2 &lt;- lrt_poisson(
+  contin_table = sim_statin,
+  nsim = 500
+  # set to 500 for demonstration purposes only,
+  # we recommend the default 10000 or bigger
+)
+extract_zi_probability(test2)
+extract_significant_pairs(test2)
+
+# LRT with true omega supplied
+test3 &lt;- pvlrt(
+  contin_table = sim_statin,
+  zi_prob = omega_tru,
+  nsim = 500
+  # set to 500 for demonstration purposes only,
+  # we recommend the default 10000 or bigger
+)
+extract_zi_probability(test3)
+extract_significant_pairs(test3)
+
+</code></pre>
+
+
+</div>

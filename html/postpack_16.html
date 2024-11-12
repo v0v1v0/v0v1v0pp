@@ -1,0 +1,131 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>post_convert</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Convert MCMC samples to mcmc.list format</h2>
+
+<h3>Description</h3>
+
+<p>Wrapper around several ways of converting objects to <code>mcmc.list</code> format,
+automated based on the input object class.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">post_convert(obj)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>obj</code></td>
+<td>
+<p>An object storing posterior samples from an MCMC algorithm.
+Accepted classes are <code>list</code>, <code>matrix</code>, <code>stanfit</code>, <code>bugs</code>, <code>rjags</code>.</p>
+</td>
+</tr></table>
+<h3>Details</h3>
+
+<p>Accepted classes are produced by several packages, including but probably not limited to:
+</p>
+
+<ul>
+<li> <p><code>stanfit</code> objects are created by <code>rstan::stan()</code>, which also provides <code>rstan::As.mcmc.list()</code>. Rather than requiring users to have 'rstan' installed to use 'postpack', <code>post_convert()</code> will instruct users to use this function if supplied a <code>stanfit</code> object.
+</p>
+</li>
+<li> <p><code>bugs</code> objects are created by <code>R2WinBUGS::bugs()</code> and <code>R2OpenBUGS::bugs()</code>.
+</p>
+</li>
+<li> <p><code>rjags</code> objects are created by <code>R2jags::jags()</code>.
+</p>
+</li>
+<li> <p><code>list</code> objects are created by <code>nimble::runMCMC()</code>, 'MCMCpack' functions, or custom MCMC algorithms.
+</p>
+</li>
+<li> <p><code>matrix</code> objects are created by <code>post_subset()</code> and is often the format of posterior quantities derived from monitored nodes.
+</p>
+</li>
+<li> <p><code>mcmc.list</code> objects are created by <code>rjags::coda.samples()</code>, <code>jagsUI::jags.basic()</code>, and <code>jagsUI::jags()</code><code style="white-space: pre;">⁠$samples⁠</code>. If a <code>mcmc.list</code> object is passed to <code>obj</code>, an error will be returned telling the user this function is not necessary.
+</p>
+</li>
+</ul>
+<p>If you find that a critical class conversion is missing, please submit an <a href="https://github.com/bstaton1/postpack/issues">issue</a> requesting its addition with a minimum working example of how it can be created.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The same information as passed in the <code>obj</code> argument, but formatted as <code>mcmc.list</code> class.
+</p>
+
+
+<h3>Note</h3>
+
+
+<ul>
+<li>
+<p> If samples are stored in a <code>list</code> object, the individual elements must be <code>matrix</code> or <code>mcmc</code> class, storing the samples (rows) across parameters (columns, with names) for each chain (<code>list</code> elements). If <code>list</code> elements are in <code>matrix</code> format, they will be coerced to <code>mcmc</code> format, and thinning, start, and end intervals may be inaccurate.
+</p>
+</li>
+<li>
+<p> If samples are stored in a <code>matrix</code> object, rows should store samples and columns should store nodes. Multiple chains should be combined using <code>base::rbind()</code>. Two additional columns <strong>must</strong> be present: <code>"CHAIN"</code> and <code>"ITER"</code>, which denote the MCMC chain and iteration numbers, respectively.
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>coda::as.mcmc.list()</code>, <code>coda::as.mcmc()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## EXAMPLE 1
+# load example mcmc.list
+data(cjs)
+
+# take a subset from cjs as a matrix, retain chain and iter ids
+cjs_sub = post_subset(cjs, "^B", matrix = TRUE, chains = TRUE, iters = TRUE)
+
+# convert back to mcmc.list
+class(post_convert(cjs_sub))
+
+## EXAMPLE 2: create mcmc.list from hypothetical MCMC samples; chains are list elements
+# create hypothetical samples; can't use postpack on this - not an mcmc.list
+samps = lapply(1:3, function(i) {
+  m = matrix(rnorm(100), 20, 5)
+  colnames(m) = paste0("param", 1:5)
+  m
+})
+
+# convert
+samps_new = post_convert(samps)
+
+# can use postpack now
+post_summ(samps_new, "param")
+
+## EXAMPLE 3: create mcmc.list from hypothetical MCMC samples; chains rbind-ed matrices
+# create samples
+f = function() {
+  m = matrix(rnorm(100), 20, 5)
+  colnames(m) = paste0("param", 1:5)
+  m
+}
+samps = rbind(f(), f(), f())
+
+# assign chain and iter IDs to each sample
+samps = cbind(CHAIN = rep(1:3, each = 20), ITER = rep(1:20, 3), samps)
+
+# convert
+samps_new = post_convert(samps)
+
+# can use postpack now
+post_summ(samps_new, "param")
+</code></pre>
+
+
+</div>

@@ -1,0 +1,281 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>add_neighbor_constraints</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add neighbor constraints</h2>
+
+<h3>Description</h3>
+
+<p>Add constraints to a conservation planning problem to ensure
+that all selected planning units in the solution have at least a certain
+number of neighbors that are also selected in the solution.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S4 method for signature 'ConservationProblem,ANY,ANY,ANY,ANY'
+add_neighbor_constraints(x, k, clamp, zones, data)
+
+## S4 method for signature 'ConservationProblem,ANY,ANY,ANY,data.frame'
+add_neighbor_constraints(x, k, clamp, zones, data)
+
+## S4 method for signature 'ConservationProblem,ANY,ANY,ANY,matrix'
+add_neighbor_constraints(x, k, clamp, zones, data)
+
+## S4 method for signature 'ConservationProblem,ANY,ANY,ANY,array'
+add_neighbor_constraints(x, k, clamp, zones, data)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>problem()</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p><code>integer</code> minimum number of neighbors for selected
+planning units in the solution. For problems with multiple zones,
+the argument to <code>k</code> must have an element for each zone.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clamp</code></td>
+<td>
+<p><code>logical</code> should the minimum number of neighbors
+for selected planning units in the solution be clamped to feasibility?
+For example, if a planning unit has two neighbors,
+<code>k = 3</code>, and <code>clamp = FALSE</code>, then the planning unit could not
+ever be selected in the solution. However, if <code>clamp = TRUE</code>,
+then the planning unit could potentially be selected in the solution if
+both of its two neighbors were also selected.
+Defaults to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zones</code></td>
+<td>
+<p><code>matrix</code> or <code>Matrix</code> object describing the
+neighborhood scheme for different zones. Each row and column corresponds
+to a different zone in the argument to <code>x</code>, and cell values must
+contain binary <code>numeric</code> values (i.e., one or zero) that indicate
+if neighboring planning units (as specified in the argument to
+<code>data</code>) should be considered neighbors if they are allocated to
+different zones. The cell values along the diagonal
+of the matrix indicate if planning units that are allocated to the same
+zone should be considered neighbors or not. The default argument to
+<code>zones</code> is an identity matrix (i.e., a matrix with ones along the
+matrix diagonal and zeros elsewhere), so that planning units are
+only considered neighbors if they are both allocated to the same zone.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p><code>NULL</code>, <code>matrix</code>, <code>Matrix</code>, <code>data.frame</code>, or
+<code>array</code> object showing which planning units are neighbors with each
+other. The argument defaults to <code>NULL</code> which means that the
+neighborhood data is calculated automatically using the
+<code>adjacency_matrix()</code> function.
+See the Data format section for more information.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function uses neighborhood data to identify solutions that
+surround planning units with a minimum number of neighbors. It
+was inspired by the mathematical formulations detailed in
+Billionnet (2013) and Beyer <em>et al.</em> (2016).
+</p>
+
+
+<h3>Value</h3>
+
+<p>An updated <code>problem()</code> object with the constraints added to it.
+</p>
+
+
+<h3>Data format</h3>
+
+<p>The argument to <code>data</code> can be specified using the following formats:
+</p>
+
+<dl>
+<dt>
+<code>data</code> as a <code>NULL</code> value</dt>
+<dd>
+<p>neighborhood data should be calculated
+automatically
+using the <code>adjacency_matrix()</code> function. This is the default
+argument. Note that the neighborhood data must be manually defined
+using one of the other formats below when the planning unit data
+in the argument to <code>x</code> is not spatially referenced (e.g.,
+in <code>data.frame</code> or <code>numeric</code> format).</p>
+</dd>
+<dt>
+<code>data</code> as a <code>matrix</code>/<code>Matrix</code> object</dt>
+<dd>
+<p>where rows and columns represent
+different planning units and the value of each cell indicates if the
+two planning units are neighbors or not. Cell values should be binary
+<code>numeric</code> values (i.e., one or zero). Cells that occur along the
+matrix diagonal have no effect on the solution at all because each
+planning unit cannot be a neighbor with itself.</p>
+</dd>
+<dt>
+<code>data</code> as a <code>data.frame</code> object</dt>
+<dd>
+<p>containing columns that are named
+<code>"id1"</code>, <code>"id2"</code>, and <code>"boundary"</code>. Here, each row
+denotes the connectivity between two planning units following the
+<em>Marxan</em> format. The <code>"boundary"</code> column should contain
+binary <code>numeric</code> values that indicate if the two planning units
+specified in the <code>"id1"</code> and <code>"id2"</code> columns are neighbors
+or not. This data can be used to describe symmetric or
+asymmetric relationships between planning units. By default,
+input data is assumed to be symmetric unless asymmetric data is
+also included (e.g., if data is present for planning units 2 and 3, then
+the same amount of connectivity is expected for planning units 3 and 2,
+unless connectivity data is also provided for planning units 3 and 2).
+If the argument to <code>x</code> contains multiple zones, then the
+<code>"zone1"</code> and <code>"zone2"</code> columns can optionally be provided to manually
+specify if the neighborhood data pertain to specific zones. The
+<code>"zone1"</code> and <code>"zone2"</code> columns should contain the <code>character</code>
+names of the zones. If the columns <code>"zone1"</code> and <code>"zone2"</code>
+are present, then the argument to <code>zones</code> must be <code>NULL</code>.</p>
+</dd>
+<dt>
+<code>data</code> as an <code>array</code> object</dt>
+<dd>
+<p>containing four-dimensions where binary
+<code>numeric</code> values indicate if planning unit should be treated
+as being neighbors with every other planning unit when they
+are allocated to every combination of management zone. The first two
+dimensions (i.e., rows and columns) correspond to the planning units,
+and second two dimensions correspond to the management zones. For
+example, if the argument to <code>data</code> had a value of 1 at the index
+<code>data[1, 2, 3, 4]</code> this would indicate that planning unit 1 and
+planning unit 2 should be treated as neighbors when they are
+allocated to zones 3 and 4 respectively.</p>
+</dd>
+</dl>
+<h3>References</h3>
+
+<p>Beyer HL, Dujardin Y, Watts ME, and Possingham HP (2016) Solving
+conservation planning problems with integer linear programming.
+<em>Ecological Modelling</em>, 228: 14–22.
+</p>
+<p>Billionnet A (2013) Mathematical optimization ideas for biodiversity
+conservation. <em>European Journal of Operational Research</em>, 231:
+514–534.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other constraints: 
+<code>add_contiguity_constraints()</code>,
+<code>add_feature_contiguity_constraints()</code>,
+<code>add_linear_constraints()</code>,
+<code>add_locked_in_constraints()</code>,
+<code>add_locked_out_constraints()</code>,
+<code>add_mandatory_allocation_constraints()</code>,
+<code>add_manual_bounded_constraints()</code>,
+<code>add_manual_locked_constraints()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# load data
+sim_pu_raster &lt;- get_sim_pu_raster()
+sim_features &lt;- get_sim_features()
+sim_zones_pu_raster &lt;- get_sim_zones_pu_raster()
+sim_zones_features &lt;- get_sim_zones_features()
+
+# create minimal problem
+p1 &lt;-
+  problem(sim_pu_raster, sim_features) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(0.1) %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# create problem with constraints that require 1 neighbor
+# and neighbors are defined using a rook-style neighborhood
+p2 &lt;- p1 %&gt;% add_neighbor_constraints(1)
+
+# create problem with constraints that require 2 neighbor
+# and neighbors are defined using a rook-style neighborhood
+p3 &lt;- p1 %&gt;% add_neighbor_constraints(2)
+
+# create problem with constraints that require 3 neighbor
+# and neighbors are defined using a queen-style neighborhood
+p4 &lt;-
+  p1 %&gt;%
+  add_neighbor_constraints(
+    3, data = adjacency_matrix(sim_pu_raster, directions = 8)
+  )
+
+# solve problems
+s1 &lt;- terra::rast(list(solve(p1), solve(p2), solve(p3), solve(p4)))
+names(s1) &lt;- c("basic solution", "1 neighbor", "2 neighbors", "3 neighbors")
+
+# plot solutions
+plot(s1, axes = FALSE)
+
+# create minimal problem with multiple zones
+p5 &lt;-
+  problem(sim_zones_pu_raster, sim_zones_features) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(matrix(0.1, ncol = 3, nrow = 5)) %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# create problem where selected planning units require at least 2 neighbors
+# for each zone and planning units are only considered neighbors if they
+# are allocated to the same zone
+z6 &lt;- diag(3)
+print(z6)
+p6 &lt;- p5 %&gt;% add_neighbor_constraints(rep(2, 3), zones = z6)
+
+# create problem where the planning units in zone 1 don't explicitly require
+# any neighbors, planning units in zone 2 require at least 1 neighbors, and
+# planning units in zone 3 require at least 2 neighbors. As before, planning
+# units are still only considered neighbors if they are allocated to the
+# same zone
+p7 &lt;- p5 %&gt;% add_neighbor_constraints(c(0, 1, 2), zones = z6)
+
+# create problem given the same constraints as outlined above, except
+# that when determining which selected planning units are neighbors,
+# planning units that are allocated to zone 1 and zone 2 can also treated
+# as being neighbors with each other
+z8 &lt;- diag(3)
+z8[1, 2] &lt;- 1
+z8[2, 1] &lt;- 1
+print(z8)
+p8 &lt;- p5 %&gt;% add_neighbor_constraints(c(0, 1, 2), zones = z8)
+
+# solve problems
+s2 &lt;- list(p5, p6, p7, p8)
+s2 &lt;- lapply(s2, solve)
+s2 &lt;- lapply(s2, category_layer)
+s2 &lt;- terra::rast(s2)
+names(s2) &lt;- c("basic problem", "p6", "p7", "p8")
+
+# plot solutions
+plot(s2, main = names(s2), axes = FALSE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,320 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>segmentByCBS</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Segment genomic signals using the CBS method</h2>
+
+<h3>Description</h3>
+
+<p>Segment genomic signals using the CBS method of the <span class="pkg">DNAcopy</span> package.
+This is a convenient low-level wrapper for the <code>DNAcopy::segment()</code>
+method.  It is intended to be applied to a sample at the time.
+For more details on the Circular Binary Segmentation (CBS) method
+see [1,2].
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## Default S3 method:
+segmentByCBS(y, chromosome=0L, x=NULL, index=seq_along(y), w=NULL, undo=0,
+  avg=c("mean", "median"), ..., joinSegments=TRUE, knownSegments=NULL, seed=NULL,
+  verbose=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>A <code>numeric</code> <code>vector</code> of J genomic signals to be segmented.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chromosome</code></td>
+<td>
+<p>Optional <code>numeric</code> <code>vector</code> of length J, specifying
+the chromosome of each loci.  If a scalar, it is expanded to
+a vector of length J.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Optional <code>numeric</code> <code>vector</code> of J genomic locations.
+If <code>NULL</code>, index locations <code>1:J</code> are used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index</code></td>
+<td>
+<p>An optional <code>integer</code> <code>vector</code> of length J specifying
+the genomewide indices of the loci.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+<p>Optional <code>numeric</code> <code>vector</code> in [0,1] of J weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>undo</code></td>
+<td>
+<p>A non-negative <code>numeric</code>.  If greater than zero, then
+arguments <code>undo.splits="sdundo"</code> and <code>undo.SD=undo</code>
+are passed to <code>DNAcopy::segment()</code>.
+In the special case when <code>undo</code> is +<code>Inf</code>, the segmentation
+result will not contain any changepoints (in addition to what
+is specified by argument <code>knownSegments</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>avg</code></td>
+<td>
+<p>A <code>character</code> string specifying how to calculating
+segment mean levels <em>after</em> change points have been
+identified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed to the <code>DNAcopy::segment()</code>
+segmentation function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>joinSegments</code></td>
+<td>
+<p>If <code>TRUE</code>, there are no gaps between neighboring
+segments.
+If <code>FALSE</code>, the boundaries of a segment are defined by the support
+that the loci in the segments provides, i.e. there exist a locus
+at each end point of each segment.  This also means that there
+is a gap between any neighboring segments, unless the change point
+is in the middle of multiple loci with the same position.
+The latter is what <code>DNAcopy::segment()</code> returns.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>knownSegments</code></td>
+<td>
+<p>Optional <code>data.frame</code> specifying
+<em>non-overlapping</em> known segments.  These segments must
+not share loci.  See <code>findLargeGaps</code>() and <code>gapsToSegments</code>().</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>An (optional) <code>integer</code> specifying the random seed to be
+set before calling the segmentation method.  The random seed is
+set to its original state when exiting.  If <code>NULL</code>, it is not set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>See <code>Verbose</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Internally <code>segment</code> of <span class="pkg">DNAcopy</span> is used to
+segment the signals.
+This segmentation method support weighted segmentation.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a <code>CBS</code> object.
+</p>
+
+
+<h3>Reproducibility</h3>
+
+<p>The <code>DNAcopy::segment()</code> implementation of CBS uses approximation
+through random sampling for some estimates.  Because of this,
+repeated calls using the same signals may result in slightly
+different results, unless the random seed is set/fixed.
+</p>
+
+
+<h3>Missing and non-finite values</h3>
+
+<p>Signals may contain missing values (<code>NA</code> or <code>NaN</code>), but not
+infinite values (+/-<code>Inf</code>).  Loci with missing-value signals
+are preserved and keep in the result.
+</p>
+<p>Likewise, genomic positions may contain missing values.
+However, if they do, such loci are silently excluded before
+performing the segmentation, and are not kept in the results.
+The mapping between the input locus-level data and ditto of
+the result can be inferred from the <code>index</code> column of
+the locus-level data of the result.
+</p>
+<p>None of the input data may have infinite values,
+i.e. -<code>Inf</code> or +<code>Inf</code>. If so, an informative error is thrown.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Henrik Bengtsson</p>
+
+
+<h3>References</h3>
+
+<p>[1] A.B. Olshen, E.S. Venkatraman (aka Venkatraman E. Seshan), R. Lucito and M. Wigler, <em>Circular binary segmentation for the analysis of array-based DNA copy number data</em>, Biostatistics, 2004
+<br>
+[2] E.S. Venkatraman and A.B. Olshen, <em>A faster circular binary segmentation algorithm for the analysis of array CGH data</em>, Bioinformatics, 2007
+<br></p>
+
+
+<h3>See Also</h3>
+
+<p>To segment allele-specific tumor copy-number signals from a tumor
+<em>with</em> a matched normal, see <code>segmentByPairedPSCBS</code>().
+For the same <em>without</em> a matched normal,
+see <code>segmentByNonPairedPSCBS</code>().
+</p>
+<p>It is also possible to prune change points after segmentation (with
+identical results) using
+<code>pruneBySdUndo()</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"> 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Simulating copy-number data
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+set.seed(0xBEEF)
+
+# Number of loci
+J &lt;- 1000
+
+mu &lt;- double(J)
+mu[200:300] &lt;- mu[200:300] + 1
+mu[350:400] &lt;- NA # centromere
+mu[650:800] &lt;- mu[650:800] - 1
+eps &lt;- rnorm(J, sd=1/2)
+y &lt;- mu + eps
+x &lt;- sort(runif(length(y), max=length(y))) * 1e5
+w &lt;- runif(J)
+w[650:800] &lt;- 0.001
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Segmentation
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fit &lt;- segmentByCBS(y, x=x)
+print(fit)
+plotTracks(fit)
+
+
+     
+xlab &lt;- "Position (Mb)"
+ylim &lt;- c(-3,3)
+xMb &lt;- x/1e6
+plot(xMb,y, pch=20, col="#aaaaaa", xlab=xlab, ylim=ylim)
+drawLevels(fit, col="red", lwd=2, xScale=1e-6)
+
+ 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# TESTS
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fit &lt;- segmentByCBS(y, x=x, seed=0xBEEF)
+print(fit)
+##   id chromosome       start      end nbrOfLoci    mean
+## 1  y          0    55167.82 20774251       201  0.0164
+## 2  y          0 20774250.85 29320105        99  1.0474
+## 3  y          0 29320104.86 65874675       349 -0.0227
+## 4  y          0 65874675.06 81348129       151 -1.0813
+## 5  y          0 81348129.20 99910827       200 -0.0612
+
+
+# Test #1: Reverse the ordering and segment
+fitR &lt;- segmentByCBS(rev(y), x=rev(x), seed=0xBEEF)
+# Sanity check
+stopifnot(all.equal(getSegments(fitR), getSegments(fit)))
+# Sanity check
+stopifnot(all.equal(rev(getLocusData(fitR)$index), getLocusData(fit)$index))
+
+# Test #2: Reverse, but preserve ordering of 'data' object
+fitRP &lt;- segmentByCBS(rev(y), x=rev(x), preserveOrder=TRUE)
+stopifnot(all.equal(getSegments(fitRP), getSegments(fit)))
+
+
+# (Test #3: Change points inbetween data points at the same locus)
+x[650:654] &lt;- x[649]
+fitC &lt;- segmentByCBS(rev(y), x=rev(x), preserveOrder=TRUE, seed=0xBEEF)
+
+# Test #4: Allow for some missing values in signals
+y[450] &lt;- NA
+fitD &lt;- segmentByCBS(y, x=x, seed=0xBEEF)
+
+
+# Test #5: Allow for some missing genomic annotations
+x[495] &lt;- NA
+fitE &lt;- segmentByCBS(y, x=x, seed=0xBEEF)
+
+
+# Test #6: Undo all change points found
+fitF &lt;- segmentByCBS(y, x=x, undo=Inf, seed=0xBEEF)
+print(fitF)
+stopifnot(nbrOfSegments(fitF) == 1L)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# MISC.
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Emulate a centromere
+x[650:699] &lt;- NA
+fit &lt;- segmentByCBS(y, x=x, seed=0xBEEF)
+xMb &lt;- x/1e6
+plot(xMb,y, pch=20, col="#aaaaaa", xlab=xlab, ylim=ylim)
+drawLevels(fit, col="red", lwd=2, xScale=1e-6)
+
+fitC &lt;- segmentByCBS(y, x=x, joinSegments=FALSE, seed=0xBEEF)
+drawLevels(fitC, col="blue", lwd=2, xScale=1e-6)
+
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Multiple chromosomes
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Appending CBS results
+fit1 &lt;- segmentByCBS(y, chromosome=1, x=x)
+fit2 &lt;- segmentByCBS(y, chromosome=2, x=x)
+fit &lt;- c(fit1, fit2)
+print(fit)
+plotTracks(fit, subset=NULL, lwd=2, Clim=c(-3,3))
+
+
+# Segmenting multiple chromosomes at once
+chromosomeWG &lt;- rep(1:2, each=J)
+xWG &lt;- rep(x, times=2)
+yWG &lt;- rep(y, times=2)
+fitWG &lt;- segmentByCBS(yWG, chromosome=chromosomeWG, x=xWG)
+print(fitWG)
+plotTracks(fitWG, subset=NULL, lwd=2, Clim=c(-3,3))
+
+# Assert same results
+fit$data[,"index"] &lt;- getLocusData(fitWG)[,"index"] # Ignore 'index'
+stopifnot(all.equal(getLocusData(fitWG), getLocusData(fit)))
+stopifnot(all.equal(getSegments(fitWG), getSegments(fit)))
+
+</code></pre>
+
+
+</div>

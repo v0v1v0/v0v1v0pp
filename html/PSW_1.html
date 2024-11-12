@@ -1,0 +1,408 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>psw</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Propensity score weighting</h2>
+
+<h3>Description</h3>
+
+<p><code>psw</code> is the main function to perfrom propensity score weighting analysis for (1) visualization of the propensity score distribution in both treatment groups,
+(2) covariate balance diagnosis, (3) propensity score model specification test, (4) treatment effect estimation and inference, and (5) augmented estimation with outcome regression
+when applicable.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">psw(data, form.ps, weight, std.diff = FALSE, V.name = NULL,
+  mirror.hist = FALSE, add.weight = FALSE, nclass = 50, wt = FALSE,
+  out.var = NULL, family = "gaussian", aug = FALSE, form.outcome = NULL,
+  spec.test = F, trans.type = NULL, K = 4)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>data frame to be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>form.ps</code></td>
+<td>
+<p>propensity score model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weight</code></td>
+<td>
+<p>weighting method to be used. Available methods are <code>"ATE"</code>,  <code>"ATT"</code>, <code>"ATC"</code>, <code>"MW"</code>, <code>"OVERLAP"</code>, and <code>"TRAPEZOIDAL"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>std.diff</code></td>
+<td>
+<p>calculate standardized mean difference as a percentage, <code>std.diff=FALSE</code> by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>V.name</code></td>
+<td>
+<p>a vector of covariates on which standardized mean difference is computed or the specification test is performed. If <code>V.name = NULL</code>, the covariates in propensity score model are used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mirror.hist</code></td>
+<td>
+<p>mirror histogram showing the propensity score distributions in both treatment groups, <code>mirror.hist=FALSE</code> by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add.weight</code></td>
+<td>
+<p>add propensity score weights to the mirror histogram, <code>add.weight=FALSE</code> by default and it is not available for <code>weight="ATE"</code>,  <code>"ATT"</code>, or <code>"ATC"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nclass</code></td>
+<td>
+<p>number of breaks in the mirror histogram.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wt</code></td>
+<td>
+<p>estimate the weighted estimator, <code>wt=FALSE</code> by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>out.var</code></td>
+<td>
+<p>outcome variable, needed when <code>wt=TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>outcome family, either <code>"gaussian"</code> or <code>"binomial"</code>, <code>family="gaussian"</code> by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aug</code></td>
+<td>
+<p>estimate the augmented estimator, <code>aug=FALSE</code> by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>form.outcome</code></td>
+<td>
+<p>outcome model, needed when <code>aug=TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spec.test</code></td>
+<td>
+<p>propensity score model specification test, <code>spec.test=FALSE</code> by default.
+Note that specification test is not available for <code>weight="OVERLAP"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trans.type</code></td>
+<td>
+<p>a vector of the same length as <code>V.name</code> that specifies the transformation type for each element in <code>V.name</code>.
+Available transformations are <code>"identity"</code>, <code>"log"</code>, <code>"logit"</code>, <code>"sqrt"</code>, <code>"Fisher"</code>.
+Needed when <code>spec.test=T</code>, and no transformation is perfomred with <code>"identity"</code>. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>value of <code class="reqn">K</code> in <code class="reqn">\omega(e_i) = min(1, K min(e_i, 1-e_i)) </code> for <code>"TRAPEZOIDAL"</code> weight. The estimand is
+closer to the average treatment effect (ATE) with larger value of <code>K</code>. <code>K=4</code> by default.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In package <code>PSW</code>, treatment indicator (left handside of <code>form.ps</code>) should be dummy coded
+such that a value of 1 indicates the treated and a value of 0 indicates the control. All categorical covariates need to be dummy coded too.
+If the outcome belongs to the <code>"gaussian"</code> family, causal estimation is based on the mean differnce between treatment groups. If the
+outcome belongs to the <code>"binomial"</code> family, causal estimation is based on risk difference, risk ratio, odds ratio or log odds ratio.
+The Delta method is used for variance estimation when applicable.
+</p>
+<p>Let <code class="reqn">Z_i</code> be the treatment indicator of subject <code class="reqn">i</code>, <code class="reqn">e_i</code> be the corresponding propensity score. Then
+propensity score weight, <code class="reqn">W_i</code>, is defined as </p>
+<p style="text-align: center;"><code class="reqn">W_i = \frac{\omega(e_i)}{Z_i e_i + (1-Z_i)(1-e_i)},</code>
+</p>
+<p> where <code class="reqn">\omega(e_i)</code> is a function depending
+on <code class="reqn">e_i</code>. For <code>"ATE"</code>, <code class="reqn">\omega(e_i) = 1</code>, which leads to estimating the average treatment effect. For <code>"ATT"</code>, <code class="reqn">\omega(e_i) = e_i</code>,
+which leads to estimating average treatment effect for the treated. For <code>"ATC"</code>, <code class="reqn">\omega(e_i) = 1 - e_i</code>, which leads to estimating average treatment effect
+for the controls. For <code>"MW"</code>, <code class="reqn">\omega(e_i) = min( e_i, 1 - e_i )</code>. For <code>"OVERLAP"</code>, <code class="reqn">\omega(e_i) = e_i(1 - e_i)</code>. For <code>"TRAPEZOIDAL"</code>,
+<code class="reqn">\omega(e_i) = min( 1, K min( e_i, 1 - e_i ) )</code>. This type of weights are studied by Hirano, Imbens and Ridder (2003) and Li et al (2016).
+The <code class="reqn">\omega(e_i)</code> function is specified by the <code>weight</code> argument.
+</p>
+<p>The matching weight (<code>"MW"</code>) was proposed by Li and Greene (2013). The overlap weight (<code>"OVERLAP"</code>) was propsed by Li et al (2016).
+These methods down weight subjects with propensity score close to 0 or 1. and hence improve the stability of computation.
+</p>
+<p>A mirror histogram is produced to visualize the propensity score distributions in both treatment groups. In the mirror histogram, above the horizontal line
+is the histogram of the propensiy scores of the control group, below is that of the treated group. The vertical axis of the histogram is the frequency. When
+<code>add.weight=TRUE</code>, the height of the green bar added to mirror histogram is the summation of the weights of subjects within the corresponding propensity
+score stratum. For weighting methods of <code>"ATE"</code>, <code>"ATT"</code>, <code>"ATC"</code>, <code>add.weight</code> is not recommended for visualization because weights may
+be larger than 1.
+</p>
+<p>Standardized mean difference for a covariate is defiend as
+</p>
+<p style="text-align: center;"><code class="reqn"> \frac{100 (\bar{x}_1 - \bar{x}_0)}{\sqrt{\frac{s_1^2 + s_0^2}{2} } },</code>
+</p>
+
+<p>where <code class="reqn">\bar{x}_1</code> and <code class="reqn">s_1^2</code> are weighted mean and standard deviation for the treated group, and <code class="reqn"> \bar{x_0}</code> and <code class="reqn">s_0^2</code>
+are defined similarly for the control group. A plot showing the standardized mean difference before and after weighting adjustement will be generated to
+facilitate covariate balance diagnosis. It is sometimes recommended that the absolute values of standardized mean differences of all covariates should be less
+than <code>10%</code> in order to claim covariate balance.
+</p>
+<p>For the proensity score model specification test (Li and Greene, 2013), the quantity of interest is
+</p>
+<p style="text-align: center;"><code class="reqn"> \hat{B} = \boldsymbol{g} \left\{ \frac{ \sum_{i=1}^n W_i Z_i \boldsymbol{V}_i}{\sum_{i=1}^n W_i Z_i}\right\} - \boldsymbol{g} \left\{ \frac{ \sum_{i=1}^n W_i (1-Z_i) \boldsymbol{V}_i}{\sum_{i=1}^n W_i (1-Z_i)}\right\}, </code>
+</p>
+
+<p>where <code class="reqn">\boldsymbol{V}_i</code> is a vector of covariates whose balance are examined, and <code class="reqn">\boldsymbol{g}(.)</code> is a vector of monotone smooth transformations for the input.
+Transformation type is specified by argument <code>trans.type</code>, and available transformation types are <code>"identity"</code>, <code>"log"</code>, <code>"logit"</code>, <code>"sqrt"</code>, <code>"Fisher"</code>.
+These transformations are recommended to improve the finite sample performance of the specification test. Log transformation (<code>"log"</code>) and square root transformation (<code>"sqrt"</code>)
+are recommended for skewed data, logit transformation (<code>"logit"</code>) for binary data, and Fisher z-transformation (<code>"Fisher"</code>) for bounded data between <code class="reqn">(-1, 1)</code>.
+The current version of model specification test is not available for <code>weight="OVERLAP"</code> because it results in zero standardized difference.
+</p>
+<p>For estimation of mean difference (<code>"gaussian"</code> family) or risk difference (<code>"binomial"</code> family), the weighted estimator is
+</p>
+<p style="text-align: center;"><code class="reqn"> \hat{\Delta} = \frac{\sum_{i=1}^n W_i Z_i Y_i}{\sum_{i=1}^n W_i Z_i} - \frac{\sum_{i=1}^n W_i (1-Z_i) Y_i}{\sum_{i=1}^n W_i (1-Z_i)}, </code>
+</p>
+
+<p>and the augmented estimator is
+</p>
+<p style="text-align: center;"><code class="reqn">\hat{\Delta}_{aug} = \frac{ \sum_{i=1}^n \omega(e_i) \{ m_{1i} - m_{0i} \}}{ \sum_{i=1}^n \omega(e_i) } + \frac{ \sum_{i=1}^n W_i Z_i \{ Y_i - m_{1i} \}}{ \sum_{i=1}^n W_i Z_i } - \frac{ \sum_{i=1}^n W_i (1-Z_i) \{ Y_i - m_{0i} \}}{ \sum_{i=1}^n W_i (1-Z_i)},</code>
+</p>
+
+<p>where <code class="reqn">m_{1i} = E[Y_i | \boldsymbol{X_i}, Z_i=1]</code> is the conditional expectation of outcome when treated given covariates <code class="reqn">\boldsymbol{X}_i</code>,
+and <code class="reqn">m_{0i} = E[Y_i | \boldsymbol{X_i}, Z_i=0]</code> is the conditional expectation of outcome when control given covariates <code class="reqn">\boldsymbol{X}_i</code>.
+When the outcome belongs to the <code>"binomial"</code> family, the marginal probability is used to estimate risk ratio, odds ratio and log odds ratio.
+Sandwich variance estimation is used to adjust for the sampling variability in the estimated propensity scores (Li and Greene, 2013).
+</p>
+<p>The augmented estimator <code class="reqn"> \hat{\Delta}_{aug} </code> incorporates regression models for the outcome variable and has simliar properties as the doubly robust IPW estimator
+(Lunceford and Davidian, 2004), but with one difference. The estimand of IPW estimator does not depend on the propensity score because <code class="reqn">\omega(e_i) = 1</code>,
+while the estimands of other weighting methods depend on propensity score specification. Nonetheless, the proposed augmented estimator converges to the estimand
+defined by the corresponding propensity score model.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>psw</code> returns a list of elements depending on the supplied arguments.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>weight</code></td>
+<td>
+<p>weighting method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ps.model</code></td>
+<td>
+<p>object returned by fitting the propensity score model using <code>glm</code> with <code>"binomial"</code> family.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ps.hat</code></td>
+<td>
+<p>estimated propensity score.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>W</code></td>
+<td>
+<p>estimated propensity score weight.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>std.diff.before</code></td>
+<td>
+<p>A data frame of weighed mean, variance, and standardized mean difference for covariates in <code>V.name</code> (see below) by treatment groups before weighting.
+<code>V.name</code> is the row name and <code>"treated.mean"</code>, <code>"treated.var"</code>, <code>"control.mean"</code>, <code>"control.var"</code>, <code>"std.diff.pct"</code> are column names.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>std.diff.after</code></td>
+<td>
+<p>A data frame of weighed mean, variance, and standardized mean difference for covariates in <code>V.name</code> by treatment groups after weighting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est.wt</code></td>
+<td>
+<p>weighted estimator for mean difference when <code>wt=T</code> and <code>family = "gaussian"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>std.wt</code></td>
+<td>
+<p>standard error for <code>est.wt</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est.aug</code></td>
+<td>
+<p>augmented estimator for mean difference when <code>aug=T</code> and <code>family = "gaussian"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>std.aug</code></td>
+<td>
+<p>standard error for <code>est.aug</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est.risk.wt</code></td>
+<td>
+<p>weighted estimator for risk difference when <code>wt=T</code> and <code>family = "binomial"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>std.risk.wt</code></td>
+<td>
+<p>standard error for <code>est.risk.wt</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est.risk.aug</code></td>
+<td>
+<p>augmented estimator for risk difference when <code>aug=T</code> and <code>family = "binomial"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>std.risk.aug</code></td>
+<td>
+<p>standard error for <code>est.risk.aug</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est.rr.wt</code></td>
+<td>
+<p>weighted estimator for relative risk when <code>wt=T</code> and <code>family = "binomial"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>std.rr.wt</code></td>
+<td>
+<p>standard error for <code>est.rr.wt</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est.or.wt</code></td>
+<td>
+<p>weighted estimator for odds ratio when <code>wt=T</code> and <code>family = "binomial"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>std.or.wt</code></td>
+<td>
+<p>standard error for <code>est.or.wt</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est.lor.wt</code></td>
+<td>
+<p>weighted estimator for log odds ratio when <code>wt=T</code> and <code>family = "binomial"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>std.lor.wt</code></td>
+<td>
+<p>standard error for <code>est.lor.wt</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>V.name</code></td>
+<td>
+<p>covariates for balance diagnosis and specification test.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test.stat</code></td>
+<td>
+<p>test statistic for the specification test, which follows the <code class="reqn">\chi^2_{df}</code> distribution under the null, available when <code>spec.test=T</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>degree of freedom for the specification test, <code>df=rank(var.B.hat)</code>, available when <code>spec.test=T</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pvalue</code></td>
+<td>
+<p>pvalue of the specification test when <code>spec.test=T</code>.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Hirano K, Imbens GW and Ridder G. "Efficient estimation of average treatment effects using the estimated propensity score." Econometrica 2003; 71(4): 1161-1189.
+</p>
+<p>Li F, Morgan KL and Zaslavsky AM. "Balancing covariates via propensity score weighting." J Am Stat Assoc 2016; DOI:10.1080/01621459.2016.1260466.
+</p>
+<p>Li L and Greene T. "A weighting analogue to pair matching in propensity score analysis." Int J Biostat 2013; 9(2):215-234.
+</p>
+<p>Lunceford JK and Davidian M. Stratification and weighting via the propensity score in estimation of causal treatment effects: a comparative study. Stat Med. 2004; 23(19):2937-2960.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>psw.balance, psw.spec.test, psw.wt, psw.aug, psw.mirror.hist.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Load the test data set
+data(test_data);
+
+# Propensity score model
+form.ps &lt;- "Z ~ X1 + X2 + X3 + X4";
+
+# A vector of covariates
+V.name &lt;- c( "X1", "X2", "X3", "X4" );
+
+#1. Standardized differnce with "ATE"
+tmp1 &lt;- psw( data = test_data, form.ps = form.ps, weight = "ATE",
+std.diff = TRUE,  V.name = V.name );
+
+#2. Mirror histogram and add estimated matching weight to it
+tmp2 &lt;- psw( data = test_data, form.ps = form.ps, weight = "MW",
+mirror.hist = TRUE, add.weight = TRUE );
+
+#3. Estimate average treatment effect with "ATE"
+tmp3 &lt;- psw( data = test_data, form.ps = form.ps, weight = "ATE", wt = TRUE,
+out.var = "Y", family = "gaussian" );
+
+#4. Augmented estimator with "OVERLAP"
+# outcome model
+form.out &lt;- "Y ~ X1 + X2 + X3 + X4";
+tmp4 &lt;- psw( data = test_data, form.ps = form.ps, weight = "OVERLAP", aug = TRUE,
+form.outcome = form.out, family = "gaussian" );
+
+#5. Propensity score model specification test with "MW".
+# A vector of transformation types for covariates in V.name.
+trans.type &lt;- c( "identity", "identity", "logit", "logit" );
+tmp5 &lt;- psw( data = test_data, form.ps = form.ps, weight = "MW", spec.test = TRUE,
+V.name = V.name, trans.type = trans.type );
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,163 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>neighbors</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Price matrix characteristics</h2>
+
+<h3>Description</h3>
+
+<p>A price matrix or price tableau typically consists of prices for multiple products and regions.
+</p>
+<p>Function <code>is.connected()</code> checks if all regions in the price matrix are connected either directly or indirectly by some bridging region. <code>neighbors()</code> divides the regions into groups of connected regions. <code>connect()</code> is a simple wrapper of <code>neighbors()</code>, connecting some price data by relying on the group with the maximum number of observations. <code>comparisons()</code> derives the amount of bilateral (or pairwise) comparisons that could be computed for each of those groups of regions. <code>sparsity()</code> indicates the sparsity of the price matrix.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">is.connected(r, n)
+
+neighbors(r, n, simplify=FALSE)
+
+connect(r, n)
+
+comparisons(r, n, ngbs=NULL)
+
+sparsity(r, n, useable=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>r, n</code></td>
+<td>
+<p>A character vector or factor of regional entities <code>r</code> and products <code>n</code>, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simplify</code></td>
+<td>
+<p>A logical indicating whether the results should be simplified to a factor of group identifiers (<code>TRUE</code>) or not (<code>FALSE</code>). In the latter case the output will be a list of connected regions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ngbs</code></td>
+<td>
+<p>Either <code>NULL</code> or a list of connected regions derived from <code>neighbors()</code>. The latter case will allow for small performance gains in terms of processing times.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useable</code></td>
+<td>
+<p>A logical indicating whether only observations should be taken into account that could be used for interregional comparisons (<code>TRUE</code>) or not (<code>FALSE</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Following World Bank (2013, p. 98), a "price tableau is said to be connected if the price data are such that it is not possible to place the countries in two groups in which no item priced by any country in one group is priced by any other country in the second group".
+</p>
+
+
+<h3>Value</h3>
+
+<p>Function <code>is.connected()</code> prints a single logical indicating the connectedness while <code>connect()</code> returns a logical vector of the same length as the input vectors. <code>neighbors()</code> gives a list or vector of connected regions. <code>sparsity()</code> returns a single numeric showing the sparsity of the price matrix. <code>comparisons()</code> outputs a data.table with the following variables:
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+   <code>group_id</code> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> group identifier</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>group_members</code> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> regions belonging to that group</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>group_size</code> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> number of regions belonging to that group</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>total</code> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> number of (non-redundant) regional pairs that could be computed, following the formula <code class="reqn">R*(R-1)/2</code>
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>direct</code> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> number of regional pairs that traces back to direct connections, e.g. when two regions have priced the same product </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>indirect</code> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> number of regional pairs that traces back to indirect connections, e.g. when two regions are connected via a third bridging region</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>n_obs</code> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> number of observations containing interregional information</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Sebastian Weinand</p>
+
+
+<h3>References</h3>
+
+<p>World Bank (2013). <em>Measuring the Real Size of the World Economy: The Framework, Methodology, and Results of the International Comparison Program</em>. Washington, D.C.: World Bank.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">### connected price data:
+set.seed(123)
+dt1 &lt;- rdata(R=4, B=1, N=3)
+
+dt1[, sparsity(r = region, n = product)]
+dt1[, is.connected(r = region, n = product)] # true
+dt1[, neighbors(r = region, n = product, simplify = TRUE)]
+dt1[, comparisons(r = region, n = product)]
+
+### non-connected price data:
+dt2 &lt;- data.table::data.table(
+          "region" = c("a","a","h","b","a","a","c","c","d","e","e","f",NA),
+          "product" = c(1,1,"bla",1,2,3,3,4,4,5,6,6,7),
+          "price" = runif(13,5,6),
+          stringsAsFactors = TRUE)
+
+dt2[, is.connected(r = region, n = product)] # false
+with(dt2, neighbors(r=region, n=product))
+dt2[, comparisons(region, product)]
+# note that the region-product-combination [NA,7] is dropped
+# from the output, while [a,2] and [e,5] are not included in
+# the calculation of 'n_obs' as both are not useable in terms
+# of regional price comparisons. also sparsity() takes this
+# into account, if wanted:
+dt2[, sparsity(region, product, useable=TRUE)]
+dt2[, sparsity(region, product)]
+
+# connect the price data:
+dt2[connect(r=region, n=product),]
+</code></pre>
+
+
+</div>

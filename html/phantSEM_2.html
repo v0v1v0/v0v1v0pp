@@ -1,0 +1,105 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ghost_par_ests</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Provide parameter estimates from sensitivity analysis function</h2>
+
+<h3>Description</h3>
+
+<p><code>ghost_par_ests()</code> Selects certain parameter estimates from the output of the sensitivity analysis.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ghost_par_ests(step3, parameter_label, remove_NA = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>step3</code></td>
+<td>
+<p>The object returned from SA_step3.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parameter_label</code></td>
+<td>
+<p>The label used for the parameter in the lavaan code.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>remove_NA</code></td>
+<td>
+<p>Remove rows for combinations of phantom variable parameters that resulted in inadmissable solutions in lavaan.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A dataframe of the parameter estimates from the lavaan model.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># example code
+
+covmatrix &lt;- matrix(c(
+  0.25, 0.95, 0.43,
+  0.95, 8.87, 2.66,
+  0.43, 2.66, 10.86
+), nrow = 3, byrow = TRUE)
+colnames(covmatrix) &lt;- c("X", "M2", "Y2")
+
+# lavann syntax for observed model
+observed &lt;- " M2 ~ X
+             Y2 ~ M2+X "
+
+# lavaan output
+obs_output &lt;- lavaan::sem(model = observed, sample.cov = covmatrix, sample.nobs = 200)
+
+# lavaan syntax for phantom variable model
+phantom &lt;- " M2 ~ M1 + Y1 + a*X
+               Y2 ~ M1 + Y1 + b*M2 + cp*X "
+
+Step1 &lt;- SA_step1(
+  lavoutput = obs_output,
+  mod_obs = observed,
+  mod_phant = phantom
+)
+
+phantom_assignment &lt;- list(
+  "CovM1X" = 0,
+  "CovY1M1" = "CovY2M2",
+  "CovY1X" = 0,
+  "VarM1" = 1,
+  "VarY1" = 1,
+  "CovM1M2" = seq(.4, .6, .1),
+  "CovY1Y2" = "CovM1M2",
+  "CovY1M2" = seq(.2, .4, .1),
+  "CovM1Y2" = "CovY1M2"
+)
+Step2 &lt;- SA_step2(
+  phantom_assignment = phantom_assignment,
+  step1 = Step1
+)
+Step3 &lt;- SA_step3(
+  step2 = Step2,
+  n = 200
+)
+
+b_results &lt;- ghost_par_ests(
+  step3 = Step3,
+  parameter_label = "b",
+  remove_NA = TRUE
+)
+</code></pre>
+
+
+</div>

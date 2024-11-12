@@ -1,0 +1,205 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PCMTreeInsertSingletons</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Insert tips or singleton nodes on chosen edges</h2>
+
+<h3>Description</h3>
+
+<p>Insert tips or singleton nodes on chosen edges
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PCMTreeInsertSingletons(tree, nodes, positions)
+
+PCMTreeInsertSingletonsAtEpoch(tree, epoch, minLength = 0.1)
+
+PCMTreeInsertTipsOrSingletons(
+  tree,
+  nodes,
+  positions = rep(0, length(nodes)),
+  singleton = FALSE,
+  tipBranchLengths = 0.01,
+  nodeLabels = NULL,
+  tipLabels = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tree</code></td>
+<td>
+<p>a phylo object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nodes</code></td>
+<td>
+<p>an integer vector denoting the terminating nodes of the edges
+on which a singleton node is to be inserted. This vector should not have
+duplicated nodes - if there is a need to insert two or more singleton nodes
+at distinct positions of the same edge, this should be done by calling the
+function several times with the longest position first and so on .</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>positions</code></td>
+<td>
+<p>a positive numeric vector of the same length as nodes
+denoting the root-ward distances from nodes at which the singleton nodes
+should be inserted. For PCMTreeInsertTipsOrSingletons this can contains 0's and
+is set by default to rep(0, length(nodes)).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epoch</code></td>
+<td>
+<p>a numeric indicating a distance from the root at which a
+singleton node should be inserted in all lineages that are alive at that
+time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minLength</code></td>
+<td>
+<p>a numeric indicating the minimum allowed branch-length
+after dividing a branch by insertion of a singleton nodes. No singleton node
+is inserted if this would result in a branch shorter than 'minLength'. Note
+that this condition is checked only in 'PCMTreeInsertSingletonsAtEpoch'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>singleton</code></td>
+<td>
+<p>(PCMTreeInsertTipsOrSingletons only) a logical indicating if a
+singleton node should be inserted and no tip node should be inserted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tipBranchLengths</code></td>
+<td>
+<p>(PCMTreeInsertTipsOrSingletons only) positive numeric vector of the
+length of <code>nodes</code>, denoting the lengths of the new edges leading to tips.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nodeLabels</code></td>
+<td>
+<p>(PCMTreeInsertSingletons and PCMTreeInsertTipsOrSingletons) a
+character vector of the same length as <code>nodes</code>, indicating the names of
+the newly inserted nodes. These names are ignored where <code>positions</code> is 0. This
+argument is optional and default node labels will be assigned if this is not specified or set
+to NULL. If specified, then it should not contain node-labels already present in the tree.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tipLabels</code></td>
+<td>
+<p>(PCMTreeInsertTipsOrSingletons only) a character vector of the same length as
+<code>nodes</code> of the new tip-labels. This
+argument is optional and default tip labels will be assigned if this is not specified or set
+to NULL. If specified, then it should not contain tip-labels already present in the tree.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a modified copy of tree.
+</p>
+
+
+<h3>Functions</h3>
+
+
+<ul>
+<li> <p><code>PCMTreeInsertSingletonsAtEpoch</code>: 
+</p>
+</li>
+<li> <p><code>PCMTreeInsertTipsOrSingletons</code>: 
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>PCMTreeEdgeTimes</code> <code>PCMTreeLocateEpochOnBranches</code> <code>PCMTreeLocateMidpointsOnBranches</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(1, kind = "Mersenne-Twister", normal.kind = "Inversion")
+tree &lt;- PCMTree(ape::rtree(25))
+PCMTreeSetPartRegimes(
+  tree, c(`26`="a", `28`="b", `45`="c", `47`="d"), setPartition = TRUE)
+
+if(requireNamespace("ggtree"))
+PCMTreePlot(
+  tree,
+  palette=c(a = "red", b = "green", c = "blue", d = "magenta")) +
+  ggtree::geom_nodelab(angle = 45) + ggtree::geom_tiplab(angle = 45)
+
+cbind(tree$edge, PCMTreeEdgeTimes(tree))
+
+id47 &lt;- PCMTreeMatchLabels(tree, "47")
+length47 &lt;- PCMTreeGetBranchLength(tree, id47)
+
+# insert a singleton at 0.55 (root-ward) from node 47
+tree &lt;- PCMTreeInsertSingletons(tree, nodes = "47", positions = (length47/2))
+
+if(requireNamespace("ggtree"))
+PCMTreePlot(
+  tree,
+  palette=c(a = "red", b = "green", c = "blue", d = "magenta")) +
+  ggtree::geom_nodelab(angle = 45) + ggtree::geom_tiplab(angle = 45)
+
+# this fails, because the branch leading to node "47" is shorter now (0.55).
+ggplot2::should_stop(
+  tree &lt;- PCMTreeInsertSingletons(
+    tree, nodes = "47", positions= 2* length47 / 3))
+
+# the tree is the same
+
+if(requireNamespace("ggtree"))
+PCMTreePlot(
+  tree, palette=c(a = "red", b = "green", c = "blue", d = "magenta")) +
+  ggtree::geom_nodelab(angle = 45) + ggtree::geom_tiplab(angle = 45)
+
+# we can insert at a position within the edge:
+tree &lt;- PCMTreeInsertSingletons(tree, nodes = "47", positions = length47/3)
+
+if(requireNamespace("ggtree"))
+PCMTreePlot(
+  tree, palette=c(a = "red", b = "green", c = "blue", d = "magenta")) +
+  ggtree::geom_nodelab(angle = 45) + ggtree::geom_tiplab(angle = 45)
+
+
+# Insert singletons at all branches crossing a given epoch. This will skip
+# inserting singleton nodes where the resulting branches would be shorter
+# than 0.1.
+tree &lt;- PCMTreeInsertSingletonsAtEpoch(tree, 2.3)
+
+if(requireNamespace("ggtree"))
+PCMTreePlot(
+  tree, palette=c(a = "red", b = "green", c = "blue", d = "magenta")) +
+  ggtree::geom_nodelab(angle = 45) + ggtree::geom_tiplab(angle = 45)
+
+# Insert singletons at all branches crossing a given epoch
+tree &lt;- PCMTreeInsertSingletonsAtEpoch(tree, 2.3, minLength = 0.001)
+
+if(requireNamespace("ggtree"))
+PCMTreePlot(
+  tree,
+  palette=c(a = "red", b = "green", c = "blue", d = "magenta")) +
+  ggtree::geom_nodelab(angle = 45) + ggtree::geom_tiplab(angle = 45)
+
+</code></pre>
+
+
+</div>

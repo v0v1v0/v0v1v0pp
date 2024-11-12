@@ -1,0 +1,401 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>extend_family</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Extend a family</h2>
+
+<h3>Description</h3>
+
+<p>This function adds some internally required elements to an object of class
+<code>family</code> (see, e.g., <code>family()</code>). It is called internally by
+<code>init_refmodel()</code>, so you will rarely need to call it yourself.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">extend_family(
+  family,
+  latent = FALSE,
+  latent_y_unqs = NULL,
+  latent_ilink = NULL,
+  latent_ll_oscale = NULL,
+  latent_ppd_oscale = NULL,
+  augdat_y_unqs = NULL,
+  augdat_link = NULL,
+  augdat_ilink = NULL,
+  augdat_args_link = list(),
+  augdat_args_ilink = list(),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>An object of class <code>family</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>latent</code></td>
+<td>
+<p>A single logical value indicating whether to use the latent
+projection (<code>TRUE</code>) or not (<code>FALSE</code>). Note that setting <code>latent = TRUE</code>
+causes all arguments starting with <code>augdat_</code> to be ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>latent_y_unqs</code></td>
+<td>
+<p>Only relevant for a latent projection where the original
+response space has finite support (i.e., the original response values may
+be regarded as categories), in which case this needs to be the character
+vector of unique response values (which will be assigned to <code>family$cats</code>
+internally) or may be left at <code>NULL</code> (so that <span class="pkg">projpred</span> will try to
+infer it from <code>family$cats</code>). See also section "Latent projection" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>latent_ilink</code></td>
+<td>
+<p>Only relevant for the latent projection, in which case
+this needs to be the inverse-link function. If the original response family
+was the <code>binomial()</code> or the <code>poisson()</code> family, then <code>latent_ilink</code> can be
+<code>NULL</code>, in which case an internal default will be used. Can also be <code>NULL</code>
+in all other cases, but then an internal default based on <code>family$linkinv</code>
+will be used which might not work for all families. See also section
+"Latent projection" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>latent_ll_oscale</code></td>
+<td>
+<p>Only relevant for the latent projection, in which
+case this needs to be the function computing response-scale (not
+latent-scale) log-likelihood values. If <code>!is.null(family$cats)</code> (after
+taking <code>latent_y_unqs</code> into account) or if the original response family was
+the <code>binomial()</code> or the <code>poisson()</code> family, then <code>latent_ll_oscale</code> can be
+<code>NULL</code>, in which case an internal default will be used. Can also be <code>NULL</code>
+in all other cases, but then downstream functions will have limited
+functionality (a message thrown by <code>extend_family()</code> will state what
+exactly won't be available). See also section "Latent projection" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>latent_ppd_oscale</code></td>
+<td>
+<p>Only relevant for the latent projection, in which
+case this needs to be the function sampling response values given latent
+predictors that have been transformed to response scale using
+<code>latent_ilink</code>. If <code>!is.null(family$cats)</code> (after taking <code>latent_y_unqs</code>
+into account) or if the original response family was the <code>binomial()</code> or
+the <code>poisson()</code> family, then <code>latent_ppd_oscale</code> can be <code>NULL</code>, in which
+case an internal default will be used. Can also be <code>NULL</code> in all other
+cases, but then downstream functions will have limited functionality (a
+message thrown by <code>extend_family()</code> will state what exactly won't be
+available). See also section "Latent projection" below. Note that although
+this function has the abbreviation "PPD" in its name (which stands for
+"posterior predictive distribution"), <span class="pkg">projpred</span> currently only uses it
+in <code>proj_predict()</code>, i.e., for sampling from what would better be termed
+posterior-projection predictive distribution (PPPD).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>augdat_y_unqs</code></td>
+<td>
+<p>Only relevant for augmented-data projection, in which
+case this needs to be the character vector of unique response values (which
+will be assigned to <code>family$cats</code> internally) or may be left at <code>NULL</code> if
+<code>family$cats</code> is already non-<code>NULL</code>. See also section "Augmented-data
+projection" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>augdat_link</code></td>
+<td>
+<p>Only relevant for augmented-data projection, in which case
+this needs to be the link function. Use <code>NULL</code> for the traditional
+projection. See also section "Augmented-data projection" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>augdat_ilink</code></td>
+<td>
+<p>Only relevant for augmented-data projection, in which
+case this needs to be the inverse-link function. Use <code>NULL</code> for the
+traditional projection. See also section "Augmented-data projection" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>augdat_args_link</code></td>
+<td>
+<p>Only relevant for augmented-data projection, in which
+case this may be a named <code>list</code> of arguments to pass to the function
+supplied to <code>augdat_link</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>augdat_args_ilink</code></td>
+<td>
+<p>Only relevant for augmented-data projection, in
+which case this may be a named <code>list</code> of arguments to pass to the function
+supplied to <code>augdat_ilink</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Ignored (exists only to swallow up further arguments which might
+be passed to this function).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In the following, <code class="reqn">N</code>, <code class="reqn">C_{\mathrm{cat}}</code>,
+<code class="reqn">C_{\mathrm{lat}}</code>, <code class="reqn">S_{\mathrm{ref}}</code>, and
+<code class="reqn">S_{\mathrm{prj}}</code> from help topic refmodel-init-get are used.
+Note that <code class="reqn">N</code> does not necessarily denote the number of original
+observations; it can also refer to new observations. Furthermore, let <code class="reqn">S</code>
+denote either <code class="reqn">S_{\mathrm{ref}}</code> or <code class="reqn">S_{\mathrm{prj}}</code>,
+whichever is appropriate in the context where it is used.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The <code>family</code> object extended in the way needed by <span class="pkg">projpred</span>.
+</p>
+
+
+<h3>Augmented-data projection</h3>
+
+<p>As their first input, the functions supplied to arguments <code>augdat_link</code> and
+<code>augdat_ilink</code> have to accept:
+</p>
+
+<ul>
+<li>
+<p> For <code>augdat_link</code>: an <code class="reqn">S \times N \times C_{\mathrm{cat}}</code> array containing the probabilities for the response categories. The
+order of the response categories is the same as in <code>family$cats</code> (see
+argument <code>augdat_y_unqs</code>).
+</p>
+</li>
+<li>
+<p> For <code>augdat_ilink</code>: an <code class="reqn">S \times N \times C_{\mathrm{lat}}</code> array containing the linear predictors.
+</p>
+</li>
+</ul>
+<p>The return value of these functions needs to be:
+</p>
+
+<ul>
+<li>
+<p> For <code>augdat_link</code>: an <code class="reqn">S \times N \times C_{\mathrm{lat}}</code> array containing the linear predictors.
+</p>
+</li>
+<li>
+<p> For <code>augdat_ilink</code>: an <code class="reqn">S \times N \times C_{\mathrm{cat}}</code> array containing the probabilities for the response categories. The
+order of the response categories has to be the same as in <code>family$cats</code> (see
+argument <code>augdat_y_unqs</code>).
+</p>
+</li>
+</ul>
+<p>For the augmented-data projection, the response vector resulting from
+<code>extract_model_data</code> (see <code>init_refmodel()</code>) is coerced to a <code>factor</code> (using
+<code>as.factor()</code>) at multiple places throughout this package. Inside of
+<code>init_refmodel()</code>, the levels of this <code>factor</code> have to be identical to
+<code>family$cats</code> (<em>after</em> applying <code>extend_family()</code> inside of
+<code>init_refmodel()</code>). Everywhere else, these levels have to be a subset of
+<code style="white-space: pre;">⁠&lt;refmodel&gt;$family$cats⁠</code> (where <code style="white-space: pre;">⁠&lt;refmodel&gt;⁠</code> is an object resulting from
+<code>init_refmodel()</code>). See argument <code>augdat_y_unqs</code> for how to control
+<code>family$cats</code>.
+</p>
+<p>For ordinal <span class="pkg">brms</span> families, be aware that the submodels (onto which the
+reference model is projected) currently have the following restrictions:
+</p>
+
+<ul>
+<li>
+<p> The discrimination parameter <code>disc</code> is not supported (i.e., it is a
+constant with value 1).
+</p>
+</li>
+<li>
+<p> The thresholds are <code>"flexible"</code> (see <code>brms::brmsfamily()</code>).
+</p>
+</li>
+<li>
+<p> The thresholds do not vary across the levels of a <code>factor</code>-like variable
+(see argument <code>gr</code> of <code>brms::resp_thres()</code>).
+</p>
+</li>
+<li>
+<p> The <code>"probit_approx"</code> link is replaced by <code>"probit"</code>.
+</p>
+</li>
+</ul>
+<p>For the <code>brms::categorical()</code> family, be aware that:
+</p>
+
+<ul>
+<li>
+<p> For multilevel submodels, the group-level effects are allowed to be
+correlated between different response categories.
+</p>
+</li>
+<li>
+<p> For multilevel submodels, <span class="pkg">mclogit</span> versions &lt; 0.9.4 may throw the
+error <code>'a' (&lt;number&gt; x 1) must be square</code>. Updating <span class="pkg">mclogit</span> to a
+version &gt;= 0.9.4 should fix this.
+</p>
+</li>
+</ul>
+<h3>Latent projection</h3>
+
+<p>The function supplied to argument <code>latent_ilink</code> needs to have the prototype
+</p>
+<div class="sourceCode r"><pre>latent_ilink(lpreds, cl_ref, wdraws_ref = rep(1, length(cl_ref)))
+</pre></div>
+<p>where:
+</p>
+
+<ul>
+<li> <p><code>lpreds</code> accepts an <code class="reqn">S \times N</code> matrix containing the linear
+predictors.
+</p>
+</li>
+<li> <p><code>cl_ref</code> accepts a numeric vector of length <code class="reqn">S_{\mathrm{ref}}</code>,
+containing <span class="pkg">projpred</span>'s internal cluster indices for these draws.
+</p>
+</li>
+<li> <p><code>wdraws_ref</code> accepts a numeric vector of length
+<code class="reqn">S_{\mathrm{ref}}</code>, containing weights for these draws. These
+weights should be treated as not being normalized (i.e., they don't
+necessarily sum to <code>1</code>).
+</p>
+</li>
+</ul>
+<p>The return value of <code>latent_ilink</code> needs to contain the linear predictors
+transformed to the original response space, with the following structure:
+</p>
+
+<ul>
+<li>
+<p> If <code>is.null(family$cats)</code> (after taking <code>latent_y_unqs</code> into account): an
+<code class="reqn">S \times N</code> matrix.
+</p>
+</li>
+<li>
+<p> If <code>!is.null(family$cats)</code> (after taking <code>latent_y_unqs</code> into account): an
+<code class="reqn">S \times N \times C_{\mathrm{cat}}</code> array. In that case,
+<code>latent_ilink</code> needs to return <em>probabilities</em> (for the response categories
+given in <code>family$cats</code>, after taking <code>latent_y_unqs</code> into account).
+</p>
+</li>
+</ul>
+<p>The function supplied to argument <code>latent_ll_oscale</code> needs to have the
+prototype
+</p>
+<div class="sourceCode r"><pre>latent_ll_oscale(ilpreds, y_oscale, wobs = rep(1, length(y_oscale)), cl_ref,
+                 wdraws_ref = rep(1, length(cl_ref)))
+</pre></div>
+<p>where:
+</p>
+
+<ul>
+<li> <p><code>ilpreds</code> accepts the return value from <code>latent_ilink</code>.
+</p>
+</li>
+<li> <p><code>y_oscale</code> accepts a vector of length <code class="reqn">N</code> containing response values on
+the original response scale.
+</p>
+</li>
+<li> <p><code>wobs</code> accepts a numeric vector of length <code class="reqn">N</code> containing observation
+weights.
+</p>
+</li>
+<li> <p><code>cl_ref</code> accepts the same input as argument <code>cl_ref</code> of <code>latent_ilink</code>.
+</p>
+</li>
+<li> <p><code>wdraws_ref</code> accepts the same input as argument <code>wdraws_ref</code> of
+<code>latent_ilink</code>.
+</p>
+</li>
+</ul>
+<p>The return value of <code>latent_ll_oscale</code> needs to be an <code class="reqn">S \times N</code>
+matrix containing the response-scale (not latent-scale) log-likelihood values
+for the <code class="reqn">N</code> observations from its inputs.
+</p>
+<p>The function supplied to argument <code>latent_ppd_oscale</code> needs to have the
+prototype
+</p>
+<div class="sourceCode r"><pre>latent_ppd_oscale(ilpreds_resamp, wobs, cl_ref,
+                  wdraws_ref = rep(1, length(cl_ref)), idxs_prjdraws)
+</pre></div>
+<p>where:
+</p>
+
+<ul>
+<li> <p><code>ilpreds_resamp</code> accepts the return value from <code>latent_ilink</code>, but possibly
+with resampled (clustered) draws (see argument <code>nresample_clusters</code> of
+<code>proj_predict()</code>).
+</p>
+</li>
+<li> <p><code>wobs</code> accepts a numeric vector of length <code class="reqn">N</code> containing observation
+weights.
+</p>
+</li>
+<li> <p><code>cl_ref</code> accepts the same input as argument <code>cl_ref</code> of <code>latent_ilink</code>.
+</p>
+</li>
+<li> <p><code>wdraws_ref</code> accepts the same input as argument <code>wdraws_ref</code> of
+<code>latent_ilink</code>.
+</p>
+</li>
+<li> <p><code>idxs_prjdraws</code> accepts a numeric vector of length <code>dim(ilpreds_resamp)[1]</code>
+containing the resampled indices of the projected draws (i.e., these indices
+are values from the set <code class="reqn">\{1, ..., \texttt{dim(ilpreds)[1]}\}</code> where <code>ilpreds</code> denotes the return value of
+<code>latent_ilink</code>).
+</p>
+</li>
+</ul>
+<p>The return value of <code>latent_ppd_oscale</code> needs to be a
+<code class="reqn">\texttt{dim(ilpreds\_resamp)[1]} \times N</code>
+matrix containing the response-scale (not latent-scale) draws from the
+posterior(-projection) predictive distributions for the <code class="reqn">N</code> observations
+from its inputs.
+</p>
+<p>If the bodies of these three functions involve parameter draws from the
+reference model which have not been projected (e.g., for <code>latent_ilink</code>, the
+thresholds in an ordinal model), <code>cl_agg()</code> is provided as a helper function
+for aggregating these reference model draws in the same way as the draws have
+been aggregated for the first argument of these functions (e.g., <code>lpreds</code> in
+case of <code>latent_ilink</code>).
+</p>
+<p>In fact, the weights passed to argument <code>wdraws_ref</code> are nonconstant only in
+case of <code>cv_varsel()</code> with <code>cv_method = "LOO"</code> and <code>validate_search = TRUE</code>.
+In that case, the weights passed to this argument are the PSIS-LOO CV weights
+for one observation. Note that although argument <code>wdraws_ref</code> has the suffix
+<code style="white-space: pre;">⁠_ref⁠</code>, <code>wdraws_ref</code> does not necessarily obtain weights for the <em>initial</em>
+reference model's posterior draws: In case of <code>cv_varsel()</code> with <code>cv_method = "kfold"</code>, these weights may refer to one of the <code class="reqn">K</code> reference model
+refits (but in that case, they are constant anyway).
+</p>
+<p>If <code>family$cats</code> is not <code>NULL</code> (after taking <code>latent_y_unqs</code> into account),
+then the response vector resulting from <code>extract_model_data</code> (see
+<code>init_refmodel()</code>) is coerced to a <code>factor</code> (using <code>as.factor()</code>) at multiple
+places throughout this package. Inside of <code>init_refmodel()</code>, the levels of
+this <code>factor</code> have to be identical to <code>family$cats</code> (<em>after</em> applying
+<code>extend_family()</code> inside of <code>init_refmodel()</code>). Everywhere else, these levels
+have to be a subset of <code style="white-space: pre;">⁠&lt;refmodel&gt;$family$cats⁠</code> (where <code style="white-space: pre;">⁠&lt;refmodel&gt;⁠</code> is an
+object resulting from <code>init_refmodel()</code>).
+</p>
+
+
+</div>

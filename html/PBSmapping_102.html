@@ -1,0 +1,127 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>makeTopography</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Make Topography Data from Online Source
+</h2>
+
+<h3>Description</h3>
+
+<p>Make topography data suitable for the <code>'graphics::contour'</code> and
+<code>'grDevices::contourLines'</code> functions using freely available global
+seafloor topography data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">makeTopography (dat, digits=2, func=NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dat</code></td>
+<td>
+<p><code>data.frame</code> – data with three optionally-named columns: <code>x</code>,
+<code>y</code>, and <code>z</code>.  The columns must appear in that order.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>digits</code></td>
+<td>
+<p><code>numeric</code> – integer indicating the precision to be used by the function
+<code>round</code> on <code>(x,y)</code> values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>func</code></td>
+<td>
+<p><code>function</code> – to summarize <code>z</code> if <code>(x,y)</code> points are duplicated. 
+Defaults to <code>mean()</code> if no function is specified.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Suitable data can be obtained through the <a href="https://topex.ucsd.edu/cgi-bin/get_data.cgi">Topex acquisition form</a>.
+The function <code>'utils::read.table'</code> will import dowloaded ASCII files into R,
+creating objects suitable for the argument <code>'dat'</code> in <code>'makeTopography'</code>.
+</p>
+<p>When creating data for regions with longitude values spanning
+-180<code class="reqn">^\circ</code> to 0<code class="reqn">^\circ</code>, consider
+subtracting 360 from the result's longitude coordinates (<code>x</code>).
+</p>
+<p>When creating bathymetry data, consider negating the result's
+elevations (<code>z</code>) to give depths positive values.
+</p>
+<p>Combinations of <code>(x,y)</code> do not need to be complete (<code>z[x,y]=NA</code>) or 
+unique (<code>z[x,y] = func(z[x,y])</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>List with elements <code>x</code>, <code>y</code>, and <code>z</code>. Elements <code>x</code> and
+<code>y</code> are vectors, while <code>z</code> is a matrix with rownames <code>x</code>
+and colnames <code>y</code>.
+The functions <code>'graphics::contour'</code> and <code>'grDevices::contourLines'</code>
+expect data conforming to this list format.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p><a href="https://github.com/boersn/">Nicholas M. Boers</a>, Staff Software Engineer<br>
+Jobber, Edmonton AB<br></p>
+<p>Maintainer: <a href="mailto:rowan.haigh@dfo-mpo.gc.ca">Rowan Haigh</a>, Program Head – Offshore Rockfish<br>
+Pacific Biological Station (PBS), Fisheries &amp; Oceans Canada (DFO), Nanaimo BC<br><em>locus opus</em>: Institute of Ocean Sciences (IOS), Sidney BC<br>
+Last modified <code>Rd: 2021-01-11</code>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>In package <span class="pkg">graphics</span>:<br><code>contour</code><br>
+In package <span class="pkg">grDevices</span>:<br><code>contourLines</code><br>
+In package <span class="pkg">PBSmapping</span>:<br><code>convCP</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">local(envir=.PBSmapEnv,expr={
+  oldpar = par(no.readonly=TRUE)
+  #--- Example 1: Sample data frame and conversion.
+  file &lt;- data.frame(X=c(1,1,2,2),Y=c(3,4,3,4),Z=c(5,6,7,8))
+  print(makeTopography(file))
+
+  #--- Example 2: Aleutian Islands bathymetry
+  isob &lt;- c(100,500,1000,2500,5000)
+  icol &lt;- rgb(0,0,seq(255,100,len=length(isob)),max=255)
+  afile &lt;- paste(system.file(package="PBSmapping"),
+    "/Extra/aleutian.txt",sep="")
+  aleutian &lt;- read.table(afile, header=FALSE, col.names=c("x","y","z"))
+  aleutian$x &lt;- aleutian$x - 360
+  aleutian$z &lt;- -aleutian$z
+  alBathy &lt;- makeTopography(aleutian)
+  alCL &lt;- contourLines(alBathy,levels=isob)
+  alCP &lt;- convCP(alCL)
+  alPoly &lt;- alCP$PolySet
+  attr(alPoly,"projection") &lt;- "LL"
+  plotMap(alPoly, type="n", cex.axis=1.2, cex.lab=1.5)
+  addLines(alPoly,col=icol)
+  data(nepacLL,envir=.PBSmapEnv)
+  addPolys(nepacLL,col="gold")
+  legend(x="topleft",bty="n",col=icol,lwd=2,legend=as.character(isob))
+  par(oldpar)
+})
+</code></pre>
+
+
+</div>

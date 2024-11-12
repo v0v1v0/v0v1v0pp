@@ -1,0 +1,134 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>xform_function</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add a function transformation to a xform_wrap object.</h2>
+
+<h3>Description</h3>
+
+<p>Add a function transformation to a xform_wrap object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">xform_function(
+  wrap_object,
+  orig_field_name,
+  new_field_name = "newField",
+  new_field_data_type = "numeric",
+  expression,
+  map_missing_to = NA
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>wrap_object</code></td>
+<td>
+<p>Output of xform_wrap or another transformation function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>orig_field_name</code></td>
+<td>
+<p>String specifying name(s) of the original data field(s) being used in the transformation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new_field_name</code></td>
+<td>
+<p>Name of the new field created by the transformation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new_field_data_type</code></td>
+<td>
+<p>R data type of the new field created by the transformation ("numeric" or "factor").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expression</code></td>
+<td>
+<p>String expression specifying the transformation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>map_missing_to</code></td>
+<td>
+<p>Value to be given to the transformed variable if the value of any input variable is missing.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Calculate the expression provided
+in <code>expression</code> for every row in the <code>wrap_object$data</code>
+data frame. The <code>expression</code> argument must represent
+a valid R expression, and any functions used in
+<code>expression</code> must be defined in the current
+environment.
+</p>
+<p>The name of the new field is optional (a default name is provided), but an error
+will be thrown if attempting to create a field with a name that already exists in
+the xform_wrap object.
+</p>
+<p>When <code>new_field_data_type = "numeric"</code>, the <code>DerivedField</code> attributes
+in PMML will be <code>dataType = "double"</code> and <code>optype = "continuous"</code>.
+When <code>new_field_data_type = "factor"</code>, these attributes will be
+<code>dataType = "string"</code> and <code>optype = "categorical"</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>R object containing the raw data, the transformed data and data statistics.
+The <code>data</code> data frame will contain a new <code>new_field_name</code> column, and
+<code>field_data</code> will contain a new <code>new_field_name</code> row.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>xform_wrap</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Load the standard iris dataset:
+data(iris)
+
+# Wrap the data:
+iris_box &lt;- xform_wrap(iris)
+
+# Perform a transform on the Sepal.Length field:
+# the value is squared and then divided by 100
+iris_box &lt;- xform_function(iris_box,
+  orig_field_name = "Sepal.Length",
+  new_field_name = "Sepal.Length.Transformed",
+  expression = "(Sepal.Length^2)/100"
+)
+
+# Combine two fields to create another new feature:
+iris_box &lt;- xform_function(iris_box,
+  orig_field_name = "Sepal.Width, Petal.Width",
+  new_field_name = "Width.Sum",
+  expression = "Sepal.Width + Sepal.Length"
+)
+
+# Create linear model using the derived features:
+fit &lt;- lm(Petal.Length ~
+Sepal.Length.Transformed + Width.Sum, data = iris_box$data)
+
+# Create pmml from the fit:
+fit_pmml &lt;- pmml(fit, transform = iris_box)
+</code></pre>
+
+
+</div>

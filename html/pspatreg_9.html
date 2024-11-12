@@ -1,0 +1,347 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>impactsnopar</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compute direct, indirect and total impacts functions 
+for continous non-parametric covariates in semiparametric spatial 
+regression models.</h2>
+
+<h3>Description</h3>
+
+<p>Compute and plot direct, indirect and total impact functions 
+for non-parametric covariates included in a semiparametric spatial
+or spatio-temporal econometric model. This model must include a 
+spatial lag of the dependent variable and/or non-parametric covariates, 
+to have indirect impacts different from 0, otherwise, total and direct 
+function impacts are the same. The models can be of type <em>ps-sar</em>, 
+<em>ps-sarar</em>, <em>ps-sdm</em>, <em>ps-sdem</em> or
+<em>ps-slx</em>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">impactsnopar(
+  obj,
+  variables = NULL,
+  listw = NULL,
+  alpha = 0.05,
+  viewplot = TRUE,
+  smooth = TRUE,
+  span = c(0.1, 0.1, 0.2)
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>obj</code></td>
+<td>
+<p><em>pspatfit</em> object fitted using <code>pspatfit</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variables</code></td>
+<td>
+<p>vector including names of non-parametric covariates to 
+obtain impulse functions. If NULL all the nonparametric covariates are 
+included. Default = NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>listw</code></td>
+<td>
+<p>should be a spatial neighbours list object created for example by <code>nb2listw</code> from <code>spdep</code> package. 
+It can also be a spatial weighting matrix of order (NxN) instead of a listw neighbours list object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>numerical value for the significance level of the pointwise 
+confidence interval of the impact functions. Default 0.05.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>viewplot</code></td>
+<td>
+<p>Default 'TRUE' to plot impacts. If FALSE use <code>plot_impactsnopar</code> to plot impacts</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>smooth</code></td>
+<td>
+<p>Default 'TRUE'. Whether to smooth fitted impacts or not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>span</code></td>
+<td>
+<p>span for the kernel of the smoothing (see <code>loess</code> 
+for details). Default c(0.1, 0.1, 0.2)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>To compute the impact functions of the non-parametric covariates, first 
+it is used the function 
+<code>fit_terms</code> to get fitted values of the terms and 
+standard errors of the fitted values for each non-parametric covariate. 
+Then, the intervals for the fitted term are computed as <br></p>
+<p><em> fitted_values plus/minus quantile*standard errors </em> <br></p>
+<p>where <em>quantile</em> is the corresponding quantile of the N(0,1) 
+distribution. The total impact function is computed as: <br></p>
+<p><code>solve(kronecker((I_N - rho*W_N), It), fitted_values) </code> <br></p>
+<p>where <em>(I_N - rho*W_N)</em> matrix is the spatial lag matrix and 
+<em>It</em> is an identity matrix of order equals to the temporal periods 
+(<em>t</em>). Obviously, <em>t = 1</em> for pure spatial econometric models. 
+The upper and lower bounds of the total impact functions are computed 
+using the previous formula but using 
+<em>fitted_values plus/minus quantile*standard errors</em> instead
+of <em>fitted_values</em>. <br></p>
+<p>The direct impacts function is computed using the formula: <br></p>
+<p><code>diag(solve(kronecker((I_N - rho*W_N), It),
+                              diag(fitted_values))</code> <br></p>
+<p>that is, the fitted values are put in the main diagonal of 
+a diagonal matrix and, afterwards, the spatial lag is applied over 
+this diagonal matrix. Finally, the main diagonal of the resulting
+matrix is considered the direct impact function. 
+The upper and lower bounds of the direct impact functions are computed 
+using the previous formula but using 
+<em>fitted_values plus/minus quantile*standard errors</em> instead
+of <em>fitted_values</em>. <br></p>
+<p>Eventually, the indirect impacts function are computed as the 
+difference between both total and direct impact functions, that is: <br></p>
+<p><em>indirect impact function = total impacts function -
+direct impacts function</em> <br></p>
+<p>In this way we can get both, the indirect impact functions and upper and
+lower bounds of the indirect impact functions. <br></p>
+<p>It is important to remark that, usually, the indirect impact functions 
+are very wiggly. To get ride of this problem, the argument <code>smooth</code> 
+(default = 'TRUE') allows to smooth the impacts function using the 
+<code>loess</code> 
+function available in <span class="pkg">stats</span>. This is very convenient when the 
+indirect impacts function is plotted.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list including
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+    <em>impnopar_tot</em> </td>
+<td style="text-align: left;"> Matrix including total impacts in columns. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <em>impnopar_dir</em> </td>
+<td style="text-align: left;"> Matrix including direct impacts in columns. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <em>impnopar_ind</em> </td>
+<td style="text-align: left;"> Matrix including indirect 
+                             impacts in columns. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <em>impnopar_tot_up</em> </td>
+<td style="text-align: left;"> Matrix including upper bounds of 
+                                total impacts in columns. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <em>impnopar_dir_up</em> </td>
+<td style="text-align: left;"> Matrix including upper bounds of 
+                                direct impacts in columns. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <em>impnopar_ind_up</em> </td>
+<td style="text-align: left;"> Matrix including upper bounds of 
+                                indirect impacts in columns. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <em>impnopar_tot_low</em> </td>
+<td style="text-align: left;"> Matrix including lower bounds of 
+                                 total impacts in columns. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <em>impnopar_dir_low</em> </td>
+<td style="text-align: left;"> Matrix including lower bounds of 
+                                 direct impacts in columns. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <em>impnopar_ind_low</em> </td>
+<td style="text-align: left;"> Matrix including lower bounds of 
+                                 indirect impacts in columns. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ </td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+
+<table>
+<tr>
+<td style="text-align: left;"> 
+  Roman Minguez  </td>
+<td style="text-align: left;"> <a href="mailto:roman.minguez@uclm.es">roman.minguez@uclm.es</a> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  Roberto Basile </td>
+<td style="text-align: left;"> <a href="mailto:roberto.basile@univaq.it">roberto.basile@univaq.it</a> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> Maria Durban </td>
+<td style="text-align: left;">
+  <a href="mailto:mdurban@est-econ.uc3m.es">mdurban@est-econ.uc3m.es</a> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> Gonzalo Espana-Heredia </td>
+<td style="text-align: left;">
+  <a href="mailto:gehllanza@gmail.com">gehllanza@gmail.com</a> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> 
+ </td>
+</tr>
+</table>
+<h3>References</h3>
+
+
+<ul>
+<li>
+<p> Basile, R.; Durban, M.; Minguez, R.; Montero, J. M.; and 
+Mur, J. (2014). Modeling regional economic dynamics: Spatial
+dependence, spatial heterogeneity and nonlinearities. 
+<em>Journal of Economic Dynamics and Control</em>, (48), 229-245.
+&lt;doi:10.1016/j.jedc.2014.06.011&gt;
+</p>
+</li>
+<li>
+<p> Eilers, P. and Marx, B. (2021). <em>Practical Smoothing. 
+The Joys of P-Splines</em>. Cambridge University Press.
+</p>
+</li>
+<li>
+<p> Fahrmeir, L.; Kneib, T.;  Lang, S.; and Marx, B. (2021). 
+<em>Regression. Models, Methods and Applications (2nd Ed.)</em>.
+Springer.
+</p>
+</li>
+<li>
+<p> LeSage, J. and Pace, K. (2009). <em>Introduction to 
+Spatial Econometrics</em>. CRC Press, Boca Raton.
+</p>
+</li>
+<li>
+<p> Minguez, R.; Basile, R. and Durban, M. (2020). An Alternative 
+Semiparametric Model for Spatial Panel Data. <em>Statistical Methods and Applications</em>,
+(29), 669-708. &lt;doi:	10.1007/s10260-019-00492-8&gt;
+</p>
+</li>
+<li>
+<p> Montero, J., Minguez, R., and Durban, M. (2012). SAR models 
+with nonparametric spatial trends: A P-Spline approach. 
+<em>Estadistica Espanola</em>, (54:177), 89-111.
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+
+<ul>
+<li> <p><code>pspatfit</code> estimate spatial or spatio-temporal semiparametric 
+regression models.
+</p>
+</li>
+<li> <p><code>impactspar</code> compute and simulate total, direct and indirect impacts
+for parametric continuous covariates.
+</p>
+</li>
+<li> <p><code>fit_terms</code> compute terms for smooth functions for non-parametric
+continuous covariates and for non-parametric trends.
+</p>
+</li>
+<li> <p><code>plot_impactsnopar</code> plot the non-parametric impacts functions
+allowing for previous smoothing.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">################################################
+# Examples using spatial data of Ames Houses.
+###############################################
+# Getting and preparing the data
+library(pspatreg)
+library(spdep)
+library(sf)
+ames &lt;- AmesHousing::make_ames() # Raw Ames Housing Data
+ames_sf &lt;- st_as_sf(ames, coords = c("Longitude", "Latitude"))
+ames_sf$Longitude &lt;- ames$Longitude
+ames_sf$Latitude &lt;- ames$Latitude
+ames_sf$lnSale_Price &lt;- log(ames_sf$Sale_Price)
+ames_sf$lnLot_Area &lt;- log(ames_sf$Lot_Area)
+ames_sf$lnTotal_Bsmt_SF &lt;- log(ames_sf$Total_Bsmt_SF+1)
+ames_sf$lnGr_Liv_Area &lt;- log(ames_sf$Gr_Liv_Area)
+ames_sf1 &lt;- ames_sf[(duplicated(ames_sf$Longitude) == FALSE), ]
+form1 &lt;- lnSale_Price ~ Fireplaces + Garage_Cars +
+          pspl(lnLot_Area, nknots = 20) + 
+          pspl(lnTotal_Bsmt_SF, nknots = 20) +
+          pspl(lnGr_Liv_Area, nknots = 20)    
+
+
+########### Constructing the spatial weights matrix
+coord_sf1 &lt;- cbind(ames_sf1$Longitude, ames_sf1$Latitude)
+k5nb &lt;- knn2nb(knearneigh(coord_sf1, k = 5, 
+                          longlat = TRUE, use_kd_tree = FALSE), sym = TRUE)
+lw_ames &lt;- nb2listw(k5nb, style = "W", 
+                  zero.policy = FALSE)
+gamsar &lt;- pspatfit(form1, data = ames_sf1, 
+                   type = "sar", listw = lw_ames,
+                   method = "Chebyshev")
+summary(gamsar)
+nparimpacts &lt;- impactsnopar(gamsar, listw = lw_ames, viewplot = TRUE)
+################################################
+ ######## Examples using a panel data of rate of
+ ######## unemployment for 103 Italian provinces in period 1996-2014.
+library(pspatreg)
+data(unemp_it, package = "pspatreg") 
+## Wsp_it is a matrix. Create a neighboord list 
+lwsp_it &lt;- spdep::mat2listw(Wsp_it)
+######  No Spatial Trend: PSAR including a spatial 
+######  lag of the dependent variable
+form1 &lt;- unrate ~ partrate + agri + cons + empgrowth +
+                 pspl(serv, nknots = 15)
+gamsar &lt;- pspatfit(form1, 
+                    data = unemp_it, 
+                    type = "sar", 
+                    listw = lwsp_it)
+ summary(gamsar)
+ ###### Non-Parametric Total, Direct and Indirect impacts
+ imp_nparvar &lt;- impactsnopar(gamsar, 
+                             listw = lwsp_it, 
+                             viewplot = TRUE)
+                              
+
+</code></pre>
+
+
+</div>

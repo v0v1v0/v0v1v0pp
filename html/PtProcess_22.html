@@ -1,0 +1,109 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>neglogLik</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Negative Log-Likelihood</h2>
+
+<h3>Description</h3>
+
+<p>Calculates the log-likelihood multiplied by negative one. It is in a format that can be used with the functions <code>nlm</code> and <code>optim</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">neglogLik(params, object, pmap = NULL, SNOWcluster=NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>params</code></td>
+<td>
+<p>a vector of revised parameter values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>an object of class <code>"mpp"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pmap</code></td>
+<td>
+<p>a user provided function mapping the revised parameter values <code>params</code> into the appropriate locations in <code>object</code>. If <code>NULL</code> (default), an untransformed one to one mapping is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SNOWcluster</code></td>
+<td>
+<p>an object of class <code>"cluster"</code> created by the package <span class="pkg">parallel</span>; default is <code>NULL</code>. Enables parallel processing if not <code>NULL</code>. See <code>logLik</code> for further details.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function can be used with the two functions <code>nlm</code> and <code>optim</code> (see “Examples” below) to maximise the likelihood function of a model specified in <code>object</code>. Both <code>nlm</code> and <code>optim</code> are <em>minimisers</em>, hence the “negative” log-likelihood. The topic <code>distribution</code> gives examples of their use in the relatively easy situation of fitting standard probability distributions to data assuming independence.
+</p>
+<p>The maximisation of the model likelihood function can be restricted to be over a subset of the model parameters. Other parameters will then be fixed at the values stored in the model <code>object</code>. Let <code class="reqn">\Theta_0</code> denote the full model parameter space, and let <code class="reqn">\Theta</code> denote the parameter sub-space (<code class="reqn">\Theta \subseteq \Theta_0</code>) over which the likelihood function is to be maximised. The argument <code>params</code> contains values in <code class="reqn">\Theta</code>, and <code>pmap</code> is assigned a function that maps these values into the full model parameter space <code class="reqn">\Theta_0</code>. See “Examples” below.
+</p>
+<p>The mapping function assigned to <code>pmap</code> can also be made to impose restrictions on the domain of the parameter space <code class="reqn">\Theta</code> so that the minimiser cannot jump to values such that <code class="reqn">\Theta \not\subseteq \Theta_0</code>. For example, if a particular parameter must be positive, one can work with a transformed parameter that can take any value on the real line, with the model parameter being the exponential of this transformed parameter. Similarly a modified logit like transform can be used to ensure that parameter values remain within a fixed interval with finite boundaries. Examples of these situations can be found in the topic <code>distribution</code> and the “Examples” below.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Value of the log-likelihood times negative one.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>nlm</code>, <code>optim</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#    SRM: magnitude is iid exponential with bvalue=1
+#    maximise exponential mark density too
+
+TT &lt;- c(0, 1000)
+bvalue &lt;- 1
+params &lt;- c(-2.5, 0.01, 0.8, bvalue*log(10))
+
+x &lt;- mpp(data=NULL,
+         gif=srm_gif,
+         marks=list(dexp_mark, rexp_mark),
+         params=params,
+         gmap=expression(params[1:3]),
+         mmap=expression(params[4]),
+         TT=TT)
+x &lt;- simulate(x, seed=5)
+
+allmap &lt;- function(y, p){
+    #    map all parameters into model object
+    #    transform exponential param so it is positive
+    y$params[1:3] &lt;- p[1:3]
+    y$params[4] &lt;- exp(p[4])
+    return(y)
+}
+
+params &lt;- c(-2.5, 0.01, 0.8, log(bvalue*log(10)))
+
+z &lt;- nlm(neglogLik, params, object=x, pmap=allmap,
+         print.level=2, iterlim=500, typsize=abs(params))
+print(z$estimate)
+
+#   these should be the same:
+print(exp(z$estimate[4]))
+print(1/mean(x$data$magnitude))
+</code></pre>
+
+
+</div>

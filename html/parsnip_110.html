@@ -1,0 +1,202 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>details_mlp_h2o</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Multilayer perceptron via h2o</h2>
+
+<h3>Description</h3>
+
+<p><code>h2o::h2o.deeplearning()</code> fits a feed-forward neural network.
+</p>
+
+
+<h3>Details</h3>
+
+<p>For this engine, there are multiple modes: classification and regression
+</p>
+
+
+<h4>Tuning Parameters</h4>
+
+<p>This model has 6 tuning parameters:
+</p>
+
+<ul>
+<li> <p><code>hidden_units</code>: # Hidden Units (type: integer, default: 200L)
+</p>
+</li>
+<li> <p><code>penalty</code>: Amount of Regularization (type: double, default: 0.0)
+</p>
+</li>
+<li> <p><code>dropout</code>: Dropout Rate (type: double, default: 0.5)
+</p>
+</li>
+<li> <p><code>epochs</code>: # Epochs (type: integer, default: 10)
+</p>
+</li>
+<li> <p><code>activation</code>: Activation function (type: character, default: ‘see
+below’)
+</p>
+</li>
+<li> <p><code>learn_rate</code>: Learning Rate (type: double, default: 0.005)
+</p>
+</li>
+</ul>
+<p>The naming of activation functions in
+<code>h2o::h2o.deeplearning()</code> differs from
+parsnip’s conventions. Currently, only “relu” and “tanh” are supported
+and will be converted internally to “Rectifier” and “Tanh” passed to the
+fitting function.
+</p>
+<p><code>penalty</code> corresponds to l2 penalty.
+<code>h2o::h2o.deeplearning()</code> also supports
+specifying the l1 penalty directly with the engine argument <code>l1</code>.
+</p>
+<p>Other engine arguments of interest:
+</p>
+
+<ul>
+<li> <p><code>stopping_rounds</code> controls early stopping rounds based on the
+convergence of another engine parameter <code>stopping_metric</code>. By default,
+h2o::h2o.deeplearning stops training if
+simple moving average of length 5 of the stopping_metric does not
+improve for 5 scoring events. This is mostly useful when used
+alongside the engine parameter <code>validation</code>, which is the
+<strong>proportion</strong> of train-validation split, parsnip will split and pass
+the two data frames to h2o. Then
+h2o::h2o.deeplearning will evaluate the
+metric and early stopping criteria on the validation set.
+</p>
+</li>
+<li>
+<p> h2o uses a 50% dropout ratio controlled by <code>dropout</code> for hidden layers
+by default. <code>h2o::h2o.deeplearning()</code>
+provides an engine argument <code>input_dropout_ratio</code> for dropout ratios
+in the input layer, which defaults to 0.
+</p>
+</li>
+</ul>
+<h4>Translation from parsnip to the original package (regression)</h4>
+
+<p>agua::h2o_train_mlp is a wrapper around
+<code>h2o::h2o.deeplearning()</code>.
+</p>
+<div class="sourceCode r"><pre>mlp(
+  hidden_units = integer(1),
+  penalty = double(1),
+  dropout = double(1),
+  epochs = integer(1),
+  learn_rate = double(1),
+  activation = character(1)
+) %&gt;%  
+  set_engine("h2o") %&gt;% 
+  set_mode("regression") %&gt;% 
+  translate()
+</pre></div>
+<div class="sourceCode"><pre>## Single Layer Neural Network Model Specification (regression)
+## 
+## Main Arguments:
+##   hidden_units = integer(1)
+##   penalty = double(1)
+##   dropout = double(1)
+##   epochs = integer(1)
+##   activation = character(1)
+##   learn_rate = double(1)
+## 
+## Computational engine: h2o 
+## 
+## Model fit template:
+## agua::h2o_train_mlp(x = missing_arg(), y = missing_arg(), weights = missing_arg(), 
+##     validation_frame = missing_arg(), hidden = integer(1), l2 = double(1), 
+##     hidden_dropout_ratios = double(1), epochs = integer(1), activation = character(1), 
+##     rate = double(1))
+</pre></div>
+
+
+
+<h4>Translation from parsnip to the original package (classification)</h4>
+
+<div class="sourceCode r"><pre>mlp(
+  hidden_units = integer(1),
+  penalty = double(1),
+  dropout = double(1),
+  epochs = integer(1),
+  learn_rate = double(1),
+  activation = character(1)
+) %&gt;% 
+  set_engine("h2o") %&gt;% 
+  set_mode("classification") %&gt;% 
+  translate()
+</pre></div>
+<div class="sourceCode"><pre>## Single Layer Neural Network Model Specification (classification)
+## 
+## Main Arguments:
+##   hidden_units = integer(1)
+##   penalty = double(1)
+##   dropout = double(1)
+##   epochs = integer(1)
+##   activation = character(1)
+##   learn_rate = double(1)
+## 
+## Computational engine: h2o 
+## 
+## Model fit template:
+## agua::h2o_train_mlp(x = missing_arg(), y = missing_arg(), weights = missing_arg(), 
+##     validation_frame = missing_arg(), hidden = integer(1), l2 = double(1), 
+##     hidden_dropout_ratios = double(1), epochs = integer(1), activation = character(1), 
+##     rate = double(1))
+</pre></div>
+
+
+
+<h4>Preprocessing requirements</h4>
+
+<p>Factor/categorical predictors need to be converted to numeric values
+(e.g., dummy or indicator variables) for this engine. When using the
+formula method via <code>fit()</code>, parsnip will
+convert factor columns to indicators.
+</p>
+<p>Predictors should have the same scale. One way to achieve this is to
+center and scale each so that each predictor has mean zero and a
+variance of one.
+</p>
+<p>By default, <code>h2o::h2o.deeplearning()</code> uses
+the argument <code>standardize = TRUE</code> to center and scale all numeric
+columns.
+</p>
+
+
+
+<h4>Initializing h2o</h4>
+
+<p>To use the h2o engine with tidymodels, please run <code>h2o::h2o.init()</code>
+first. By default, This connects R to the local h2o server. This needs
+to be done in every new R session. You can also connect to a remote h2o
+server with an IP address, for more details see
+<code>h2o::h2o.init()</code>.
+</p>
+<p>You can control the number of threads in the thread pool used by h2o
+with the <code>nthreads</code> argument. By default, it uses all CPUs on the host.
+This is different from the usual parallel processing mechanism in
+tidymodels for tuning, while tidymodels parallelizes over resamples, h2o
+parallelizes over hyperparameter combinations for a given resample.
+</p>
+<p>h2o will automatically shut down the local h2o instance started by R
+when R is terminated. To manually stop the h2o server, run
+<code>h2o::h2o.shutdown()</code>.
+</p>
+
+
+
+<h4>Saving fitted model objects</h4>
+
+<p>Models fitted with this engine may require native serialization methods
+to be properly saved and/or passed between R sessions. To learn more
+about preparing fitted models for serialization, see the bundle package.
+</p>
+
+
+
+</div>

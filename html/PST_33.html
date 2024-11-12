@@ -1,0 +1,189 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>prune</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Prune a probabilistic suffix tree
+</h2>
+
+<h3>Description</h3>
+
+<p>Prune a PST, using either a gain function, a maximal depth or a list of nodes to keep or remove. Optionally, nodes are not removed from the tree but tagged as deleted, helping to visualize the pruning process.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S4 method for signature 'PSTf'
+prune(object, nmin, L, gain, C, keep, drop, state, delete = TRUE, lik =TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+
+<p>a probabilistic suffix tree, i.e., an object of class <code>"PSTf"</code> as returned by the <code>pstree</code>, <code>prune</code> or <code>tune</code> function.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nmin</code></td>
+<td>
+
+<p>integer. All strings having counts less than nmin are removed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L</code></td>
+<td>
+
+<p>integer. If specified the the tree is cut at depth L., that is all nodes with depth &gt; L are removed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gain</code></td>
+<td>
+
+<p>character. Function for measuring information gain. See <code>details</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C</code></td>
+<td>
+
+<p>numeric. Cutoff value to use with the gain function
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep</code></td>
+<td>
+
+<p>character. A vector of character strings containing the names of the nodes to keep in the tree. All nodes that are not a suffix of contexts in keep are removed from the tree.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop</code></td>
+<td>
+
+<p>character. A vector of character strings containing the names of the nodes to remove from the tree. All nodes that are a suffix of contexts in drop are removed from the tree as weel.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>state</code></td>
+<td>
+
+<p>character. All nodes corresponding to contexts which include <code>state</code> are pruned.	
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>delete</code></td>
+<td>
+
+<p>Logical. If FALSE, the pruned nodes are not removed from the tree but tagged as pruned=FALSE, so that when plotting the pruned tree these nodes wil appear surrounded with red (can be set to another color) lines.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lik</code></td>
+<td>
+<p>Logical. If TRUE, the log-likelihood of the pruned model, i.e. the likelihood of the training sequences given the model, is computed and stored in the 'logLik' slot of the PST. Setting to FALSE will spare the time required to compute the likelihood.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The initial tree returned by the <code>pstree</code> function may yield an overly complex model containing all contexts of maximal length <code class="reqn">L</code> and frequency <code class="reqn">N(c) \geq nmin</code> found in the learning sample. The pruning stage potentially reduces the number of nodes in the tree, and thus the model complexity. It compares the conditional probabilities associated to a node labelled by a subsequence <code class="reqn">c=c_{1},c_{2}, \ldots, c_{k}</code> to the conditional probabilities of its parent node labelled by the longest suffix of <code class="reqn">c</code>, <code class="reqn">suf(c)=c_{2}, \ldots, c_{k}</code>. The general idea is to remove a node if it does not contribute additional information with respect to its parent in predicting the next symbol, that is if <code class="reqn">\hat{P}(\sigma | c)</code> is not <em>significantly</em> different from <code class="reqn">\hat{P}(\sigma | suf(c))</code> for all <code class="reqn">\sigma \in A</code>. 
+</p>
+<p>The pruning procedure starts from the terminal nodes and is applied recursively until all terminal nodes remaining in the tree represent an information gain relative to their parent. 
+A gain function,  whose outcome will determine the pruning decision, is used to compare the two probability distributions. The gain function is driven by a cut-off, and different values of this parameter will yield more or less complex trees. A method for selecting the pruning cut-off is described in the <code>tune</code> help page.
+</p>
+<p>A first implemented gain function, which is used by the <em>Learn-PSA</em> algorithm, is based on the ratio between <code class="reqn">\hat{P}(\sigma|c)</code> and <code class="reqn">hat{P}(\sigma|suf(c))</code> for each <code class="reqn">\sigma \in A</code>. A node represents an information gain if for any symbol <code class="reqn">\sigma \in A</code> the ratio is greater than the cut-off <code class="reqn">C</code> or lower than <code class="reqn">1/C</code>, that is if
+</p>
+<p style="text-align: center;"><code class="reqn">
+G_{1}(c)=\sum_{\sigma \in A} 1 \left[ \frac{\hat{P}(\sigma |c)}{\hat{P}(\sigma | suf(c))} \geq C \; \cup \; 
+\frac{\hat{P}(\sigma |c)}{\hat{P}(\sigma | suf(c))} \leq \frac{1}{C} \right] \geq 1
+</code>
+</p>
+
+<p>where <code class="reqn">C</code> is a user defined cut-off value. Nodes that do not satisfy the above condition are pruned. For <code class="reqn">C=1</code> no node is removed since even a node having a next probability distribution similar to the one of its parent does not satisfy the pruning condition.
+</p>
+<p>The <em>context</em> algorithm uses another gain function, namely
+</p>
+<p style="text-align: center;"><code class="reqn">
+G_{2}(c)=\sum_{\sigma \in A} \hat{P}(\sigma|c)\log \left( \frac{\hat{P}(\sigma|c)}{\hat{P}(\sigma|suf(c))} \right) N(c) &gt; C
+</code>
+</p>
+
+<p>where <code class="reqn">c</code> is the context labelling the terminal node, <code class="reqn">N(c)</code> is the number of occurrences of <code class="reqn">c</code> in the data. The cutoff <code class="reqn">C</code> is specified on the scale of <code class="reqn">\chi^{2}</code>-quantiles <cite>Maechler-2004</cite>
+</p>
+<p style="text-align: center;"><code class="reqn">
+C=C(\alpha)=\frac{1}{2}qchisq(1-\alpha,v), v=|A|-1
+</code>
+</p>
+
+<p>where <code class="reqn">qchisq(p=1-\alpha,v)</code> is the quantile function of a <code class="reqn">\chi^{2}</code> distribution with <code class="reqn">v</code> degrees of freedom. The cutoff <code class="reqn">C</code> is a threshold for the difference of deviances between a tree <code class="reqn">S^{1}</code> and its subtree <code class="reqn">S^{2}</code> obtained by pruning the terminal node <code class="reqn">c</code>. Typical values for <code class="reqn">\alpha</code> are <code class="reqn">5\%</code> and <code class="reqn">1\%</code>, yielding <code class="reqn">p=0.95</code> and <code class="reqn">p=0.99</code> respectively. For more details, see <cite>Gabadinho 2016</cite>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A probabilistic suffix tree, i.e., an object of class <code>PSTf</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Alexis Gabadinho
+</p>
+
+
+<h3>References</h3>
+
+<p>Bejerano, G. &amp; Yona, G. (2001). Variations on probabilistic suffix trees: statistical modeling and prediction of protein families. <em>Bioinformatics</em>, 17, pp. 23-43.
+</p>
+<p>Gabadinho, A. &amp; Ritschard, G. (2016). Analyzing State Sequences with Probabilistic Suffix Trees: The PST R Package. <em>Journal of Statistical Software</em>, <b>72</b>(3), pp. 1-39.
+</p>
+<p>Maechler, M. &amp; Buehlmann, P. (2004). Variable Length Markov Chains: Methodology, Computing, and Software <em>Journal of Computational and Graphical Statistics</em>, 13, pp. 435-455.
+</p>
+<p>Ron, D.; Singer, Y. &amp; Tishby, N. (1996). The power of amnesia: Learning probabilistic automata with variable memory length <em>Machine Learning</em>, 25, pp. 117-149.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>tune</code>, <code>ppplot</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(s1)
+s1.seq &lt;- seqdef(s1)
+S1 &lt;- pstree(s1.seq, L=3, nmin=2, ymin=0.001)
+
+## --
+S1.p1 &lt;- prune(S1, gain="G1", C=1.20, delete=FALSE)
+summary(S1.p1)
+plot(S1.p1)
+
+## --
+C95 &lt;- qchisq(0.95,1)/2
+S1.p2 &lt;- prune(S1, gain="G2", C=C95, delete=FALSE)
+plot(S1.p2)
+</code></pre>
+
+
+</div>

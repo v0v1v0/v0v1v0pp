@@ -1,0 +1,433 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>psoptim</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Particle Swarm Optimizer</h2>
+
+<h3>Description</h3>
+
+<p>General implementation of particle swarm optimization usable as a direct
+replacement for <code>optim</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">psoptim(par, fn, gr = NULL, ..., lower = -1, upper = 1, control = list())
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>par</code></td>
+<td>
+<p>Vector with length defining the dimensionality of the
+optimization problem. Providing actual values of <code>par</code> are not
+necessary (<code>NA</code> is just fine). Included primarily for
+compatibility with
+<code>optim</code> but if values are provided within the <code>lower</code>
+and <code>upper</code> bounds then the first particle will be
+initialized to the position provided by <code>par</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fn</code></td>
+<td>
+
+<p>A function to be minimized (or maximized), with first
+argument the vector of parameters over which minimization is
+to take place.  It should return a scalar result.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gr</code></td>
+<td>
+
+<p>A function to return the gradient if local search is BFGS.
+If it is <code>NULL</code>, a
+finite-difference approximation will be used.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Further arguments to be passed to <code>fn</code> and <code>gr</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower</code></td>
+<td>
+
+<p>Lower bounds on the variables.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper</code></td>
+<td>
+
+<p>Upper bounds on the variables.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+
+<p>A list of control parameters. See “Details”.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>By default this function performs minimization using a particle swarm
+algorithm, but it will maximize if <code>control$fnscale</code> is negative.
+</p>
+<p>The default control arguments implies that the algorithm follows the
+Standard PSO 2007 implementation by Maurice Clerc, but the code also
+provides support for PSO 2011, clamping the maximal velocity, restarting when
+all particles converge to a single area and using BFGS as
+the local search direction.
+</p>
+<p>The <code>control</code> argument is a list that can supply any of the
+following components:
+</p>
+
+<dl>
+<dt>trace:</dt>
+<dd>
+<p>Non-negative integer. If positive, tracing information on
+the progress of the optimization is produced. Defaults to <code>0</code>.
+</p>
+</dd>
+<dt>fnscale:</dt>
+<dd>
+<p>An overall scaling to be applied to the value of <code>fn</code>
+and <code>gr</code> (if used) during optimization. If negative, turns the problem
+into a maximization problem. Optimization is performed on
+<code>fn(par)/fnscale</code>. Defaults to <code>1</code>.
+</p>
+</dd>
+<dt>maxit:</dt>
+<dd>
+<p>The maximum number of iterations. Defaults to <code>1000</code>.
+</p>
+</dd>
+<dt>maxf:</dt>
+<dd>
+<p>The maximum number of function evaluations (not considering any
+performed during numerical gradient computation). Defaults to <code>Inf</code>.
+</p>
+</dd>
+<dt>abstol:</dt>
+<dd>
+<p>The absolute convergence tolerance. The method converges once the
+best fitness obtained is less than or equal to
+<code>abstol</code>. Defaults to <code>-Inf</code>.
+</p>
+</dd>
+<dt>reltol:</dt>
+<dd>
+<p>The tolerance for restarting. Once the maximal distance between the
+best particle and all other particles is less than <code>reltol*d</code>
+the algorithm restarts. Defaults to <code>0</code> which disables the
+check for restarting.
+</p>
+</dd>
+<dt>REPORT:</dt>
+<dd>
+<p>The frequency for reports if <code>control$trace</code> is
+positive. Defaults to <code>10</code>.
+</p>
+</dd>
+<dt>trace.stats:</dt>
+<dd>
+<p>Logical; if <code>TRUE</code> statistics at every
+reporting step are collected and returned. Defaults to <code>FALSE</code>.
+</p>
+</dd>
+<dt>s:</dt>
+<dd>
+<p>The swarm size. Defaults to <code>floor(10+2*sqrt(length(par)))</code> unless <code>type</code> is “SPSO2011” in which case the default is <code>40</code>.
+</p>
+</dd>
+<dt>k:</dt>
+<dd>
+<p>The exponent for calculating number of informants. Defaults to <code>3</code>.
+</p>
+</dd>
+<dt>p:</dt>
+<dd>
+<p>The average percentage of informants for each particle. A value of
+<code>1</code> implies that all particles are fully informed. Defaults to
+<code>1-(1-1/s)^k</code>.
+</p>
+</dd>
+<dt>w:</dt>
+<dd>
+<p>The exploitation constant. A vector of length <code>1</code> or
+<code>2</code>. If the length is two, the actual constant used is gradially
+changed from <code>w[1]</code> to <code>w[2]</code> as the number of iterations or
+function evaluations approach the limit provided.
+Defaults to <code>1/(2*log(2))</code>.
+</p>
+</dd>
+<dt>c.p:</dt>
+<dd>
+<p>The local exploration constant. Defaults to <code>.5+log(2)</code>.
+</p>
+</dd>
+<dt>c.g:</dt>
+<dd>
+<p>The global exploration constant. Defaults to <code>.5+log(2)</code>.
+</p>
+</dd>
+<dt>d:</dt>
+<dd>
+<p>The diameter of the search space. Defaults to the euclidean distance
+between <code>upper</code> and <code>lower</code>.
+</p>
+</dd>
+<dt>v.max:</dt>
+<dd>
+<p>The maximal (euclidean) length of the velocity vector. Defaults to <code>NA</code>
+which disables clamping of the velocity. However, if specified the
+actual clamping of the length is <code>v.max*d</code>.
+</p>
+</dd>
+<dt>rand.order:</dt>
+<dd>
+<p>Logical; if <code>TRUE</code> the particles are processed in random
+order. If <code>vectorize</code> is <code>TRUE</code> then the value of
+<code>rand.order</code> does not matter. Defaults to <code>TRUE</code>.
+</p>
+</dd>
+<dt>max.restart:</dt>
+<dd>
+<p>The maximum number of restarts. Defaults to <code>Inf</code>.
+</p>
+</dd>
+<dt>maxit.stagnate:</dt>
+<dd>
+<p>The maximum number of iterations without improvement.
+Defaults to <code>Inf</code>.
+</p>
+</dd>
+<dt>vectorize:</dt>
+<dd>
+<p>Logical; if <code>TRUE</code> the particles are processed in a vectorized
+manner. This reduces the overhead associated with iterating over
+each particle and may be more time efficient for cheap function
+evaluations. Defaults to <code>FALSE</code>.
+</p>
+</dd>
+<dt>hybrid:</dt>
+<dd>
+<p>If true, each normal PSO position update is followed by an
+L-BFGS-B search with the provided position as initial guess. This
+makes the implementation a hybrid approach. Defaults to
+<code>FALSE</code> which disables BFGS for the local search. Note that
+no attempt is done to control the maximal number of function
+evaluations within the local search step (this can be done
+separately through <code>hybrid.control</code>) but the number of
+function evaluations used by the local search method counts
+towards the limit provided by <code>maxf</code> AFTER the local search
+returns. To support a broader class of hybrid approaches a
+character vector can also be supplied with “off” being
+equivalent to false, “on” equivalent to true, and
+“improved” implying that the local search will only be
+performed when the swarm finds an improvement.
+</p>
+</dd>
+<dt>hybrid.control:</dt>
+<dd>
+<p>List with any additional control parameters to pass on to
+<code>optim</code> when using L-BFGS-B for the local search.
+Defaults to <code>NULL</code>.
+</p>
+</dd>
+<dt>type:</dt>
+<dd>
+<p>Character vector which describes which reference implementation of SPSO is followed. Can take the value of “SPSO2007” or “SPSO2011”. Defaults to “SPSO2007”.</p>
+</dd>
+</dl>
+<h3>Value</h3>
+
+<p>A list, compatible with the output from <code>optim</code>, with components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>par</code></td>
+<td>
+
+<p>The best set of parameters found.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>value</code></td>
+<td>
+
+<p>The value of <code>fn</code> corresponding to <code>par</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>counts</code></td>
+<td>
+
+<p>A three-element vector containing the number of function
+evaluations, the number of iterations, and the number of restarts.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convergence</code></td>
+<td>
+
+<p>An integer code. <code>0</code> indicates that the algorithm terminated by
+reaching the absolute tolerance; otherwise:
+</p>
+
+<dl>
+<dt>
+<code>1</code>:</dt>
+<dd>
+<p>Maximal number of function evaluations reached.</p>
+</dd>
+<dt>
+<code>2</code>:</dt>
+<dd>
+<p>Maximal number of iterations reached.</p>
+</dd>
+<dt>
+<code>3</code>:</dt>
+<dd>
+<p>Maximal number of restarts reached.</p>
+</dd>
+<dt>
+<code>4</code>:</dt>
+<dd>
+<p>Maximal number of iterations without improvement reached.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>message</code></td>
+<td>
+<p>A descriptive message of the reason for termination.
+</p>
+</td>
+</tr>
+</table>
+<p>If <code>trace</code> is positive and <code>trace.stats</code> is <code>TRUE</code> additionally the component:
+</p>
+<table><tr style="vertical-align: top;">
+<td><code>stats</code></td>
+<td>
+<p>A list of statistics collected at every reporting step with the following components:
+</p>
+<dl>
+<dt><code>it</code></dt>
+<dd>
+<p>A vector with the iteration numbers</p>
+</dd>
+<dt><code>error</code></dt>
+<dd>
+<p>A vector with the corresponding best fitness values obtained</p>
+</dd>
+<dt><code>f</code></dt>
+<dd>
+<p>A list with the corresponding current swarm fitness values as a vector</p>
+</dd>
+<dt><code>x</code></dt>
+<dd>
+<p>A list with the corresponding current swarm positions as a matrix</p>
+</dd>
+</dl>
+</td>
+</tr></table>
+<h3>References</h3>
+
+<p>Default parameters follow:
+</p>
+<p>Clerc, M. (2011)
+<a href="https://hal.archives-ouvertes.fr/hal-00764996/document">https://hal.archives-ouvertes.fr/hal-00764996/document</a>.
+Notice that the SPSO 2011 implementation does not include any
+of the bells and whistles from the implementation by M. Clerc et
+al. and effectively only differes from the SPSO 2007 implementation
+in the default swarm size, how velocities are initiated and the
+update of velocities/positions which in the SPSO 2011 implementation
+are invariant to rotation.
+</p>
+<p>The gradual change of <code>w</code> and clamping the maximal velocity is
+described in:
+</p>
+<p>Parsopoulos, K.E. and Vrahatis M.N. (2002)
+<em>Recent approaches to global optimization problems
+through Particle Swarm Optimization</em>.
+Natural Computing 1: 235-306.
+</p>
+<p>The restart (provided through <code>reltol</code>) is similar to:
+</p>
+<p>Evers G.I. and Ghalia M.B.
+<em>Regrouping Particle Swarm Optimization:
+A New Global Optimization Algorithm with
+Improved Performance Consistency Across
+Benchmarks</em>. <a href="https://bee22.com/resources/Evers%202009.pdf">https://bee22.com/resources/Evers%202009.pdf</a>
+</p>
+<p>The hybrid approach is similar to:
+</p>
+<p>Qin J., Yin Y. and Ban X. (2010)
+<em>A Hybrid of Particle Swarm Optimization and Local Search for Multimodal Functions</em>.
+Lecture Notes in Computer Science, Volume 6145/2010, 589-596, DOI: 10.1007/978-3-642-13495-1_72
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>optim</code>, <code>test.problem</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(1)
+## Rastrigin function
+psoptim(rep(NA,2),function(x) 20+sum(x^2-10*cos(2*pi*x)),
+        lower=-5,upper=5,control=list(abstol=1e-8))
+
+set.seed(1)
+## Rastrigin function - local refinement with L-BFGS-B on improvements
+psoptim(rep(NA,2),function(x) 20+sum(x^2-10*cos(2*pi*x)),
+        lower=-5,upper=5,control=list(abstol=1e-8,hybrid="improved"))
+
+## Griewank function
+psoptim(rep(NA,2),function(x) sum(x*x)/4000-prod(cos(x/sqrt(1:2)))+1,
+        lower=-100,upper=100,control=list(abstol=1e-2))
+
+set.seed(1)
+## Rastrigin function with reporting
+o &lt;- psoptim(rep(NA,2),function(x) 20+sum(x^2-10*cos(2*pi*x)),
+             lower=-5,upper=5,control=list(abstol=1e-8,trace=1,REPORT=1,
+             trace.stats=TRUE))
+## Not run: 
+plot(o$stats$it,o$stats$error,log="y",xlab="It",ylab="Error")
+points(o$stats$it,sapply(o$stats$f,min),col="blue",pch=2)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

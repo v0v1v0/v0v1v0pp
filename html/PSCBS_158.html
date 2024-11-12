@@ -1,0 +1,121 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pruneBySdUndo.CBS</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Prune the CBS profile by dropping change points that are too small</h2>
+
+<h3>Description</h3>
+
+<p>Prune the CBS profile by dropping change points that are too small, where "too small" means that the amplitude of the
+change points is less than a multiple of the overall standard deviation
+of the copy-number signals.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'CBS'
+pruneBySdUndo(fit, rho=3, sigma="DNAcopy", ..., verbose=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>A <code>CBS</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+<p>A positive <code>double</code> scalar specifying the number of standard
+deviations (<code>rho*sigma</code>) required in order to keep a change point.
+More change points are dropped the greater this value is.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma</code></td>
+<td>
+<p>The whole-genome standard deviation of the locus-level
+copy number signals.  The default is to calculate it from the data
+and as done in the <span class="pkg">DNAcopy</span> package.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>(Optional) Additional arguments passed to the standard
+deviation estimator function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>See <code>Verbose</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This method corresponds to using the <code>undo</code> argument when calling
+<code>segmentByCBS</code>(), which in turn corresponds to using the
+<code>undo.splits="sdundo"</code> and <code>undo.SD</code> of the underlying
+<code>segment</code> method.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a <code>CBS</code> object (of the same class as <code>fit</code>).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Henrik Bengtsson, Pierre Neuvial</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Simulating copy-number data
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+set.seed(0xBEEF)
+
+# Number of loci
+J &lt;- 1000
+
+mu &lt;- double(J)
+mu[1:100] &lt;- mu[1:100] + 0.3
+mu[200:300] &lt;- mu[200:300] + 1
+mu[350:400] &lt;- NA # centromere
+mu[650:800] &lt;- mu[650:800] - 1
+eps &lt;- rnorm(J, sd=1/2)
+y &lt;- mu + eps
+x &lt;- sort(runif(length(y), max=length(y))) * 1e5
+w &lt;- runif(J)
+w[650:800] &lt;- 0.001
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Segmentation
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fit &lt;- segmentByCBS(y, x=x)
+print(fit)
+plotTracks(fit)
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Post-segmentation pruning
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fitP &lt;- pruneBySdUndo(fit, rho=1)
+drawLevels(fitP, col="red")
+</code></pre>
+
+
+</div>

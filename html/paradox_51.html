@@ -1,0 +1,200 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>to_tune</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Indicate that a Parameter Value should be Tuned</h2>
+
+<h3>Description</h3>
+
+<p><code>to_tune()</code> creates a <code>TuneToken</code> object which can be assigned to the <code style="white-space: pre;">⁠$values⁠</code> slot of a <code>ParamSet</code> as an
+alternative to a concrete value. This indicates that the value is not given directly but should be tuned using
+<a href="https://CRAN.R-project.org/package=bbotk"><span class="pkg">bbotk</span></a> or <a href="https://CRAN.R-project.org/package=mlr3tuning"><span class="pkg">mlr3tuning</span></a>. If the thus parameterized object
+is invoked directly, without being wrapped by or given to a tuner, it will give an error.
+</p>
+<p>The tuning range <code>ParamSet</code> that is constructed from the <code>TuneToken</code> values in a <code>ParamSet</code>'s <code style="white-space: pre;">⁠$values⁠</code> slot
+can be accessed through the <code>ParamSet$search_space()</code> method. This is done automatically by tuners if no tuning range
+is given, but it is also possible to access the <code style="white-space: pre;">⁠$search_space()⁠</code> method, modify it further, and give the modified
+<code>ParamSet</code> to a tuning function (or do anything else with it, nobody is judging you).
+</p>
+<p>A <code>TuneToken</code> represents the range over which the parameter whose <code style="white-space: pre;">⁠$values⁠</code> slot it occupies should be tuned over. It
+can be constructed via the <code>to_tune()</code> function in one of several ways:
+</p>
+
+<ul>
+<li> <p><strong><code>to_tune()</code></strong>: Indicates a parameter should be tuned over its entire range. Only applies to finite parameters
+(i.e. discrete or bounded numeric parameters)
+</p>
+</li>
+<li> <p><strong><code>to_tune(lower, upper, logscale)</code></strong>: Indicates a numeric parameter should be tuned in the inclusive interval spanning
+<code>lower</code> to <code>upper</code>, possibly on a log scale if <code>logscale</code> is se to <code>TRUE</code>. All parameters are optional, and the
+parameter's own lower / upper bounds are used without log scale, by default. Depending on the parameter,
+integer (if it is a <code>p_int()</code>) or real values (if it is a <code>p_dbl()</code>) are used.<br><code>lower</code>, <code>upper</code>, and <code>logscale</code> can be given by position, except when only one of them is given, in which case
+it must be named to disambiguate from the following cases.<br>
+When <code>logscale</code> is <code>TRUE</code>, then a <code>trafo</code> is generated automatically that transforms to the given bounds. The
+bounds are log()'d pre-trafo (see examples). See the <code>logscale</code> argument of <code>Domain</code> functions for more info.<br>
+Note that "logscale" is <em>not</em> inherited from the <code>Domain</code> that the <code>TuneToken</code> belongs to! Defining a parameter
+with <code style="white-space: pre;">⁠p_dbl(... logscale = TRUE)⁠</code> will <em>not</em> automatically give the <code>to_tune()</code> assigned to it log-scale.
+</p>
+</li>
+<li> <p><strong><code>to_tune(levels)</code></strong>: Indicates a parameter should be tuned through the given discrete values. <code>levels</code> can be any
+named or unnamed atomic vector or list (although in the unnamed case it must be possible to construct a
+corresponding <code>character</code> vector with distinct values using <code>as.character</code>).
+</p>
+</li>
+<li> <p><strong><code style="white-space: pre;">⁠to_tune(&lt;Domain&gt;)⁠</code></strong>: The given <code>Domain</code> object (constructed e.g. with <code>p_int()</code> or <code>p_fct()</code>) indicates
+the range which should be tuned over. The supplied <code>trafo</code> function is used for parameter transformation.
+</p>
+</li>
+<li> <p><strong><code style="white-space: pre;">⁠to_tune(&lt;ParamSet&gt;)⁠</code></strong>: The given <code>ParamSet</code> is used to tune over a single dimension. This is useful for cases
+where a single evaluation-time parameter value (e.g. <code>p_uty()</code>) is constructed from multiple tuner-visible
+parameters (which may not be <code>p_uty()</code>). If not one-dimensional, the supplied <code>ParamSet</code> should always contain a <code style="white-space: pre;">⁠$extra_trafo⁠</code> function,
+which must then always return a <code>list</code> with a single entry.
+</p>
+</li>
+</ul>
+<p>The <code>TuneToken</code> object's internals are subject to change and should not be relied upon. <code>TuneToken</code> objects should
+only be constructed via <code>to_tune()</code>, and should only be used by giving them to <code style="white-space: pre;">⁠$values⁠</code> of a <code>ParamSet</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">to_tune(..., internal = !is.null(aggr), aggr = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>if given, restricts the range to be tuning over, as described above.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>internal</code></td>
+<td>
+<p>(<code>logical(1)</code>)<br>
+Whether to create an <code>InternalTuneToken</code>.
+This is only available for parameters tagged with <code>"internal_tuning"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aggr</code></td>
+<td>
+<p>(<code>function</code>)<br>
+Function with one argument, which is a list of parameter values and returns a single aggregated value (e.g. the mean).
+This specifies how multiple parameter values are aggregated to form a single value in the context of internal tuning.
+If none specified, the default aggregation function of the parameter will be used.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>TuneToken</code> object.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other ParamSet construction helpers: 
+<code>Domain()</code>,
+<code>ps()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">params = ps(
+  int = p_int(0, 10),
+  int_unbounded = p_int(),
+  dbl = p_dbl(0, 10),
+  dbl_unbounded = p_dbl(),
+  dbl_bounded_below = p_dbl(lower = 1),
+  fct = p_fct(c("a", "b", "c")),
+  uty1 = p_uty(),
+  uty2 = p_uty(),
+  uty3 = p_uty(),
+  uty4 = p_uty(),
+  uty5 = p_uty()
+)
+
+params$values = list(
+
+  # tune over entire range of `int`, 0..10:
+  int = to_tune(),
+
+  # tune over 2..7:
+  int_unbounded = to_tune(2, 7),
+
+  # tune on a log scale in range 1..10;
+  # recognize upper bound of 10 automatically, but restrict lower bound to 1:
+  dbl = to_tune(lower = 1, logscale = TRUE),
+  ## This is equivalent to the following:
+  # dbl = to_tune(p_dbl(log(1), log(10), trafo = exp)),
+
+  # nothing keeps us from tuning a dbl over integer values
+  dbl_unbounded = to_tune(p_int(1, 10)),
+
+  # tune over values "a" and "b" only
+  fct = to_tune(c("a", "b")),
+
+  # tune over integers 2..8.
+  # ParamUty needs type information in form of p_xxx() in to_tune.
+  uty1 = to_tune(p_int(2, 8)),
+
+  # tune uty2 like a factor, trying 1, 10, and 100:
+  uty2 = to_tune(c(1, 10, 100)),
+
+  # tune uty3 like a factor. The factor levels are the names of the list
+  # ("exp", "square"), but the trafo will generate the values from the list.
+  # This way you can tune an objective that has function-valued inputs.
+  uty3 = to_tune(list(exp = exp, square = function(x) x^2)),
+
+  # tune through multiple parameters. When doing this, the ParamSet in tune()
+  # must have the trafo that generates a list with one element and the right
+  # name:
+  uty4 = to_tune(ps(
+    base = p_dbl(0, 1),
+    exp = p_int(0, 3),
+    .extra_trafo = function(x, param_set) {
+      list(uty4 = x$base ^ x$exp)
+    }
+  )),
+
+  # not all values need to be tuned!
+  uty5 = 100
+)
+
+print(params$values)
+
+print(params$search_space())
+
+# Change `$values` directly and generate new `$search_space()` to play around
+params$values$uty3 = 8
+params$values$uty2 = to_tune(c(2, 4, 8))
+
+print(params$search_space())
+
+# Notice how `logscale` applies `log()` to lower and upper bound pre-trafo:
+params = ps(x = p_dbl())
+
+params$values$x = to_tune(1, 100, logscale = TRUE)
+
+print(params$search_space())
+
+grid = generate_design_grid(params$search_space(), 3)
+
+# The grid is equidistant within log-bounds pre-trafo:
+print(grid)
+
+# But the values are on a log scale scale with desired bounds after trafo:
+print(grid$transpose())
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,218 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>EM_fit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+EM algorithm for fitting generalized odds-rate model with specified link function (i.e., alpha value) under interval-censored data
+</h2>
+
+<h3>Description</h3>
+
+<p>Fits the generalized odds-rate model based on penalized B-splines to interval censored data via an EM algorithm.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">EM_fit(g0,b0,d1,d2,d3,Li,Ri,Z,nsub,alpha,qn,order,t.seq,tol=1e-5,itmax=500,lamu=1e5)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>g0</code></td>
+<td>
+<p>initial estimate of the spline coefficients; should be of length qn+order+1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b0</code></td>
+<td>
+<p>initial estimate of regression coefficients; should be of length dim(Z)[2].</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d1</code></td>
+<td>
+<p>vector indicating whether an observation is left-censored (1) or not (0).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d2</code></td>
+<td>
+<p>vector indicating whether an observation is interval-censored (1) or not (0).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d3</code></td>
+<td>
+<p>vector indicating whether an observation is right-censored (1) or not (0).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Li</code></td>
+<td>
+<p>the left endpoint of the observed interval; if an observation is left-censored, its corresponding entry should be 0. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Ri</code></td>
+<td>
+<p>the right endpoint of the observed interval; if an observation is right-censored, its corresponding entry should be Inf. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Z</code></td>
+<td>
+<p>design matrix of predictor variables (in columns); should be specified without an intercept term.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsub</code></td>
+<td>
+<p>size of observed dataset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>parameter of link function; alpha=0 for the PH model and alpha=1 for the PO model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>qn</code></td>
+<td>
+<p>the number of interior knots to be used; should not exceed square root of sample size.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>order</code></td>
+<td>
+<p>the order of the basis functions; order=3 for cubic spline.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>the convergence criterion of the EM algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t.seq</code></td>
+<td>
+<p>an increasing sequence of points at which the cumulative baseline hazard function is evaluated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>itmax</code></td>
+<td>
+<p>maximum iterations of EM procedure.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lamu</code></td>
+<td>
+<p>upper limit of smoothing parameter.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The above function fits the generalized odds-rate model (with specified value of alpha) to interval censored data via an EM algorithm using penalized monotone B-splines.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>estimates of the regression coefficients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g</code></td>
+<td>
+<p>estimates of the spline coefficients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se</code></td>
+<td>
+<p>the standard deviation of b.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>base</code></td>
+<td>
+<p>estimated cumulative baseline hazard function evaluated at the points t.seq.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>final value of smooth parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flag</code></td>
+<td>
+<p>the indicator whether the procedure converged; 0 if converged.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Lu, M., Liu, Y., Li, C. and Sun, J. (2019+). An efficient penalized estimation approach for
+a semi-parametric linear transformation model with interval-censored data. arXiv:1912.11703.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(1)
+case  &lt;- 2
+nsub  &lt;- 35
+
+# Generate interval-censored data under PH model
+
+dat &lt;- dataPA(nsub,case,alpha=0)
+rp  &lt;- c(mean(dat$d1),mean(dat$d2),mean(dat$d3))
+rp
+
+# [1] 0.2571429 0.3428571 0.4000000
+
+t.seq &lt;- seq(0.01,4,0.01)
+
+# number of interior knots to be used
+qn    &lt;- ceiling(nsub^(1/3))-2
+order &lt;- 3
+d1    &lt;- dat$d1
+d2    &lt;- dat$d2
+d3    &lt;- dat$d3
+Ri    &lt;- dat$Ri
+Li    &lt;- dat$Li
+Z     &lt;- dat$Z
+p     &lt;- ncol(Z)
+b0    &lt;- rep(0,p)
+g0    &lt;- sort(runif(qn+order+1,-1,1))
+
+# Fit data under PH model
+
+fit &lt;- EM_fit(g0,b0,d1,d2,d3,Li,Ri,Z,nsub,alpha=0,qn,order,t.seq,tol=1e-2,itmax=100,lamu=1e5)
+cbind(fit$b,fit$se)
+
+
+#           [,1]      [,2]
+#[1,] -1.0655212 0.5021835
+#[2,]  0.7649178 0.3185045
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,184 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sim_data_list</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Input generated data for a simulation study</h2>
+
+<h3>Description</h3>
+
+<p>A function for defining generated data for use as part of a
+simulation study.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sim_data_list(data_list, guide, effect, drift, index)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data_list</code></td>
+<td>
+<p>list of lists of matrices. The lists at the highest
+level differ in that the parameters used to generate the data. The matrices
+at lowest level are different iterations of the same data generation
+parameters. See <code>details</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>guide</code></td>
+<td>
+<p>data.frame. <code>guide</code> contains information on the parameters
+that differ at the highest level of <code>data_list</code>. See <code>details.</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>effect</code></td>
+<td>
+<p>character. The column in <code>guide</code> that
+corresponds to the true treatment effect estimate (hazard ratio or odds ratio).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drift</code></td>
+<td>
+<p>character. The column in <code>guide</code> that
+corresponds to the true drift effect estimate (hazard ratio or odds ratio).
+A drift &gt;1 means the external arm experiences greater effects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index</code></td>
+<td>
+<p>character. The column in <code>guide</code> that corresponds
+to the index column.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In this function, you are providing generated data for analysis in a
+simulation study in <code>psborrow2</code>. Note that this function does not
+do any data generation on your behalf; it assumes that you have generated
+the data already. For a full working example, refer to the relevant vignette:
+<code>vignette('simulation_study', package = 'psborrow2')</code>.
+</p>
+<p>More information on the inputs is provided below.
+</p>
+
+
+<h4>Matrix requirements in <code>data_list</code>
+</h4>
+
+<p>Each matrix embedded in <code>data_list</code> must have:
+</p>
+
+<ol>
+<li>
+<p> a flag for whether the patient is an external control
+</p>
+</li>
+<li>
+<p> a flag for whether the patient is in the experimental treatment arm
+</p>
+</li>
+<li>
+<p> outcome information (time and censorship for survival, flag for
+outcome in binary endpoints)
+</p>
+</li>
+</ol>
+<p>Optionally, the matrices may also contain covariates. See <code>examples</code>.
+</p>
+
+
+
+<h4><code>data_list</code></h4>
+
+<p>Each set of distinct data generation parameters should be represented by
+a single list of matrices. Because multiple scenarios may want to be
+compared, a list of list of matrices is preferred. See <code>examples</code>.
+</p>
+
+
+
+<h4><code>guide</code></h4>
+
+<p>The <code>guide</code> should be a data.frame with one row per scenario. As a
+consquence of this, the length of the list should equal the number of rows
+in the guide. See <code>examples</code>.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>Object of class <code>SimDataList</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other simulation classes: 
+<code>sim_borrowing_list()</code>,
+<code>sim_covariate_list()</code>,
+<code>sim_outcome_list()</code>,
+<code>sim_treatment_list()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">base_mat &lt;- matrix(
+  c(
+    rep(0, 200), rep(0, 200), rep(1, 200),
+    rep(1, 200), rep(0, 200), rep(0, 200),
+    rep(0, 600)
+  ),
+  ncol = 3,
+  dimnames = list(NULL, c("ext", "trt", "driftOR"))
+)
+
+add_binary_endpoint &lt;- function(odds_ratio,
+                                base_matrix = base_mat) {
+  linear_predictor &lt;- base_matrix[, "trt"] * log(odds_ratio)
+  prob &lt;- 1 / (1 + exp(-linear_predictor))
+
+  bin_endpoint &lt;- rbinom(
+    NROW(base_matrix),
+    1,
+    prob
+  )
+
+  cbind(base_matrix, matrix(bin_endpoint, ncol = 1, dimnames = list(NULL, "ep")))
+}
+
+data_list &lt;- list(
+  list(add_binary_endpoint(1.5), add_binary_endpoint(1.5)),
+  list(add_binary_endpoint(2.5), add_binary_endpoint(2.5))
+)
+
+guide &lt;- data.frame(
+  trueOR = c(1.5, 2.5),
+  driftOR = c(1.0, 1.0),
+  ind = c(1, 2)
+)
+
+sdl &lt;- sim_data_list(
+  data_list = data_list,
+  guide = guide,
+  effect = "trueOR",
+  drift = "driftOR",
+  index = "ind"
+)
+
+</code></pre>
+
+
+</div>

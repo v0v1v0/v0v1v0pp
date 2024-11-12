@@ -1,0 +1,303 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>test_WEAT</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Word Embedding Association Test (WEAT) and Single-Category WEAT.</h2>
+
+<h3>Description</h3>
+
+<p>Tabulate data (cosine similarity and standardized effect size) and
+conduct the permutation test of significance for the
+<em>Word Embedding Association Test</em> (WEAT) and
+<em>Single-Category Word Embedding Association Test</em> (SC-WEAT).
+</p>
+
+<ul>
+<li>
+<p>For WEAT, two-samples permutation test is conducted (i.e., rearrangements of data).
+</p>
+</li>
+<li>
+<p>For SC-WEAT, one-sample permutation test is conducted (i.e., rearrangements of +/- signs to data).
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">test_WEAT(
+  data,
+  T1,
+  T2,
+  A1,
+  A2,
+  use.pattern = FALSE,
+  labels = list(),
+  p.perm = TRUE,
+  p.nsim = 10000,
+  p.side = 2,
+  seed = NULL,
+  pooled.sd = "Caliskan"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A <code>wordvec</code> (data.table) or
+<code>embed</code> (matrix),
+see <code>data_wordvec_load</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>T1, T2</code></td>
+<td>
+<p>Target words (a vector of words or a pattern of regular expression).
+If only <code>T1</code> is specified,
+it will tabulate data for single-category WEAT (SC-WEAT).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>A1, A2</code></td>
+<td>
+<p>Attribute words (a vector of words or a pattern of regular expression).
+Both must be specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use.pattern</code></td>
+<td>
+<p>Defaults to <code>FALSE</code> (using a vector of words).
+If you use regular expression in <code>T1</code>, <code>T2</code>, <code>A1</code>, and <code>A2</code>,
+please specify this argument as <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>labels</code></td>
+<td>
+<p>Labels for target and attribute concepts (a named <code>list</code>),
+such as (the default)
+<code>list(T1="Target1", T2="Target2", A1="Attrib1", A2="Attrib2")</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.perm</code></td>
+<td>
+<p>Permutation test to get exact or approximate <em>p</em> value of the overall effect.
+Defaults to <code>TRUE</code>. See also the <code>sweater</code> package.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.nsim</code></td>
+<td>
+<p>Number of samples for resampling in permutation test. Defaults to <code>10000</code>.
+</p>
+<p>If <code>p.nsim</code> is larger than the number of all possible permutations (rearrangements of data),
+then it will be ignored and an exact permutation test will be conducted.
+Otherwise (in most cases for real data and always for SC-WEAT), a resampling test is performed,
+which takes much less computation time and produces the approximate <em>p</em> value
+(comparable to the exact one).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p.side</code></td>
+<td>
+<p>One-sided (<code>1</code>) or two-sided (<code>2</code>) <em>p</em> value.
+Defaults to <code>2</code>.
+</p>
+<p>In Caliskan et al.'s (2017) article, they reported one-sided <em>p</em> value for WEAT.
+Here, I suggest reporting two-sided <em>p</em> value as a more conservative estimate.
+The users take the full responsibility for the choice.
+</p>
+
+<ul>
+<li>
+<p>The one-sided <em>p</em> value is calculated as the proportion of sampled permutations
+where the difference in means is greater than the test statistic.
+</p>
+</li>
+<li>
+<p>The two-sided <em>p</em> value is calculated as the proportion of sampled permutations
+where the absolute difference is greater than the test statistic.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Random seed for reproducible results of permutation test. Defaults to <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pooled.sd</code></td>
+<td>
+<p>Method used to calculate the pooled <em>SD</em> for effect size estimate in WEAT.
+</p>
+
+<ul>
+<li>
+<p>Defaults to <code>"Caliskan"</code>: <code>sd(data.diff$cos_sim_diff)</code>, which is highly suggested
+and identical to Caliskan et al.'s (2017) original approach.
+</p>
+</li>
+<li>
+<p>Otherwise specified, it will calculate the pooled <em>SD</em> as:
+<code class="reqn">\sqrt{[(n_1 - 1) * \sigma_1^2 + (n_2 - 1) * \sigma_2^2] / (n_1 + n_2 - 2)}</code>.
+</p>
+<p>This is <strong>NOT suggested</strong> because it may <em>overestimate</em> the effect size,
+especially when there are only a few T1 and T2 words that have small variances.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>list</code> object of new class <code>weat</code>:
+</p>
+
+<dl>
+<dt><code>words.valid</code></dt>
+<dd>
+<p>Valid (actually matched) words</p>
+</dd>
+<dt><code>words.not.found</code></dt>
+<dd>
+<p>Words not found</p>
+</dd>
+<dt><code>data.raw</code></dt>
+<dd>
+<p>A <code>data.table</code> of cosine similarities between all word pairs</p>
+</dd>
+<dt><code>data.mean</code></dt>
+<dd>
+<p>A <code>data.table</code> of <em>mean</em> cosine similarities
+<em>across</em> all attribute words</p>
+</dd>
+<dt><code>data.diff</code></dt>
+<dd>
+<p>A <code>data.table</code> of <em>differential</em> mean cosine similarities
+<em>between</em> the two attribute concepts</p>
+</dd>
+<dt><code>eff.label</code></dt>
+<dd>
+<p>Description for the difference between the two attribute concepts</p>
+</dd>
+<dt><code>eff.type</code></dt>
+<dd>
+<p>Effect type: WEAT or SC-WEAT</p>
+</dd>
+<dt><code>eff</code></dt>
+<dd>
+<p>Raw effect, standardized effect size, and p value (if <code>p.perm=TRUE</code>)</p>
+</dd>
+</dl>
+<h3>Download</h3>
+
+<p>Download pre-trained word vectors data (<code>.RData</code>):
+<a href="https://psychbruce.github.io/WordVector_RData.pdf">https://psychbruce.github.io/WordVector_RData.pdf</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Caliskan, A., Bryson, J. J., &amp; Narayanan, A. (2017).
+Semantics derived automatically from language corpora contain human-like biases.
+<em>Science, 356</em>(6334), 183–186.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>tab_similarity</code>
+</p>
+<p><code>dict_expand</code>
+</p>
+<p><code>dict_reliability</code>
+</p>
+<p><code>test_RND</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## cc() is more convenient than c()!
+
+weat = test_WEAT(
+  demodata,
+  labels=list(T1="King", T2="Queen", A1="Male", A2="Female"),
+  T1=cc("king, King"),
+  T2=cc("queen, Queen"),
+  A1=cc("male, man, boy, brother, he, him, his, son"),
+  A2=cc("female, woman, girl, sister, she, her, hers, daughter"),
+  seed=1)
+weat
+
+sc_weat = test_WEAT(
+  demodata,
+  labels=list(T1="Occupation", A1="Male", A2="Female"),
+  T1=cc("
+    architect, boss, leader, engineer, CEO, officer, manager,
+    lawyer, scientist, doctor, psychologist, investigator,
+    consultant, programmer, teacher, clerk, counselor,
+    salesperson, therapist, psychotherapist, nurse"),
+  A1=cc("male, man, boy, brother, he, him, his, son"),
+  A2=cc("female, woman, girl, sister, she, her, hers, daughter"),
+  seed=1)
+sc_weat
+
+## Not run: 
+
+## the same as the first example, but using regular expression
+weat = test_WEAT(
+  demodata,
+  labels=list(T1="King", T2="Queen", A1="Male", A2="Female"),
+  use.pattern=TRUE,  # use regular expression below
+  T1="^[kK]ing$",
+  T2="^[qQ]ueen$",
+  A1="^male$|^man$|^boy$|^brother$|^he$|^him$|^his$|^son$",
+  A2="^female$|^woman$|^girl$|^sister$|^she$|^her$|^hers$|^daughter$",
+  seed=1)
+weat
+
+## replicating Caliskan et al.'s (2017) results
+## WEAT7 (Table 1): d = 1.06, p = .018
+## (requiring installation of the `sweater` package)
+Caliskan.WEAT7 = test_WEAT(
+  as_wordvec(sweater::glove_math),
+  labels=list(T1="Math", T2="Arts", A1="Male", A2="Female"),
+  T1=cc("math, algebra, geometry, calculus, equations, computation, numbers, addition"),
+  T2=cc("poetry, art, dance, literature, novel, symphony, drama, sculpture"),
+  A1=cc("male, man, boy, brother, he, him, his, son"),
+  A2=cc("female, woman, girl, sister, she, her, hers, daughter"),
+  p.side=1, seed=1234)
+Caliskan.WEAT7
+# d = 1.055, p = .0173 (= 173 counts / 10000 permutation samples)
+
+## replicating Caliskan et al.'s (2017) supplemental results
+## WEAT7 (Table S1): d = 0.97, p = .027
+Caliskan.WEAT7.supp = test_WEAT(
+  demodata,
+  labels=list(T1="Math", T2="Arts", A1="Male", A2="Female"),
+  T1=cc("math, algebra, geometry, calculus, equations, computation, numbers, addition"),
+  T2=cc("poetry, art, dance, literature, novel, symphony, drama, sculpture"),
+  A1=cc("male, man, boy, brother, he, him, his, son"),
+  A2=cc("female, woman, girl, sister, she, her, hers, daughter"),
+  p.side=1, seed=1234)
+Caliskan.WEAT7.supp
+# d = 0.966, p = .0221 (= 221 counts / 10000 permutation samples)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

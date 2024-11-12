@@ -1,0 +1,146 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>relativeTolerance</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate relative tolerance of some phenotype(s) relative to control</h2>
+
+<h3>Description</h3>
+
+<p>Often in bellwether experiments we are curious about the effect of some
+treatment vs control. For certain routes in analysing the data this requires considering
+phenotypes as relative differences compared to a control. Note that the <code>conjugate</code>
+function can also be useful in considering the relative tolerance to stress between groups and that
+growth models are another suggested way to test relative tolerance questions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">relativeTolerance(
+  df,
+  phenotypes = NULL,
+  grouping = NULL,
+  control = NULL,
+  controlGroup = NULL,
+  traitCol = "trait",
+  valueCol = "value"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>Dataframe to use, this can be in long or wide format.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phenotypes</code></td>
+<td>
+<p>A character vector of column names for the phenotypes
+that should be compared against control.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grouping</code></td>
+<td>
+<p>A character vector of column names that identify groups in the data.
+These groups will be calibrated separately,
+with the exception of the group that identifies a control within the greater hierarchy.
+Note that for levels of grouping where the control group does not exist the output will be NA.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>A column name for the variable to be used to select the control observations.
+If left NULL (the default) then this will be taken as the first string in the group argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>controlGroup</code></td>
+<td>
+<p>The level of the control variable to compare groups against.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>traitCol</code></td>
+<td>
+<p>Column with phenotype names, defaults to "trait".
+This should generally not need to be changed from the default.
+If this and valueCol are present in colnames(df) then the data
+is assumed to be in long format.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>valueCol</code></td>
+<td>
+<p>Column with phenotype values, defaults to "value".
+This should generally not need to be changed from the default.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A dataframe with relative tolerance columns added.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+sv &lt;- read.pcv(
+  "https://raw.githubusercontent.com/joshqsumner/pcvrTestData/main/pcv4-single-value-traits.csv",
+  reader = "fread"
+)
+sv$genotype &lt;- substr(sv$barcode, 3, 5)
+sv$genotype &lt;- ifelse(sv$genotype == "002", "B73",
+  ifelse(sv$genotype == "003", "W605S",
+    ifelse(sv$genotype == "004", "MM", "Mo17")
+  )
+)
+sv$fertilizer &lt;- substr(sv$barcode, 8, 8)
+sv$fertilizer &lt;- ifelse(sv$fertilizer == "A", "100",
+  ifelse(sv$fertilizer == "B", "50", "0")
+)
+
+sv &lt;- bw.time(sv,
+  plantingDelay = 0, phenotype = "area_pixels",
+  cutoff = 10, timeCol = "timestamp", group = c("barcode", "rotation"), plot = FALSE
+)
+phenotypes &lt;- colnames(sv)[19:35]
+phenoForm &lt;- paste0("cbind(", paste0(phenotypes, collapse = ", "), ")")
+groupForm &lt;- "DAS+DAP+barcode+genotype+fertilizer"
+form &lt;- as.formula(paste0(phenoForm, "~", groupForm))
+sv &lt;- aggregate(form, data = sv, mean, na.rm = TRUE)
+sv &lt;- bw.outliers(sv,
+  phenotype = "area_pixels",
+  group = c("DAS", "genotype", "fertilizer"),
+  plotgroup = c("barcode")
+)$data
+
+pixels_per_cmsq &lt;- 42.5^2 # pixel per cm^2
+sv$area_cm2 &lt;- sv$area_pixels / pixels_per_cmsq
+sv$height_cm &lt;- sv$height_pixels / 42.5
+
+df &lt;- sv
+phenotypes &lt;- c("area_cm2", "height_cm")
+grouping &lt;- c("fertilizer", "genotype", "DAS")
+controlGroup &lt;- "100"
+control &lt;- "fertilizer"
+
+rt &lt;- relativeTolerance(df, phenotypes, grouping, control, controlGroup)
+head(rt)
+sapply(rt, function(c) sum(is.na(c)))
+
+
+</code></pre>
+
+
+</div>

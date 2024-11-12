@@ -1,0 +1,204 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>calculate_ISRatio</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate Indirectly standardised ratios using calculate_ISRatio</h2>
+
+<h3>Description</h3>
+
+<p>Calculates standard mortality ratios (or indirectly standardised ratios) with
+confidence limits using Byar's (1) or exact (2) CI method.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">calculate_ISRatio(
+  data,
+  x,
+  n,
+  x_ref,
+  n_ref,
+  refpoptype = "vector",
+  type = "full",
+  confidence = 0.95,
+  refvalue = 1,
+  observed_totals = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>data.frame containing the data to be standardised, pre-grouped if
+multiple ISRs required; unquoted string; no default</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>field name from data containing the observed number of events for
+each standardisation category (eg ageband) within each grouping set (eg
+area). Alternatively, if not providing age breakdowns for observed events,
+field name from observed_totals containing the observed number of events
+within each grouping set ; unquoted string; no default</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>field name from data containing the populations for each
+standardisation category (eg ageband) within each grouping set (eg area);
+unquoted string; no default</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x_ref</code></td>
+<td>
+<p>the observed number of events in the reference population for
+each standardisation category (eg age band); unquoted numeric vector or
+field name from data depending on value of refpoptype; no default</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_ref</code></td>
+<td>
+<p>the reference population for each standardisation category (eg
+age band); unquoted numeric vector or field name from data depending on
+value of refpoptype; no default</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refpoptype</code></td>
+<td>
+<p>whether x_ref and n_ref have been specified as vectors or a
+field name from data; quoted string "field" or "vector"; default = "vector"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>defines the data and metadata columns to be included in output;
+can be "value", "lower", "upper", "standard" (for all data) or "full" (for
+all data and metadata); quoted string; default = "full"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>confidence</code></td>
+<td>
+<p>the required level of confidence expressed as a number
+between 0.9 and 1 or a number between 90 and 100 or can be a vector of 0.95
+and 0.998, for example, to output both 95 percent and 99.8 percent percent CIs; numeric;
+default 0.95</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refvalue</code></td>
+<td>
+<p>the standardised reference ratio, numeric, default = 1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>observed_totals</code></td>
+<td>
+<p>data.frame containing total observed events for each
+group, if not provided with age-breakdowns in data. Must only contain the
+count field (x) plus grouping columns required to join to data using the
+same grouping column names; default = NULL</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>When type = "full", returns a tibble of observed events, expected
+events, standardised mortality ratios, lower confidence limits, upper
+confidence limits, confidence level, statistic and method for each grouping
+set
+</p>
+
+
+<h3>Notes</h3>
+
+<p>User MUST ensure that x, n, x_ref and n_ref vectors are all
+ordered by the same standardisation category values as records will be
+matched by position. <br><br> For numerators &gt;= 10 Byar's method (1) is
+applied using the internal byars_lower and byars_upper functions.  For
+small numerators Byar's method is less accurate and so an exact method (2)
+based on the Poisson distribution is used. <br><br> This function directly
+replaced phe_smr which was fully deprecated in package version 2.0.0 due to
+ambiguous naming
+</p>
+
+
+<h3>References</h3>
+
+<p>(1) Breslow NE, Day NE. Statistical methods in cancer research,
+volume II: The design and analysis of cohort studies. Lyon: International
+Agency for Research on Cancer, World Health Organisation; 1987. <br><br>
+(2) Armitage P, Berry G. Statistical methods in medical research (4th edn).
+Oxford: Blackwell; 2002.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other PHEindicatormethods package functions: 
+<code>assign_funnel_significance()</code>,
+<code>calculate_ISRate()</code>,
+<code>calculate_funnel_limits()</code>,
+<code>calculate_funnel_points()</code>,
+<code>phe_dsr()</code>,
+<code>phe_life_expectancy()</code>,
+<code>phe_mean()</code>,
+<code>phe_proportion()</code>,
+<code>phe_quantile()</code>,
+<code>phe_rate()</code>,
+<code>phe_sii()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(dplyr)
+df &lt;- data.frame(indicatorid = rep(c(1234, 5678, 91011, 121314), each = 19 * 2 * 5),
+                 year = rep(2006:2010, each = 19 * 2),
+                 sex = rep(rep(c("Male", "Female"), each = 19), 5),
+                 ageband = rep(c(0,5,10,15,20,25,30,35,40,45,
+                                 50,55,60,65,70,75,80,85,90), times = 10),
+                 obs = sample(200, 19 * 2 * 5 * 4, replace = TRUE),
+                 pop = sample(10000:20000, 19 * 2 * 5 * 4, replace = TRUE))
+
+refdf &lt;- data.frame(refcount = sample(200, 19, replace = TRUE),
+                    refpop = sample(10000:20000, 19, replace = TRUE))
+
+df %&gt;%
+    group_by(indicatorid, year, sex) %&gt;%
+    calculate_ISRatio(obs, pop, refdf$refcount, refdf$refpop, type="standard")
+
+## OR
+
+df %&gt;%
+    group_by(indicatorid, year, sex) %&gt;%
+    calculate_ISRatio(obs, pop, refdf$refcount, refdf$refpop, confidence=99.8, refvalue=100)
+
+## Calculate ISR when observed totals aren't available with age-breakdowns
+observed_totals &lt;- data.frame(indicatorid = rep(c(1234, 5678, 91011, 121314), each = 10),
+                       year = rep(rep(2006:2010, each = 2),4),
+                       sex = rep(rep(c("Male", "Female"), each = 1),20),
+                       observed = sample(1500:2500, 40))
+
+df %&gt;%
+    group_by(indicatorid, year, sex) %&gt;%
+    calculate_ISRatio(observed, pop, refdf$refcount, refdf$refpop,
+    observed_totals = observed_totals)
+
+</code></pre>
+
+
+</div>

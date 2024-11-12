@@ -1,0 +1,219 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>set_new_model</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Tools to Register Models</h2>
+
+<h3>Description</h3>
+
+<p>These functions are similar to constructors and can be used to validate
+that there are no conflicts with the underlying model structures used by the
+package.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">set_new_model(model)
+
+set_model_mode(model, mode)
+
+set_model_engine(model, mode, eng)
+
+set_model_arg(model, eng, parsnip, original, func, has_submodel)
+
+set_dependency(model, eng, pkg = "parsnip", mode = NULL)
+
+get_dependency(model)
+
+set_fit(model, mode, eng, value)
+
+get_fit(model)
+
+set_pred(model, mode, eng, type, value)
+
+get_pred_type(model, type)
+
+show_model_info(model)
+
+pred_value_template(pre = NULL, post = NULL, func, ...)
+
+set_encoding(model, mode, eng, options)
+
+get_encoding(model)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>A single character string for the model type (e.g.
+<code>"rand_forest"</code>, etc).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mode</code></td>
+<td>
+<p>A single character string for the model mode (e.g. "regression").</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eng</code></td>
+<td>
+<p>A single character string for the model engine.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parsnip</code></td>
+<td>
+<p>A single character string for the "harmonized" argument name
+that <code>parsnip</code> exposes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>original</code></td>
+<td>
+<p>A single character string for the argument name that
+underlying model function uses.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>func</code></td>
+<td>
+<p>A named character vector that describes how to call
+a function. <code>func</code> should have elements <code>pkg</code> and <code>fun</code>. The
+former is optional but is recommended and the latter is
+required. For example, <code>c(pkg = "stats", fun = "lm")</code> would be
+used to invoke the usual linear regression function. In some
+cases, it is helpful to use <code>c(fun = "predict")</code> when using a
+package's <code>predict</code> method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>has_submodel</code></td>
+<td>
+<p>A single logical for whether the argument
+can make predictions on multiple submodels at once.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pkg</code></td>
+<td>
+<p>An options character string for a package name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>value</code></td>
+<td>
+<p>A list that conforms to the <code>fit_obj</code> or <code>pred_obj</code> description
+below, depending on context.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>A single character value for the type of prediction. Possible
+values are: <code>class</code>, <code>conf_int</code>, <code>numeric</code>, <code>pred_int</code>, <code>prob</code>, <code>quantile</code>,
+and <code>raw</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pre, post</code></td>
+<td>
+<p>Optional functions for pre- and post-processing of prediction
+results.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Optional arguments that should be passed into the <code>args</code> slot for
+prediction objects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>options</code></td>
+<td>
+<p>A list of options for engine-specific preprocessing encodings.
+See Details below.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>These functions are available for users to add their
+own models or engines (in a package or otherwise) so that they can
+be accessed using <code>parsnip</code>. This is more thoroughly documented
+on the package web site (see references below).
+</p>
+<p>In short, <code>parsnip</code> stores an environment object that contains
+all of the information and code about how models are used (e.g.
+fitting, predicting, etc). These functions can be used to add
+models to that environment as well as helper functions that can
+be used to makes sure that the model data is in the right
+format.
+</p>
+<p><code>check_model_exists()</code> checks the model value and ensures that the model has
+already been registered. <code>check_model_doesnt_exist()</code> checks the model value
+and also checks to see if it is novel in the environment.
+</p>
+<p>The options for engine-specific encodings dictate how the predictors should be
+handled. These options ensure that the data
+that <code>parsnip</code> gives to the underlying model allows for a model fit that is
+as similar as possible to what it would have produced directly.
+</p>
+<p>For example, if <code>fit()</code> is used to fit a model that does not have
+a formula interface, typically some predictor preprocessing must
+be conducted. <code>glmnet</code> is a good example of this.
+</p>
+<p>There are four options that can be used for the encodings:
+</p>
+<p><code>predictor_indicators</code> describes whether and how to create indicator/dummy
+variables from factor predictors. There are three options: <code>"none"</code> (do not
+expand factor predictors), <code>"traditional"</code> (apply the standard
+<code>model.matrix()</code> encodings), and <code>"one_hot"</code> (create the complete set
+including the baseline level for all factors). This encoding only affects
+cases when <code>fit.model_spec()</code> is used and the underlying model has an x/y
+interface.
+</p>
+<p>Another option is <code>compute_intercept</code>; this controls whether <code>model.matrix()</code>
+should include the intercept in its formula. This affects more than the
+inclusion of an intercept column. With an intercept, <code>model.matrix()</code>
+computes dummy variables for all but one factor levels. Without an
+intercept, <code>model.matrix()</code> computes a full set of indicators for the
+<em>first</em> factor variable, but an incomplete set for the remainder.
+</p>
+<p>Next, the option <code>remove_intercept</code> will remove the intercept column
+<em>after</em> <code>model.matrix()</code> is finished. This can be useful if the model
+function (e.g. <code>lm()</code>) automatically generates an intercept.
+</p>
+<p>Finally, <code>allow_sparse_x</code> specifies whether the model function can natively
+accommodate a sparse matrix representation for predictors during fitting
+and tuning.
+</p>
+
+
+<h3>References</h3>
+
+<p>"How to build a parsnip model"
+<a href="https://www.tidymodels.org/learn/develop/models/">https://www.tidymodels.org/learn/develop/models/</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# set_new_model("shallow_learning_model")
+
+# Show the information about a model:
+show_model_info("rand_forest")
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,422 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>trackSpp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Tracks genets through time for multiple species and sites</h2>
+
+<h3>Description</h3>
+
+<p>This function tracks individual organisms in mapped quadrats
+through time to generate a demographic dataset that includes survival
+and growth for each individual.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">trackSpp(
+  dat,
+  inv,
+  dorm,
+  buff,
+  buffGenet,
+  clonal,
+  species = "Species",
+  site = "Site",
+  quad = "Quad",
+  year = "Year",
+  geometry = "geometry",
+  aggByGenet = TRUE,
+  printMessages = TRUE,
+  flagSuspects = FALSE,
+  shrink = 0.1,
+  dormSize = 0.05,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dat</code></td>
+<td>
+<p>An sf data.frame of the same format as
+<code>grasslandData</code>. It must have columns that contain ...
+#' * a unique identification for each research site in character format
+with no NAs (the default column name is "Site")
+</p>
+
+<ul>
+<li>
+<p> species name in character format with no NAs (the default column
+name is "Species")
+</p>
+</li>
+<li>
+<p> unique quadrat identifier in character format with no NAs (the default
+column name is "Quad")
+</p>
+</li>
+<li>
+<p> year of data collection in integer format with no NAs (the
+default column name is "Year")
+</p>
+</li>
+<li>
+<p> an s.f 'geometry' column that contains a polygon or multipolygon data type
+for each individual observation (the default column name is "geometry")
+and an s.f 'geometry' column
+</p>
+</li>
+</ul>
+<p>This function will add columns called
+"basalArea_ramet", "trackID", "age", "size_tplus1", "recruit," "nearEdge,"
+and "survives_tplus1", so 'dat' should not contain columns with these names.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inv</code></td>
+<td>
+<p>A named list of the same format as
+<code>grasslandInventory</code>. The name of each element of the list is a
+quadrat name in 'dat', and the contents of that list element is a numeric
+vector of all of the years in which that quadrat (or other unique spatial
+area) was sampled. Make sure this is the years the quadrat was actually
+sampled, not just the years that have data in the 'dat' argument! This
+argument allows the function to differentiate between years when the quadrat
+wasn't sampled and years when there just weren't any individuals of a species
+present in that quadrat.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dorm</code></td>
+<td>
+<p>A numeric vector of length 1, indicating the number of years an
+individual of these species is allowed to go dormant, i.e. be absent from the
+map but be considered the same individual when it reappears. This must be an
+integer greater than or equal to 0. <em>OR</em> dorm can be a data.frame with
+the columns "Species" and "dorm". This data.frame must have a row for each
+unique species present in 'dat', with species name as a character string in
+the "Species" column, and a numeric value greater than or equal to 0 in the
+'dorm' column that indicates the number of years each species is allowed to
+go dormant.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>buff</code></td>
+<td>
+<p>A numeric vector of length 1 that is greater than or equal to
+zero, indicating how far (in the same units as spatial values in 'dat') a
+polygon can move from year <code>i</code> to year <code>i+1</code> and still be
+considered the same individual. <em>OR</em> buff can be a data.frame with
+the columns "Species" and "buff". This data.frame must have a row for each
+unique species present in 'dat', with species name as a character string in
+the "Species" column, and a numeric value in the 'buff' column specifying the
+'buff' argument for each species.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>buffGenet</code></td>
+<td>
+<p>A numeric vector of length 1 that is greater than or equal
+to zero, indicating how close (in the same units as spatial values in 'dat')
+polygons must be to one another in the same year to be grouped as a genet
+(if 'clonal' argument = TRUE). <em>OR</em> buffGenet can be a data.frame with
+the columns "Species" and "buffGenet". This data.frame must have a row for
+each unique species present in 'dat', with species name as a character string
+in the "Species" column, and a numeric value greater than or equal to 0 in
+the 'buffGenet' specifying the 'buffGenet' argument for each species. This
+argument is passed to the <code>groupByGenet</code> function, which is used
+inside the <code>assign</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clonal</code></td>
+<td>
+<p>A logical vector of length 1, indicating whether a
+species is allowed to be clonal or not (i.e. if multiple polygons (ramets)
+can be grouped as one individual (genet)). If clonal = TRUE, the species is
+allowed to be clonal, and if clonal = FALSE, the species is not allowed to
+be clonal. <em>OR</em> clonal can be a data.frame with the columns "Species" and
+"clonal". This data.frame must have a row for each unique species present in
+'dat', with species name as a character string in the "Species" column, and a
+logical value in the 'clonal' specifying the 'clonal' argument for
+each species.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>species</code></td>
+<td>
+<p>An optional character string argument. Indicates
+the name of the column in 'dat' that contains species name data. It is
+unnecessary to provide a value for this argument if the column name is
+"Species" (default value is 'Species').</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>site</code></td>
+<td>
+<p>An optional character string argument. Indicates
+the name of the column in 'dat' that contains site name data. It is
+unnecessary to provide a value for this argument if the column name is
+"Site" (default value is 'Site').</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quad</code></td>
+<td>
+<p>An optional character string argument. Indicates
+the name of the column in 'dat' that contains quadrat name data. It is
+unnecessary to provide a value for this argument if the column name is
+"Quad" (default is 'Quad').</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>year</code></td>
+<td>
+<p>An optional character string argument. Indicates
+the name of the column in 'dat' that contains data for year of sampling. It
+is unnecessary to provide a value for this argument if the column name is
+"Year" (default is 'Year').</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>geometry</code></td>
+<td>
+<p>An optional character string argument. Indicates
+the name of the column in 'dat' that contains sf geometry data. It is
+unnecessary to provide a value for this argument if the column name is
+"geometry" (default is 'geometry').</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aggByGenet</code></td>
+<td>
+<p>A logical argument that determines whether the output
+of <code>trackSpp()</code> will be aggregated by genet. If the value is TRUE
+(the default), then each unique trackID (or genet) in each year will be
+represented by only one row in the output data.frame. This prepares the
+dataset for most demographic analyses. If the value is FALSE, then each
+unique trackID in each year may be represented by multiple rows in the data
+(each ramet gets a row). Note that if the value is TRUE, then some columns
+present in the input data.frame 'dat' will be dropped. If you do not wish
+this to happen, then you can aggregate the data.frame to genet by hand.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>printMessages</code></td>
+<td>
+<p>A logical argument that determines whether this
+function returns messages about genet aggregation, as well as messages
+indicating which year is the last year of sampling in each quadrat and which
+year(s) come before a gap in sampling that exceeds the 'dorm' argument (and
+thus which years of data have an 'NA' for "survives_tplus1" and
+"size_tplus1"). If printMessages = TRUE (the default), then messages are
+printed. If printMessages = FALSE, messages are not printed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>flagSuspects</code></td>
+<td>
+<p>A logical argument of length 1, indicating whether
+observations that are 'suspect' will be flagged. The default is
+<code>flagSuspects = FALSE</code>. If <code>flagSuspects = TRUE</code>, then a column called
+'Suspect' is added to the output data.frame. Any suspect observations get a
+'TRUE' in the 'Suspect' column, while non-suspect observations receive a
+'FALSE'. There are two ways that an observation can be classified as
+'suspect'. First, if two consecutive observations have the same trackID, but
+the basal area of the observation in year <code>t+1</code> is less that a certain
+percentage (defined by the <code>shrink</code> arg.) of the basal area of the
+observation in year <code>t</code>, it is possible that the observation in year <code>t+1</code> is
+a new recruit and not the same individual. The second way an observation can
+be classified as 'suspect' is if it is very small before going dormant. It is
+unlikely that a very small individual will survive dormancy, so it is
+possible that the function has mistakenly given a survival value of '1' to
+this individual. A 'very small individual' is any observation with an area
+below a certain percentile (specified by 'dormSize') of the size distribution f
+or this species, which is generated using all of the size data for this
+species in 'dat'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shrink</code></td>
+<td>
+<p>A single numeric value. This value is only used when
+<code>flagSuspects = TRUE</code>. When two consecutive observations have the same
+trackID, and the ratio of size <code>t+1</code> to size <code>t</code> is smaller than the value of
+<code>shrink</code>, the observation in year <code>t</code> gets a 'TRUE' in the 'Suspect' column.
+For example, <code>shrink = 0.2</code>, and an individual that the tracking function has
+identified as 'BOUGRA_1992_5' has an area of 9 cm^2 in year <code>t</code> and an area
+of 1.35 cm^2 in year <code>t+1</code>. The ratio of size <code>t+1</code> to size <code>t</code> is
+1.35/9 = 0.15, which is smaller than the cutoff specified by <code>shrink</code>, so the
+observation of BOUGRA_1992_5' in year <code>t</code> gets a 'TRUE' in the 'Suspect'
+column. The default value is <code>shrink = 0.10</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dormSize</code></td>
+<td>
+<p>A single numeric value. This value is only used when
+<code>flagSuspects = TRUE</code> and <code>dorm</code> is greater than or equal to 1. An individual
+is flagged as 'suspect'
+if it 'goes dormant' and has a size that is less than or equal to the
+percentile of the size distribution for this species that is designated by
+<code>dormSize</code>. For example <code>dormSize = 0.05</code>, and an individual has a basal area
+of 0.5 cm^2. The 5th percentile of the distribution of size for this species,
+which is made using the mean and standard deviation of all observations in
+'dat' for the species in question, is 0.6 cm^2. This individual does not have
+any overlaps in the next year (year <code>t+1</code>), but does have an overlap in year
+<code>t+2</code>. However, because the basal area of this observation is smaller than the
+5th percentile of size for this species, the observation in year t will get a
+'TRUE' in the 'Suspect' column. It is possible that the tracking function has
+mistakenly assigned a '1' for survival in year <code>t</code>, because it is unlikely
+that this individual is large enough to survive dormancy. The default value
+is <code>dormSize = .05</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other arguments passed on to methods. Not currently used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This is a wrapper function that applies <code>assign</code> across multiple
+species, quadrats, and sites. For each species and quadrat, <code>trackSpp()</code>
+loads a spatially referenced data.frame ('dat'), and then uses the
+<code>groupByGenet</code> function to assign genetIDs to polygons (if
+'clonal' = TRUE) such that polygons that form the same genet have the same
+genetID. A buffer of a distance defined by 'buff' is applied around each
+genet polygon. Then, the spatial data for each genet from the current year
+(year <code>t</code>) is compared to individuals in the next year (year <code>t+1</code>). Then
+<code>trackSpp()</code> calculates the amount of overlapping area between polygons
+of each year <code>t</code> genet and polygons of each year <code>t+1</code> genet (using
+<code>st_intersection</code>). If there is unambiguous overlap between a
+'parent' genet from year <code>t</code> and a 'child' genet from year <code>t+1</code>, then that
+'child' gets the same identifying trackID as the parent. If there is a 'tie,'
+where more than one parent overlaps the same child or more than one child
+overlaps the same parent, the parent-child pair with the greatest amount of
+overlap receives the same trackID. Polygons in year <code>t+1</code> that do not have a
+parent are given new trackIDs and are identified as new recruits. If dormancy
+is not allowed, then polygons in year <code>t</code> that do not have child polygons get
+a '0' in the 'survival' column. If dormancy is allowed, parent polygons
+without child polygons are stored as 'ghosts' and are then compared to data
+from year <code>t+1+i</code> to find potential child polygons, where <code>i</code>='dorm'
+argument. For a more detailed description of the <code>trackSpp()</code> function, see
+the vignette:
+<code>vignette("Using_the_plantTracker_trackSpp_function",
+package = "plantTracker")</code>
+</p>
+
+
+<h3>Value</h3>
+
+<p>An sf data.frame with the same columns as 'dat,' but with the
+following additional columns:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>trackID</code></td>
+<td>
+<p>A unique value for each individual genet, consisting of the
+6-letter species code, the year in which this individual was recruited, and a
+unique index number, all separated by a "_".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>age</code></td>
+<td>
+<p>An integer indicating the age of this individual in year <code>t</code>.
+Values of NA indicate that an accurate age cannot be calculated because this
+individual was observed either in the first year of sampling or in a year
+following a gap in sampling, so the exact year of recruitment is not known.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>size_tplus1</code></td>
+<td>
+<p>The  size of this <strong>genet</strong> in year <code>t+1</code>, in the same
+units as the 'area' column in 'dat'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>recruit</code></td>
+<td>
+<p>A Boolean integer indicating whether this individual is a new
+recruit in year <code>t</code> (1), or existed in a previous year (0). Values of NA
+indicate that this individual was observed either in the first year of
+sampling or in a year following a gap in sampling, so it is not possible to
+accurately determine whether or not it is a new recruit in year <code>t</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>survives_tplus1</code></td>
+<td>
+<p>A Boolean integer indicating whether this individual
+survived (1), or died (0) in year <code>t+1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>basalArea_genet</code></td>
+<td>
+<p>The size of this entire genet in year <code>t</code>, in the same
+units as the 'area' column in 'dat.' If the 'clonal' argument = FALSE, then
+this number will be identical to the 'basalArea_ramet' column. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>basalArea_ramet</code></td>
+<td>
+<p>This is only included if 'aggByGenet' = FALSE.
+This is the size of this ramet in year <code>t</code>, in the same units as the 'area'
+column in 'dat'. If the 'clonal' argument = FALSE , then this number will be
+identical to the 'basalArea_genet' column.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nearEdge</code></td>
+<td>
+<p>A logical value indicating whether this individual is within
+a buffer (specified by the 'buff' argument) from the edge of the quadrat.</p>
+</td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+<p><code>assign()</code>, which is used inside the <code>trackSpp()</code> function.
+<code>trackSpp()</code> applies the <code>assign()</code> function over multiple species and
+quadrats, and uses the <code>aggregateByGenet()</code> function to aggregate the
+demographic results by genet (if 'aggByGenet' = TRUE). The <code>assign()</code>
+function uses the <code>groupByGenet()</code> function to group ramets into genets
+(if 'clonal' argument = TRUE).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">dat &lt;- grasslandData[grasslandData$Site == c("AZ") &amp;
+ grasslandData$Species %in% c("Bouteloua rothrockii",
+  "Calliandra eriophylla"),]
+names(dat)[1] &lt;- "speciesName"
+inv &lt;- grasslandInventory[unique(dat$Quad)]
+outDat &lt;- trackSpp(dat = dat,
+ inv = inv,
+ dorm = 1,
+ buff = .05,
+ buffGenet = 0.005,
+ clonal = data.frame("Species" = unique(dat$speciesName),
+ "clonal" = c(TRUE,FALSE)),
+ species = "speciesName",
+ aggByGenet = TRUE
+ )
+
+</code></pre>
+
+
+</div>

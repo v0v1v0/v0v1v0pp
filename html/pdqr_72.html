@@ -1,0 +1,173 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>summ_hdr</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Summarize distribution with Highest Density Region</h2>
+
+<h3>Description</h3>
+
+<p><code>summ_hdr()</code> computes a Highest Density Region (HDR) of some pdqr-function
+for a supplied <code>level</code>: a union of (closed) intervals total probability of
+which is not less than <code>level</code> and probability/density at any point inside it
+is bigger than some threshold (which should be maximum one with a property
+of HDR having total probability not less than <code>level</code>). This also represents
+a set of intervals with the lowest total width among all sets with total
+probability not less than a <code>level</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">summ_hdr(f, level = 0.95)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>A pdqr-function representing distribution.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>level</code></td>
+<td>
+<p>A desired lower bound for a total probability of an output set
+of intervals.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>General algorithm of <code>summ_hdr()</code> consists from two steps:
+</p>
+
+<ol>
+<li> <p><strong>Find "target height"</strong>. That is a value of probability/density which
+divides all support into two sets: the one with
+probability/density not less than target height (it is a desired HDR) and the
+other - with strictly less. The first set should also have total probability
+not less than <code>level</code>.
+</p>
+</li>
+<li> <p><strong>Form a HDR as a set of closed intervals</strong>.
+</p>
+</li>
+</ol>
+<p>If <code>f</code> has "discrete" type, target height is computed by looking at "x"
+values of "x_tbl" metadata in order of decreasing probability
+until their total probability is not less than <code>level</code>. After that, all "x"
+values with probability not less than height are considered to form a HDR.
+Output is formed as a set of <strong>closed</strong> intervals (i.e. both edges included)
+inside of which lie all HDR "x" elements and others - don't.
+</p>
+<p>If <code>f</code> has "continuous" type, target height is estimated as <code>1-level</code>
+quantile of <code>Y = d_f(X)</code> distribution, where <code>d_f</code> is d-function
+corresponding to <code>f</code> (<code>as_d(f)</code> in other words) and <code>X</code> is a random
+variable represented by <code>f</code>. Essentially, <code>Y</code> has a distribution of <code>f</code>'s
+density values and its <code>1-level</code> quantile is a target height. After that, HDR
+is formed as a set of intervals <strong>with positive width</strong> (if <code>level</code> is more
+than 0, see Notes) inside which density is not less than target height.
+</p>
+<p><strong>Notes</strong>:
+</p>
+
+<ul>
+<li>
+<p> If <code>level</code> is 0, output has one interval of zero width at point of global mode.
+</p>
+</li>
+<li>
+<p> If <code>level</code> is 1, output has one interval equal to support.
+</p>
+</li>
+<li>
+<p> Computation of target height in case of "continuous" type is approximate
+which in some extreme cases (for example, like winsorized
+distributions) can lead to HDR having total probability very approximate to
+and even slightly lower than <code>level</code>.
+</p>
+</li>
+<li>
+<p> If d-function has "plateaus" (consecutive values with equal
+probability/density) at computed target height, total probability of HDR can
+be considerably bigger than <code>level</code> (see examples). However, this aligns with
+HDR definition, as density values should be <strong>not less</strong> than target height
+and total probability should be <strong>not less</strong> than <code>level</code>.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>A data frame with one row representing one closed interval of HDR and
+the following columns:
+</p>
+
+<ul>
+<li> <p><strong>left</strong> <code style="white-space: pre;">⁠&lt;dbl&gt;⁠</code> : Left end of intervals.
+</p>
+</li>
+<li> <p><strong>right</strong> <code style="white-space: pre;">⁠&lt;dbl&gt;⁠</code> : Right end of intervals.
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>region_*()</code> family of functions for working with output
+HDR.
+</p>
+<p><code>summ_interval()</code> for computing of single interval summary of distribution.
+</p>
+<p>Other summary functions: 
+<code>summ_center()</code>,
+<code>summ_classmetric()</code>,
+<code>summ_distance()</code>,
+<code>summ_entropy()</code>,
+<code>summ_interval()</code>,
+<code>summ_moment()</code>,
+<code>summ_order()</code>,
+<code>summ_prob_true()</code>,
+<code>summ_pval()</code>,
+<code>summ_quantile()</code>,
+<code>summ_roc()</code>,
+<code>summ_separation()</code>,
+<code>summ_spread()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># "discrete" functions
+d_dis &lt;- new_d(data.frame(x = 1:4, prob = c(0.4, 0.2, 0.3, 0.1)), "discrete")
+summ_hdr(d_dis, 0.3)
+summ_hdr(d_dis, 0.5)
+summ_hdr(d_dis, 0.9)
+## Zero width interval at global mode
+summ_hdr(d_dis, 0)
+
+# "continuous" functions
+d_norm &lt;- as_d(dnorm)
+summ_hdr(d_norm, 0.95)
+## Zero width interval at global mode
+summ_hdr(d_norm, 0)
+
+# Works well with mixture distributions
+d_mix &lt;- form_mix(list(as_d(dnorm), as_d(dnorm, mean = 5)))
+summ_hdr(d_mix, 0.95)
+
+# Plateaus
+d_unif &lt;- as_d(dunif)
+## Returns all support because of density "plateau"
+summ_hdr(d_unif, 0.1)
+
+# Draw HDR
+plot(d_mix)
+region_draw(summ_hdr(d_mix, 0.95))
+</code></pre>
+
+
+</div>

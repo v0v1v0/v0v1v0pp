@@ -1,0 +1,211 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plot_impactsnopar</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Plot direct, indirect and total impacts  functions 
+for continous non-parametric covariates in semiparametric spatial regression models.</h2>
+
+<h3>Description</h3>
+
+<p>Plot direct, indirect and total impacts functions for 
+non-parametric covariates included in a semiparametric spatial
+or spatio-temporal SAR model. This model must include a spatial
+lag of the dependent variable (SAR) to have indirect effects 
+different from 0, otherwise, total and direct function effects 
+are the same. The effect functions can be smoothed to overcome 
+the instabilities created by the premultiplication of matrix
+<code class="reqn">(I - \rho W)^{-1}</code>
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">plot_impactsnopar(
+  impactsnopar,
+  data,
+  smooth = TRUE,
+  span = c(0.1, 0.1, 0.2),
+  dynamic = FALSE,
+  nt = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>impactsnopar</code></td>
+<td>
+<p>object returned from <code>impactsnopar</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>dataframe with the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>smooth</code></td>
+<td>
+<p>logical value to choose smoothing of the effects function
+prior to plot. Default TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>span</code></td>
+<td>
+<p>span for the kernel of the smoothing (see <code>loess</code> 
+for details). Default c(0.1, 0.1, 0.2).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dynamic</code></td>
+<td>
+<p>Logical value to set a dynamic model.
+Dynamic models include a temporal lag of the dependent
+variable in the right-hand side of the equation.
+Default = 'FALSE'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nt</code></td>
+<td>
+<p>Number of temporal periods. It is needed
+for dynamic models.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>plot of the direct, indirect and total impacts  function for each non-parametric
+covariate included in the object returned from <code>impactsnopar</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+
+<table>
+<tr>
+<td style="text-align: left;"> 
+  Roman Minguez  </td>
+<td style="text-align: left;"> <a href="mailto:roman.minguez@uclm.es">roman.minguez@uclm.es</a> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  Roberto Basile </td>
+<td style="text-align: left;"> <a href="mailto:roberto.basile@univaq.it">roberto.basile@univaq.it</a> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> 
+  Maria Durban </td>
+<td style="text-align: left;"> <a href="mailto:mdurban@est-econ.uc3m.es">mdurban@est-econ.uc3m.es</a> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> 
+  Gonzalo Espana-Heredia </td>
+<td style="text-align: left;"> <a href="mailto:gehllanza@gmail.com">gehllanza@gmail.com</a> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> 
+ </td>
+</tr>
+</table>
+<h3>References</h3>
+
+ 
+<ul><li>
+<p> Basile, R.; Durban, M.; Minguez, R.; Montero, J. M.; and 
+Mur, J. (2014). Modeling regional economic dynamics: Spatial
+dependence, spatial heterogeneity and nonlinearities. 
+<em>Journal of Economic Dynamics and Control</em>, (48), 229-245.
+&lt;doi:10.1016/j.jedc.2014.06.011&gt;               
+</p>
+</li></ul>
+<h3>See Also</h3>
+
+
+<ul>
+<li> <p><code>impactsnopar</code> compute total, direct and indirect effect
+functions for non-parametric continuous covariates.
+</p>
+</li>
+<li> <p><code>fit_terms</code> compute smooth functions for non-parametric
+continuous covariates.
+</p>
+</li>
+<li> <p><code>plot_terms</code> plot the terms of non-parametric covariates.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">################################################
+# Examples using spatial data of Ames Houses.
+###############################################
+# Getting and preparing the data
+library(pspatreg)
+library(spdep)
+library(sf)
+ames &lt;- AmesHousing::make_ames() # Raw Ames Housing Data
+ames_sf &lt;- st_as_sf(ames, coords = c("Longitude", "Latitude"))
+ames_sf$Longitude &lt;- ames$Longitude
+ames_sf$Latitude &lt;- ames$Latitude
+ames_sf$lnSale_Price &lt;- log(ames_sf$Sale_Price)
+ames_sf$lnLot_Area &lt;- log(ames_sf$Lot_Area)
+ames_sf$lnTotal_Bsmt_SF &lt;- log(ames_sf$Total_Bsmt_SF+1)
+ames_sf$lnGr_Liv_Area &lt;- log(ames_sf$Gr_Liv_Area)
+ames_sf1 &lt;- ames_sf[(duplicated(ames_sf$Longitude) == FALSE), ]
+                    
+form1 &lt;- lnSale_Price ~ Fireplaces + Garage_Cars +
+          pspl(lnLot_Area, nknots = 20) + 
+          pspl(lnTotal_Bsmt_SF, nknots = 20) +
+          pspl(lnGr_Liv_Area, nknots = 20)    
+
+
+########### Constructing the spatial weights matrix
+coord_sf1 &lt;- cbind(ames_sf1$Longitude, ames_sf1$Latitude)
+k5nb &lt;- knn2nb(knearneigh(coord_sf1, k = 5, 
+                          longlat = TRUE, use_kd_tree = FALSE), sym = TRUE)
+lw_ames &lt;- nb2listw(k5nb, style = "W", 
+                  zero.policy = FALSE)
+gamsar &lt;- pspatfit(form1, data = ames_sf1, 
+                   type = "sar", listw = lw_ames,
+                   method = "Chebyshev")
+summary(gamsar)
+nparimpacts &lt;- impactsnopar(gamsar, listw = lw_ames, viewplot = FALSE)
+plot_impactsnopar(nparimpacts, data = ames_sf1, smooth = TRUE)
+###### Examples using a panel data of rate of
+###### unemployment for 103 Italian provinces in period 1996-2014.
+library(pspatreg)
+data(unemp_it)
+## Wsp_it is a matrix. Create a neighboord list 
+lwsp_it &lt;- spdep::mat2listw(Wsp_it)
+## short sample for spatial pure case (2d)
+########  No Spatial Trend: PSAR including a spatial 
+########  lag of the dependent variable
+form1 &lt;- unrate ~ partrate + agri + cons + empgrowth +
+                  pspl(serv, nknots = 15) 
+gamsar &lt;- pspatfit(form1, data = unemp_it, 
+                   type = "sar", 
+                   listw = lwsp_it)
+summary(gamsar)
+###### Non-Parametric Total, Direct and Indirect impacts
+imp_nparvar &lt;- impactsnopar(gamsar, alpha = 0.05,
+                            listw = lwsp_it, 
+                            viewplot = TRUE)  
+##### This returns the same result but using plot_impactsnopar()
+imp_nparvar &lt;- impactsnopar(gamsar, listw = lwsp_it, alpha = 0.05,
+                            viewplot = FALSE)
+plot_impactsnopar(imp_nparvar, data = unemp_it, 
+                   smooth = TRUE)
+                    
+
+</code></pre>
+
+
+</div>

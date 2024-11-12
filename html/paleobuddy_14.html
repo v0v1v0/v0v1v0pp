@@ -1,0 +1,280 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rexp.var</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>General rate exponential and Weibull waiting times</h2>
+
+<h3>Description</h3>
+
+<p>Generates a waiting time following an exponential or Weibull distribution 
+with constant or varying rates. Output can be used as the waiting time to an
+extinction, speciation, or fossil sampling event. Allows for an optional 
+shape parameter, in which case <code>rate</code> will be taken as a Weibull scale.
+Allows for further customization by restricting possible waiting time 
+outputs with arguments for (1) current time, to consider only the rates
+starting at that time, (2) maximum time, to bound the output and therefore
+allow for faster calculations if one only cares about waiting times lower 
+than a given amount, and (3) speciation time, necessary to scale rates in
+the case where the output is to follow a Weibull distribution, i.e. for 
+age-dependent processes. This function is used in birth-death and sampling
+functions, but can also be convenient for any user looking to write their
+own code requiring exponential or Weibull distributions with varying rates.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rexp.var(n, rate, now = 0, tMax = Inf, shape = NULL, TS = 0, fast = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>The number of waiting times to return. Usually 1, but we allow for
+a higher <code>n</code> to be consistent with the <code>rexp</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rate</code></td>
+<td>
+<p>The rate parameter for the exponential distribution. If
+<code>shape</code> is not <code>NULL</code>, <code>rate</code> is a scale for a Weibull
+distribution. In both cases we allow for any time-varying function. Note
+<code>rate</code> can be constant.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>now</code></td>
+<td>
+<p>The current time. Needed if one wants to consider only the 
+interval between the current time and the maximum time for the time-varying
+rate. Note this does means the waiting time is <code>&gt;= now</code>, so we also 
+subtract <code>now</code> from the result before returning. The default is 
+<code>0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tMax</code></td>
+<td>
+<p>The simulation ending time. If the waiting time would be too
+high, we return <code>tMax + 0.01</code> to signify the event never happens, if
+<code>fast == TRUE</code>. Otherwise we return the true waiting time. By default,
+<code>tMax</code> will be <code>Inf</code>, but if <code>FAST == TRUE</code> one must supply
+a finite value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shape</code></td>
+<td>
+<p>Shape of the Weibull distribution. Can be a <code>numeric</code> for 
+constant shape or a <code>function(t)</code> for time-varying. When smaller than
+one, rate will decrease along species' age (negative age-dependency). When 
+larger than one, rate will increase along each species' age (positive 
+age-dependency). Default is <code>NULL</code>, so the function acts as an 
+exponential distribution. For <code>shape != NULL</code> (including when equal to 
+one), <code>rate</code> will be considered a scale (= 1/rate), and <code>rexp.var</code> 
+will draw a Weibull distribution instead of an exponential. This means 
+Weibull(rate, 1) = Exponential(1/rate). Notice even when 
+<code>Shape != NULL</code>, <code>rate</code> may still be time-dependent. 
+</p>
+<p>Note: Time-varying shape is within expectations for most cases, but if it is
+lower than 1 and varies too much (e.g. <code>0.5 + 0.5*t</code>), it can be 
+slightly biased for higher waiting times due to computational error. Slopes 
+(or equivalent, since it can be any function of time) of the order of 0.01 
+are advisable. It rarely also displays small biases for abrupt variations. 
+In both cases, error is still quite low for the purposes of the package.
+</p>
+<p>Note: We do not test for shape &lt; 0 here since as we allow shape to be a 
+function this would severely slow the rest of the package. It is tested on
+the birth-death functions, and the user should make sure not to use any
+functions that become negative eventually.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>TS</code></td>
+<td>
+<p>Speciation time, used to account for the scaling between simulation 
+and species time. The default is <code>0</code>. Supplying a <code>TS &gt; now</code> will
+return an error.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fast</code></td>
+<td>
+<p>If set to <code>FALSE</code>, waiting times larger than <code>tMax</code> will
+not be thrown away. This argument is needed so one can test the function
+without bias.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A vector of waiting times following the exponential or Weibull 
+distribution with the given parameters.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Bruno do Rosario Petrucci.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+###
+# let us start by checking a simple exponential variable
+
+# rate
+rate &lt;- 0.1
+
+# set seed
+set.seed(1)
+
+# find the waiting time
+t &lt;- rexp.var(n = 1, rate)
+t
+
+# this is the same as t &lt;- rexp(1, rate)
+
+###
+# now let us try a linear function for the rate
+
+# rate
+rate &lt;- function(t) {
+  return(0.01*t + 0.1)
+}
+
+# set seed
+set.seed(1)
+
+# find the waiting time
+t &lt;- rexp.var(n = 1, rate)
+t
+
+###
+# what if rate is exponential?
+
+# rate
+rate &lt;- function(t) {
+  return(0.01 * exp(0.1*t) + 0.02)
+}
+
+# set seed
+set.seed(1)
+
+# find the waiting time
+t &lt;- rexp.var(n = 1, rate)
+t
+
+###
+# if we give a shape argument, we have a Weibull distribution
+
+# scale - note that this is equivalent to 1/rate if shape were NULL
+rate &lt;- 2
+
+# shape
+shape &lt;- 1
+
+# speciation time
+TS &lt;- 0
+
+# set seed
+set.seed(1)
+
+# find the vector of waiting time
+t &lt;- rexp.var(n = 1, rate, shape = shape, TS = TS)
+t
+
+###
+# when shape = 1, the Weibull is an exponential, we could do better
+
+# scale
+rate &lt;- 10
+
+# shape
+shape &lt;- 2
+
+# speciation time
+TS &lt;- 0
+
+# set seed
+set.seed(1)
+
+# find the vector of waiting times - it doesn't need to be just one
+t &lt;- rexp.var(n = 5, rate, shape = shape, TS = TS)
+t
+
+###
+# shape can be less than one, of course
+
+# scale
+rate &lt;- 10
+
+# shape
+shape &lt;- 0.5
+
+# note we can supply now (default 0) and tMax (default Inf)
+
+# now matters when we wish to consider only waiting times
+# after that time, important when using time-varying rates
+now &lt;- 3
+
+# tMax matters when fast = TRUE, so that higher times will be
+# thrown out and returned as tMax + 0.01
+tMax &lt;- 40
+
+# speciation time - it will be greater than 0 frequently during a 
+# simulation, as it is used to represent where in the species life we 
+# currently are and rescale accordingly
+TS &lt;- 2.5
+
+# set seed
+set.seed(1)
+
+# find the vector of waiting times
+t &lt;- rexp.var(n = 10, rate, now, tMax,
+              shape = shape, TS = TS, fast = TRUE)
+t
+
+# note how some results are tMax + 0.01, since fast = TRUE
+
+###
+# both rate and shape can be time varying for a Weibull
+
+# scale
+rate &lt;- function(t) {
+  return(0.25*t + 5)
+}
+
+# shape
+shape &lt;- 3
+
+# current time
+now &lt;- 0
+
+# maximum time to check
+tMax &lt;- 40
+
+# speciation time
+TS &lt;- 0
+
+# set seed
+set.seed(1)
+
+# find the vector of waiting times
+t &lt;- rexp.var(n = 5, rate, now, tMax,
+              shape = shape, TS = TS, fast = TRUE)
+t
+
+</code></pre>
+
+
+</div>

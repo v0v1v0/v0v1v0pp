@@ -1,0 +1,204 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>summ_distance</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Summarize pair of distributions with distance</h2>
+
+<h3>Description</h3>
+
+<p>This function computes distance between two distributions represented by
+pdqr-functions. Here "distance" is used in a broad sense: a single
+non-negative number representing how much two distributions differ from one
+another. Bigger values indicate bigger difference. Zero value means that
+input distributions are equivalent based on the method used (except method
+"avgdist" which is almost always returns positive value). The notion of
+"distance" is useful for doing statistical inference about similarity of two
+groups of numbers.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">summ_distance(f, g, method = "KS")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>A pdqr-function of any type and
+class.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g</code></td>
+<td>
+<p>A pdqr-function of any type and class.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Method for computing distance. Should be one of "KS", "totvar",
+"compare", "wass", "cramer", "align", "avgdist", "entropy".</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Methods can be separated into three categories: probability based,
+metric based, and entropy based.
+</p>
+<p><strong>Probability based</strong> methods return a number between 0 and 1 which is
+computed in the way that mostly based on probability:
+</p>
+
+<ul>
+<li> <p><em>Method "KS"</em> (short for Kolmogorov-Smirnov) computes the supremum of
+absolute difference between p-functions corresponding to <code>f</code> and <code>g</code> (<code style="white-space: pre;">⁠|F - G|⁠</code>). Here "supremum" is meant to describe the fact that if input functions
+have different types, there can be no point at which "KS"
+distance is achieved. Instead, there might be a sequence of points from left
+to right with <code style="white-space: pre;">⁠|F - G|⁠</code> values tending to the result (see Examples).
+</p>
+</li>
+<li> <p><em>Method "totvar"</em> (short for "total variation") computes a biggest absolute
+difference of probabilities for any subset of real line. In other words,
+there is a set of points for "discrete" type and intervals for "continuous",
+total probability of which under <code>f</code> and <code>g</code> differs the most. <strong>Note</strong> that
+if <code>f</code> and <code>g</code> have different types, output is always 1. The set of interest
+consists from all "x" values of "discrete" pdqr-function: probability under
+"discrete" distribution is 1 and under "continuous" is 0.
+</p>
+</li>
+<li> <p><em>Method "compare"</em> represents a value computed based on probabilities of
+one distribution being bigger than the other (see pdqr methods for "Ops" group generic family for more details on comparing
+pdqr-functions). It is computed as
+<code>2*max(P(F &gt; G), P(F &lt; G)) + 0.5*P(F = G) - 1</code> (here <code>P(F &gt; G)</code> is basically
+<code>summ_prob_true(f &gt; g)</code>). This is maximum of two values (<code>P(F &gt; G) + 0.5*P(F = G)</code> and <code>P(F &lt; G) + 0.5*P(F = G)</code>), normalized to return values from 0
+to 1. Other way to look at this measure is that it computes (before
+normalization) two ROC AUC values with method <code>"expected"</code>
+for two possible ordering (<code style="white-space: pre;">⁠f, g⁠</code>, and <code style="white-space: pre;">⁠g, f⁠</code>) and takes their maximum.
+</p>
+</li>
+</ul>
+<p><strong>Metric based</strong> methods compute "how far" two distributions are apart on the
+real line:
+</p>
+
+<ul>
+<li> <p><em>Method "wass"</em> (short for "Wasserstein") computes a 1-Wasserstein
+distance: "minimum cost of 'moving' one density into another", or "average
+path density point should go while transforming from one into another". It is
+computed as integral of <code style="white-space: pre;">⁠|F - G|⁠</code> (absolute difference between p-functions).
+If any of <code>f</code> and <code>g</code> has "continuous" type, <code>stats::integrate()</code> is used, so
+relatively small numerical errors can happen.
+</p>
+</li>
+<li> <p><em>Method "cramer"</em> computes Cramer distance: integral of <code>(F - G)^2</code>. This
+somewhat relates to "wass" method as variance relates to first central absolute moment. Relatively small numerical errors
+can happen.
+</p>
+</li>
+<li> <p><em>Method "align"</em> computes an absolute value of shift <code>d</code> (possibly
+negative) that should be added to <code>f</code> to achieve both <code>P(f+d &gt;= g) &gt;= 0.5</code>
+and <code>P(f+d &lt;= g) &gt;= 0.5</code> (in other words, align <code>f+d</code> and <code>g</code>) as close as
+reasonably possible. Solution is found numerically with <code>stats::uniroot()</code>,
+so relatively small numerical errors can happen. Also <strong>note</strong> that this
+method is somewhat slow (compared to all others). To increase speed, use less
+elements in "x_tbl" metadata. For example, with
+<code>form_retype()</code> or smaller <code>n_grid</code> argument in as_*() functions.
+</p>
+</li>
+<li> <p><em>Method "avgdist"</em> computes average distance between sample values from
+inputs. Basically, it is a deterministically computed approximation of
+expected value of absolute difference between random variables, or in 'pdqr'
+code: <code>summ_mean(abs(f - g))</code> (but computed without randomness). Computation
+is done by approximating possibly present continuous pdqr-functions with
+discrete ones (see description of "pdqr.approx_discrete_n_grid" option for more information) and then computing output value
+directly based on two discrete pdqr-functions. <strong>Note</strong> that this method
+almost never returns zero, even for identical inputs (except the case of
+discrete pdqr-functions with identical one value).
+</p>
+</li>
+</ul>
+<p><strong>Entropy based</strong> methods compute output based on entropy characteristics:
+</p>
+
+<ul><li> <p><em>Method "entropy"</em> computes sum of two Kullback-Leibler divergences:
+<code>KL(f, g) + KL(g, f)</code>, which are outputs of <code>summ_entropy2()</code> with method
+"relative". <strong>Notes</strong>:
+</p>
+
+<ul>
+<li>
+<p> If <code>f</code> and <code>g</code> don't have the same support, distance can be very high.
+</p>
+</li>
+<li>
+<p> Error is thrown if <code>f</code> and <code>g</code> have different types (the same as in
+<code>summ_entropy2()</code>).
+</p>
+</li>
+</ul>
+</li></ul>
+<h3>Value</h3>
+
+<p>A single non-negative number representing distance between pair of
+distributions. For methods "KS", "totvar", and "compare" it is not bigger
+than 1. For method "avgdist" it is almost always bigger than 0.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>summ_separation()</code> for computation of optimal threshold separating
+pair of distributions.
+</p>
+<p>Other summary functions: 
+<code>summ_center()</code>,
+<code>summ_classmetric()</code>,
+<code>summ_entropy()</code>,
+<code>summ_hdr()</code>,
+<code>summ_interval()</code>,
+<code>summ_moment()</code>,
+<code>summ_order()</code>,
+<code>summ_prob_true()</code>,
+<code>summ_pval()</code>,
+<code>summ_quantile()</code>,
+<code>summ_roc()</code>,
+<code>summ_separation()</code>,
+<code>summ_spread()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">d_unif &lt;- as_d(dunif, max = 2)
+d_norm &lt;- as_d(dnorm, mean = 1)
+
+vapply(
+  c(
+    "KS", "totvar", "compare",
+    "wass", "cramer", "align", "avgdist",
+    "entropy"
+  ),
+  function(meth) {
+    summ_distance(d_unif, d_norm, method = meth)
+  },
+  numeric(1)
+)
+
+# "Supremum" quality of "KS" distance
+d_dis &lt;- new_d(2, "discrete")
+## Distance is 1, which is a limit of |F - G| at points which tend to 2 from
+## left
+summ_distance(d_dis, d_unif, method = "KS")
+</code></pre>
+
+
+</div>

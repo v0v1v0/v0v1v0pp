@@ -1,0 +1,209 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>userdata</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Facilities for making additional information to basic components</h2>
+
+<h3>Description</h3>
+
+<p>When <abbr><span class="acronym">POMP</span></abbr> basic components need information they can't get from parameters or covariates.
+</p>
+
+
+<h3>Details</h3>
+
+<p>It can happen that one desires to pass information to one of the <abbr><span class="acronym">POMP</span></abbr> model <dfn>basic components</dfn> (see here for a definition of this term) outside of the standard routes (i.e., via model parameters or covariates).
+<span class="pkg">pomp</span> provides facilities for this purpose.
+We refer to the objects one wishes to pass in this way as <dfn>user data</dfn>.
+</p>
+<p>The following will apply to every basic model component.
+For the sake of definiteness, however, we'll use the <code>rmeasure</code> component as an example.
+To be even more specific, the measurement model we wish to implement is
+</p>
+<pre>
+      y1 ~ Poisson(x1+theta),  y2 ~ Poisson(x2+theta),</pre>
+<p>where <code>theta</code> is a parameter.
+Although it would be very easy (and indeed far preferable) to include <code>theta</code> among the ordinary parameters (by including it in <code>params</code>), we will assume here that we have some reason for not wanting to do so.
+</p>
+<p>Now, we have the choice of providing <code>rmeasure</code> in one of three ways:
+</p>
+
+<ol>
+<li>
+<p> as an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function,
+</p>
+</li>
+<li>
+<p> as a C snippet, or
+</p>
+</li>
+<li>
+<p> as a procedure in an external, dynamically loaded library.
+</p>
+</li>
+</ol>
+<p>We'll deal with these three cases in turn.
+</p>
+
+
+<h3>When the basic component is specified as an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function</h3>
+
+<p>We can implement a simulator for the aforementioned measurement model so: </p>
+<pre>
+   f &lt;- function (t, x, params, theta, ...) {
+      y &lt;- rpois(n=2,x[c("x1","x2")]+theta)
+      setNames(y,c("y1","y2"))
+   }</pre>
+<p>So far, so good, but how do we get <code>theta</code> to this function?
+We simply provide an additional argument to whichever <span class="pkg">pomp</span> algorithm we are employing (e.g., <code>simulate</code>, <code>pfilter</code>, <code>mif2</code>, <code>abc</code>, etc.).
+For example:
+</p>
+<pre>
+    simulate(..., rmeasure = f, userdata = list(theta = 42), ...)
+</pre>
+<p>where the <code>...</code> represent other arguments.
+</p>
+
+
+<h3>When the basic component is specified via a C snippet</h3>
+
+<p>A C snippet implementation of the aforementioned measurement model is:
+</p>
+<pre>
+    f &lt;- Csnippet(r"{
+     double theta = *get_userdata_double("theta");
+     y1 = rpois(x1+theta); y2 = rpois(x2+theta);
+    }")</pre>
+<p>Here, the call to <code>get_userdata_double</code> retrieves a <em>pointer</em> to the stored value of <code>theta</code>.
+Note that, by using <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> string literals (<code>r"{}"</code>) we avoid the need to escape the quotes in the C snippet text.
+</p>
+<p>It is possible to store and retrieve integer objects also, using <code>get_userdata_int</code>.
+</p>
+<p>One must take care that one stores the user data with the appropriate storage type.
+For example, it is wise to wrap floating point scalars and vectors with <code>as.double</code> and integers with <code>as.integer</code>.
+In the present example, our call to simulate might look like
+</p>
+<pre>
+    simulate(..., rmeasure = f, userdata = list(theta = as.double(42)), ...)
+</pre>
+<p>Since the two functions <code>get_userdata_double</code> and <code>get_userdata_int</code> return pointers, it is trivial to pass vectors of double-precision and integers.
+</p>
+<p>A simpler and more elegant approach is afforded by the <code>globals</code> argument (see below).
+</p>
+
+
+<h3>When the basic component is specified via an external library</h3>
+
+<p>The rules are essentially the same as for C snippets.
+<code>typedef</code> declarations for the <code>get_userdata_double</code> and <code>get_userdata_int</code> are given in the ‘<span class="file">pomp.h</span>’ header file and these two routines are registered so that they can be retrieved via a call to <code>R_GetCCallable</code>.
+See the <a href="https://cran.r-project.org/doc/manuals/R-exts.html">Writing <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> extensions manual</a> for more information.
+</p>
+
+
+<h3>Setting <code>globals</code>
+</h3>
+
+<p>The use of the userdata facilities incurs a run-time cost.
+It is often more efficient, when using C snippets, to put the needed objects directly into the C snippet library.
+The <code>globals</code> argument does this.
+See the example below.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>More on implementing POMP models: 
+<code>Csnippet</code>,
+<code>accumvars</code>,
+<code>basic_components</code>,
+<code>betabinomial</code>,
+<code>covariates</code>,
+<code>dinit_spec</code>,
+<code>dmeasure_spec</code>,
+<code>dprocess_spec</code>,
+<code>emeasure_spec</code>,
+<code>eulermultinom</code>,
+<code>parameter_trans()</code>,
+<code>pomp-package</code>,
+<code>pomp_constructor</code>,
+<code>prior_spec</code>,
+<code>rinit_spec</code>,
+<code>rmeasure_spec</code>,
+<code>rprocess_spec</code>,
+<code>skeleton_spec</code>,
+<code>transformations</code>,
+<code>vmeasure_spec</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+  ## The familiar Ricker example.
+  ## Suppose that for some reason we wish to pass 'phi'
+  ## via the userdata facility instead of as a parameter.
+
+  ## C snippet approach:
+
+  simulate(times=1:100,t0=0,
+    phi=as.double(100),
+    params=c(r=3.8,sigma=0.3,N.0=7),
+    rprocess=discrete_time(
+      step.fun=Csnippet(r"{
+      double e = (sigma &gt; 0.0) ? rnorm(0,sigma) : 0.0;
+      N = r*N*exp(-N+e);}"
+      ),
+      delta.t=1
+    ),
+    rmeasure=Csnippet(r"{
+       double phi = *get_userdata_double("phi");
+       y = rpois(phi*N);}"
+    ),
+    paramnames=c("r","sigma"),
+    statenames="N",
+    obsnames="y"
+  ) -&gt; rick1
+
+  ## The same problem solved using 'globals':
+  simulate(times=1:100,t0=0,
+    globals=Csnippet("static double phi = 100;"),
+    params=c(r=3.8,sigma=0.3,N.0=7),
+    rprocess=discrete_time(
+      step.fun=Csnippet(r"{
+      double e = (sigma &gt; 0.0) ? rnorm(0,sigma) : 0.0;
+      N = r*N*exp(-N+e);}"
+      ),
+      delta.t=1
+    ),
+    rmeasure=Csnippet("
+       y = rpois(phi*N);"
+    ),
+    paramnames=c("r","sigma"),
+    statenames="N",
+    obsnames="y"
+  ) -&gt; rick2
+
+  ## Finally, the R function approach:
+
+  simulate(times=1:100,t0=0,
+    phi=100,
+    params=c(r=3.8,sigma=0.3,N_0=7),
+    rprocess=discrete_time(
+      step.fun=function (r, N, sigma, ...) {
+        e &lt;- rnorm(n=1,mean=0,sd=sigma)
+        c(N=r*N*exp(-N+e))
+      },
+      delta.t=1
+    ),
+    rmeasure=function (phi, N, ...) {
+      c(y=rpois(n=1,lambda=phi*N))
+    }
+  ) -&gt; rick3
+
+
+</code></pre>
+
+
+</div>

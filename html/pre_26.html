@@ -1,0 +1,741 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pre</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Derive a prediction rule ensemble</h2>
+
+<h3>Description</h3>
+
+<p>Function <code>pre</code> derives a sparse ensemble of rules and/or linear functions for 
+prediction of a continuous, binary, count, multinomial, multivariate 
+continuous or survival response.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pre(
+  formula,
+  data,
+  family = gaussian,
+  ad.alpha = NA,
+  ad.penalty = "lambda.min",
+  use.grad = TRUE,
+  weights,
+  type = "both",
+  sampfrac = 0.5,
+  maxdepth = 3L,
+  learnrate = 0.01,
+  mtry = Inf,
+  ntrees = 500,
+  confirmatory = NULL,
+  singleconditions = FALSE,
+  winsfrac = 0.025,
+  normalize = TRUE,
+  standardize = FALSE,
+  ordinal = TRUE,
+  nfolds = 10L,
+  tree.control,
+  tree.unbiased = TRUE,
+  removecomplements = TRUE,
+  removeduplicates = TRUE,
+  verbose = FALSE,
+  par.init = FALSE,
+  par.final = FALSE,
+  sparse = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a symbolic description of the model to be fit of the form 
+<code>y ~ x1 + x2 + ... + xn</code>. Response (left-hand side of the formula) 
+should be of class numeric (for <code>family = "gaussian"</code> or
+<code>"mgaussian"</code>), integer (for <code>family = "poisson"</code>), factor (for 
+<code>family = "binomial"</code> or <code>"multinomial"</code>). See Examples below. 
+Note that the minus sign (<code>-</code>) may not be used in the formula to omit
+the intercept or variables in <code>data</code>, and neither should  <code>+ 0</code> 
+be used to omit the intercept. To omit the intercept from the final ensemble, 
+add <code>intercept = FALSE</code> to the call (although omitting the intercept from
+the final ensemble will only very rarely be appropriate). To omit variables 
+from the final ensemble, make sure they are excluded from <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p><code>data.frame</code> containing the variables in the model. Response 
+must be of class <code>factor</code> for classification, <code>numeric</code> for (count) 
+regression, <code>Surv</code> for survival regression. Input variables must be of 
+class numeric, factor or ordered factor. Otherwise, <code>pre</code> will attempt
+to recode.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>specifies a glm family object. Can be a character string (i.e., 
+<code>"gaussian"</code>, <code>"binomial"</code>, <code>"poisson"</code>, <code>"multinomial"</code>, 
+<code>"cox"</code> or <code>"mgaussian"</code>), or a corresponding family object 
+(e.g., <code>gaussian</code>, <code>binomial</code> or <code>poisson</code>, see 
+<code>family</code>). Specification of argument <code>family</code> is 
+strongly advised but not required. If <code>family</code> is not specified, 
+Otherwise, the program will try to make an informed guess, based on the 
+class of the response variable specified in <code>formula</code>. als see Examples 
+below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ad.alpha</code></td>
+<td>
+<p>Alpha value to be used for computing the penalty weights for the
+adaptive lasso. Defaults to <code>NA</code>, yielding standard lasso estimation. 
+To use adaptive lasso, specify a value between (and including) 0 and 1. A value of
+0 will yield ridge-estimated penalty weights for computing the final (lasso) 
+penalized model. See <code>vignette("relaxed", "pre")</code> or 
+argument <code>alpha</code> of <code>cv.glmnet</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ad.penalty</code></td>
+<td>
+<p>Penalty parameter value to be used for computing the penalty 
+weights for the adaptive lasso. Defaults to <code>"lambda.min"</code>. If OLS instead
+of elastic net regression should be used to compute weights, specify 
+<code>ad.penalty = 0</code>. See also <code>vignette("relaxed", "pre")</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use.grad</code></td>
+<td>
+<p>logical. Should gradient boosting with regression trees be
+employed when <code>learnrate &gt; 0</code>? If <code>TRUE</code>, use trees fitted by 
+<code>ctree</code> or <code>rpart</code> as in Friedman 
+(2001), but without the line search. If <code>use.grad = FALSE</code>, 
+<code>glmtree</code> instead of <code>ctree</code> 
+will be employed for rule induction, yielding longer computation times, 
+higher complexity, but possibly higher predictive accuracy. See Details for 
+supported combinations of <code>family</code>, <code>use.grad</code> and <code>learnrate</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>optional vector of observation weights to be used for 
+deriving the ensemble.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>character. Specifies type of base learners to include in the 
+ensemble. Defaults to <code>"both"</code> (initial ensemble will include both rules 
+and linear functions). Other option are <code>"rules"</code> (prediction 
+rules only) or <code>"linear"</code> (linear functions only).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sampfrac</code></td>
+<td>
+<p>numeric value <code class="reqn">&gt; 0</code> and <code class="reqn">\le 1</code>. Specifies
+the fraction of randomly selected training observations used to produce each 
+tree. Values <code class="reqn">&lt; 1</code> will result in sampling without replacement (i.e., 
+subsampling), a value of 1 will result in sampling with replacement 
+(i.e., bootstrap sampling). Alternatively, a sampling function may be supplied, 
+which should take arguments <code>n</code> (sample size) and <code>weights</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxdepth</code></td>
+<td>
+<p>positive integer. Maximum number of conditions in rules. 
+If <code>length(maxdepth) == 1</code>, it specifies the maximum depth of 
+of each tree grown. If <code>length(maxdepth) == ntrees</code>, it specifies the
+maximum depth of every consecutive tree grown. Alternatively, a random
+sampling function may be supplied, which takes argument <code>ntrees</code> and 
+returns integer values. See also <code>maxdepth_sampler</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>learnrate</code></td>
+<td>
+<p>numeric value <code class="reqn">&gt; 0</code>. Learning rate or boosting parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mtry</code></td>
+<td>
+<p>positive integer. Number of randomly selected predictor variables for 
+creating each split in each tree. Ignored when <code>tree.unbiased=FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ntrees</code></td>
+<td>
+<p>positive integer value. Number of trees to generate for the 
+initial ensemble.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>confirmatory</code></td>
+<td>
+<p>character vector. Specifies one or more confirmatory terms 
+to be included in the final ensemble. Linear terms can be specified as the 
+name of a predictor variable included in <code>data</code>, rules can be specified
+as, for example, <code>"x1 &gt; 6 &amp; x2 &lt;= 8"</code>, where x1 and x2 should be names
+of variables in <code>data</code>. Terms thus specified will be included in the
+final ensemble, as their coefficients will not be penalized in the estimation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>singleconditions</code></td>
+<td>
+<p><code>TRUE</code>, <code>FALSE</code> or <code>"only"</code>. Should 
+rules with multiple conditions be disaggregated? Node membership for all tree
+except the root are coded as multi-condition rules. The conditions of these
+rules can be disaggregated to avoid selection of multi-condition rules. If
+<code>FALSE</code> (the default), all non-root nodes will be included as multi-condition 
+rules in the initial ensemble. If <code>TRUE</code>, all nodes will additionally be 
+included as single-condition rules. If <code>"only"</code>, all nodes will be included 
+as single-condition rules only.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>winsfrac</code></td>
+<td>
+<p>numeric value <code class="reqn">&gt; 0</code> and <code class="reqn">\le 0.5</code>. Quantiles of data 
+distribution to be used for 
+winsorizing linear terms. If set to 0, no winsorizing is performed. Note 
+that ordinal variables are included as linear terms in estimating the
+regression model and will also be winsorized.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>normalize</code></td>
+<td>
+<p>logical. Normalize linear variables before estimating the 
+regression model? Normalizing gives linear terms the same a priori influence 
+as a typical rule, by dividing the (winsorized) linear term by 2.5 times its 
+SD. <code>normalize = FALSE</code> will give more preference to linear terms for 
+selection.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardize</code></td>
+<td>
+<p>logical. Should rules and linear terms be standardized to
+have SD equal to 1 before estimating the regression model? This will also 
+standardize the dummified factors, users are advised to use the default 
+<code>standardize = FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ordinal</code></td>
+<td>
+<p>logical. Should ordinal variables (i.e., ordered factors) be
+treated as continuous for generating rules? <code>TRUE</code> (the default)
+generally yields simpler rules, shorter computation times and better 
+generalizability of the final ensemble.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nfolds</code></td>
+<td>
+<p>positive integer. Number of cross-validation folds to be used for 
+selecting the optimal value of the penalty parameter <code class="reqn">\lambda</code> in selecting
+the final ensemble.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tree.control</code></td>
+<td>
+<p>list with control parameters to be passed to the tree 
+fitting function, generated using <code>ctree_control</code>,
+<code>mob_control</code> (if <code>use.grad = FALSE</code>), or 
+<code>rpart.control</code> (if <code>tree.unbiased = FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tree.unbiased</code></td>
+<td>
+<p>logical. Should an unbiased tree generation algorithm 
+be employed for rule generation? Defaults to <code>TRUE</code>, if set to 
+<code>FALSE</code>, rules will be generated employing the CART algorithm
+(which suffers from biased variable selection) as implemented in 
+<code>rpart</code>. See details below for possible combinations 
+with <code>family</code>, <code>use.grad</code> and <code>learnrate</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>removecomplements</code></td>
+<td>
+<p>logical. Remove rules from the ensemble which are
+identical to (1 - an earlier rule)?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>removeduplicates</code></td>
+<td>
+<p>logical. Remove rules from the ensemble which are 
+identical to an earlier rule?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical. Should progress be printed to the command line?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>par.init</code></td>
+<td>
+<p>logical. Should parallel <code>foreach</code> be used to generate 
+initial ensemble? Only used when <code>learnrate == 0</code>. Note: Must register 
+parallel beforehand, such as doMC or others. Furthermore, setting 
+<code>par.init = TRUE</code> will likely only increase computation time for smaller 
+datasets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>par.final</code></td>
+<td>
+<p>logical. Should parallel <code>foreach</code> be used to perform cross 
+validation for selecting the final ensemble? Must register parallel beforehand, 
+such as doMC or others.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sparse</code></td>
+<td>
+<p>logical. Should sparse design matrices be used? May improve
+computation times for large datasets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments to be passed to
+<code>cv.glmnet</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Note that obervations with missing values will be removed prior to 
+analysis (and a warning printed).
+</p>
+<p>In some cases, duplicated variable names may appear in the model.
+For example, the first variable is a factor named 'V1' and there are also
+variables named 'V10' and/or 'V11' and/or 'V12' (etc). Then for 
+for the binary factor V1, dummy contrast variables will be created, named 
+'V10', 'V11', 'V12' (etc). As should be clear from this example, this yields 
+duplicated variable names, which may yield problems, for example in the 
+calculation of predictions and importances, later on. This can be prevented 
+by renaming factor variables with numbers in their name, prior to analysis.
+</p>
+<p>The table below provides an overview of combinations of response 
+variable types, <code>use.grad</code>, <code>tree.unbiased</code> and
+<code>learnrate</code> settings that are supported, and the tree induction 
+algorithm that will be employed as a result:
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+<strong>use.grad</strong> </td>
+<td style="text-align: center;"> <strong>tree.unbiased</strong> </td>
+<td style="text-align: center;"> <strong>learnrate</strong> </td>
+<td style="text-align: center;"> <strong>family</strong> </td>
+<td style="text-align: center;"> <strong>tree alg.</strong> </td>
+<td style="text-align: center;"> <strong>Response variable format</strong> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE	</td>
+<td style="text-align: center;"> TRUE	</td>
+<td style="text-align: center;"> 0 </td>
+<td style="text-align: center;"> gaussian	  </td>
+<td style="text-align: center;"> ctree</td>
+<td style="text-align: center;"> Single, numeric (non-integer) </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE	</td>
+<td style="text-align: center;"> TRUE	</td>
+<td style="text-align: center;"> 0 </td>
+<td style="text-align: center;"> mgaussian	  </td>
+<td style="text-align: center;"> ctree</td>
+<td style="text-align: center;"> Multiple, numeric (non-integer) </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE	</td>
+<td style="text-align: center;"> TRUE	</td>
+<td style="text-align: center;"> 0 </td>
+<td style="text-align: center;"> binomial	  </td>
+<td style="text-align: center;"> ctree</td>
+<td style="text-align: center;"> Single, factor with 2 levels </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE	</td>
+<td style="text-align: center;"> TRUE	</td>
+<td style="text-align: center;"> 0 </td>
+<td style="text-align: center;"> multinomial	</td>
+<td style="text-align: center;"> ctree</td>
+<td style="text-align: center;"> Single, factor with &gt;2 levels </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE	</td>
+<td style="text-align: center;"> TRUE	</td>
+<td style="text-align: center;"> 0 </td>
+<td style="text-align: center;"> poisson	    </td>
+<td style="text-align: center;"> ctree</td>
+<td style="text-align: center;"> Single, integer </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE </td>
+<td style="text-align: center;"> TRUE </td>
+<td style="text-align: center;"> 0 </td>
+<td style="text-align: center;"> cox         </td>
+<td style="text-align: center;"> ctree</td>
+<td style="text-align: center;"> Object of class 'Surv' </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE	</td>
+<td style="text-align: center;"> TRUE	</td>
+<td style="text-align: center;"> &gt;0 </td>
+<td style="text-align: center;"> 	gaussian	  </td>
+<td style="text-align: center;"> ctree </td>
+<td style="text-align: center;"> Single, numeric (non-integer) </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE	</td>
+<td style="text-align: center;"> TRUE	</td>
+<td style="text-align: center;"> &gt;0	</td>
+<td style="text-align: center;"> mgaussian	  </td>
+<td style="text-align: center;"> ctree </td>
+<td style="text-align: center;"> Multiple, numeric (non-integer) </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE	</td>
+<td style="text-align: center;"> TRUE	</td>
+<td style="text-align: center;"> &gt;0	</td>
+<td style="text-align: center;"> binomial	  </td>
+<td style="text-align: center;"> ctree  </td>
+<td style="text-align: center;"> Single, factor with 2 levels </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE	</td>
+<td style="text-align: center;"> TRUE	</td>
+<td style="text-align: center;"> &gt;0	</td>
+<td style="text-align: center;"> multinomial	</td>
+<td style="text-align: center;"> ctree </td>
+<td style="text-align: center;"> Single, factor with &gt;2 levels </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE	</td>
+<td style="text-align: center;"> TRUE	</td>
+<td style="text-align: center;"> &gt;0	</td>
+<td style="text-align: center;"> poisson	    </td>
+<td style="text-align: center;"> ctree  </td>
+<td style="text-align: center;"> Single, integer </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE </td>
+<td style="text-align: center;"> TRUE </td>
+<td style="text-align: center;"> &gt;0 </td>
+<td style="text-align: center;"> cox         </td>
+<td style="text-align: center;"> ctree</td>
+<td style="text-align: center;"> Object of class 'Surv' </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+FALSE </td>
+<td style="text-align: center;"> TRUE </td>
+<td style="text-align: center;"> 0 </td>
+<td style="text-align: center;"> gaussian	  </td>
+<td style="text-align: center;"> glmtree </td>
+<td style="text-align: center;"> Single, numeric (non-integer) </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+FALSE </td>
+<td style="text-align: center;"> TRUE </td>
+<td style="text-align: center;"> 0 </td>
+<td style="text-align: center;"> binomial	  </td>
+<td style="text-align: center;"> glmtree </td>
+<td style="text-align: center;"> Single, factor with 2 levels </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+FALSE </td>
+<td style="text-align: center;"> TRUE </td>
+<td style="text-align: center;"> 0 </td>
+<td style="text-align: center;"> poisson	    </td>
+<td style="text-align: center;"> glmtree </td>
+<td style="text-align: center;"> Single, integer </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+FALSE </td>
+<td style="text-align: center;"> TRUE </td>
+<td style="text-align: center;"> &gt;0 </td>
+<td style="text-align: center;"> gaussian	  </td>
+<td style="text-align: center;"> glmtree </td>
+<td style="text-align: center;"> Single, numeric (non-integer) </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+FALSE </td>
+<td style="text-align: center;"> TRUE </td>
+<td style="text-align: center;"> &gt;0 </td>
+<td style="text-align: center;"> binomial	  </td>
+<td style="text-align: center;"> glmtree </td>
+<td style="text-align: center;"> Single, factor with 2 levels </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+FALSE </td>
+<td style="text-align: center;"> TRUE </td>
+<td style="text-align: center;"> &gt;0 </td>
+<td style="text-align: center;"> poisson	    </td>
+<td style="text-align: center;"> glmtree </td>
+<td style="text-align: center;"> Single, integer </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE	</td>
+<td style="text-align: center;"> FALSE </td>
+<td style="text-align: center;"> 0 </td>
+<td style="text-align: center;"> gaussian	  </td>
+<td style="text-align: center;"> rpart </td>
+<td style="text-align: center;"> Single, numeric (non-integer) </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE	</td>
+<td style="text-align: center;"> FALSE </td>
+<td style="text-align: center;"> 0 </td>
+<td style="text-align: center;"> binomial	  </td>
+<td style="text-align: center;"> rpart </td>
+<td style="text-align: center;"> Single, factor with 2 levels </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE	</td>
+<td style="text-align: center;"> FALSE </td>
+<td style="text-align: center;"> 0 </td>
+<td style="text-align: center;"> multinomial	</td>
+<td style="text-align: center;"> rpart </td>
+<td style="text-align: center;"> Single, factor with &gt;2 levels </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE	</td>
+<td style="text-align: center;"> FALSE </td>
+<td style="text-align: center;"> 0 </td>
+<td style="text-align: center;"> poisson	    </td>
+<td style="text-align: center;"> rpart </td>
+<td style="text-align: center;"> Single, integer </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE </td>
+<td style="text-align: center;"> FALSE </td>
+<td style="text-align: center;"> 0 </td>
+<td style="text-align: center;"> cox         </td>
+<td style="text-align: center;"> rpart</td>
+<td style="text-align: center;"> Object of class 'Surv' </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE </td>
+<td style="text-align: center;"> FALSE	</td>
+<td style="text-align: center;"> &gt;0 </td>
+<td style="text-align: center;"> gaussian	  </td>
+<td style="text-align: center;"> rpart </td>
+<td style="text-align: center;"> Single, numeric (non-integer) </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE </td>
+<td style="text-align: center;"> FALSE	</td>
+<td style="text-align: center;"> &gt;0 </td>
+<td style="text-align: center;"> binomial	  </td>
+<td style="text-align: center;"> rpart </td>
+<td style="text-align: center;"> Single, factor with 2 levels </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE </td>
+<td style="text-align: center;"> FALSE	</td>
+<td style="text-align: center;"> &gt;0 </td>
+<td style="text-align: center;"> poisson	  </td>
+<td style="text-align: center;"> rpart </td>
+<td style="text-align: center;"> Single, integer </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+TRUE </td>
+<td style="text-align: center;"> FALSE </td>
+<td style="text-align: center;"> &gt;0 </td>
+<td style="text-align: center;"> cox         </td>
+<td style="text-align: center;"> rpart </td>
+<td style="text-align: center;"> Object of class 'Surv'
+</td>
+</tr>
+</table>
+<p>If an error along the lines of 'factor ... has new levels ...' is encountered, 
+consult <code>?rare_level_sampler</code> for explanation and solutions.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>pre</code>. It contains the initial ensemble of 
+rules and/or linear terms and a range of possible final ensembles. 
+By default, the final ensemble employed by all other
+methods and functions in package <code>pre</code> is selected using the 'minimum
+cross validated error plus 1 standard error' criterion. All functions and 
+methods for objects of class <code>pre</code> take a <code>penalty.parameter.val</code> 
+argument, which can be used to select a different criterion.
+</p>
+<p>If only a set of rules needs to be generated, but the final regression model
+should not be fitted, specify the hidden argument <code>fit.final = FALSE</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Parts of the code for deriving rules from the nodes of trees was copied 
+with permission from an internal function of the <code>partykit</code> package, written
+by Achim Zeileis and Torsten Hothorn.
+</p>
+
+
+<h3>References</h3>
+
+<p>Fokkema, M. (2020). Fitting prediction rule ensembles with R 
+package pre. <em>Journal of Statistical Software, 92</em>(12), 1-30.
+<a href="https://doi.org/10.18637/jss.v092.i12">doi:10.18637/jss.v092.i12</a>
+</p>
+<p>Fokkema, M. &amp; Strobl, C. (2020). Fitting prediction rule ensembles to psychological 
+research data: An introduction and tutorial. <em>Psychological Methods 25</em>(5), 
+636-652. <a href="https://doi.org/10.1037/met0000256">doi:10.1037/met0000256</a>, <a href="https://arxiv.org/abs/1907.05302">https://arxiv.org/abs/1907.05302</a>
+</p>
+<p>Friedman, J. H. (2001). Greedy function approximation: a gradient boosting 
+machine. <em>The Annals of Applied Statistics, 29</em>(5), 1189-1232.
+</p>
+<p>Friedman, J. H., &amp; Popescu, B. E. (2008). Predictive learning via rule 
+ensembles. <em>The Annals of Applied Statistics, 2</em>(3), 916-954, <a href="https://doi.org/10.1214/07-AOAS148">doi:10.1214/07-AOAS148</a>.
+</p>
+<p>Hothorn, T., &amp; Zeileis, A. (2015). partykit: A modular toolkit for recursive 
+partytioning in R. <em>Journal of Machine Learning Research, 16</em>, 3905-3909.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>print.pre</code>, <code>plot.pre</code>, 
+<code>coef.pre</code>, <code>importance.pre</code>, <code>predict.pre</code>, 
+<code>interact</code>, <code>cvpre</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Fit pre to a continuous response:
+airq &lt;- airquality[complete.cases(airquality), ]
+set.seed(42)
+airq.ens &lt;- pre(Ozone ~ ., data = airq)
+airq.ens
+## Use relaxed lasso to estimate final model
+airq.ens.rel &lt;- pre(Ozone ~ ., data = airq, relax = TRUE)
+airq.ens.rel
+## Use adaptive lasso to estimate final model
+airq.ens.ad &lt;- pre(Ozone ~ ., data = airq, ad.alpha = 0)
+airq.ens.ad
+
+## Fit pre to a binary response:
+airq2 &lt;- airquality[complete.cases(airquality), ]
+airq2$Ozone &lt;- factor(airq2$Ozone &gt; median(airq2$Ozone))
+set.seed(42)
+airq.ens2 &lt;- pre(Ozone ~ ., data = airq2, family = "binomial")
+airq.ens2
+
+## Fit pre to a multivariate continuous response:
+airq3 &lt;- airquality[complete.cases(airquality), ] 
+set.seed(42)
+airq.ens3 &lt;- pre(Ozone + Wind ~ ., data = airq3, family = "mgaussian")
+airq.ens3
+
+## Fit pre to a multinomial response:
+set.seed(42)
+iris.ens &lt;- pre(Species ~ ., data = iris, family = "multinomial")
+iris.ens
+
+## Fit pre to a survival response:
+library("survival")
+lung &lt;- lung[complete.cases(lung), ]
+set.seed(42)
+lung.ens &lt;- pre(Surv(time, status) ~ ., data = lung, family = "cox")
+lung.ens
+
+## Fit pre to a count response:
+## Generate random data (partly based on Dobson (1990) Page 93: Randomized 
+## Controlled Trial):
+counts &lt;- rep(as.integer(c(18, 17, 15, 20, 10, 20, 25, 13, 12)), times = 10)
+outcome &lt;- rep(gl(3, 1, 9), times = 10)
+treatment &lt;- rep(gl(3, 3), times = 10)
+noise1 &lt;- 1:90
+set.seed(1)
+noise2 &lt;- rnorm(90)
+countdata &lt;- data.frame(treatment, outcome, counts, noise1, noise2)
+set.seed(42)
+count.ens &lt;- pre(counts ~ ., data = countdata, family = "poisson")
+count.ens
+</code></pre>
+
+
+</div>

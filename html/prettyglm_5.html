@@ -1,0 +1,229 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>one_way_ave</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>one_way_ave</h2>
+
+<h3>Description</h3>
+
+<p>Creates a pretty html plot of one way actual vs expected by specified predictor.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">one_way_ave(
+  feature_to_plot,
+  model_object,
+  target_variable,
+  data_set,
+  plot_type = "predictions",
+  plot_factor_as_numeric = FALSE,
+  ordering = NULL,
+  width = 800,
+  height = 500,
+  number_of_buckets = 30,
+  first_colour = "black",
+  second_colour = "#cc4678",
+  facetby = NULL,
+  prediction_type = "response",
+  predict_function = NULL,
+  upper_percentile_to_cut = 0.01,
+  lower_percentile_to_cut = 0
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>feature_to_plot</code></td>
+<td>
+<p>A string of the variable to plot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model_object</code></td>
+<td>
+<p>Model object to create coefficient table for. Must be of type: glm, lm</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target_variable</code></td>
+<td>
+<p>String of target variable name in dataset.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data_set</code></td>
+<td>
+<p>Data set to calculate the actual vs expected for. If no input default is to try and extract training data from model object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot_type</code></td>
+<td>
+<p>one of "Residual", "predictions" or "actuals" defaults to "predictions"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot_factor_as_numeric</code></td>
+<td>
+<p>Set to TRUE to return data.frame instead of creating kable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ordering</code></td>
+<td>
+<p>Option to change the ordering of categories on the x axis, only for discrete categories. Default to the ordering of the factor. Other options are: 'alphabetical', 'Number of records', 'Average Value'</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>width</code></td>
+<td>
+<p>Width of plot</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>height</code></td>
+<td>
+<p>Height of plot</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>number_of_buckets</code></td>
+<td>
+<p>Number of buckets for continuous variable plots</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>first_colour</code></td>
+<td>
+<p>First colour to plot, usually the colour of actual.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>second_colour</code></td>
+<td>
+<p>Second colour to plot, usually the colour of predicted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>facetby</code></td>
+<td>
+<p>Variable to facet the actual vs expect plots by.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prediction_type</code></td>
+<td>
+<p>Prediction type to be pasted to predict.glm if predict_function is NULL. Defaults to "response".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predict_function</code></td>
+<td>
+<p>A custom prediction function can be provided here.It must return a data.frame with an "Actual_Values" column, and a "Predicted_Values" column.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper_percentile_to_cut</code></td>
+<td>
+<p>For continuous variables this is what percentile to exclude from the upper end of the distribution. Defaults to 0.01, so the maximum percentile of the variable in the plot will be 0.99. Cutting off some of the distribution can help the views if outlier's are present in the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower_percentile_to_cut</code></td>
+<td>
+<p>For continuous variables this is what percentile to exclude from the lower end of the distribution. Defaults to 0.01, so the minimum percentile of the variable in the plot will be 0.01. Cutting off some of the distribution can help the views if outlier's are present in the data.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>plotly plot of one way actual vs expected.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(dplyr)
+library(prettyglm)
+data('titanic')
+columns_to_factor &lt;- c('Pclass',
+                       'Sex',
+                       'Cabin',
+                       'Embarked',
+                       'Cabintype',
+                       'Survived')
+meanage &lt;- base::mean(titanic$Age, na.rm=TRUE)
+
+titanic  &lt;- titanic  %&gt;%
+  dplyr::mutate_at(columns_to_factor, list(~factor(.))) %&gt;%
+  dplyr::mutate(Age =base::ifelse(is.na(Age)==TRUE,meanage,Age)) %&gt;%
+  dplyr::mutate(Age_0_25 = prettyglm::splineit(Age,0,25),
+                Age_25_50 = prettyglm::splineit(Age,25,50),
+                Age_50_120 = prettyglm::splineit(Age,50,120)) %&gt;%
+  dplyr::mutate(Fare_0_250 = prettyglm::splineit(Fare,0,250),
+                Fare_250_600 = prettyglm::splineit(Fare,250,600))
+
+survival_model &lt;- stats::glm(Survived ~
+                               Sex:Age +
+                               Fare +
+                               Embarked +
+                               SibSp +
+                               Parch +
+                               Cabintype,
+                             data = titanic,
+                             family = binomial(link = 'logit'))
+
+# Continuous Variable Example
+one_way_ave(feature_to_plot = 'Age',
+            model_object = survival_model,
+            target_variable = 'Survived',
+            data_set = titanic,
+            number_of_buckets = 20,
+            upper_percentile_to_cut = 0.1,
+            lower_percentile_to_cut = 0.1)
+
+# Discrete Variable Example
+one_way_ave(feature_to_plot = 'Pclass',
+            model_object = survival_model,
+            target_variable = 'Survived',
+            data_set = titanic)
+
+# Custom Predict Function and facet
+a_custom_predict_function &lt;- function(target, model_object, dataset){
+  dataset &lt;- base::as.data.frame(dataset)
+  Actual_Values &lt;- dplyr::pull(dplyr::select(dataset, tidyselect::all_of(c(target))))
+  if(class(Actual_Values) == 'factor'){
+    Actual_Values &lt;- base::as.numeric(as.character(Actual_Values))
+  }
+  Predicted_Values &lt;- base::as.numeric(stats::predict(model_object, dataset, type='response'))
+
+  to_return &lt;-  base::data.frame(Actual_Values = Actual_Values,
+                                 Predicted_Values = Predicted_Values)
+
+  to_return &lt;- to_return %&gt;%
+    dplyr::mutate(Predicted_Values = base::ifelse(Predicted_Values &gt; 0.3,0.3,Predicted_Values))
+  return(to_return)
+}
+
+one_way_ave(feature_to_plot = 'Age',
+            model_object = survival_model,
+            target_variable = 'Survived',
+            data_set = titanic,
+            number_of_buckets = 20,
+            upper_percentile_to_cut = 0.1,
+            lower_percentile_to_cut = 0.1,
+            predict_function = a_custom_predict_function,
+            facetby = 'Pclass')
+
+
+</code></pre>
+
+
+</div>

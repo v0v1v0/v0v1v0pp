@@ -1,0 +1,163 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>protoclust</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Hierarchical Clustering with Prototypes: Minimax Linkage.</h2>
+
+<h3>Description</h3>
+
+<p>Performs minimax linkage hierarchical clustering given a set of
+dissimilarities.  Returns an object that looks just like the output of
+<code>hclust</code> except that it has an additional element containing prototype
+indices.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">protoclust(d, verb = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>dissimilarities object.  Can be of class <code>dist</code> or
+<code>matrix</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verb</code></td>
+<td>
+<p>see verbose output?</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function provides an efficient implementation of minimax linkage
+hierarchical clustering.  Consider two clusters G and H and their union U.
+The minimax linkage between G and H is defined to be the radius of the
+smallest ball that encloses all of U and that is centered at one of the
+points in U.  If G and H are merged together, the prototype for the newly
+formed cluster U is that enclosing ball's center.  By construction, the
+prototype for a cluster will always be one of the objects being clustered.
+For more on minimax linkage and how one can use prototypes to help interpret
+a dendrogram, see
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>protoclust</code>, which is just like
+<code>hclust</code> but has an additional element: </p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>merge, height,
+order</code></td>
+<td>
+<p>identical to the values returned by <code>hclust</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>protos</code></td>
+<td>
+<p>a vector of length n - 1.  The i-th element is the index of
+the prototype corresponding to the cluster formed on the i-th merge.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Jacob Bien and Rob Tibshirani
+</p>
+
+
+<h3>References</h3>
+
+<p>Bien, J., and Tibshirani, R. (2011), "Hierarchical Clustering
+with Prototypes via Minimax Linkage," <em>The Journal of the American 
+Statistical Association</em>, 106(495), 1075-1084.
+</p>
+<p>This function has been designed to work like <code>hclust</code> in terms of
+inputs and outputs; however, unlike <code>hclust</code>, it outputs an additional
+element, namely a vector of length n - 1 containing the indices of
+prototypes.  It follows <code>hclust</code>'s convention for making the arbitrary
+choice of whether to put a subtree on the left or right side.
+</p>
+<p>For cutting a minimax linkage hierarchical clustering, use
+<code>protocut</code>, which works like <code>cutree</code> except that it
+returns the set of prototypes in addition to the cluster assignments.
+</p>
+<p>This function calls a C implementation of the algorithm detailed in Bien and
+Tibshirani (2011) that is based on an algorithm described in Murtagh (1983).
+</p>
+<p>Bien, J., and Tibshirani, R. (2011), "Hierarchical Clustering
+with Prototypes via Minimax Linkage," <em>The Journal of the American 
+Statistical Association</em>, 106(495), 1075-1084.
+</p>
+<p>Murtagh, F. (1983), "A Survey of Recent Advances in Hierarchical Clustering
+Algorithms," <em>The Computer Journal</em>, <b>26</b>, 354–359.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>protocut</code>, <code>plotwithprototypes</code>,
+<code>hclust</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# generate some data:
+set.seed(1)
+n &lt;- 100
+p &lt;- 2
+x &lt;- matrix(rnorm(n * p), n, p)
+rownames(x) &lt;- paste("A", 1:n, sep="")
+d &lt;- dist(x)
+
+# perform minimax linkage clustering:
+hc &lt;- protoclust(d)
+
+# cut the tree to yield a 10-cluster clustering:
+k &lt;- 10 # number of clusters
+cut &lt;- protocut(hc, k=k)
+h &lt;- hc$height[n - k]
+
+# plot dendrogram (and show cut):
+plotwithprototypes(hc, imerge=cut$imerge, col=2)
+abline(h=h, lty=2)
+
+# get the prototype assigned to each point:
+pr &lt;- cut$protos[cut$cl]
+
+# find point farthest from its prototype:
+dmat &lt;- as.matrix(d)
+ifar &lt;- which.max(dmat[cbind(1:n, pr[1:n])])
+
+# note that this distance is exactly h:
+stopifnot(dmat[ifar, pr[ifar]] == h)
+
+# since this is a 2d example, make 2d display:
+plot(x, type="n")
+points(x, pch=20, col="lightblue")
+lines(rbind(x[ifar, ], x[pr[ifar], ]), col=3)
+points(x[cut$protos, ], pch=20, col="red")
+text(x[cut$protos, ], labels=hc$labels[cut$protos], pch=19)
+tt &lt;- seq(0, 2 * pi, length=100)
+for (i in cut$protos) {
+  lines(x[i, 1] + h * cos(tt), x[i, 2] + h * sin(tt))
+}
+
+</code></pre>
+
+
+</div>

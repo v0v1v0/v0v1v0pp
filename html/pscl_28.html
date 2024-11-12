@@ -1,0 +1,536 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ideal</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>analysis of educational testing data and roll call data with IRT models, via Markov
+chain Monte Carlo methods</h2>
+
+<h3>Description</h3>
+
+<p>Analysis of <code>rollcall</code> data via the spatial voting model;
+equivalent to a 2 parameter item-response model to educational testing data.  Model fitting via Markov chain Monte Carlo (MCMC).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ideal(object, codes = object$codes,
+      dropList = list(codes = "notInLegis", lop = 0),
+      d = 1, maxiter = 10000, thin = 100, burnin = 5000,
+      impute = FALSE,
+      normalize = FALSE,
+      meanzero = normalize,
+      priors = NULL, startvals = "eigen",
+      store.item = FALSE, file = NULL,
+      verbose=FALSE, use.voter=NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>an object of class <code>rollcall</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>codes</code></td>
+<td>
+<p>a <code>list</code> describing the types of voting
+decisions in the roll call matrix (the <code>votes</code> component of the
+<code>rollcall</code> <code>object</code>); defaults to 
+<code>object$codes</code>, the codes in the rollcall object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dropList</code></td>
+<td>
+<p>a <code>list</code> (or <code>alist</code>)
+listing voting decisions, legislators and/or votes to be dropped
+from the analysis; see <code>dropRollCall</code> for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>numeric, (small) positive integer (default = 1), dimensionality of the ability space (or "policy space" in the rollcall context).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxiter</code></td>
+<td>
+<p>numeric, positive integer, multiple of <code>thin</code>, number of MCMC iterations</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thin</code></td>
+<td>
+<p>numeric, positive integer, thinning interval used for
+recording MCMC iterations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>burnin</code></td>
+<td>
+<p>number of MCMC iterations to run before recording.  The
+iteration numbered <code>burnin</code> will be recorded.  Must be a
+multiple of <code>thin</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>impute</code></td>
+<td>
+<p><code>logical</code>, whether to treat missing entries
+of the rollcall matrix as missing at random, sampling from the
+predictive density of the missing entries at each MCMC iteration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>normalize</code></td>
+<td>
+<p><code>logical</code>, impose identification with
+the constraint that the ideal points have mean zero and
+standard deviation one, in each dimension.  For one dimensional models this option is sufficient to
+locally identify the model parameters.
+See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>meanzero</code></td>
+<td>
+<p>to be deprecated/ignored; use <code>normalize</code> instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>priors</code></td>
+<td>
+<p>a <code>list</code> of parameters (means and variances)
+specifying normal priors for the legislators' ideal points. The
+default is <code>NULL</code>, in which case the normal priors used have mean zero and
+precision 1 for the ideal points (ability parameters) and mean zero and
+precision .04 (variance 25) for the bill parameters (item discrimination and difficulty parameters).  If not <code>NULL</code>, <code>priors</code> must be a
+<code>list</code> with as many as four named components <code>xp, xpv, bp,
+      bpv</code>:
+</p>
+
+<dl>
+<dt><code>xp</code></dt>
+<dd>
+<p>a <code>n</code> by <code>d</code> matrix
+of prior <em>means</em> for the legislators' ideal points;
+or alternatively, a scalar, which will be replicated to fill a <code>n</code> by <code>d</code> matrix.</p>
+</dd>
+<dt><code>xpv</code></dt>
+<dd>
+<p>a <code>n</code> by <code>d</code> matrix of prior
+<em>precisions</em> (inverse variances);
+or alternatively, a scalar, which will be replicated to fill a <code>n</code>
+by <code>d</code> matrix.</p>
+</dd> 
+<dt><code>bp</code></dt>
+<dd>
+<p>a <code>m</code> by <code>d+1</code> matrix of prior means for the
+item parameters (with the item difficulty parameter coming last);
+or alternatively, a scalar, which will be replicated to fill a <code>m</code>
+by <code>d+1</code> matrix.</p>
+</dd>
+<dt><code>bpv</code></dt>
+<dd>
+<p>a <code>m</code> by <code>d+1</code> matrix of prior
+precisions for the item parameters;
+or alternatively, a scalar, which will be replicated to fill a <code>m</code>
+by <code>d+1</code> matrix.</p>
+</dd>
+</dl>
+<p>None of the components should contain <code>NA</code>.  If any
+of the four possible components are not provided, then the
+corresponding component of <code>priors</code> is assigned using the default
+values described above.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>startvals</code></td>
+<td>
+<p>either a string naming a method for generating start
+values, valid options are <code>"eigen"</code> (the default),
+<code>"random"</code> or a <code>list</code> containing start values for
+legislators' ideal points and item parameters.  See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>store.item</code></td>
+<td>
+<p><code>logical</code>, whether item discrimination
+parameters should be stored.  Storing item discrimination parameters
+can consume a large amount of memory.  These need to be stored for
+prediction; see <code>predict.ideal</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+<p>string, file to write MCMC output.  Default is
+<code>NULL</code>, in which case MCMC output is stored in memory.  Note
+that post-estimation commands like <code>plot</code> will not work unless
+MCMC output is stored in memory.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical, default
+is <code>FALSE</code>, which generates relatively little output to the R
+console during execution.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use.voter</code></td>
+<td>
+<p>A vector of logicals of length <code>n</code> controlling
+which legislators' vote data informs item parameter
+estimates. Legislators corresponding to <code>FALSE</code> entries will
+not have their voting data included in updates of the item
+parameters. The default value of <code>NULL</code> will run the standard
+ideal-point model, which uses all legislators in updating item
+parameters. See Jessee (2016).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function fits a <code>d</code>+1 parameter item-response model to
+the roll call data object, so in one dimension the model reduces
+to the two-parameter item-response model popular in educational testing.
+See References.
+</p>
+<p><strong>Identification</strong>: The model parameters are <strong>not
+identified</strong> without the user supplying some restrictions on the
+model parameters; i.e., translations, rotations and re-scalings of
+the ideal points are observationally equivalent, via offsetting
+transformations of the item parameters.  It is the user's
+responsibility to impose these identifying restrictions if
+desired. The following brief discussion provides some guidance.
+</p>
+<p>For one-dimensional models (i.e., <code>d=1</code>), a simple route to
+identification is the <code>normalize</code> option, by imposing the restriction that the means of the posterior densities of the ideal points (ability parameters) have mean zero and standard deviation one, across legislators (test-takers).  This normalization supplies
+<em>local</em> identification (that is, identification up to a 180 degree rotation of
+the recovered dimension). 
+</p>
+<p>Near-degenerate “spike” priors
+(priors with arbitrarily large precisions) or the
+<code>constrain.legis</code> option on any two legislators' ideal points
+ensures <em>global</em> identification in one dimension.
+</p>
+<p>Identification in higher dimensions can be obtained by supplying
+fixed values for <code>d+1</code> legislators' ideal points, provided the
+supplied fixed points span a <code>d</code>-dimensional space (e.g., three
+supplied ideal points form a triangle in <code>d=2</code> dimensions), via
+the <code>constrain.legis</code> option. In this case the function
+defaults to vague normal priors on the unconstrained ideal points, but at each iteration the sampled
+ideal points are transformed back into the space of identified
+parameters, applying the linear transformation that maps the
+<code>d+1</code> fixed ideal points from their sampled values to their
+fixed values.  Alternatively, one can impose
+restrictions on the item parameters via
+<code>constrain.items</code>. See the examples in the documentation
+for the <code>constrain.legis</code> and
+<code>constrain.items</code>.
+</p>
+<p>Another route to identification is via <em>post-processing</em>.  That
+is, the user can run <code>ideal</code> without any identification
+constraints. This does not pose any formal/technical problem in a
+Bayesian analysis.  The fact that the posterior density may have
+multiple modes doesn't imply that the posterior is improper or that
+it can't be explored via MCMC methods. – but then use the function
+<code>postProcess</code> to map the MCMC output from the space of
+unidentified parameters into the subspace of identified parameters.
+See the example in the documentation for the
+<code>postProcess</code> function.
+</p>
+<p>When the <code>normalize</code> option is set to <code>TRUE</code>, an
+unidentified model is run, and the <code>ideal</code> object is
+post-processed with the <code>normalize</code> option, and then returned
+to the user (but again, note that the <code>normalize</code> option is
+only implemented for unidimensional models).
+</p>
+<p><strong>Start values</strong>.  Start values can be supplied by the user, or
+generated by the function itself. 
+</p>
+<p>The default method, corresponding to <code>startvals="eigen"</code>, first
+forms a <code>n</code>-by-<code>n</code> correlation matrix from the
+double-centered roll call matrix (subtracting row means, and column
+means, adding in the grand mean), and then extracts the first
+<code>d</code> principal components (eigenvectors), scaling the
+eigenvectors by the square root of their corresponding eigenvector.
+If the user is imposing constraints on ideal points (via
+<code>constrain.legis</code>), these constraints are applied to the
+corresponding elements of the start values generated from the
+eigen-decomposition.  Then, to generate start 
+values for the rollcall/item parameters, a series of
+<code>binomial</code> <code>glms</code> are
+estimated (with a probit <code>link</code>), one for
+each rollcall/item, <code class="reqn">j = 1, \ldots, m</code>.  The votes on the
+<code class="reqn">j</code>-th rollcall/item are binary responses (presumed to be
+conditionally independent given each legislator's latent
+preference), and the (constrained or unconstrained) start values for
+legislators are used as predictors. The estimated coefficients from
+these probit models are used as start values for the item
+discrimination and difficulty parameters (with the intercepts from
+the probit GLMs multiplied by -1 so as to make those coefficients
+difficulty parameters).
+</p>
+<p>The default <code>eigen</code> method generates extremely good start
+values for low-dimensional models fit to recent U.S. congresses,
+where high rates of party line voting result in excellent fits from
+low dimensional models.  The <code>eigen</code> method may be
+computationally expensive or lead to memory errors for
+<code>rollcall</code> objects with large numbers of legislators.
+</p>
+<p>The <code>random</code> method generates start values via iid sampling
+from a N(0,1) density, via <code>rnorm</code>, imposing any
+constraints that may have been supplied via
+<code>constrain.legis</code>, and then uses the probit method
+described above to get start values for the rollcall/item
+parameters.
+</p>
+<p>If <code>startvals</code> is a <code>list</code>, it must contain the named
+components <code>x</code> and/or <code>b</code>, or named components that
+(uniquely) begin with the letters <code>x</code> and/or <code>b</code>.  The
+component <code>x</code> must be a vector or a matrix of dimensions equal to
+the number of individuals (legislators) by <code>d</code>.  If supplied,
+<code>startvals$b</code> must be a matrix with dimension number of items
+(votes) by <code>d</code>+1.  The <code>x</code> and <code>b</code> components cannot
+contain <code>NA</code>.  If <code>x</code> is not supplied when <code>startvals</code>
+is a list, then start values are generated using the default
+<code>eiegn</code> method described above, and start values for the
+rollcall/item parameters are regenerated using the probit method,
+ignoring any user-supplied values in <code>startvals$b</code>.  That is,
+user-supplied values in <code>startvals$b</code> are only used when
+accompanied by a valid set of start values for the ideal points in
+<code>startvals$x</code>.
+</p>
+<p><strong>Implementation via Data Augmentation</strong>.  The MCMC algorithm
+for this problem consists of a Gibbs sampler for the ideal points
+(latent traits)
+and item parameters, conditional on latent data <code class="reqn">y^*</code>, generated
+via a data augmentation (DA) step.  That is, following Albert (1992) and
+Albert and Chib (1993), if <code class="reqn">y_{ij} = 1</code> we sample from the
+truncated normal density
+</p>
+<p style="text-align: center;"><code class="reqn">y_{ij}^* \sim N(x_i' \beta_j - \alpha_j, 1)\mathcal{I}(y_{ij}^* \geq 0)</code>
+</p>
+
+<p>and for <code class="reqn">y_{ij}=0</code> we sample 
+</p>
+<p style="text-align: center;"><code class="reqn">y_{ij}^* \sim N(x_i' \beta_j - \alpha_j, 1)\mathcal{I}(y_{ij}^* &lt; 0)</code>
+</p>
+
+<p>where <code class="reqn">\mathcal{I}</code> is an indicator function evaluating to one
+if its argument is true and zero otherwise.  Given the
+latent <code class="reqn">y^*</code>, the conditional distributions for <code class="reqn">x</code> and
+<code class="reqn">(\beta,\alpha)</code> are extremely simple to sample from; see the
+references for details.  
+</p>
+<p>This data-augmented Gibbs sampling strategy is easily implemented,
+but can sometimes require many thousands of samples in order to
+generate tolerable explorations of the posterior densities of the
+latent traits, particularly for legislators with short and/or
+extreme voting histories (the equivalent in the educational testing
+setting is a test-taker who gets almost every item right or wrong).
+</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h3>Value</h3>
+
+<p>a <code>list</code> of class <code>ideal</code> with named components
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p><code>numeric</code>, integer, number of legislators in the
+analysis, after any subsetting via processing the <code>dropList</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m</code></td>
+<td>
+<p><code>numeric</code>, integer, number of rollcalls in roll
+call matrix, after any subsetting via processing the <code>dropList</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p><code>numeric</code>, integer, number of dimensions
+fitted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a three-dimensional <code>array</code> containing the MCMC
+output with respect to the 
+the ideal point of each legislator in each dimension.
+The three-dimensional array is in iteration-legislator-dimension
+order.  The iterations run from <code>burnin</code> to <code>maxiter</code>, at
+an interval of <code>thin</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>a three-dimensional <code>array</code> containing the
+MCMC output for the item parameters.  The three-dimensional array
+is in iteration-rollcall-parameter order.  The iterations run from
+<code>burnin</code> to <code>maxiter</code>, at an interval of <code>thin</code>.
+Each rollcall has <code>d+1</code> parameters, with the
+item-discrimination parameters stored first, in the first <code>d</code>
+components of the 3rd dimension of the <code>beta</code> array; the
+item-difficulty parameter follows in the final <code>d+1</code>
+component of the 3rd dimension of the <code>beta</code> array.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xbar</code></td>
+<td>
+<p>a <code>n</code> by <code>d</code> <code>matrix</code> containing the means of the
+MCMC samples for the ideal point of each legislator in each dimension,
+using iterations <code>burnin</code> to <code>maxiter</code>, at an interval of
+<code>thin</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>betabar</code></td>
+<td>
+<p>a <code>m</code> by <code>d+1</code> <code>matrix</code> containing the means of
+the MCMC samples for the item-specific parameters, using iterations
+<code>burnin</code> to <code>maxiter</code>, at an interval of <code>thin</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>args</code></td>
+<td>
+<p>calling arguments, evaluated in the frame calling <code>ideal</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>an object of class <code>call</code>, containing
+the arguments passed to <code>ideal</code> as unevaluated expressions or values (for functions arguments that evaluate to scalar integer or logical such as <code>maxiter</code>, <code>burnin</code>, etc).</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Simon Jackman <a href="mailto:simon.jackman@sydney.edu.au">simon.jackman@sydney.edu.au</a>, with help from Christina
+Maimone and Alex Tahk.</p>
+
+
+<h3>References</h3>
+
+<p>Albert, James. 1992. Bayesian Estimation of normal ogive item
+response curves using Gibbs sampling. <em>Journal of Educational
+Statistics</em>. 17:251-269.
+</p>
+<p>Albert, James H. and Siddhartha Chib.  1993.  Bayesian Analysis of
+Binary and Polychotomous Response Data.  <em>Journal of the
+American Statistical Association</em>. 88:669-679.
+</p>
+<p>Clinton, Joshua, Simon Jackman and Douglas Rivers. 2004. The
+Statistical Analysis of Roll Call Data.  <em>American Political
+Science Review</em>.  98:335-370.
+</p>
+<p>Jackman, Simon. 2009.  <em>Bayesian Analysis for the Social
+Sciences</em>.  Wiley: Hoboken, New Jersey.
+</p>
+<p>Jessee, Stephen. 2016. (How) Can We Estimate the Ideology
+of Citizens and Political Elites on the Same Scale?
+<em>American Journal of Political Science</em>.
+</p>
+<p>Patz, Richard J. and Brian W. Junker. 1999.  A Straightforward
+Approach to Markov Chain Monte Carlo Methods for Item Response
+Models. <em>Journal of Education and Behavioral
+Statistics</em>. 24:146-178.
+</p>
+<p>Rivers, Douglas. 2003.  “Identification of Multidimensional
+Item-Response Models.” Typescript.  Department of Political Science,
+Stanford University.
+</p>
+<p>van Dyk, David A and Xiao-Li Meng.  2001.  The art of data
+augmentation (with discussion).  <em>Journal of Computational and
+Graphical Statistics</em>. 10(1):1-111.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rollcall</code>, <code>summary.ideal</code>,
+<code>plot.ideal</code>, <code>predict.ideal</code>.
+<code>tracex</code> for graphical display of MCMC iterative
+history.
+</p>
+<p><code>idealToMCMC</code> converts the MCMC iterates in an
+<code>ideal</code> object to a form that can be used by the <code>coda</code> library.
+</p>
+<p><code>constrain.items</code> and
+<code>constrain.legis</code> for implementing identifying
+restrictions.
+</p>
+<p><code>postProcess</code> for imposing identifying restrictions
+<em>ex post</em>.
+</p>
+<p><code>MCMCirt1d</code> and 
+<code>MCMCirtKd</code> in the <span class="pkg">MCMCpack</span>
+package provide similar functionality to <code>ideal</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+## long run, many iterations
+data(s109)
+n &lt;- dim(s109$legis.data)[1]
+x0 &lt;- rep(0,n)
+x0[s109$legis.data$party=="D"] &lt;- -1
+x0[s109$legis.data$party=="R"] &lt;- 1
+
+id1 &lt;- ideal(s109,
+             d=1,
+             startvals=list(x=x0),
+             normalize=TRUE,
+             store.item=TRUE,
+             maxiter=260E3,
+             burnin=10E3,
+             thin=100)  
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,402 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>modifyTerminalBranches</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Modify, Drop or Bind Terminal Branches of Various Types (Mainly for Paleontological Phylogenies)</h2>
+
+<h3>Description</h3>
+
+<p>These functions modify terminal branches or drop certain terminal branches
+based on various criteria.
+<code>dropZLB</code> drops tip-taxa that are attached to the tree via 
+zero-length terminal branches ("ZLBs"). 
+This is sometimes useful for phylogenies of fossil taxa, as
+various time-scaling methods often produce these 'ZLBs', taxa whose early
+appearance causes them to be functionally interpreted as ancestors in some
+time-scaling methods. Removing 'ZLBs' is advised for analyses of
+diversification/diversity, as these will appear as simultaneous
+speciation/extinction events. Note this function only drops tips attached to
+a terminal zero-length branch; if you want to collapse internal zero-length
+branches, see the ape function <code>di2multi</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">dropZLB(tree)
+
+dropExtinct(tree, tol = 0.01, ignore.root.time = FALSE)
+
+dropExtant(tree, tol = 0.01)
+
+addTermBranchLength(tree, addtime = 0.001)
+
+dropPaleoTip(tree, ...)
+
+bindPaleoTip(
+  tree,
+  tipLabel,
+  nodeAttach = NULL,
+  tipAge = NULL,
+  edgeLength = NULL,
+  positionBelow = 0,
+  noNegativeEdgeLength = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tree</code></td>
+<td>
+<p>A phylogeny, as an object of class <code>phylo</code>.
+<code>dropPaleoTip</code> requires this
+input object to also have a <code>tree$root.time</code> element. If not provided for
+<code>bindPaleoTip</code>, then the <code>$root.time</code> will be presumed to be such that the
+furthest tip from the root is at <code>time = 0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>Tolerance for determining modern age; used for distinguishing
+extinct from extant taxa. Tips which end within <code>tol</code> of the furthest
+distance from the root will be treated as 'extant' taxa for the purpose of
+keeping or dropping.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ignore.root.time</code></td>
+<td>
+<p>Ignore <code>tree$root.time</code> in calculating which tips are
+extinct? <code>tree$root.time</code> will still be adjusted,
+if the operation alters the <code>tree$root.time</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>addtime</code></td>
+<td>
+<p>Extra amount of time to add to all terminal branch lengths.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments passed to <code>dropPaleoTip</code> are passed to <code>drop.tip</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tipLabel</code></td>
+<td>
+<p>A character string of <code>length = 1</code> containing the name of the new tip
+to be added to <code>tree</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nodeAttach</code></td>
+<td>
+<p>Node or tip ID number (as given in <code>tree$edge</code>) at which to attach the new tip. 
+See documentation of <code>bind.tip</code> for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tipAge</code></td>
+<td>
+<p>The age of the tip taxon added to the tree, in time before present (i.e. where
+present is 0), given in the same units as the edges of the tree are already scaled. Cannot be
+given if <code>edgeLength</code> is given.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>edgeLength</code></td>
+<td>
+<p>The new <code>edge.length</code> of the terminal branch this tip is connected to.
+Cannot be given if <code>tipAge</code> is given.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>positionBelow</code></td>
+<td>
+<p>The distance along the edge below the node to be attached to 
+(given in <code>nodeAttach</code> to add the new tip. Cannot be negative or greater than the length of the
+edge below <code>nodeAttach</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>noNegativeEdgeLength</code></td>
+<td>
+<p>Return an error if a negative terminal edge length is calculated
+for the new tip.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>dropExtinct</code> drops all terminal branches which end before the modern (i.e.
+extinct taxa). <code>DropExtant</code> drops all terminal branches which end at the
+modern (i.e. extant/still-living taxa). In both cases, the modern is defined
+based on <code>tree$root.time</code> if available, or the modern is inferred to be the
+point in time when the tip furthest from the root (the latest tip)
+terminates.
+</p>
+<p>If the input tree has a <code>$root.time</code> element,
+as expected for most phylogeny containing fossil taxa
+objects handled by this library, that <code>$root.time</code> is adjusted if the relative
+time of the root divergence changes when terminal branches are dropped.
+This is typically performed via the function <code>fixRootTime</code>.
+Adjusted <code>$root.time</code> elements are only given if
+the input tree has a <code>$root.time</code> element.
+</p>
+<p><code>addTermBranchLength</code> adds an amount equal to the argument <code>addtime</code> to the
+terminal branch lengths of the tree. If there is a <code>$root.time</code> element, this
+is increased by an amount equal to <code>addtime</code>. A negative amount can be input
+to reduce the length of terminal branches. However, if negative branch
+lengths are produced, the function fails and a warning is produced.
+The function <code>addTermBranchLength</code> does <em>not</em> call <code>fixRootTime</code>,
+so the root.time elements in the result tree may
+be nonsensical, particularly if negative amounts are input.
+</p>
+<p><code>dropPaleoTip</code> is a wrapper for <code>ape</code>'s <code>drop.tip</code> which also modifies the
+<code>$root.time</code> element if necessary, using <code>fixRootTime</code>. Similarly,
+<code>bindPaleoTip</code> is a wrapper for phytool's <code>bind.tip</code> which allows tip age
+as input and modifies the <code>$root.time</code> element if necessary (i.e. if a tip
+is added to edge leading up to the root).
+</p>
+<p>Note that for <code>bindPaleoTip</code>, tips added below the root are subtracted from
+any existing <code>$root.edge</code> element,
+as per behavior of <code>link[ape]{bind.tip}</code> and <code>bind.tree</code>.
+However, <code>bindPaleoTip</code> will append a <code>$root.edge</code> of
+the appropriate value (i.e., root edge length)
+if one does not exist (or is not long enough) to avoid an error. After
+binding is finished, any <code>$root.edge</code> equal to 0 is removed before the
+resulting tree is output.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Gives back a modified phylogeny as a <code>phylo</code> object, generally with a
+modified <code>$root.time</code> element.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David W. Bapst. The functions <code>dropTipPaleo</code> and <code>bindTipPaleo</code> are modified imports of
+<code>drop.tip</code> and <code>bind.tip</code> from packages <code>ape</code> and <code>phytools</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>compareTermBranches</code>, <code>phyloDiv</code>, 
+<code>drop.tip</code>, <code>bind.tip</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+set.seed(444)
+# Simulate some fossil ranges with simFossilRecord
+record &lt;- simFossilRecord(
+    p = 0.1, q = 0.1, 
+    nruns = 1, 
+    nTotalTaxa = c(30,40), 
+    nExtant = 0
+    )
+taxa &lt;- fossilRecord2fossilTaxa(record)
+# simulate a fossil record 
+    # with imperfect sampling with sampleRanges
+rangesCont &lt;- sampleRanges(taxa,r = 0.5)
+# Now let's make a tree using taxa2phylo
+tree &lt;- taxa2phylo(taxa,obs_time = rangesCont[,2])
+# compare the two trees
+layout(1:2)
+plot(ladderize(tree))
+plot(ladderize(dropZLB(tree)))
+
+# reset
+layout(1)
+
+
+# example using dropExtinct and dropExtant
+set.seed(444)
+record &lt;- simFossilRecord(
+    p = 0.1, q = 0.1, 
+    nruns = 1, 
+    nTotalTaxa = c(30,40), 
+    nExtant = c(10,20)
+    )
+taxa &lt;- fossilRecord2fossilTaxa(record)
+tree &lt;- taxa2phylo(taxa)
+phyloDiv(tree)
+tree1 &lt;- dropExtinct(tree)
+phyloDiv(tree1)
+tree2 &lt;- dropExtant(tree)
+phyloDiv(tree2)
+
+
+# example using addTermBranchLength
+set.seed(444)
+treeA &lt;- rtree(10)
+treeB &lt;- addTermBranchLength(treeA,1)
+compareTermBranches(treeA,treeB)
+
+#########################
+# test dropPaleoTip
+	# (and fixRootTime by extension...)
+
+# simple example
+tree &lt;- read.tree(text = "(A:3,(B:2,(C:5,D:3):2):3);")
+tree$root.time &lt;- 10
+plot(tree, no.margin = FALSE)
+axisPhylo()
+
+# now a series of tests, dropping various tips
+(test &lt;- dropPaleoTip(tree,"A")$root.time) #  = 7
+(test[2] &lt;- dropPaleoTip(tree,"B")$root.time) #  = 10
+(test[3] &lt;- dropPaleoTip(tree,"C")$root.time) #  = 10
+(test[4] &lt;- dropPaleoTip(tree,"D")$root.time) #  = 10
+(test[5] &lt;- dropPaleoTip(tree,c("A","B"))$root.time) #  = 5
+(test[6] &lt;- dropPaleoTip(tree,c("B","C"))$root.time) #  = 10
+(test[7] &lt;- dropPaleoTip(tree,c("A","C"))$root.time) #  = 7
+(test[8] &lt;- dropPaleoTip(tree,c("A","D"))$root.time) #  = 7
+
+# is it all good? if not, fail so paleotree fails...
+if(!identical(test,c(7,10,10,10,5,10,7,7))){
+     stop("fixRootTime fails!")
+     }
+
+
+##############
+# testing bindPaleoTip
+
+# simple example 
+tree &lt;- read.tree(text = "(A:3,(B:2,(C:5,D:3):2):3);")
+tree$root.time &lt;- 20
+plot(tree, no.margin = FALSE)
+axisPhylo()
+
+## Not run: 
+
+require(phytools)
+
+# bindPaleoTip effectively wraps bind.tip from phytools
+# using a conversion like below
+
+tipAge &lt;- 5
+node &lt;- 6
+
+# the new tree length (tip to root depth) should be:
+# new length = the root time - tipAge - nodeheight(tree,node)
+
+newLength &lt;- tree$root.time-tipAge-nodeheight(tree,node)
+tree1 &lt;- bind.tip(tree,
+    "tip.label",
+    where = node,\
+    edge.length = newLength)
+
+layout(1:2)
+plot(tree)
+axisPhylo()
+plot(tree1)
+axisPhylo()
+
+# reset
+layout(1)
+
+
+## End(Not run)
+
+# now with bindPaleoTip
+
+tree1 &lt;- bindPaleoTip(tree,"new",nodeAttach = 6,tipAge = 5)
+
+layout(1:2)
+plot(tree)
+axisPhylo()
+plot(tree1)
+axisPhylo()
+
+# reset
+layout(1)
+
+#then the tip age of "new" should 5
+test &lt;- dateNodes(tree1)[which(tree1$tip.label == "new")] == 5
+if(!test){
+    stop("bindPaleoTip fails!")
+    }
+
+# with positionBelow
+
+tree1 &lt;- bindPaleoTip(
+    tree,
+    "new",
+    nodeAttach = 6,
+    tipAge = 5,
+    positionBelow = 1
+    )
+
+layout(1:2)
+plot(tree)
+axisPhylo()
+plot(tree1)
+axisPhylo()
+
+# reset
+layout(1)
+
+# at the root
+
+tree1 &lt;- bindPaleoTip(
+    tree,
+    "new", 
+    nodeAttach = 5,
+    tipAge = 5)
+
+layout(1:2)
+plot(tree)
+axisPhylo()
+plot(tree1)
+axisPhylo()
+
+# reset
+layout(1)
+
+#then the tip age of "new" should 5
+test &lt;- dateNodes(tree1)[which(tree1$tip.label == "new")] == 5
+if(!test){
+     stop("bindPaleoTip fails!")
+     }
+
+# at the root with positionBelow
+
+tree1 &lt;- bindPaleoTip(tree,"new",nodeAttach = 5,tipAge = 5,
+	positionBelow = 3)
+
+layout(1:2)
+plot(tree)
+axisPhylo()
+plot(tree1)
+axisPhylo()
+
+# reset
+layout(1)
+
+#then the tip age of "new" should 5
+test &lt;- dateNodes(tree1)[which(tree1$tip.label == "new")] == 5
+#and the root age should be 23
+test1 &lt;- tree1$root.time == 23
+if(!test | !test1){
+     stop("bindPaleoTip fails!")
+     }
+
+</code></pre>
+
+
+</div>

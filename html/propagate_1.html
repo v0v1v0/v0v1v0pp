@@ -1,0 +1,122 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>bigcor</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Creating very large correlation/covariance matrices</h2>
+
+<h3>Description</h3>
+
+<p>The storage of a value in double format needs 8 bytes. When creating large correlation matrices, the amount of RAM might not suffice, giving rise to the dreaded <em>"cannot allocate vector of size ..."</em> error. For example, an input matrix with 50000 columns/100 rows will result in a correlation matrix with a size of 50000 x 50000 x 8 Byte / (1024 x 1024 x 1024) = 18.63 GByte, which is still more than most standard PCs. <code>bigcor</code> uses the framework of the 'ff' package to store the correlation/covariance matrix in a file. The complete matrix is created by filling a large preallocated empty matrix with sub-matrices at the corresponding positions. See 'Details'. Calculation time is ~ 20s for an input matrix of 10000 x 100 (cols x rows).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">bigcor(x, y = NULL, fun = c("cor", "cov"), size = 2000, 
+       verbose = TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>the input matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p><code>NULL</code> (default) or a vector, matrix or data frame with compatible dimensions to <code>x</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fun</code></td>
+<td>
+<p>create either a <code>cor</code>elation or <code>cov</code>ariance matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>size</code></td>
+<td>
+<p>the n x n block size of the submatrices. 2000 has shown to be time-effective.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, information is printed in the console when running.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>other parameters to be passed to <code>cor</code> or <code>cor</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Calculates a correlation matrix <code class="reqn">\mathbf{C}</code> or covariance matrix <code class="reqn">\mathbf{\Sigma}</code> using the following steps:<br>
+1) An input matrix <code>x</code> with <code class="reqn">N</code> columns is split into <code class="reqn">k</code> equal size blocks (+ a possible remainder block) <code class="reqn">A_1, A_2, \ldots,  A_k</code> of size <code class="reqn">n</code>. The block size can be defined by the user, <code>size = 2000</code> is a good value because <code>cor</code> can handle this quite quickly (~ 400 ms). For example, if the matrix has 13796 columns, the split will be <code class="reqn">A_1 = 1 \ldots 2000; A_2 = 2001 \ldots 4000; A_3 = 4001 \ldots 6000; A_4 = 6000 \ldots 8000 ; A_5 = 8001 \ldots 10000; A_6 = 10001 \ldots 12000; A_7 = 12001 \ldots 13796</code>.<br>
+2) For all pairwise combinations of blocks <code class="reqn">k \choose 2</code>, the <code class="reqn">n \times n</code> correlation sub-matrix is calculated. If <code>y = NULL</code>, <code class="reqn">\mathrm{cor}(A_1, A_1), \mathrm{cor}(A_1, A_2), \ldots, \mathrm{cor}(A_k, A_k)</code>, otherwise <code class="reqn">\mathrm{cor}(A_1, y), \mathrm{cor}(A_2, y), \ldots, \mathrm{cor}(A_k, y)</code>.<br>
+3) The sub-matrices are transferred into a preallocated <code class="reqn">N \times N</code> empty matrix at the corresponding position (where the correlations would usually reside). To ensure symmetry around the diagonal, this is done twice in the upper and lower triangle. If <code>y</code> was supplied, a <code class="reqn">N \times M</code> matrix is filled, with <code class="reqn">M</code> = number of columns in <code>y</code>. <br></p>
+<p>Since the resulting matrix is in 'ff' format, one has to subset to extract regions into normal <code>matrix</code>-like objects. See 'Examples'.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The corresponding correlation/covariance matrix in 'ff' format.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Andrej-Nikolai Spiess
+</p>
+
+
+<h3>References</h3>
+
+<p><a href="http://rmazing.wordpress.com/2013/02/22/bigcor-large-correlation-matrices-in-r/">http://rmazing.wordpress.com/2013/02/22/bigcor-large-correlation-matrices-in-r/</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Small example to prove similarity
+## to standard 'cor'. We create a matrix
+## by subsetting the complete 'ff' matrix.
+MAT &lt;- matrix(rnorm(70000), ncol = 700)
+COR &lt;- bigcor(MAT, size= 500, fun = "cor")
+COR &lt;- COR[1:nrow(COR), 1:ncol(COR)]
+all.equal(COR, cor(MAT)) # =&gt; TRUE
+
+## Example for cor(x, y) with 
+## y = small matrix.
+MAT1 &lt;- matrix(rnorm(50000), nrow = 10)
+MAT2 &lt;- MAT1[, 4950:5000]
+COR &lt;- cor(MAT1, MAT2)
+BCOR &lt;- bigcor(MAT1, MAT2)
+BCOR &lt;- BCOR[1:5000, 1:ncol(BCOR)] # =&gt; convert 'ff' to 'matrix'
+all.equal(COR, BCOR)
+
+## Not run: 
+## Create large matrix.
+MAT &lt;- matrix(rnorm(57500), ncol = 5750)
+COR &lt;- bigcor(MAT, size= 2000, fun = "cor")
+
+## Extract submatrix.
+SUB &lt;- COR[1:3000, 1:3000]
+all.equal(SUB, cor(MAT[, 1:3000]))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

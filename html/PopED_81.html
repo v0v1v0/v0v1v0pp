@@ -1,0 +1,389 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>poped_optim_3</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Optimization main module for PopED</h2>
+
+<h3>Description</h3>
+
+<p>Optimize the objective function. The function works for both discrete and 
+continuous optimization variables. If more than one optimization method is 
+specified then the methods are run in series.  If <code>loop_methods=TRUE</code> 
+then the series of optimization methods will be run for <code>iter_max</code> 
+iterations, or until the efficiency of the design after the current series 
+(compared to the start of the series) is less than <code>stop_crit_eff</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">poped_optim_3(
+  poped.db,
+  opt_xt = poped.db$settings$optsw[2],
+  opt_a = poped.db$settings$optsw[4],
+  opt_x = poped.db$settings$optsw[3],
+  opt_samps = poped.db$settings$optsw[1],
+  opt_inds = poped.db$settings$optsw[5],
+  method = c("ARS", "BFGS", "LS"),
+  control = list(),
+  trace = TRUE,
+  fim.calc.type = poped.db$settings$iFIMCalculationType,
+  ofv_calc_type = poped.db$settings$ofv_calc_type,
+  ds_index = poped.db$parameters$ds_index,
+  approx_type = poped.db$settings$iApproximationMethod,
+  d_switch = poped.db$settings$d_switch,
+  ED_samp_size = poped.db$settings$ED_samp_size,
+  bLHS = poped.db$settings$bLHS,
+  use_laplace = poped.db$settings$iEDCalculationType,
+  out_file = "",
+  parallel = F,
+  parallel_type = NULL,
+  num_cores = NULL,
+  loop_methods = ifelse(length(method) &gt; 1, TRUE, FALSE),
+  iter_max = 10,
+  stop_crit_eff = 1.001,
+  stop_crit_diff = NULL,
+  stop_crit_rel = NULL,
+  ofv_fun = poped.db$settings$ofv_fun,
+  maximize = T,
+  allow_replicates = TRUE,
+  allow_replicates_xt = TRUE,
+  allow_replicates_a = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>poped.db</code></td>
+<td>
+<p>A PopED database.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt_xt</code></td>
+<td>
+<p>Should the sample times be optimized?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt_a</code></td>
+<td>
+<p>Should the continuous design variables be optimized?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt_x</code></td>
+<td>
+<p>Should the discrete design variables be optimized?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt_samps</code></td>
+<td>
+<p>Are the number of sample times per group being optimized?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt_inds</code></td>
+<td>
+<p>Are the number of individuals per group being optimized?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>A vector of optimization methods to use in a sequential 
+fashion.  Options are <code>c("ARS","BFGS","LS","GA")</code>. <code>c("ARS")</code> is 
+for Adaptive Random Search <code>optim_ARS</code>.  <code>c("LS")</code> is for 
+Line Search <code>optim_LS</code>. <code>c("BFGS")</code> is for Method 
+"L-BFGS-B" from <code>optim</code>. <code>c("GA")</code> is for the 
+genetic algorithm from <code>ga</code>. If <code>opt_inds=TRUE</code> then
+this optimization is always added to the end of the sequential optimization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>Contains control arguments specified for each method separately.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace</code></td>
+<td>
+<p>Should the algorithm output results intermittently.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fim.calc.type</code></td>
+<td>
+<p>The method used for calculating the FIM. Potential values:
+</p>
+
+<ul>
+<li>
+<p> 0 = Full FIM.  No assumption that fixed and random effects are uncorrelated.  
+</p>
+</li>
+<li>
+<p> 1 = Reduced FIM. Assume that there is no correlation in the FIM between the fixed and random effects, and set these elements in 
+the FIM to zero. 
+</p>
+</li>
+<li>
+<p> 2 = weighted models (placeholder).
+</p>
+</li>
+<li>
+<p> 3 = Not currently used.
+</p>
+</li>
+<li>
+<p> 4 = Reduced FIM and computing all derivatives with respect to the standard deviation of the residual unexplained variation (sqrt(SIGMA) in NONMEM). 
+This matches what is done in PFIM, and assumes that the standard deviation of the residual unexplained variation is the estimated parameter
+(NOTE: NONMEM estimates the variance of the residual unexplained variation by default). 
+</p>
+</li>
+<li>
+<p> 5 = Full FIM parameterized with A,B,C matrices &amp; derivative of variance. 
+</p>
+</li>
+<li>
+<p> 6 = Calculate one model switch at a time, good for large matrices. 
+</p>
+</li>
+<li>
+<p> 7 = Reduced FIM parameterized with A,B,C matrices &amp; derivative of variance.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ofv_calc_type</code></td>
+<td>
+<p>OFV calculation type for FIM 
+</p>
+ 
+<ul>
+<li>
+<p> 1 = "D-optimality". Determinant of the FIM: det(FIM)
+</p>
+</li>
+<li>
+<p> 2 = "A-optimality".  Inverse of the sum of the expected parameter variances: 
+1/trace_matrix(inv(FIM)) 
+</p>
+</li>
+<li>
+<p> 4 = "lnD-optimality".  Natural logarithm of the determinant of the FIM: log(det(FIM)) 
+</p>
+</li>
+<li>
+<p> 6 = "Ds-optimality". Ratio of the Determinant of the FIM and the Determinant of the uninteresting
+rows and columns of the FIM: det(FIM)/det(FIM_u)
+</p>
+</li>
+<li>
+<p> 7 = Inverse of the sum of the expected parameter RSE: 1/sum(get_rse(FIM,poped.db,use_percent=FALSE))
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ds_index</code></td>
+<td>
+<p>Ds_index is a vector set to 1 if a parameter is uninteresting, otherwise 0.
+size=(1,num unfixed parameters). First unfixed bpop, then unfixed d, then unfixed docc and last unfixed sigma. 
+Default is the fixed effects being important, everything else not important.  Used in conjunction with
+<code>ofv_calc_type=6</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>approx_type</code></td>
+<td>
+<p>Approximation method for model, 0=FO, 1=FOCE, 2=FOCEI, 3=FOI.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d_switch</code></td>
+<td>
+
+<ul><li> <p><b>******START OF CRITERION SPECIFICATION OPTIONS**********</b></p>
+</li></ul>
+<p>D-family design (1) or ED-family design (0) (with or without parameter uncertainty)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ED_samp_size</code></td>
+<td>
+<p>Sample size for E-family sampling</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bLHS</code></td>
+<td>
+<p>How to sample from distributions in E-family calculations. 0=Random Sampling, 1=LatinHyperCube –</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_laplace</code></td>
+<td>
+<p>Should the Laplace method be used in calculating the expectation of the OFV?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>out_file</code></td>
+<td>
+<p>Save output from the optimization to a file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>Should we use parallel computations?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel_type</code></td>
+<td>
+<p>Which type of parallelization should be used? 
+Can be "snow" or "multicore".  "snow"  works on Linux-like systems &amp; Windows. "multicore" works only on 
+Linux-like systems.  By default this is chosen for you depending on your operating system. 
+See <code>start_parallel</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num_cores</code></td>
+<td>
+<p>The number of cores to use in the parallelization.  By default  is set to the number 
+output from 
+<code>parallel::detectCores()</code>. 
+See <code>start_parallel</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loop_methods</code></td>
+<td>
+<p>Should the optimization methods be looped for
+<code>iter_max</code> iterations, or until the efficiency of the design after the
+current series (compared to the start of the series) is less than, or equal to,
+<code>stop_crit_eff</code>?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iter_max</code></td>
+<td>
+<p>If line search is used then the algorithm tests if line
+search (always run at the end of the optimization iteration) changes the 
+design in any way.  If not, the algorithm stops.  If yes, then a new
+iteration is run unless <code>iter_max</code> iterations have already been run.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stop_crit_eff</code></td>
+<td>
+<p>If <code>loop_methods==TRUE</code>, the looping will stop if the
+efficiency of the design after the current series (compared to the start of
+the series) is less than, or equal to, <code>stop_crit_eff</code> (if <code>maximize==FALSE</code> then 1/stop_crit_eff is the cut
+off and the efficiency must be greater than or equal to this value to stop the looping).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stop_crit_diff</code></td>
+<td>
+<p>If <code>loop_methods==TRUE</code>, the looping will stop if the
+difference in criterion value of the design after the current series (compared to the start of
+the series) is less than, or equal to, <code>stop_crit_diff</code> (if <code>maximize==FALSE</code> then -stop_crit_diff is the cut
+off and the difference in criterion value must be greater than or equal to this value to stop the looping).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stop_crit_rel</code></td>
+<td>
+<p>If <code>loop_methods==TRUE</code>, the looping will stop if the
+relative difference in criterion value of the design after the current series (compared to the start of
+the series) is less than, or equal to, <code>stop_crit_rel</code> (if <code>maximize==FALSE</code> then -stop_crit_rel is the cut
+off and the relative difference in criterion value must be greater than or equal to this value to stop the looping).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ofv_fun</code></td>
+<td>
+<p>User defined function used to compute the objective function. The function must have a poped database object as its first
+argument and have "..." in its argument list.  Can be referenced as a function or as a file name where the function defined in the file has the same name as the file.
+e.g. "cost.txt" has a function named "cost" in it.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maximize</code></td>
+<td>
+<p>Should the objective function be maximized or minimized?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allow_replicates</code></td>
+<td>
+<p>Should the algorithm allow parameters to have the same value?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>arguments passed to other functions.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function takes information from the PopED database supplied as an 
+argument. The PopED database supplies information about the the model, 
+parameters, design and methods to use. Some of the arguments coming from the 
+PopED database can be overwritten; if they are supplied then they are used 
+instead of the arguments from the PopED database.
+</p>
+
+
+<h3>References</h3>
+
+ <ol>
+<li>
+<p> M. Foracchia, A.C. Hooker, P. Vicini and A. 
+Ruggeri, "PopED, a software fir optimal experimental design in population 
+kinetics", Computer Methods and Programs in Biomedicine, 74, 2004. </p>
+</li>
+<li>
+<p> J.
+Nyberg, S. Ueckert, E.A. Stroemberg, S. Hennig, M.O. Karlsson and A.C. 
+Hooker, "PopED: An extended, parallelized, nonlinear mixed effects models 
+optimal design tool", Computer Methods and Programs in Biomedicine, 108, 
+2012. </p>
+</li>
+</ol>
+<h3>See Also</h3>
+
+<p>Other Optimize: 
+<code>Doptim()</code>,
+<code>LEDoptim()</code>,
+<code>RS_opt()</code>,
+<code>a_line_search()</code>,
+<code>bfgsb_min()</code>,
+<code>calc_autofocus()</code>,
+<code>calc_ofv_and_grad()</code>,
+<code>mfea()</code>,
+<code>optim_ARS()</code>,
+<code>optim_LS()</code>,
+<code>poped_optim()</code>,
+<code>poped_optim_1()</code>,
+<code>poped_optim_2()</code>,
+<code>poped_optimize()</code>
+</p>
+
+
+</div>

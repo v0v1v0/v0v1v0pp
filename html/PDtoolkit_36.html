@@ -1,0 +1,141 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rs.calibration</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calibration of the rating scale</h2>
+
+<h3>Description</h3>
+
+<p><code>rs.calibration</code> performs calibration of the observed default rates for a given rating scale.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rs.calibration(rs, dr, w, ct, min.pd, method)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>rs</code></td>
+<td>
+<p>Rating scale that contain observed default rate and weights used for optimization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dr</code></td>
+<td>
+<p>Observed default rate per rating.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+<p>Weights, usually number of observations (clients/accounts) per rating.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ct</code></td>
+<td>
+<p>Value of central tendency to which calibration is performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.pd</code></td>
+<td>
+<p>Minimum probability of default (PD) per rating, as constrain for calibration process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Calibration method. Available options are <code>"scaling", "log.odds.a", "log.odds.ab"</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Method <code>"scaling"</code> relies on linear rescaling of observed default rate. Rescaling factor is
+calculated as a ratio between <code>ct</code> and observed portfolio default rate.
+Method <code>"log.odds.a"</code> optimize intercept of logit transformation in a way that makes portfolio default
+rate equal to selected central tendency (<code>ct</code>).
+Method <code>"log.odds.ab"</code> optimize intercept and slope of logit transformation in a way that makes
+portfolio default rate equal to selected central tendency (<code>ct</code>).
+For respecting selected constrain of minimum PD (<code>min.pd</code>), two-stage iterative procedure is implemented.
+Additional constrain of maximum PD (100%) is also implemented.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The command <code>rs.calibration</code> returns a list of two elements. The first element is
+vector of calibrated PDs and the second one is dataframe of optimization parameters.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">suppressMessages(library(PDtoolkit))
+data(loans)
+#estimate some dummy model
+mod.frm &lt;- `Creditability` ~ `Account Balance` + `Duration of Credit (month)` +
+			`Age (years)`
+lr.mod &lt;- glm(mod.frm, family = "binomial", data = loans)
+summary(lr.mod)$coefficients
+#model predictions
+loans$pred &lt;-  unname(predict(lr.mod, type = "response", newdata = loans))
+#scale probabilities
+loans$score &lt;- scaled.score(probs = loans$pred, score = 600, odd = 50/1, pdo = 20)
+#group scores into rating
+loans$rating &lt;- sts.bin(x = round(loans$score), y = loans$Creditability, y.type = "bina")[[2]]
+#create rating scale
+rs &lt;- loans %&gt;%
+group_by(rating) %&gt;%
+summarise(no = n(),
+    nb = sum(Creditability),
+    ng = sum(1 - Creditability)) %&gt;%
+mutate(dr = nb / no)
+rs
+#calcualte portfolio default rate
+sum(rs$dr * rs$no / sum(rs$no))
+#calibrate rating scale to central tendency of 27% with minimum PD of 5%
+ct &lt;- 0.33
+min.pd &lt;- 0.05
+#scaling
+pd.calib.s &lt;- rs.calibration(rs = rs, 
+			     dr = "dr", 
+			     w = "no", 
+			     ct = ct, 
+			     min.pd = min.pd,
+			     method = "scaling")
+rs$pd.scaling &lt;- pd.calib.s[[1]]
+#log-odds a
+pd.calib.a &lt;- rs.calibration(rs = rs, 
+			     dr = "dr", 
+		 	     w = "no", 
+			     ct = ct, 
+			     min.pd = min.pd,
+			     method = "log.odds.a")
+rs$pd.log.a &lt;- pd.calib.a[[1]]
+#log-odds ab
+pd.calib.ab &lt;- rs.calibration(rs = rs, 
+			      dr = "dr", 
+		 	      w = "no", 
+			      ct = ct, 
+			      min.pd = min.pd,
+			      method = "log.odds.ab")
+rs$pd.log.ab &lt;- pd.calib.ab[[1]]
+#checks
+rs
+sum(rs$pd.scaling * rs$no / sum(rs$no))
+sum(rs$pd.log.a * rs$no / sum(rs$no))
+sum(rs$pd.log.ab * rs$no / sum(rs$no))
+</code></pre>
+
+
+</div>

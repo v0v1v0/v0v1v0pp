@@ -1,0 +1,198 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pdSpecEst1D</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Intrinsic wavelet HPD spectral estimation</h2>
+
+<h3>Description</h3>
+
+<p><code>pdSpecEst1D</code> calculates a <code class="reqn">(d,d)</code>-dimensional HPD wavelet-denoised spectral matrix estimator
+by applying the following steps to an initial noisy HPD spectral estimate (obtained with e.g., <code>pdPgram</code>):
+</p>
+
+<ol>
+<li>
+<p> a forward intrinsic AI wavelet transform, with <code>WavTransf1D</code>,
+</p>
+</li>
+<li>
+<p> (tree-structured) thresholding of the wavelet coefficients, with <code>pdCART</code>,
+</p>
+</li>
+<li>
+<p> an inverse intrinsic AI wavelet transform, with <code>InvWavTransf1D</code>.
+</p>
+</li>
+</ol>
+<p>The complete estimation procedure is described in more detail in (Chau and von
+Sachs 2019) or Chapter 3 of
+(Chau 2018).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pdSpecEst1D(P, order = 5, metric = "Riemannian", alpha = 1,
+  return_val = "f", ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>P</code></td>
+<td>
+<p>a (<code class="reqn">d,d,m</code>)-dimensional array of HPD matrices, corresponding to a sequence of <code class="reqn">(d,d)</code>-dimensional HPD matrices
+of length <code class="reqn">m</code>, with <code class="reqn">m = 2^J</code> for some <code class="reqn">J &gt; 0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>order</code></td>
+<td>
+<p>an odd integer larger or equal to 1 corresponding to the order of the intrinsic AI refinement scheme,
+defaults to <code>order = 5</code>. Note that if <code>order &gt; 9</code>, the computational cost
+significantly increases as the wavelet transform no longer uses a fast wavelet refinement scheme based
+on pre-determined weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>metric</code></td>
+<td>
+<p>the metric that the space of HPD matrices is equipped with. The default choice is <code>"Riemannian"</code>,
+but this can also be one of: <code>"logEuclidean"</code>, <code>"Cholesky"</code>, <code>"rootEuclidean"</code>,
+<code>"Euclidean"</code> or <code>"Riemannian-Rahman"</code>. See also the Details section below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>an optional tuning parameter in the wavelet thresholding procedure. The penalty (or sparsity)
+parameter in the tree-structured wavelet thresholding procedure in <code>pdCART</code> is set to <code>alpha</code>
+times the estimated universal threshold, defaults to <code>alpha = 1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_val</code></td>
+<td>
+<p>an optional argument that specifies whether the denoised spectral estimator
+is returned or not. See the Details section below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments for internal use.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The input array <code>P</code> corresponds to an initial noisy HPD spectral estimate of the (<code class="reqn">d,d</code>)-dimensional
+spectral matrix at <code>m</code> different frequencies, with <code class="reqn">m = 2^J</code> for some <code class="reqn">J &gt; 0</code>. This can be e.g.,
+a multitaper HPD periodogram given as output by the function <code>pdPgram</code>.<br><code>P</code> is transformed to the wavelet domain by the function <code>WavTransf1D</code>, which applies an intrinsic
+1D AI wavelet transform based on a metric specified by the user. The noise is removed by tree-structured
+thresholding of the wavelet coefficients based on the trace of the whitened coefficients with <code>pdCART</code> by
+minimization of a <em>complexity penalized residual sum of squares</em> (CPRESS) criterion via the fast tree-pruning algorithm
+in (Donoho 1997). The penalty or sparsity parameter in the optimization procedure is set equal to <code>alpha</code>
+times the universal threshold, where the noise variance of the traces of the whitened wavelet
+coefficients are determined from the finest wavelet scale. See (Chau and von
+Sachs 2019) and Chapter 3 of (Chau 2018)
+for further details. <br>
+The function computes the forward and inverse intrinsic AI wavelet transform in the space of HPD matrices equipped with
+one of the following metrics: (i) the affine-invariant Riemannian metric (default) as detailed in e.g., (Bhatia 2009)[Chapter 6]
+or (Pennec et al. 2006); (ii) the log-Euclidean metric, the Euclidean inner product between matrix logarithms;
+(iii) the Cholesky metric, the Euclidean inner product between Cholesky decompositions; (iv) the Euclidean metric; or
+(v) the root-Euclidean metric. The default choice of metric (affine-invariant Riemannian) satisfies several useful properties
+not shared by the other metrics, see (Chau and von
+Sachs 2019) or (Chau 2018) for more details. Note that this comes
+at the cost of increased computation time in comparison to one of the other metrics. <br>
+If <code>return_val = 'f'</code> the thresholded wavelet coefficients are transformed back to the frequency domain by
+the inverse intrinsic 1D AI wavelet transform via <code>InvWavTransf1D</code>, returning the wavelet-denoised
+HPD spectral estimate.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function returns a list with the following five components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>f </code></td>
+<td>
+<p> a (<code class="reqn">d,d,m</code>)-dimensional array of HPD matrices, corresponding to the HPD wavelet-denoised estimate
+of the same resolution as the input array <code>P</code>. If <code>return_val != 'f'</code>, the inverse wavelet transform
+of the thresholded wavelet coefficients is not computed and <code>f</code> is set equal to <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>D </code></td>
+<td>
+<p> the pyramid of threshold wavelet coefficients. This is a list of arrays, where each array contains the
+(<code class="reqn">d,d</code>)-dimensional thresholded wavelet coefficients from the coarsest wavelet scale <code>j = 0</code> up to the finest
+wavelet scale <code>j = jmax</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M0 </code></td>
+<td>
+<p> a numeric array containing the midpoint(s) at the coarsest scale <code>j = 0</code> in the midpoint pyramid.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tree.weights </code></td>
+<td>
+<p>a list of logical values specifying which coefficients to keep, with each list component
+corresponding to an individual wavelet scale starting from the coarsest wavelet scale <code>j = 0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>D.raw </code></td>
+<td>
+<p> the pyramid of non-thresholded wavelet coefficients in the same format as the component <code>$D</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>The function does not check for positive definiteness of the input matrices, and (depending on the
+specified metric) may fail if matrices are close to being singular.
+</p>
+
+
+<h3>References</h3>
+
+<p>Bhatia R (2009).
+<em>Positive Definite Matrices</em>.
+Princeton University Press, New Jersey.<br><br> Chau J (2018).
+<em>Advances in Spectral Analysis for Multivariate, Nonstationary and Replicated Time Series</em>.
+phdthesis, Universite catholique de Louvain.<br><br> Chau J, von
+Sachs R (2019).
+“Intrinsic wavelet regression for curves of Hermitian positive definite matrices.”
+<em>Journal of the American Statistical Association</em>.
+doi: <a href="https://doi.org/10.1080/01621459.2019.1700129">10.1080/01621459.2019.1700129</a>.<br><br> Donoho D (1997).
+“CART and best-ortho-basis: a connection.”
+<em>The Annals of Statistics</em>, <b>25</b>(5), 1870–1911.<br><br> Pennec X, Fillard P, Ayache N (2006).
+“A Riemannian framework for tensor computing.”
+<em>International Journal of Computer Vision</em>, <b>66</b>(1), 41–66.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pdPgram</code>, <code>WavTransf1D</code>, <code>InvWavTransf1D</code>, <code>pdCART</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">P &lt;- rExamples1D(2^8, example = "bumps")$P
+f &lt;- pdSpecEst1D(P)
+
+</code></pre>
+
+
+</div>

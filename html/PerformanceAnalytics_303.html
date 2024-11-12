@@ -1,0 +1,458 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>VaR</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>calculate various Value at Risk (VaR) measures</h2>
+
+<h3>Description</h3>
+
+<p>Calculates Value-at-Risk(VaR) for univariate, component, and marginal cases
+using a variety of analytical methods.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">VaR(
+  R = NULL,
+  p = 0.95,
+  ...,
+  method = c("modified", "gaussian", "historical", "kernel"),
+  clean = c("none", "boudt", "geltner", "locScaleRob"),
+  portfolio_method = c("single", "component", "marginal"),
+  weights = NULL,
+  mu = NULL,
+  sigma = NULL,
+  m3 = NULL,
+  m4 = NULL,
+  invert = TRUE,
+  SE = FALSE,
+  SE.control = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+<p>an xts, vector, matrix, data frame, timeSeries or zoo object of
+asset returns</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>confidence level for calculation, default p=.95</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>any other passthru parameters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>one of "modified","gaussian","historical", "kernel", see
+Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clean</code></td>
+<td>
+<p>method for data cleaning through <code>Return.clean</code>.
+Current options are "none", "boudt", "geltner", or "locScaleRob".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>portfolio_method</code></td>
+<td>
+<p>one of "single","component","marginal" defining
+whether to do univariate, component, or marginal calc, see Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>portfolio weighting vector, default NULL, see Details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>If univariate, mu is the mean of the series. Otherwise mu is the
+vector of means of the return series, default NULL, see Details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma</code></td>
+<td>
+<p>If univariate, sigma is the variance of the series. Otherwise
+sigma is the covariance matrix of the return series, default NULL, see
+Details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m3</code></td>
+<td>
+<p>If univariate, m3 is the skewness of the series. Otherwise m3 is
+the coskewness matrix (or vector with unique coskewness values) of the 
+returns series, default NULL, see Details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m4</code></td>
+<td>
+<p>If univariate, m4 is the excess kurtosis of the series. Otherwise
+m4 is the cokurtosis matrix (or vector with unique cokurtosis values) of the 
+return series, default NULL, see Details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>invert</code></td>
+<td>
+<p>TRUE/FALSE whether to invert the VaR measure.  see Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SE</code></td>
+<td>
+<p>TRUE/FALSE whether to ouput the standard errors of the estimates of the risk measures, default FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SE.control</code></td>
+<td>
+<p>Control parameters for the computation of standard errors. Should be done using the <code>RPESE.control</code> function.</p>
+</td>
+</tr>
+</table>
+<h3>Background </h3>
+
+<p>This function provides several estimation methods for
+the Value at Risk (typically written as VaR) of a return series and the
+Component VaR of a portfolio. Take care to capitalize VaR in the commonly
+accepted manner, to avoid confusion with var (variance) and VAR (vector
+auto-regression).  VaR is an industry standard for measuring downside risk.
+For a return series, VaR is defined as the high quantile (e.g. ~a 95
+quantile) of the negative value of the returns. This quantile needs to be
+estimated.  With a sufficiently large data set, you may choose to utilize
+the empirical quantile calculated using <code>quantile</code>.  More
+efficient estimates of VaR are obtained if a (correct) assumption is made on
+the return distribution, such as the normal distribution.  If your return
+series is skewed and/or has excess kurtosis, Cornish-Fisher estimates of VaR
+can be more appropriate.  For the VaR of a portfolio, it is also of interest
+to decompose total portfolio VaR into the risk contributions of each of the
+portfolio components.  For the above mentioned VaR estimators, such a
+decomposition is possible in a financially meaningful way.
+</p>
+
+
+<h3>Univariate VaR estimation methods </h3>
+
+<p>The VaR at a probability level <code class="reqn">p</code> (e.g. 95%) is the <code class="reqn">p</code>-quantile of
+the negative returns, or equivalently, is the negative value of the
+<code class="reqn">c=1-p</code> quantile of the returns. In a set of returns for which
+sufficently long history exists, the per-period Value at Risk is simply the
+quantile of the period negative returns :
+</p>
+<p style="text-align: center;"><code class="reqn">VaR=q_{.99}</code>
+</p>
+
+<p>where  <code class="reqn">q_{.99}</code> is the 99% empirical quantile of the negative return series.
+</p>
+<p>This method is also sometimes called “historical VaR”, as it is by
+definition <em>ex post</em> analysis of the return distribution, and may be
+accessed with <code>method="historical"</code>.
+</p>
+<p>When you don't have a sufficiently long set of returns to use non-parametric
+or historical VaR, or wish to more closely model an ideal distribution, it is
+common to us a parmetric estimate based on the distribution. J.P. Morgan's
+RiskMetrics parametric mean-VaR was published in 1994 and this methodology
+for estimating parametric mean-VaR has become what most literature generally
+refers to as “VaR” and what we have implemented as <code>VaR</code>.
+See <cite>Return to RiskMetrics: Evolution of a
+Standard</cite><a href="https://www.msci.com/documents/10199/dbb975aa-5dc2-4441-aa2d-ae34ab5f0945">https://www.msci.com/documents/10199/dbb975aa-5dc2-4441-aa2d-ae34ab5f0945</a>.
+</p>
+<p>Parametric mean-VaR does a better job of accounting for the tails of the
+distribution by more precisely estimating shape of the distribution tails of
+the risk quantile. The most common estimate is a normal (or Gaussian)
+distribution  <code class="reqn">R\sim N(\mu,\sigma)</code> for the return series. In this case,
+estimation of VaR requires the mean return  <code class="reqn">\bar{R}</code>, the return
+distribution and the variance of the returns  <code class="reqn">\sigma</code>. In the most
+common case, parametric VaR is thus calculated by
+</p>
+<p style="text-align: center;"><code class="reqn">\sigma=variance(R)</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">VaR=-\bar{R} -  \sqrt{\sigma} \cdot z_{c} </code>
+</p>
+
+<p>where  <code class="reqn">z_{c}</code> is the  <code class="reqn">c</code>-quantile of the standard normal distribution. Represented in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> by <code>qnorm(c)</code>,
+and may be accessed with <code>method="gaussian"</code>.
+</p>
+<p>Other forms of parametric mean-VaR estimation utilize a different
+distribution for the distribution of losses to better account for the
+possible fat-tailed nature of downside risk. The now-archived package
+<code>VaR</code> contained methods for simulating and estimating lognormal and
+generalized Pareto distributions to overcome some of the problems with
+nonparametric or parametric mean-VaR calculations on a limited sample size or
+on potentially fat-tailed distributions. There was also a
+VaR.backtest function to apply simulation methods to create a more robust
+estimate of the potential distribution of losses. Less commonly a covariance
+matrix of multiple risk factors may be applied. This functionality should 
+probably be 
+</p>
+<p>The limitations of mean Value-at-Risk are well covered in the literature.
+The limitations of traditional mean-VaR are all related to the use of a
+symetrical distribution function. Use of simulations, resampling, or Pareto
+distributions all help in making a more accurate prediction, but they are
+still flawed for assets with significantly non-normal (skewed or kurtotic)
+distributions. Zangari (1996) and Favre and Galeano(2002) provide a modified
+VaR calculation that takes the higher moments of non-normal distributions
+(skewness, kurtosis) into account through the use of a Cornish Fisher
+expansion, and collapses to standard (traditional) mean-VaR if the return
+stream follows a standard distribution. This measure is now widely cited and
+used in the literature, and is usually referred to as “Modified VaR”
+or “Modified Cornish-Fisher VaR”. They arrive at their modified VaR
+calculation in the following manner:
+</p>
+<p style="text-align: center;"><code class="reqn">z_{cf}=z_{c}+\frac{(z_{c}^{2}-1)S}{6}+\frac{(z_{c}^{3}-3z_{c})K}{24}-\frac{(2z_{c}^{3}-5z_{c})S^{2}}{36}</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">Cornish-Fisher VaR =-\bar{R} - \sqrt(\sigma) \cdot z_{cf}</code>
+</p>
+
+<p>where <code class="reqn">S</code> is the skewness of <code class="reqn">R</code> and <code class="reqn">K</code> is the excess kurtosis of <code class="reqn">R</code>.
+</p>
+<p>Cornish-Fisher VaR collapses to traditional mean-VaR when returns are
+normally distributed. As such, the <code>VaR</code> and <code>VaR</code>
+functions are wrappers for the <code>VaR</code> function. The Cornish-Fisher
+expansion also naturally encompasses much of the variability in returns that
+could be uncovered by more computationally intensive techniques such as
+resampling or Monte-Carlo simulation.  This is the default method for the
+<code>VaR</code> function, and may be accessed by setting <code>method="modified"</code>.
+</p>
+<p>Favre and Galeano also utilize modified VaR in a modified Sharpe Ratio as the
+return/risk measure for their portfolio optimization analysis, see
+<code>SharpeRatio.modified</code> for more information.
+</p>
+
+
+<h3>Component VaR </h3>
+
+<p>By setting <code>portfolio_method="component"</code> you may calculate the risk
+contribution of each element of the portfolio.  The return from the function
+in this case will be a list with three components: the univariate portfolio
+VaR, the scalar contribution of each component to the portfolio VaR (these
+will sum to the portfolio VaR), and a percentage risk contribution (which
+will sum to 100%).
+</p>
+<p>Both the numerical and percentage component contributions to VaR may contain
+both positive and negative contributions.  A negative contribution to
+Component VaR indicates a portfolio risk diversifier.  Increasing the
+position weight will reduce overall portoflio VaR.
+</p>
+<p>If a weighting vector is not passed in via <code>weights</code>, the function will
+assume an equal weighted (neutral) portfolio.
+</p>
+<p>Multiple risk decomposition approaches have been suggested in the literature. 
+A naive approach is to set the risk contribution equal to the stand-alone risk.
+This approach is overly simplistic and neglects important diversification
+effects of the units being exposed differently to the underlying risk
+factors. An alternative approach is to measure the VaR contribution as the
+weight of the position in the portfolio times the partial derivative of the
+portfolio VaR with respect to the component weight. </p>
+<p style="text-align: center;"><code class="reqn">C_i \mbox{VaR} =
+w_i \frac{ \partial \mbox{VaR} }{\partial w_i}.</code>
+</p>
+<p> Because the portfolio VaR is linear in position size, we
+have that by Euler's theorem the portfolio VaR is the sum of these risk
+contributions. Gourieroux (2000) shows that for VaR, this mathematical
+decomposition of portfolio risk has a financial meaning. It equals the
+negative value of the asset's expected contribution to the portfolio return
+when the portfolio return equals the negative portfolio VaR:
+</p>
+<p style="text-align: center;"><code class="reqn">C_i \mbox{VaR} = = -E\left[ w_i r_{i} | r_{p} = - \mbox{VaR}\right]</code>
+</p>
+
+<p>For the decomposition of Gaussian VaR, the estimated mean and covariance
+matrix are needed. For the decomposition of modified VaR, also estimates of
+the coskewness and cokurtosis matrices are needed. If <code class="reqn">r</code> denotes the
+<code class="reqn">Nx1</code> return vector and <code class="reqn">mu</code> is the mean vector, then the <code class="reqn">N
+\times N^2</code> co-skewness matrix is </p>
+<p style="text-align: center;"><code class="reqn"> m3 = E\left[ (r - \mu)(r - \mu)'
+\otimes (r - \mu)'\right]</code>
+</p>
+<p> The
+<code class="reqn">N \times N^3</code> co-kurtosis matrix is
+</p>
+<p style="text-align: center;"><code class="reqn"> m_{4} =
+  E\left[ (r - \mu)(r - \mu)' \otimes (r - \mu)'\otimes (r - \mu)'
+  \right] </code>
+</p>
+
+<p>where <code class="reqn">\otimes</code> stands for the Kronecker product. The matrices can
+be estimated through the functions <code>skewness.MM</code> and <code>kurtosis.MM</code>.
+More efficient estimators have been proposed by Martellini and Ziemann (2007)
+and will be implemented in the future.
+</p>
+<p>As discussed among others in Cont, Deguest and Scandolo (2007), it is
+important that the estimation of the VaR measure is robust to single
+outliers. This is especially the case for  modified VaR and its
+decomposition, since they use higher order moments. By default, the portfolio
+moments are estimated by their sample counterparts. If <code>clean="boudt"</code>
+then the <code class="reqn">1-p</code> most extreme observations are winsorized if they are
+detected as being outliers. For more information, see Boudt, Peterson and
+Croux (2008) and <code>Return.clean</code>.  If your data consist of returns
+for highly illiquid assets, then <code>clean="geltner"</code> may be more
+appropriate to reduce distortion caused by autocorrelation, see
+<code>Return.Geltner</code> for details.
+</p>
+<p>Epperlein and Smillie (2006) introduced a non-parametric kernel estimator for 
+component risk contributions, which is available via <code>method="kernel"</code> 
+and <code>portfolio_method="component"</code>.
+</p>
+
+
+<h3>Marginal VaR </h3>
+
+<p>Different papers call this different things.  In the Denton and Jayaraman
+paper referenced here, this calculation is called Incremental VaR. We have
+chosen the more common usage of calling this difference in VaR's in
+portfolios without the instrument and with the instrument as the
+“difference at the Margin”, thus the name Marginal VaR. This is
+incredibly confusing, and hasn't been resolved in the literature at this
+time.
+</p>
+<p>Simon Keel and David Ardia (2009) attempt to reconcile some of the
+definitional issues and address some of the shortcomings of this measure in
+their working paper titled “Generalized Marginal Risk”. Hopefully 
+their improved Marginal Risk measures may be included here in the future.
+</p>
+
+
+<h3>Note</h3>
+
+<p>The option to <code>invert</code> the VaR measure should appease both
+academics and practitioners.  The mathematical definition of VaR as the
+negative value of a quantile will (usually) produce a positive number.
+Practitioners will argue that VaR denotes a loss, and should be internally
+consistent with the quantile (a negative number).  For tables and charts,
+different preferences may apply for clarity and compactness.  As such, we
+provide the option, and set the default to TRUE to keep the return
+consistent with prior versions of PerformanceAnalytics, but make no value
+judgment on which approach is preferable.
+</p>
+<p>The prototype of the univariate Cornish Fisher VaR function was completed by
+Prof. Diethelm Wuertz.  All corrections to the calculation and error
+handling are the fault of Brian Peterson.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Brian G. Peterson and Kris Boudt
+</p>
+
+
+<h3>References</h3>
+
+<p>Boudt, Kris, Peterson, Brian, and Christophe Croux. 2008.
+Estimation and decomposition of downside risk for portfolios with non-normal
+returns. 2008. The Journal of Risk, vol. 11, 79-103.
+</p>
+<p>Cont, Rama, Deguest, Romain and Giacomo Scandolo. Robustness and sensitivity
+analysis of risk measurement procedures. Financial Engineering Report No.
+2007-06, Columbia University Center for Financial Engineering.
+</p>
+<p>Denton M. and Jayaraman, J.D. Incremental, Marginal, and Component VaR.
+Sunguard. 2004.
+</p>
+<p>Epperlein, E., Smillie, A. Cracking VaR with kernels. RISK, 2006, vol.  19,
+70-74.
+</p>
+<p>Gourieroux, Christian, Laurent, Jean-Paul and Olivier Scaillet.  Sensitivity
+analysis of value at risk. Journal of Empirical Finance, 2000, Vol. 7,
+225-245.
+</p>
+<p>Keel, Simon and Ardia, David. Generalized marginal risk. Aeris CAPITAL
+discussion paper.
+</p>
+<p>Laurent Favre and Jose-Antonio Galeano. Mean-Modified Value-at-Risk
+Optimization with Hedge Funds. Journal of Alternative Investment, Fall 2002,
+v 5.
+</p>
+<p>Martellini, L. and Ziemann, V., 2010. Improved estimates of higher-order 
+comoments and implications for portfolio selection. Review of Financial 
+Studies, 23(4):1467-1502.
+</p>
+<p>Return to RiskMetrics: Evolution of a Standard
+<a href="https://www.msci.com/documents/10199/dbb975aa-5dc2-4441-aa2d-ae34ab5f0945">https://www.msci.com/documents/10199/dbb975aa-5dc2-4441-aa2d-ae34ab5f0945</a>
+</p>
+<p>Zangari, Peter. A VaR Methodology for Portfolios that include Options. 1996.
+RiskMetrics Monitor, First Quarter, 4-12.
+</p>
+<p>Rockafellar, Terry and Uryasev, Stanislav. Optimization of Conditional VaR.
+The Journal of Risk, 2000, vol. 2, 21-41.
+</p>
+<p>Dowd, Kevin. Measuring Market Risk, John Wiley and Sons, 2010.
+</p>
+<p>Jorian, Phillippe. Value at Risk, the new benchmark for managing financial risk.
+3rd Edition, McGraw Hill, 2006.
+</p>
+<p>Hallerback, John. "Decomposing Portfolio Value-at-Risk: A General Analysis",
+2003. The Journal of Risk vol 5/2.
+</p>
+<p>Yamai and Yoshiba (2002). "Comparative Analyses of Expected Shortfall and 
+Value-at-Risk: Their Estimation Error, Decomposition, and Optimization",
+Bank of Japan.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>SharpeRatio.modified</code> <br><code>chart.VaRSensitivity</code> <br><code>Return.clean</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+if(!( Sys.info()[['sysname']]=="Windows") ){
+# if on Windows, cut and paste this example
+
+    data(edhec)
+
+    # first do normal VaR calc
+    VaR(edhec, p=.95, method="historical")
+
+    # now use Gaussian
+    VaR(edhec, p=.95, method="gaussian")
+
+    # now use modified Cornish Fisher calc to take non-normal distribution into account
+    VaR(edhec, p=.95, method="modified")
+
+    # now use p=.99
+    VaR(edhec, p=.99)
+    # or the equivalent alpha=.01
+    VaR(edhec, p=.01)
+
+    # now with outliers squished
+    VaR(edhec, clean="boudt")
+
+    # add Component VaR for the equal weighted portfolio
+    VaR(edhec, clean="boudt", portfolio_method="component")
+
+} # end Windows check
+
+</code></pre>
+
+
+</div>

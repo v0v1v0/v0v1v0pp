@@ -1,0 +1,193 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>modelNDVI</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Main function for NDVI correction and modelling</h2>
+
+<h3>Description</h3>
+
+<p>Fits a suite of functions/models to raw NDVI or selected NDVI observations (after BISE).</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">modelNDVI(ndvi.values, year.int, multipleSeasons=FALSE, correction="bise", 
+	method="LinIP", MARGIN=2, doParallel=FALSE, silent=TRUE, ...)</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ndvi.values</code></td>
+<td>
+<p>A vector or matrix containing NDVI observations with values in the interval (-1,1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>year.int</code></td>
+<td>
+<p>Observation year</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multipleSeasons</code></td>
+<td>
+<p>Determines wether a season detection should be performed or not. 
+Setting ‘multipleSeasons’ to TRUE forces following algorithms modelling NDVI and extracting 				phenological phases to be performed once per detected season.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>correction</code></td>
+<td>
+<p>A character string determining which method will be used for correction of NDVI values. 
+Should be either:
+</p>
+<p>“<b>none</b>”: no correction will be performed.
+</p>
+<p>“<b>ravg</b>”: Smoothing with running average. Default window size is 7 
+and can be modified by parameter ‘window.ravg’. See also <code>runningAvg</code>.
+</p>
+<p>“<b>bise</b>”: Best index slope extraction after <em>Viovy et. al</em> (1992).
+Second interpretation of bise algorithm.
+Can be modified with parameter ‘slidingperiod’. Default to 40, optimised for 
+the area of Central Europe. This might has to be modified 
+when vegetation dynamics of other climates/habitats are analysed. 
+An maximum increase threshold is defined via parameter ‘growthFactorThreshold’ with 
+default to 0.1 (10 percent increase per day allowed).
+The timeserie is cycled via parameter ‘cycleValues’, which is a 
+boolean value determining whether the end of the ndvi timeserie 
+is combined with its beginning or not (default value is true). If false, gaps or low ndvi 
+values at the beginning of timeserie influence the result.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Determines which model will be fitted to the corrected NDVI-timeserie (if the 
+corrected timeserie is not available, the raw one out of ‘values’ will be used). 
+</p>
+<p>“<b>LinIP</b>”: A linear interpolation is performed. For interpolation, the end of 
+timeserie is connected to the beginning (e.g. after day 365 follows day 1). 
+Applied in <em>Badeck et. al</em> (2004) and <em>Doktor et. al</em> (2009).
+</p>
+<p>“<b>Spline</b>”: A spline interpolation is performed. For interpolation, the end of 
+timeserie is connected to the beginning (e.g. after day 365 follows day 1).
+</p>
+<p>“<b>DSig</b>”: Fits a double sigmoidal function to NDVI values (according to Zhang et. al (2003)).
+</p>
+<p>“<b>DSigC</b>”: Fits another double sigmoidal function (own C implementation) to NDVI values.
+</p>
+<p>“<b>DLogistic</b>”: Fits a double logistic function after <em>Fischer, Alberte</em> (1994) to NDVI values.
+</p>
+<p>“<b>Gauss</b>”: Fits a symmetric or asymmetric (determined by boolean parameter ‘asym’) gaussian 
+function to NDVI values (own C implementation after <em>Press, W.H.</em> (1992)).
+</p>
+<p>“<b>GaussMix</b>”: Fits a mixture of gaussian functions to NDVI values (own C implementation after <em>Press, W.H.</em> (1992)).
+The number of components is determined by parameter ‘components’. If multiple components are given, 
+the algorithm checks which number performs best.
+</p>
+<p>“<b>Growth</b>”: Fits a plant growth model after <em>Richter et. al</em> (1991) to NDVI values.
+</p>
+<p>“<b>FFT</b>”: Smoothes the corrected or raw NDVI values with fast fourier transformation (implemented in R). 
+The smoothing intensity can be controlled with parameter ‘filter.threshold’ with default to 3.
+</p>
+<p>“<b>SavGol</b>”: Smoothes the corrected or raw NDVI values with a Savitzky-Golay 
+filter (own C implementation after <em>Press, W.H.</em> (1992)). 
+The smoothing algorithm can be modified with parameters 
+‘window.sav’ (window size of filter, default to 7),
+‘degree’ (degree of fitting polynomial, default to 2) 
+and ‘smoothing’ (repetition quantity, default to 10).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>MARGIN</code></td>
+<td>
+<p>A vector giving the subscripts which the function will be applied over.  
+E.g., for a matrix ‘1’ indicates rows, ‘2’ indicates columns, 
+‘c(1, 2)’ indicates rows and columns. Where ‘X’ has named dimnames, 
+it can be a character vector selecting dimension names.
+</p>
+<p>Should be ‘2’ if ‘ndvi.values’ is a vector instead of a matrix/array.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>doParallel</code></td>
+<td>
+<p>This method uses 'foreach'. If a parallel backend is registered, setting ‘do.parallel’ to ‘TRUE’ enables parallel processing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>silent</code></td>
+<td>
+<p>A boolean flag determining whether debug information is shown.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other parameters passed to correction or modelling function. 
+These are: ‘slidingperiod’ for correction “bise”,
+‘window.ravg’ for correction “ravg”,
+‘asym’ for method “Gauss”,
+‘filter.threshold’ for method “FFT” and
+‘degree’, ‘window.sav’ and ‘smoothing’ for method “SavGol”.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Returns an object of type ‘NDVI’ containing raw data, corrected NDVI values and modelled NDVI values.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lange, Maximilian and Doktor, Daniel</p>
+
+
+<h3>References</h3>
+
+<p>Badeck, F.W., Bondeau, A., Boettcher, K., Doktor, D., Lucht, W., Schaber, J. and Sitch, S. (2004). Responses of spring phenology to climate change. <em>New Phytologist</em>, <b>162</b>, 295-309. 
+</p>
+<p>Doktor, D., Bondeau, A., Koslowski, D. and Badeck, F.W. (2009). Influence of heterogeneous landscapes on computed green-up dates based on daily AVHRR NDVI observations. <em>Remote Sensing of Environment</em>, <b>113</b>, 2618-2632
+</p>
+<p>Fischer, Alberte (1994). A Model for the Seasonal Variations of Vegetation Indices in Coarse Resolution Data and Its Inversion to Extract Crop Parameters. <em>Remote Sensing of Environment</em>, <b>48</b>, 220-230.
+</p>
+<p>Press, W.H. (1992). Numerical recipes in C: The Art of Scientific Computing, vol. 1. Cambridge University Press, Cambridge, 2nd edn.
+</p>
+<p>Richter, O., Spickermann, U. and Lenz, F. (1991). A new model for plant-growth. <em>Gartenbauwissenschaft</em>, <b>56</b>, 99-106.
+</p>
+<p>Viovy, N., Arino, O. and Belward, A.S. (1992). The Best Index Slope Extraction (BISE) - a method for reducing noise in NDVI time-series. <em>International Journal of Remote Sensing</em>, <b>13</b>, 1585-1590.
+</p>
+<p>Zhang, X.Y., Friedl, M.A., Schaaf, C.B., Strahler, A.H., Hodges, J.C.F., Gao, F., Reed, B.C. and Huete, A. (2003). Monitoring vegetation phenology using MODIS. <em>Remote Sensing of Environment</em>, <b>84</b>, 471-475.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>bise</code>, <code>runningAvg</code>,<code>detectSeasons</code>, <code>NDVI</code>, <code>phenoPhase</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(avhrr)
+data(modis)
+
+# create NDVI object, correct and model values
+ndvi.list1 &lt;- modelNDVI(ndvi.values=cbind(avhrr.ndvi/10000, modis.ndvi/10000), 
+			year.int=1995, multipleSeasons=FALSE, correction="bise", 
+			method="LinIP", MARGIN=2, doParallel=FALSE, slidingperiod=40)
+ndvi.list2 &lt;- modelNDVI(ndvi.values=cbind(avhrr.ndvi/10000, modis.ndvi/10000), 
+			year.int=1995, multipleSeasons=FALSE, correction="ravg", 
+			method="FFT", MARGIN=2, doParallel=FALSE, filter.threshold=7)
+
+# plot Values
+for (ndvi.ob in ndvi.list1){ plot(ndvi.ob) } 
+for (ndvi.ob in ndvi.list2){ plot(ndvi.ob) }
+</code></pre>
+
+
+</div>

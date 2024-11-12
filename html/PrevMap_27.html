@@ -1,0 +1,257 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>lm.ps.MCML</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Monte Carlo Maximum Likelihood estimation of the geostatistical linear model with preferentially sampled locations</h2>
+
+<h3>Description</h3>
+
+<p>This function performs Monte Carlo maximum likelihood (MCML) estimation for a geostatistical linear model with preferentially sampled locations.
+For more details on the model, see below.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">lm.ps.MCML(
+  formula.response,
+  formula.log.intensity = ~1,
+  coords,
+  which.is.preferential = NULL,
+  data.response,
+  data.intensity = NULL,
+  par0,
+  control.mcmc,
+  kappa1,
+  kappa2,
+  mesh,
+  grid.intensity,
+  start.par = NULL,
+  method = "nlminb",
+  messages = TRUE,
+  plot.correlogram = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula.response</code></td>
+<td>
+<p>an object of class <code>formula</code> (or one that can be coerced to that class): a symbolic description of the sub-model for the response variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula.log.intensity</code></td>
+<td>
+<p>an object of class <code>formula</code> (or one that can be coerced to that class): a symbolic description of the log-Gaussian Cox process sub-model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coords</code></td>
+<td>
+<p>an object of class <code>formula</code> indicating the spatial coordinates in the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>which.is.preferential</code></td>
+<td>
+<p>a vector of 0 and 1, where 1 indicates a location in the data from a prefential sampling scheme and 0 from a non-preferential.
+This option is used to fit a model with a mix of preferentally and non-preferentiall sampled locations. For more, details on the model structure see the 'Details' section.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data.response</code></td>
+<td>
+<p>a data frame containing the variables in the sub-model of the response variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data.intensity</code></td>
+<td>
+<p>a data frame containing the variables in the log-Gaussian Coz process sub-model. This data frame must be provided only when explanatory variables are used in the
+log-Gaussian Cox process model. Each row in the data frame must correspond to a point in the grid provided through the argument 'grid.intensity'. Deafult is <code>data.intensity=NULL</code>,
+which corresponds to a model with only the intercept.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>par0</code></td>
+<td>
+<p>an object of class 'coef.PrevMap.ps'. This argument is used to define the parameters of the importance sampling distribution used in the MCML algorithm.
+The input of this argument must be defined using the <code>set.par.ps</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control.mcmc</code></td>
+<td>
+<p>output from <code>control.mcmc.MCML</code> which defined the control parameters of the Monte Carlo Markv chain algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kappa1</code></td>
+<td>
+<p>fixed value for the shape parameter of the Matern covariance function of the spatial process of the sampling intensity (currently only <code>kappa1=1</code> is implemented).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kappa2</code></td>
+<td>
+<p>fixed value for the shape parameter of the Matern covariance function of the spatial process of the response variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mesh</code></td>
+<td>
+<p>an object obtained as result of a call to the function <code>inla.mesh.2d</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grid.intensity</code></td>
+<td>
+<p>a regular grid covering the geographical region of interest, used to approximate the density function of the log-Gaussian Cox process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start.par</code></td>
+<td>
+<p>starting value of the optimization algorithm. This is an object of class 'coef.PrevMap.ps' and must be defined using the function <code>set.par.ps</code>.
+Default is <code>start.cov.pars=NULL</code>, so that the starting values are set automatically.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>method of optimization. If <code>method="BFGS"</code> then the <code>maxBFGS</code> function is used; otherwise <code>method="nlminb"</code> to use the <code>nlminb</code> function. Default is <code>method="BFGS"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>messages</code></td>
+<td>
+<p>logical; if <code>messages=TRUE</code> then status messages are printed on the screen (or output device) while the function is running. Default is <code>messages=TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.correlogram</code></td>
+<td>
+<p>logical; if <code>plot.correlogram=TRUE</code> the autocorrelation plot of the samples of the random effect is displayed after completion of conditional simulation. Default is <code>plot.correlogram=TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function performs parameter estimation for a geostatistical linear model with preferentially sampled locations. Let <code class="reqn">S_{1}</code> and <code class="reqn">S_{2}</code> denote two independent, stationary and isotropic Gaussian processes.
+The overall model consists of two sub-models: the log-Gaussian Cox process model for the preferentially sampled locations, say <code class="reqn">X</code>;
+the model for the response variable, say <code class="reqn">Y</code>. The model assumes that
+</p>
+<p style="text-align: center;"><code class="reqn">[X, Y, S_1, S_2] = [S_1][S_2] [X | S_1] [Y | X, S_1, S_2],</code>
+</p>
+
+<p>where <code class="reqn">[.]</code> denotes 'the distribution of .'.
+Each of the two submodels has an associated linear predictor.
+Let <code class="reqn">\Lambda(x)</code> denote the intensity of the Poisson process <code class="reqn">X</code>, continionally on <code class="reqn">S_1</code>. Then
+</p>
+<p style="text-align: center;"><code class="reqn">\log\{\Lambda(x)\} = d(x)'\alpha + S_1</code>
+</p>
+<p>,
+where <code class="reqn">d(x)</code> is vector of explanatory variables with regression coefficient <code class="reqn">\alpha</code>. This linear predictor is defined through the argument <code>formula.log.intensity</code>.
+The density of <code class="reqn">[X | S_1]</code> is given by
+</p>
+<p style="text-align: center;"><code class="reqn">\frac{\Lambda(x)}{\int_{A} \Lambda(u) du}</code>
+</p>
+<p>,
+where <code class="reqn">A</code> is the region of interest. The integral at the denominator is intractable and is then approximated using a quadrature procedure.
+The regular grid covering <code class="reqn">A</code>, used for the quadrature, must be provided through the argument <code>grid.intensity</code>.
+Conditionally on <code class="reqn">X</code>, <code class="reqn">S_1</code> and <code class="reqn">S_2</code>, the response variable model is given by </p>
+<p style="text-align: center;"><code class="reqn">Y = d(x)'\beta + S_2 + \gamma S_1,</code>
+</p>
+
+<p>where <code class="reqn">\beta</code> is another vector of regression coefficients and <code class="reqn">\gamma</code> is the preferentiality parameter. If <code class="reqn">\gamma=0</code> then we recover the standard geostatistical model.
+More details on the fitting procedure can be found in Diggle and Giorgi (2016).
+</p>
+<p><b>When the data have a mix of preferentially and non-preferentially sampled locations.</b>
+In some cases the set of locations may consist of a sub-set which is preferentially sampled, <code class="reqn">X</code>, and a standard
+non-prefential sample, <code class="reqn">X^*</code>. Let <code class="reqn">Y</code> and <code class="reqn">Y^*</code> denote the measurments at locations <code class="reqn">X</code> and <code class="reqn">X^*</code>.
+In the current implementation, the model has the following form
+</p>
+<p style="text-align: center;"><code class="reqn">[X, X^*, Y, Y^*, S_1, S_2, S_2^*] = [S_1][S_2][S_2^*] [X | S_1] [Y | X, S_1, S_2] [X^*] [Y^*|X^*, S_2^*],</code>
+</p>
+
+<p>where <code class="reqn">S_2</code> and <code class="reqn">S_2^*</code> are two independent Gaussian process but with shared parameters, associated with <code class="reqn">Y</code> and <code class="reqn">Y^*</code>, respectively.
+The linear predictor for <code class="reqn">Y</code> is the same as above. The measurements <code class="reqn">Y^*</code>, instead, have linear predicotr
+</p>
+<p style="text-align: center;"><code class="reqn">Y^* = d(x)'\beta + S_2^*,</code>
+</p>
+
+<p>where <code class="reqn">\beta^*</code> is vector of regression coefficients, different from <code class="reqn">\beta</code>. The linear predictor for <code class="reqn">Y</code> and <code class="reqn">Y^*</code> is specified though <code>formula.response</code>.
+For example, <code>response ~ x | x + z</code> defines a linear predictor for <code class="reqn">Y</code> with one explanatory variable <code>x</code> and a linear predictor for <code class="reqn">Y^*</code> with two explanatory variables
+<code>x</code> and <code>z</code>. An example on the application of this model is given in Diggle and Giorgi (2016).
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class "PrevMap.ps".
+The function <code>summary.PrevMap.ps</code> is used to print a summary of the fitted model.
+The object is a list with the following components:
+</p>
+<p><code>estimate</code>: estimates of the model parameters; use the function <code>coef.PrevMap.ps</code> to obtain estimates of covariance parameters on the original scale.
+</p>
+<p><code>covariance</code>: covariance matrix of the MCML estimates.
+</p>
+<p><code>log.lik</code>: maximum value of the approximated log-likelihood.
+</p>
+<p><code>y</code>: observed values of the response variable. If <code>which.is.preferential</code> has been provided, then <code>y</code> is a list with components
+<code>y$preferential</code>, for the data with prefentially sampled locations, and <code>y$non.preferential</code>, for the remiaining.
+</p>
+<p><code>D.response</code>: matrix of covariates used to model the mean component of the response variable. If <code>which.is.preferential</code> has been provided, then <code>D.response</code> is a list with components
+<code>D.response$preferential</code>, for the data with prefentially sampled locations, and <code>D.response$non.preferential</code>, for the remiaining.
+</p>
+<p><code>D.intensity</code>: matrix of covariates used to model the mean component of log-intensity of the log-Gaussian Cox process.
+</p>
+<p><code>grid.intensity</code>: grid of locations used to approximate the intractable integral of the log-Gaussian Cox process model.
+</p>
+<p><code>coords</code>: matrix of the observed sampling locations. If <code>which.is.preferential</code> has been provided, then <code>coords</code> is a list with components
+<code>y$preferential</code>, for the data with prefentially sampled locations, and <code>y$non.preferential</code>, for the remiaining.
+</p>
+<p><code>method</code>: method of optimization used.
+</p>
+<p><code>ID.coords</code>: set of ID values defined through the argument <code>ID.coords</code>.
+</p>
+<p><code>kappa.response</code>: fixed value of the shape parameter of the Matern covariance function used to model the spatial process associated with the response variable.
+</p>
+<p><code>mesh</code>: the mesh used in the SPDE approximation.
+</p>
+<p><code>samples</code>: matrix of the random effects samples from the importance sampling distribution used to approximate the likelihood function.
+</p>
+<p><code>call</code>: the matched call.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Emanuele Giorgi <a href="mailto:e.giorgi@lancaster.ac.uk">e.giorgi@lancaster.ac.uk</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Diggle, P.J., Giorgi, E. (2019). <em>Model-based Geostatistics for Global Public Health.</em> CRC/Chapman &amp; Hall.
+</p>
+<p>Giorgi, E., Diggle, P.J. (2017). <em>PrevMap: an R package for prevalence mapping.</em> Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
+</p>
+<p>Diggle, P.J., Giorgi, E. (2017). <em>Preferential sampling of exposures levels.</em> In: Handbook of Environmental and Ecological Statistics. Chapman &amp; Hall.
+</p>
+<p>Diggle, P.J., Menezes, R. and Su, T.-L. (2010). <em>Geostatistical analysis under preferential sampling (with Discussion).</em> Applied Statistics, 59, 191-232.
+</p>
+<p>Lindgren, F., Havard, R., Lindstrom, J. (2011). <em>An explicit link between Gaussian fields and Gaussian Markov random fields: the stochastic partial differential equation approach (with discussion).</em>
+Journal of the Royal Statistical Society, Series B, 73, 423–498.
+</p>
+<p>Pati, D., Reich, B. J., and Dunson, D. B. (2011). <em>Bayesian geostatistical modelling with informative sampling locations.</em> Biometrika, 98, 35-48.
+</p>
+
+
+</div>

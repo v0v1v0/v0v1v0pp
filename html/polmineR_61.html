@@ -1,0 +1,206 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>phrases-class</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Manage and use phrases</h2>
+
+<h3>Description</h3>
+
+<p>Class, methods and functionality for processing phrases (lexical
+units, lexical items, multi-word expressions) beyond the token level. The
+envisaged workflow at this stage is to detect phrases using the
+<code>ngrams</code>-method and to generate a <code>phrases</code> class object from the
+<code>ngrams</code> object using the <code>as.phrases</code> method. This object can be
+passed into a call of <code>count</code>, see examples. Further methods and
+functions documented here are used internally, but may be useful.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S4 method for signature 'ngrams'
+as.phrases(.Object)
+
+## S4 method for signature 'matrix'
+as.phrases(.Object, corpus, enc = encoding(corpus))
+
+## S4 method for signature 'phrases'
+as.character(x, p_attribute)
+
+concatenate_phrases(dt, phrases, col)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>.Object</code></td>
+<td>
+<p>Input object, either a <code>ngrams</code> or a <code>matrix</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>corpus</code></td>
+<td>
+<p>A length-one <code>character</code> vector, the corpus ID of the corpus
+from which regions / the <code>data.table</code> representing a decoded corpus is derived.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>enc</code></td>
+<td>
+<p>Encoding of the corpus.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A <code>phrases</code> class object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p_attribute</code></td>
+<td>
+<p>The positional attribute (p-attribute) to decode.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dt</code></td>
+<td>
+<p>A <code>data.table</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phrases</code></td>
+<td>
+<p>A <code>phrases</code> class object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>col</code></td>
+<td>
+<p>If <code>.Object</code> is a <code>data.table</code>, the column to concatenate.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>phrases</code> considers a phrase as sequence as tokens that can
+be defined by region, i.e. a left and a right corpus position. This
+information is kept in a region matrix in the slot "cpos" of the
+<code>phrases</code> class. The <code>phrases</code> class inherits from the
+<code>regions</code> class (which inherits from the and the
+<code>corpus</code> class), without adding further slots.
+</p>
+<p>If <code>.Object</code> is an object of class <code>ngrams</code>, the
+<code>as.phrases()</code>-method will interpret the ngrams as CQP queries,
+look up the matching corpus positions and return an <code>phrases</code>
+object.
+</p>
+<p>If <code>.Object</code> is a <code>matrix</code>, the <code>as.phrases()</code>-method will
+initialize a <code>phrases</code> object. The corpus and the encoding of the corpus
+will be assigned to the object.
+</p>
+<p>Applying the <code>as.character</code>-method on a <code>phrases</code> object
+will return the decoded regions, concatenated using an underscore as
+seperator.
+</p>
+<p>The <code>concatenate_phrases</code> function takes a <code>data.table</code>
+(argument <code>dt</code>) as input and concatenates phrases in successive rows
+into a phrase.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other classes to manage corpora: 
+<code>corpus-class</code>,
+<code>ranges-class</code>,
+<code>regions</code>,
+<code>subcorpus</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# Workflow to create document-term-matrix with phrases
+
+obs &lt;- corpus("GERMAPARLMINI") %&gt;%
+  count(p_attribute = "word")
+
+phrases &lt;- corpus("GERMAPARLMINI") %&gt;%
+  ngrams(n = 2L, p_attribute = "word") %&gt;%
+  pmi(observed = obs) %&gt;% 
+  subset(ngram_count &gt; 5L) %&gt;%
+  subset(1:100) %&gt;%
+  as.phrases()
+
+dtm &lt;- corpus("GERMAPARLMINI") %&gt;%
+  as.speeches(s_attribute_name = "speaker", s_attribute_date = "date", progress = TRUE) %&gt;%
+  count(phrases = phrases, p_attribute = "word", progress = TRUE, verbose = TRUE) %&gt;%
+  as.DocumentTermMatrix(col = "count", verbose = FALSE)
+  
+grep("erneuerbaren_Energien", colnames(dtm))
+grep("verpasste_Chancen", colnames(dtm))
+
+## End(Not run)
+## Not run: 
+use(pkg = "RcppCWB", corpus = "REUTERS")
+
+# Derive phrases object from an ngrams object
+
+reuters_phrases &lt;- ngrams("REUTERS", p_attribute = "word", n = 2L) %&gt;%
+  pmi(observed = count("REUTERS", p_attribute = "word")) %&gt;%
+  subset(ngram_count &gt;= 5L) %&gt;%
+  subset(1:25) %&gt;%
+  as.phrases()
+
+phr &lt;- as.character(reuters_phrases, p_attribute = "word")
+
+## End(Not run)
+# Derive phrases from explicitly stated CQP queries
+
+## Not run: 
+cqp_phrase_queries &lt;- c(
+  '"oil" "revenue";',
+  '"Sheikh" "Aziz";',
+  '"Abdul" "Aziz";',
+  '"Saudi" "Arabia";',
+  '"oil" "markets";'
+)
+reuters_phrases &lt;- cpos("REUTERS", cqp_phrase_queries, p_attribute = "word") %&gt;%
+  as.phrases(corpus = "REUTERS", enc = "latin1")
+
+## End(Not run)
+  
+# Use the concatenate_phrases() function on a data.table
+
+## Not run: 
+#' lexical_units_cqp &lt;- c(
+  '"Deutsche.*" "Bundestag.*";',
+  '"sozial.*" "Gerechtigkeit";',
+  '"Ausschuss" "f.r" "Arbeit" "und" "Soziales";',
+  '"soziale.*" "Marktwirtschaft";',
+  '"freiheitliche.*" "Grundordnung";'
+)
+
+phr &lt;- cpos("GERMAPARLMINI", query = lexical_units_cqp, cqp = TRUE) %&gt;%
+  as.phrases(corpus = "GERMAPARLMINI", enc = "word")
+
+dt &lt;- corpus("GERMAPARLMINI") %&gt;%
+  decode(p_attribute = "word", s_attribute = character(), to = "data.table") %&gt;%
+  concatenate_phrases(phrases = phr, col = "word")
+  
+dt[word == "Deutschen_Bundestag"]
+dt[word == "soziale_Marktwirtschaft"]
+
+## End(Not run)  
+
+</code></pre>
+
+
+</div>

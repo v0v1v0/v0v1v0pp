@@ -1,0 +1,143 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>get_policy_functions.blip</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Get Policy Functions</h2>
+
+<h3>Description</h3>
+
+<p><code>get_policy_functions()</code> returns a function defining the policy at
+the given stage. <code>get_policy_functions()</code> is useful when implementing
+the learned policy.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'blip'
+get_policy_functions(
+  object,
+  stage,
+  threshold = NULL,
+  include_g_values = FALSE,
+  ...
+)
+
+## S3 method for class 'drql'
+get_policy_functions(
+  object,
+  stage,
+  threshold = NULL,
+  include_g_values = FALSE,
+  ...
+)
+
+get_policy_functions(object, stage, threshold, ...)
+
+## S3 method for class 'ptl'
+get_policy_functions(object, stage, threshold = NULL, ...)
+
+## S3 method for class 'ql'
+get_policy_functions(
+  object,
+  stage,
+  threshold = NULL,
+  include_g_values = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>Object of class "policy_object" or "policy_eval",
+see policy_learn and policy_eval.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stage</code></td>
+<td>
+<p>Integer. Stage number.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>Numeric, threshold for not
+choosing the reference action at stage 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>include_g_values</code></td>
+<td>
+<p>If TRUE, the g-values are included as an attribute.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Functions with arguments:
+</p>
+
+<dl>
+<dt><code>H</code></dt>
+<dd>
+<p>data.table::data.table containing the variables needed to evaluate the policy (and g-function).</p>
+</dd>
+</dl>
+<h3>Examples</h3>
+
+<pre><code class="language-R">library("polle")
+### Two stages:
+d &lt;- sim_two_stage(5e2, seed=1)
+pd &lt;- policy_data(d,
+                  action = c("A_1", "A_2"),
+                  baseline = "BB",
+                  covariates = list(L = c("L_1", "L_2"),
+                                    C = c("C_1", "C_2")),
+                  utility = c("U_1", "U_2", "U_3"))
+pd
+
+### Realistic V-restricted Policy Tree Learning
+# specifying the learner:
+pl &lt;- policy_learn(type = "ptl",
+                   control = control_ptl(policy_vars = list(c("C_1", "BB"),
+                                                            c("L_1", "BB"))),
+                   full_history = TRUE,
+                   alpha = 0.05)
+
+# evaluating the learner:
+pe &lt;- policy_eval(policy_data = pd,
+                  policy_learn = pl,
+                  q_models = q_glm(),
+                  g_models = g_glm())
+
+# getting the policy function at stage 2:
+pf2 &lt;- get_policy_functions(pe, stage = 2)
+args(pf2)
+
+# applying the policy function to new data:
+set.seed(1)
+L_1 &lt;- rnorm(n = 10)
+new_H &lt;- data.frame(C = rnorm(n = 10),
+                    L = L_1,
+                    L_1 = L_1,
+                    BB = "group1")
+d2 &lt;- pf2(H = new_H)
+head(d2)
+</code></pre>
+
+
+</div>

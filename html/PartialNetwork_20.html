@@ -1,0 +1,167 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sim.IV</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Instrument Variables for SAR model</h2>
+
+<h3>Description</h3>
+
+<p><code>sim.IV</code> generates Instrument Variables (IV) for linear-in-mean SAR models using only the distribution of the network. See Propositions 1 and 2 of Boucher and Houndetoungan (2020).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sim.IV(
+  dnetwork,
+  X,
+  y = NULL,
+  replication = 1L,
+  power = 1L,
+  exp.network = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dnetwork</code></td>
+<td>
+<p>network matrix of list of sub-network matrices, where the (i, j)-th position is the probability that i be connected to j.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>matrix of the individual observable characteristics.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>(optional) the endogenous variable as a vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>replication</code></td>
+<td>
+<p>(optional, default = 1) is the number of repetitions (see details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>power</code></td>
+<td>
+<p>(optional, default = 1) is the number of powers of the interaction matrix used to generate the instruments (see details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exp.network</code></td>
+<td>
+<p>(optional, default = FALSE) indicates if simulated network should be exported.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Bramoulle et al. (2009) show that one can use <code class="reqn">GX</code>, <code class="reqn">G^2X</code>, ..., <code class="reqn">G^P X</code> as instruments for <code class="reqn">Gy</code>, where <code class="reqn">P</code> is the maximal power desired.
+<code>sim.IV</code> generate approximation of those instruments, based on Propositions 1 and 2 in Boucher and Houndetoungan (2020) (see also below).
+The argument <code>power</code> is the maximal power desired.<br>
+When <code class="reqn">Gy</code> and the instruments <code class="reqn">GX</code>, <code class="reqn">G^2X</code>, ..., <code class="reqn">G^P X</code> are not observed,
+Boucher and Houndetoungan (2022) show that we can use one drawn from the distribution of the network in order to approximate <code class="reqn">Gy</code>, but that
+the same draw should not be used to approximate the instruments. Thus, each component in the function's output gives
+<code>G1y</code> and <code>G1X</code> computed with the same network and <code>G2X</code> computed with another network, which can be used in order to approximate the instruments.
+This process can be replicated several times and the argument <code>replication</code> can be used to set the number of replications desired.
+</p>
+
+
+<h3>Value</h3>
+
+<p>list of <code>replication</code> components. Each component is a list containing <code>G1y</code> (if the argument <code>y</code> was provided), <code>G1</code> (if <code>exp.network = TRUE</code>), <code>G2</code> (if <code>exp.network = TRUE</code>) , <code>G1X</code>, and
+<code>G2X</code> where <code>G1</code> and <code>G2</code> are independent draws of network from the distribution (see details).
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>G1y</code></td>
+<td>
+<p>is an approximation of <code class="reqn">Gy</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>G1X</code></td>
+<td>
+<p>is an approximation of <code class="reqn">G^pX</code>
+with the same network draw as that used in <code>G1y</code>. <code>G1X</code> is an array of dimension <code class="reqn">N \times K \times power</code>, where <code class="reqn">K</code> is the number of column in
+<code>X</code>. For any <code class="reqn">p \in \{1, 2, ..., power\}</code>, the approximation of <code class="reqn">G^pX</code>
+is given by <code>G1X[,,p]</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>G2X</code></td>
+<td>
+<p>is an approximation of <code class="reqn">G^pX</code>
+with a different different network. <code>G2X</code> is an array of dimension <code class="reqn">N \times K \times power</code>.
+For any <code class="reqn">p \in \{1, 2, ..., power\}</code>, the approximation of <code class="reqn">G^pX</code>
+is given by <code>G2X[,,p]</code>.</p>
+</td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+<p><code>mcmcSAR</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(AER)
+# Number of groups
+M             &lt;- 30
+# size of each group
+N             &lt;- rep(50,M)
+# individual effects
+beta          &lt;- c(2,1,1.5) 
+# endogenous effects
+alpha         &lt;- 0.4
+# std-dev errors
+se            &lt;- 2 
+# prior distribution
+prior         &lt;- runif(sum(N*(N-1)))
+prior         &lt;- vec.to.mat(prior, N, normalise = FALSE)
+# covariates
+X             &lt;- cbind(rnorm(sum(N),0,5),rpois(sum(N),7))
+# true network
+G0            &lt;- sim.network(prior)
+# normalise 
+G0norm        &lt;- norm.network(G0)
+# simulate dependent variable use an external package
+y             &lt;- CDatanet::simsar(~ X, contextual = FALSE, Glist = G0norm, 
+                                     theta = c(alpha, beta, se))
+y             &lt;- y$y
+# generate instruments 
+instr         &lt;- sim.IV(prior, X, y, replication = 1, power = 1)
+
+GY1c1         &lt;- instr[[1]]$G1y       # proxy for Gy (draw 1)
+GXc1          &lt;- instr[[1]]$G1X[,,1]  # proxy for GX (draw 1)
+GXc2          &lt;- instr[[1]]$G2X[,,1]  # proxy for GX (draw 2)
+# build dataset
+# keep only instrument constructed using a different draw than the one used to proxy Gy
+dataset           &lt;- as.data.frame(cbind(y, X, GY1c1, GXc1, GXc2)) 
+colnames(dataset) &lt;- c("y","X1","X2","G1y", "G1X1", "G1X2", "G2X1", "G2X2") 
+
+# Same draws
+out.iv1           &lt;- ivreg(y ~ X1 + X2 + G1y | X1 + X2 + G1X1 + G1X2, data = dataset)
+summary(out.iv1)
+
+# Different draws
+out.iv2           &lt;- ivreg(y ~ X1 + X2 + G1y | X1 + X2 + G2X1 + G2X2, data = dataset)
+summary(out.iv2)
+
+</code></pre>
+
+
+</div>

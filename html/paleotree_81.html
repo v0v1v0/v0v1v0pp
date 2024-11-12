@@ -1,0 +1,275 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>durationFreq</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Models of Sampling and Extinction for Taxonomic Duration Datasets</h2>
+
+<h3>Description</h3>
+
+<p>These functions construct likelihood models of the observed frequency
+of taxon durations, given either in discrete (<code>make_durationFreqDisc</code>) 
+or continuous time (<code>make_durationFreqCont</code>). These models can then be
+constrained using functions available in this package and/or analyzed 
+with commonly used optimizing functions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">make_durationFreqCont(
+  timeData,
+  groups = NULL,
+  drop.extant = TRUE,
+  threshold = 0.01,
+  tol = 1e-04
+)
+
+make_durationFreqDisc(timeList, groups = NULL, drop.extant = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>timeData</code></td>
+<td>
+<p>Two-column matrix of per-taxon first and last occurrence
+given in continuous time, relative to the modern (i.e. older dates are also
+the 'larger' dates). Unsampled taxa (e.g. from a simulation of sampling 
+in the fossil record, listed as NAs the supplied matrix) are automatically
+dropped from the matrix and from groups simultaneously.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groups</code></td>
+<td>
+<p>Either NULL (the default) or matrix with the number of rows equal
+to the number of taxa and the number of columns equal to the number of 'systems'
+of categories for taxa. Taxonomic membership in different groups is indicated
+by numeric values. 
+For example, a dataset could have a 'groups' matrix composed of a column representing
+thin and thick shelled taxa, coded <code>1</code> and <code>2</code> respectively,
+while the second column indicates whether taxa live in coastal,
+outer continental shelf, or deep marine settings, coded <code>1-3</code> respectively. 
+Different combinations of groups will be treated as having independent
+sampling and extinction parameters in the default analysis,
+for example, thinly-shelled deep marine species will have
+separate parameters from thinly-shelled coastal species. 
+Grouping systems could also represent temporal heterogeneity,
+for example, categorizing Paleozoic versus Mesozoic taxa.
+If groups are <code>NULL</code> (the default), all taxa are assumed to be of
+the same group with the same parameters. Unsampled taxa (e.g. from a simulation
+of sampling in the fossil record, listed as <code>NA</code>s in <code>timeData</code> or <code>timeList</code>)
+are automatically dropped from groupings and the time dataset (either <code>timeData</code>
+or <code>timeList</code>) and from groups simultaneously.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop.extant</code></td>
+<td>
+<p>Drops all extant taxa from a dataset before preceding.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>The smallest allowable duration (i.e. the measured difference in
+the first and last occurrence dates for a given taxon). Durations below this size 
+will be treated as "one-hit" sampling events.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>Tolerance level for determining whether a taxon from a continuous-time
+analysis is extant or not. Taxa which occur at a date less than <code>tol</code> are treated as
+occurring at the modern day (i.e. being functionally identical as occurring at 0 time).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timeList</code></td>
+<td>
+<p>A two column matrix, with the first and last occurrences of taxa
+given in relative time intervals (i.e. ordered from first to last). If a list
+of <code>length = 2</code> is given for <code>timeData</code>, such as would be expected if the output 
+of <code>binTimeData</code> was used as the input, the second element is used. See details.
+Unsampled taxa (e.g. from a simulation of sampling in the fossil record,
+listed as <code>NA</code>s in the second matrix) are automatically dropped from the
+<code>timeList</code> and from <code>groups</code> simultaneously. Living taxa observed in the modern day
+are expected to be listed as last observed in a special interval (<code>c(0,0)</code>), i.e.
+begins and ends at zero (modern) time. This interval is always automatically removed prior
+to the calculation intermediary data for fitting likelihood functions.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>These functions effectively replace two older functions in paleotree, now removed,
+<code>getSampRateCont</code> and <code>getSampProbDisc</code>. The
+functions here do not offer the floating time interval options of
+their older siblings, but do allow for greater flexibility in defining
+constrains on parameter values. Differences in time intervals, or any
+other conceivable discrete differences in parameters, can be modeled
+using the generic <code>groups</code> argument in these functions.
+</p>
+<p>These functions use likelihood functions presented by Foote (1997).
+These analyses are ideally applied to data from single stratigraphic section
+but potentially are applicable to regional or global datasets, although the
+behavior of those datasets is less well understood.
+</p>
+<p>As with many functions in the paleotree library, absolute time is always
+decreasing, i.e. the present day is zero and older dates are 'larger'. On
+the contrary, relative time is in intervals with non-zero integers that
+increase sequentially beginning with 1, from earliest to oldest.
+</p>
+<p>For <code>make_durationFreqDisc</code>, the intervals in <code>timeList</code> should be
+non-overlapping sequential intervals of roughly equal length. These
+should be in relative time as described above, so the earliest interval
+should be listed as <code>1</code> and the numbering should increase as the intervals go up with
+age. If both previous statements are <code>TRUE</code>, then differences in interval
+numbers will represent the same rough difference in the absolute timing
+of those intervals. For example, a dataset where all taxa are listed from
+a set of sequential intervals of similar length, such as North American
+Mammal assemblage zones, microfossil faunal zones or graptolite biozones
+can be given as long as they are correctly numbered in sequential order
+in the input. As a counter example, a dataset which includes taxa resolved
+only to intervals as wide as the whole Jurassic and taxa resolved to
+biozones within the Jurassic should not be included in the same input.
+Drop taxa from less poorly resolved intervals from such datasets if you
+want to apply this function, as long as this retains a large enough sample
+of taxa listed from the sequential set of intervals. 
+</p>
+<p>Please check that the optimizer function you select actually converges. The
+likelihood surface can be very flat in some cases, particularly for small
+datasets (&lt;100 taxa). If the optimizer does not converge, consider
+increasing iterations or changing the starting values.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A function of class <code>"paleotreeFunc"</code>, which takes a vector equal to the number
+of parameters and returns the *negative* log-likelihood 
+(for use with <code>optim</code> and similar optimizing functions, 
+which attempt to minimize support values). 
+See the functions listed at <code>modelMethods</code> for manipulating and examining
+such functions and <code>constrainParPaleo</code> for constraining parameters.
+</p>
+<p>Parameters in the output functions are named <code>q</code> for the instantaneous per-capita
+extinction rate, <code>r</code> for the instantaneous per-capita sampling rate and <code>R</code> for
+the per-interval taxonomic sampling probability. Groupings follow the parameter
+names, separated by periods; by default, the parameters will be placed in at
+least group '<code>1</code>' (of a grouping scheme containing only a single group), such that <code>make_durationFreqCont</code>
+by default creates a function with parameters named <code>q.1</code> and <code>r.1</code>, while
+<code>make_durationFreqDisc</code> creates a function with parameters named <code>q.1</code> and <code>R.1</code>.
+</p>
+<p>Note that the <code>q</code> parameters estimated by <code>make_durationFreqDisc</code> is scaled to 
+per lineage intervals and not to per lineage time-units. If intervals are the same length, this
+can be easily corrected by multiplying one by the interval length. It is unclear
+how to treat uneven intervals and I urge users to consider multiple strategies.
+</p>
+<p>For translating these sampling probabilities and sampling rates, see
+<code>SamplingConv</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David W. Bapst
+</p>
+
+
+<h3>References</h3>
+
+<p>Foote, M. 1997 Estimating Taxonomic Durations and Preservation
+Probability. <em>Paleobiology</em> <b>23</b>(3):278–300.
+</p>
+<p>Foote, M., and D. M. Raup. 1996 Fossil preservation and the stratigraphic
+ranges of taxa. <em>Paleobiology</em> <b>22</b>(2):121–140.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See <code>freqRat</code>, <code>sRate2sProb</code>,
+<code>qsRate2Comp</code> <code>sProb2sRate</code> and <code>qsProb2Comp</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># let's simulate some taxon ranges from 
+   # an imperfectly sampled fossil record
+set.seed(444)
+record &lt;- simFossilRecord(
+    p = 0.1, 
+    q = 0.1, 
+    nruns = 1,
+	   nTotalTaxa = c(30,40), 
+	   nExtant = 0
+	   )
+taxa &lt;- fossilRecord2fossilTaxa(record)
+rangesCont &lt;- sampleRanges(taxa,r = 0.5)
+#bin the ranges into discrete time intervals
+rangesDisc &lt;- binTimeData(rangesCont,int.length = 1)
+#note that we made interval lengths = 1: 
+ 	# thus q (per int) = q (per time) for make_durationFreqDisc
+
+## Not run: 
+#old ways of doing it (defunct as of paleotree version 2.6)
+getSampRateCont(rangesCont)
+getSampProbDisc(rangesDisc)
+
+## End(Not run)
+
+#new ways of doing it
+    # we can constrain our functions
+    # we can use parInit, parLower and parUpper
+    # to control parameter bounds
+
+#as opposed to getSampRateCont, we can do:
+likFun &lt;- make_durationFreqCont(rangesCont)
+optim(parInit(likFun),
+      likFun,
+      lower = parLower(likFun),
+      upper = parUpper(likFun),
+      method = "L-BFGS-B",
+      control = list(maxit = 1000000)
+      )
+
+#as opposed to getSampProbDisc, we can do:
+
+likFun &lt;- make_durationFreqDisc(rangesDisc)
+optim(parInit(likFun),
+      likFun,
+      lower = parLower(likFun),
+      upper = parUpper(likFun),
+      method = "L-BFGS-B",
+      control = list(maxit = 1000000)
+      )
+
+#these give the same answers (as we'd expect them to!)
+
+#with newer functions we can constrain our functions easily
+    # what if we knew the extinction rate = 0.1 a priori?
+    
+likFun &lt;- make_durationFreqCont(rangesCont)
+likFun &lt;- constrainParPaleo(likFun,q.1~0.1)
+optim(parInit(likFun),
+      likFun,
+      lower = parLower(likFun),
+      upper = parUpper(likFun),
+	     method = "L-BFGS-B",
+	     control = list(maxit = 1000000)
+	     )
+
+#actually decreases our sampling rate estimate
+   # gets further away from true generating value, r = 0.5 (geesh!)
+   # but this *is* a small dataset...
+</code></pre>
+
+
+</div>

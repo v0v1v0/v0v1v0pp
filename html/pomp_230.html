@@ -1,0 +1,165 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>parameter_trans</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>parameter transformations</h2>
+
+<h3>Description</h3>
+
+<p>Equipping models with parameter transformations to facilitate searches in constrained parameter spaces.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">parameter_trans(toEst, fromEst, ...)
+
+## S4 method for signature 'NULL,NULL'
+parameter_trans(toEst, fromEst, ...)
+
+## S4 method for signature 'pomp_fun,pomp_fun'
+parameter_trans(toEst, fromEst, ...)
+
+## S4 method for signature 'Csnippet,Csnippet'
+parameter_trans(toEst, fromEst, ..., log, logit, barycentric)
+
+## S4 method for signature 'character,character'
+parameter_trans(toEst, fromEst, ...)
+
+## S4 method for signature 'function,function'
+parameter_trans(toEst, fromEst, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>toEst, fromEst</code></td>
+<td>
+<p>procedures that perform transformation of model parameters to and from the estimation scale, respectively.
+These can be furnished using C snippets, <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> functions, or via procedures in an external, dynamically loaded library.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>log</code></td>
+<td>
+<p>names of parameters to be log transformed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>logit</code></td>
+<td>
+<p>names of parameters to be logit transformed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>barycentric</code></td>
+<td>
+<p>names of parameters to be collectively transformed according to the log barycentric transformation.
+<strong>Important note:</strong> variables to be log-barycentrically transformed <em>must be adjacent</em> in the parameter vector.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>When parameter transformations are desired, they can be integrated into the ‘pomp’ object via the <code>partrans</code> arguments using the <code>parameter_trans</code> function.
+As with the other basic model components, these should ordinarily be specified using C snippets.
+When doing so, note that:
+</p>
+
+<ol>
+<li>
+<p> The parameter transformation mapping a parameter vector from the scale used by the model codes to another scale, and the inverse transformation, are specified via a call to </p>
+<pre>parameter_trans(toEst,fromEst)</pre>
+<p>.
+</p>
+</li>
+<li>
+<p> The goal of these snippets is the transformation of the parameters from the natural scale to the estimation scale, and vice-versa.
+If <code>p</code> is the name of a variable on the natural scale, its value on the estimation scale is <code>T_p</code>.
+Thus the <code>toEst</code> snippet computes <code>T_p</code> given <code>p</code> whilst the <code>fromEst</code> snippet computes <code>p</code> given <code>T_p</code>.
+</p>
+</li>
+<li>
+<p> Time-, state-, and covariate-dependent transformations are not allowed.
+Therefore, neither the time, nor any state variables, nor any of the covariates will be available in the context within which a parameter transformation snippet is executed.
+</p>
+</li>
+</ol>
+<p>These transformations can also be specified using <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> functions with arguments chosen from among the parameters.
+Such an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function must also have the argument ‘<code>...</code>’.
+In this case, <code>toEst</code> should transform parameters from the scale that the basic components use internally to the scale used in estimation.
+<code>fromEst</code> should be the inverse of <code>toEst</code>.
+</p>
+<p>Note that it is the user's responsibility to make sure that the transformations are mutually inverse.
+If <code>obj</code> is the constructed ‘pomp’ object, and <code>coef(obj)</code> is non-empty, a simple check of this property is </p>
+<pre>
+  x &lt;- coef(obj, transform = TRUE)
+  obj1 &lt;- obj
+  coef(obj1, transform = TRUE) &lt;- x
+  identical(coef(obj), coef(obj1))
+  identical(coef(obj1, transform=TRUE), x)</pre>
+<p>One can use the <code>log</code> and <code>logit</code> arguments of <code>parameter_trans</code> to name variables that should be log-transformed or logit-transformed, respectively.
+The <code>barycentric</code> argument can name sets of parameters that should be log-barycentric transformed.
+</p>
+<p>Note that using the <code>log</code>, <code>logit</code>, or <code>barycentric</code> arguments causes C snippets to be generated.
+Therefore, you must make sure that variables named in any of these arguments are also mentioned in <code>paramnames</code> at the same time.
+</p>
+<p>The logit transform is defined by
+</p>
+<p style="text-align: center;"><code class="reqn">\mathrm{logit}(\theta)=\log\frac{\theta}{1-\theta}.</code>
+</p>
+
+<p>The log barycentric transformation of variables <code class="reqn">\theta_1,\dots,\theta_n</code> is given by
+</p>
+<p style="text-align: center;"><code class="reqn">\mathrm{logbarycentric}(\theta_1,\dots,\theta_n)=\left(\log\frac{\theta_1}{\sum_i \theta_i},\dots,\log\frac{\theta_n}{\sum_i \theta_i}\right).</code>
+</p>
+
+
+
+<h3>Note for Windows users</h3>
+
+<p>Some Windows users report problems when using C snippets in parallel computations.
+These appear to arise when the temporary files created during the C snippet compilation process are not handled properly by the operating system.
+To circumvent this problem, use the <code>cdir</code> and <code>cfile</code> options to cause the C snippets to be written to a file of your choice, thus avoiding the use of temporary files altogether.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>partrans</code>
+</p>
+<p>More on implementing POMP models: 
+<code>Csnippet</code>,
+<code>accumvars</code>,
+<code>basic_components</code>,
+<code>betabinomial</code>,
+<code>covariates</code>,
+<code>dinit_spec</code>,
+<code>dmeasure_spec</code>,
+<code>dprocess_spec</code>,
+<code>emeasure_spec</code>,
+<code>eulermultinom</code>,
+<code>pomp-package</code>,
+<code>pomp_constructor</code>,
+<code>prior_spec</code>,
+<code>rinit_spec</code>,
+<code>rmeasure_spec</code>,
+<code>rprocess_spec</code>,
+<code>skeleton_spec</code>,
+<code>transformations</code>,
+<code>userdata</code>,
+<code>vmeasure_spec</code>
+</p>
+
+
+</div>

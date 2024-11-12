@@ -1,0 +1,121 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ps</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Construct a ParamSet using Short Forms</h2>
+
+<h3>Description</h3>
+
+<p>The <code>ps()</code> short form constructor uses <code>Domain</code> objects (<code>p_dbl</code>, <code>p_fct</code>, ...) to construct <code>ParamSet</code>s in a
+succinct and readable way.
+</p>
+<p>For more specifics also see the documentation of <code>Domain</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ps(
+  ...,
+  .extra_trafo = NULL,
+  .constraint = NULL,
+  .allow_dangling_dependencies = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>(<code>Domain</code>)<br>
+Named arguments of <code>Domain</code> objects. The <code>ParamSet</code> will be constructed of the given <code>Domain</code>s,
+The names of the arguments will be used as <code style="white-space: pre;">⁠$id()⁠</code> in the resulting <code>ParamSet</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.extra_trafo</code></td>
+<td>
+<p>(<code style="white-space: pre;">⁠function(x, param_set)⁠</code>)<br>
+Transformation to set the resulting <code>ParamSet</code>'s <code style="white-space: pre;">⁠$trafo⁠</code> value to. This is in addition to any <code>trafo</code> of
+<code>Domain</code> objects given in <code>...</code>, and will be run <em>after</em> transformations of individual parameters were performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.constraint</code></td>
+<td>
+<p>(<code style="white-space: pre;">⁠function(x)⁠</code>)<br>
+Constraint function.
+When given, this function must evaluate a named <code>list()</code> of values and determine whether it satisfies
+constraints, returning a scalar <code>logical(1)</code> value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.allow_dangling_dependencies</code></td>
+<td>
+<p>(<code>logical</code>)<br>
+Whether dependencies depending on parameters that are not present should be allowed. A parameter <code>x</code> having
+<code>depends = y == 0</code> if <code>y</code> is not present in the <code>ps()</code> call would usually throw an error, but if dangling
+dependencies are allowed, the dependency is added regardless. This is usually a bad idea and mainly for internal
+use. Dependencies between <code>ParamSet</code>s when using <code>to_tune()</code> can be realized using this.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>ParamSet</code> object.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other ParamSet construction helpers: 
+<code>Domain()</code>,
+<code>to_tune()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">pars = ps(
+  a = p_int(0, 10),
+  b = p_int(upper = 20),
+  c = p_dbl(),
+  e = p_fct(letters[1:3]),
+  f = p_uty(custom_check = checkmate::check_function)
+)
+print(pars)
+
+pars = ps(
+  a = p_dbl(0, 1, trafo = exp),
+  b = p_dbl(0, 1, trafo = exp),
+  .extra_trafo = function(x, ps) {
+    x$c &lt;- x$a + x$b
+    x
+  }
+)
+
+# See how the addition happens after exp()ing:
+pars$trafo(list(a = 0, b = 0))
+
+pars$values = list(
+  a = to_tune(ps(x = p_int(0, 1),
+    .extra_trafo = function(x, param_set) list(a = x$x)
+  )),
+  # make 'y' depend on 'x', but they are defined in different ParamSets
+  # Therefore we need to allow dangling dependencies here.
+  b = to_tune(ps(y = p_int(0, 1, depends = x == 1),
+    .extra_trafo = function(x, param_set) list(b = x$y),
+    .allow_dangling_dependencies = TRUE
+  ))
+)
+
+pars$search_space()
+</code></pre>
+
+
+</div>

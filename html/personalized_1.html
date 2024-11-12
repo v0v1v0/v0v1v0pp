@@ -1,0 +1,150 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>check.overlap</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Check propensity score overlap</h2>
+
+<h3>Description</h3>
+
+<p>Results in a plot to check whether the propensity score has adequate overlap between treatment groups
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">check.overlap(
+  x,
+  trt,
+  propensity.func,
+  type = c("histogram", "density", "both"),
+  bins = 50L,
+  alpha = ifelse(type == "both", 0.35, 0.5)
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>The design matrix (not including intercept term)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trt</code></td>
+<td>
+<p>treatment vector with each element equal to a 0 or a 1, with 1 indicating
+treatment status is active.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>propensity.func</code></td>
+<td>
+<p>function that inputs the design matrix x and the treatment vector trt and outputs
+the propensity score, ie Pr(trt = 1 | X = x). Function should take two arguments 1) x and 2) trt. See example below.
+For a randomized controlled trial this can simply be a function that returns a constant equal to the proportion
+of patients assigned to the treatment group, i.e.:
+<code>propensity.func = function(x, trt) 0.5</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>Type of plot to create. Options are either a histogram (<code>type = "histogram"</code>) for each treatment
+group, a density (<code>type = "density"</code>) for each treatment group, or to plot both a density and histogram
+(<code>type = "code"</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bins</code></td>
+<td>
+<p>integer number of bins for histograms when <code>type = "histogram"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>value between 0 and 1 indicating transparency level (1 for solid, 0 for fully transparent)</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(personalized)
+
+set.seed(123)
+n.obs  &lt;- 250
+n.vars &lt;- 15
+x &lt;- matrix(rnorm(n.obs * n.vars, sd = 3), n.obs, n.vars)
+
+
+# simulate non-randomized treatment
+xbetat   &lt;- 0.25 + 0.5 * x[,11] - 0.5 * x[,12]
+trt.prob &lt;- exp(xbetat) / (1 + exp(xbetat))
+trt01    &lt;- rbinom(n.obs, 1, prob = trt.prob)
+
+# create function for fitting propensity score model
+prop.func &lt;- function(x, trt)
+{
+    # fit propensity score model
+    propens.model &lt;- cv.glmnet(y = trt,
+                               x = x, family = "binomial")
+    pi.x &lt;- predict(propens.model, s = "lambda.min",
+                    newx = x, type = "response")[,1]
+    pi.x
+}
+
+check.overlap(x = x,
+              trt = trt01,
+              propensity.func = prop.func)
+
+# now add density plot with histogram
+check.overlap(x = x,
+              trt = trt01,
+              type = "both",
+              propensity.func = prop.func)
+
+
+# simulated non-randomized treatment with multiple levels
+xbetat_1   &lt;- 0.15 + 0.5 * x[,9] - 0.25 * x[,12]
+xbetat_2   &lt;- 0.15 - 0.5 * x[,11] + 0.25 * x[,15]
+trt.1.prob &lt;- exp(xbetat_1) / (1 + exp(xbetat_1) + exp(xbetat_2))
+trt.2.prob &lt;- exp(xbetat_2) / (1 + exp(xbetat_1) + exp(xbetat_2))
+trt.3.prob &lt;- 1 - (trt.1.prob + trt.2.prob)
+prob.mat &lt;- cbind(trt.1.prob, trt.2.prob, trt.3.prob)
+trt    &lt;- apply(prob.mat, 1, function(rr) rmultinom(1, 1, prob = rr))
+trt    &lt;- apply(trt, 2, function(rr) which(rr == 1))
+
+# use multinomial logistic regression model with lasso penalty for propensity
+propensity.multinom.lasso &lt;- function(x, trt)
+{
+    if (!is.factor(trt)) trt &lt;- as.factor(trt)
+    gfit &lt;- cv.glmnet(y = trt, x = x, family = "multinomial")
+
+    # predict returns a matrix of probabilities:
+    # one column for each treatment level
+    propens &lt;- drop(predict(gfit, newx = x, type = "response", s = "lambda.min",
+                            nfolds = 5, alpha = 0))
+
+    # return the probability corresponding to the
+    # treatment that was observed
+    probs &lt;- propens[,match(levels(trt), colnames(propens))]
+
+    probs
+}
+
+check.overlap(x = x,
+              trt = trt,
+              type = "histogram",
+              propensity.func = propensity.multinom.lasso)
+
+
+
+</code></pre>
+
+
+</div>

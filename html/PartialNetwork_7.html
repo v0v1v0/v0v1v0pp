@@ -1,0 +1,447 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mcmcSAR</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Bayesian Estimator of SAR model</h2>
+
+<h3>Description</h3>
+
+<p><code>mcmcSAR</code> implements the Bayesian estimator of the linear-in-mean SAR model when only the linking probabilities are available or can be estimated.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mcmcSAR(
+  formula,
+  contextual,
+  start,
+  G0.obs,
+  G0 = NULL,
+  mlinks = list(),
+  hyperparms = list(),
+  ctrl.mcmc = list(),
+  iteration = 2000L,
+  data
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>object of class formula: a symbolic description of the model. The <code>formula</code> should be as for example <code>y ~ x1 + x2 | x1 + x2</code>
+where <code>y</code> is the endogenous vector, the listed variables before the pipe, <code>x1</code>, <code>x2</code> are the individual exogenous variables and
+the listed variables after the pipe, <code>x1</code>, <code>x2</code> are the contextual observable variables. Other formulas may be
+<code>y ~ x1 + x2</code> for the model without contextual effects, <code>y ~ -1 + x1 + x2 | x1 + x2</code> for the model
+without intercept, or <code> y ~ x1 + x2 | x2 + x3</code> to allow the contextual variables to be different from the individual variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contextual</code></td>
+<td>
+<p>(optional) logical; if true, this means that all individual variables will be set as contextual variables. Set
+<code>formula</code> as <code>y ~ x1 + x2</code> and <code>contextual</code> as <code>TRUE</code> is equivalent to set formula as <code>y ~ x1 + x2 | x1 + x2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start</code></td>
+<td>
+<p>(optional) vector of starting value of the model parameter as <code class="reqn">(\beta' ~ \gamma' ~ \alpha ~ \sigma^2)'</code>,
+where <code class="reqn">\beta</code> is the individual variables parameter, <code class="reqn">\gamma</code> is the contextual variables parameter, <code class="reqn">\alpha</code> is the peer effect parameter
+and <code class="reqn">\sigma^2</code> the variance of the error term. If the <code>start</code> is missing, a Maximum Likelihood estimator will be used, where
+the network matrix is that given through the argument <code>G0</code> (if provided) or generated from it distribution.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>G0.obs</code></td>
+<td>
+<p>list of matrices (or simply matrix if the list contains only one matrix) indicating the part of the network data which is observed. If the (i,j)-th element
+of the m-th matrix is one, then the element at the same position in the network data will be considered as observed and will not be inferred in the MCMC. In contrast,
+if the (i,j)-th element of the m-th matrix is zero, the element at the same position in the network data will be considered as a starting value of the missing link which will be inferred.
+<code>G0.obs</code> can also take <code>"none"</code> when no part of the network data is observed (equivalent to the case where all the entries are zeros) and <code>"all"</code> when the network data is fully
+observed (equivalent to the case where all the entries are ones).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>G0</code></td>
+<td>
+<p>list of sub-network matrices (or simply network matrix if there is only one sub-network). <code>G0</code> is made up of starting values for the entries with missing network data and observed values for the entries with
+observed network data. <code>G0</code> is optional when <code>G0.obs = "none"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mlinks</code></td>
+<td>
+<p>list specifying the network formation model (see Section Network formation model in Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hyperparms</code></td>
+<td>
+<p>(optional) is a list of hyperparameters (see Section Hyperparameters in Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ctrl.mcmc</code></td>
+<td>
+<p>list of MCMC controls (see Section MCMC control in Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iteration</code></td>
+<td>
+<p>number of MCMC steps to be performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables
+in the model. If missing, the variables are taken from <code>environment(formula)</code>, typically the environment from which <code>mcmcSAR</code> is called.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+
+
+<h4>Outcome model</h4>
+
+<p>The model is given by
+</p>
+<p style="text-align: center;"><code class="reqn">\mathbf{y} = \mathbf{X}\beta + \mathbf{G}\mathbf{X}\gamma + \alpha \mathbf{G}\mathbf{y} + \epsilon.</code>
+</p>
+
+<p>where </p>
+<p style="text-align: center;"><code class="reqn">\epsilon \sim N(0, \sigma^2).</code>
+</p>
+
+<p>The parameters to estimate in this model are the matrix <code class="reqn">\mathbf{G}</code>, the vectors <code class="reqn">\beta</code>, <code class="reqn">\gamma</code> and the scalar <code class="reqn">\alpha</code>, <code class="reqn">\sigma</code>.
+Prior distributions are assumed on <code class="reqn">\mathbf{A}</code>, the adjacency matrix in which <code class="reqn">\mathbf{A}_{ij} = 1</code> if i is  connected to j and
+<code class="reqn">\mathbf{A}_{ij} = 0</code> otherwise, and on <code class="reqn">\beta</code>, <code class="reqn">\gamma</code>, <code class="reqn">\alpha</code> and <code class="reqn">\sigma^2</code>.
+</p>
+<p style="text-align: center;"><code class="reqn">\mathbf{A}_{ij} \sim Bernoulli(\mathbf{P}_{ij})</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">(\beta' ~ \gamma')'|\sigma^2 \sim \mathcal{N}(\mu_{\theta}, \sigma^2\Sigma_{\theta})</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\zeta = \log\left(\frac{\alpha}{1 - \alpha}\right) \sim \mathcal{N}(\mu_{\zeta}, \sigma_{\zeta}^2)</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\sigma^2 \sim IG(\frac{a}{2}, \frac{b}{2})</code>
+</p>
+
+<p>where <code class="reqn">\mathbf{P}</code> is the linking probability. The linking probability is an hyperparameters that can be set fixed or updated using a network formation model.
+</p>
+
+
+
+<h4>Network formation model</h4>
+
+<p>The linking probability can be set fixed or updated using a network formation model. Information about how <code class="reqn">\mathbf{P}</code> should be handled in in the MCMC can be set through the
+argument <code>mlinks</code> which should be a list with named elements. Divers specifications of network formation model are possible. The list assigned to <code>mlist</code> should include
+an element named <code>model</code>. The expected values of <code>model</code> are <code>"none"</code> (default value), <code>"logit"</code>, <code>"probit"</code>, and <code>"latent space"</code>.
+</p>
+
+<ul>
+<li> <p><code>"none"</code> means that the network distribution <code class="reqn">\mathbf{P}</code> is set fixed throughout the MCMC,
+</p>
+</li>
+<li> <p><code>"probit"</code> or <code>"logit"</code> implies that the network distribution <code class="reqn">\mathbf{P}</code> will be updated using a Probit or Logit model,
+</p>
+</li>
+<li> <p><code>"latent spate"</code> means that <code class="reqn">\mathbf{P}</code> will be updated following Breza et al. (2020).</p>
+</li>
+</ul>
+<h5>Fixed network distribution</h5>
+
+<p>To set <code class="reqn">\mathbf{P}</code> fixed, <code>mlinks</code> could contain,
+</p>
+
+<ul>
+<li> <p><code>dnetwork</code>, a list, where the m-th elements is the matrix of
+link probability in the m-th sub-network.
+</p>
+</li>
+<li> <p><code>model = "none"</code> (optional as <code>"none"</code> is the default value).
+</p>
+</li>
+</ul>
+<h5>Probit and Logit models</h5>
+
+<p>For the Probit and Logit specification as network formation model, the following elements could be declared in <code>mlinks</code>.
+</p>
+
+<ul>
+<li> <p><code>model = "probit"</code> or <code>model = "logit"</code>.
+</p>
+</li>
+<li> <p><code>mlinks.formula</code> object of class formula: a symbolic description of the Logit or Probit model. The <code>formula</code> should only specify the explanatory variables, as for example <code>~ x1 + x2</code>,
+the variables <code>x1</code> and <code>x2</code> are the dyadic observable characteristics. Each variable should verify <code>length(x) == sum(N^2 - N)</code>,
+where <code>N</code> is a vector of the number of individual in each sub-network. Indeed, <code>x</code> will be associated with the entries
+<code class="reqn">(1, 2)</code>; <code class="reqn">(1, 3)</code>; <code class="reqn">(1, 4)</code>; ...; <code class="reqn">(2, 1)</code>; <code class="reqn">(2, 3)</code>; <code class="reqn">(2, 4)</code>; ... of the linking probability and
+as so, in all the sub-networks. Functions <code>mat.to.vec</code> and <code>vec.to.mat</code> can be used to convert a list of dyadic variable as in matrix form to a format that suits <code>mlinks.formula</code>.
+</p>
+</li>
+<li> <p><code>weights</code> (optional) is a vector of weights of observed entries. This is important to address the selection problem of observed entries. Default is a vector of ones.
+</p>
+</li>
+<li> <p><code>estimates</code> (optional when a part of the network is observed) is a list containing <code>rho</code>, a vector of the estimates of the Probit or Logit
+parameters, and <code>var.rho</code> the covariance matrix of the estimator. These estimates can be automatically computed when a part of the network data is available.
+In this case, <code>rho</code> and the unobserved part of the network are updated without using the observed part of the network. The latter is assumed non-stochastic in the MCMC.
+In addition, if <code>G0.obs = "none"</code>, <code>estimates</code> should also include <code>N</code>, a vector of the number of individuals in each sub-network.
+</p>
+</li>
+<li> <p><code>prior</code> (optional) is a list containing <code>rho</code>, a vector of the prior beliefs on <code>rho</code>, and <code>var.rho</code> the prior covariance matrix of <code>rho</code>. This input
+is relevant only when the observed part of the network is used to update <code>rho</code>, i.e. only when <code>estimates = NULL</code> (so, either <code>estimates</code> or <code>prior</code> should be <code>NULL</code>). <br>
+To understand the difference between
+<code>estimates</code> and <code>prior</code>, note that <code>estimates</code> includes initial estimates of <code>rho</code> and <code>var.rho</code>, meaning that the observed part of the network is not used in the MCMC
+to update <code>rho</code>. In contrast, <code>prior</code> contains the prior beliefs of the user, and therefore, <code>rho</code> is updated using this prior and information from the observed part of the network.
+In addition, if <code>G0.obs = "none"</code>, <code>prior</code> should also include <code>N</code>, a vector of the number of individuals in each sub-network.
+</p>
+</li>
+<li> <p><code>mlinks.data</code> optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the dyadic observable characteristics
+If missing, the variables will be taken from <code>environment(mlinks.formula)</code>, typically the environment from which <code>mcmcARD</code> is called.
+</p>
+</li>
+</ul>
+<h5>Latent space models</h5>
+
+<p>The following element could be declared in <code>mlinks</code>.
+</p>
+
+<ul>
+<li> <p><code>model = "latent space"</code>.
+</p>
+</li>
+<li> <p><code>estimates</code> a list of objects of class <code>mcmcARD</code>, where the m-th element is Breza et al. (2020) estimator as returned by the function <code>mcmcARD</code>
+in the m-th sub-network.
+</p>
+</li>
+<li> <p><code>mlinks.data</code> (required only when ARD are partially observed) is a list of matrices, where the m-th element is the variable matrix to use to compute distance between individuals (could be the list of traits) in the m-th sub-network.
+The distances will be used to compute gregariousness and coordinates for individuals without ARD by k-nearest neighbors approach.
+</p>
+</li>
+<li> <p><code>obsARD</code> (required only when ARD are partially observed) is a list of logical vectors, where the i-th entry of the m-th vector indicates by <code>TRUE</code> or <code>FALSE</code> if  the i-th individual in the m-th
+sub-network has ARD or not.
+</p>
+</li>
+<li> <p><code>mARD</code> (optional, default value is <code style="white-space: pre;">⁠rep(1, M⁠</code>)) is a vector indicating the number of neighbors to use in each sub-network.
+</p>
+</li>
+<li> <p><code>burninARD</code> (optional) set the burn-in to summarize the posterior distribution in <code>estimates</code>.
+</p>
+</li>
+</ul>
+<h4>Hyperparameters</h4>
+
+<p>All the hyperparameters can be defined through the argument <code>hyperparms</code> (a list) and should be named as follow.
+</p>
+
+<ul>
+<li> <p><code>mutheta</code>, the prior mean of <code class="reqn">(\beta' ~ \gamma')'|\sigma^2</code>. The default value assumes that
+the prior mean is zero.
+</p>
+</li>
+<li> <p><code>invstheta</code> as <code class="reqn">\Sigma_{\theta}^{-1}</code>. The default value is a diagonal matrix with 0.01 on the diagonal.
+</p>
+</li>
+<li> <p><code>muzeta</code>, the prior mean of <code class="reqn">\zeta</code>. The default value is zero.
+</p>
+</li>
+<li> <p><code>invszeta</code>, the inverse of the prior variance of <code class="reqn">\zeta</code> with default value equal to 2.
+</p>
+</li>
+<li> <p><code>a</code> and <code>b</code> which default values equal to 4.2 and 2.2 respectively. This means for example that the prior mean of <code class="reqn">\sigma^2</code> is 1.
+</p>
+</li>
+</ul>
+<p>Inverses are used for the prior variance through the argument <code>hyperparms</code>  in order to allow non informative prior. Set the inverse of the prior
+variance to 0 is equivalent to assume a non informative prior.
+</p>
+
+
+
+<h4>MCMC control</h4>
+
+<p>During the MCMC, the jumping scales of <code class="reqn">\alpha</code> and <code class="reqn">\rho</code> are updated following Atchade and Rosenthal (2005) in order to target the acceptance rate to the <code>target</code> value. This
+requires to set a minimal and a maximal jumping scales through the parameter <code>ctrl.mcmc</code>. The parameter <code>ctrl.mcmc</code> is a list which can contain the following named components.
+</p>
+
+<ul>
+<li>
+<p><code>target</code>: the default value is <code>c("alpha" = 0.44, "rho" = 0.234)</code>.
+</p>
+</li>
+<li>
+<p><code>jumpmin</code>: the default value is <code>c("alpha" = 1e-5, "rho" = 1e-5)</code>.
+</p>
+</li>
+<li>
+<p><code>jumpmax</code>: the default value is <code>c("alpha" = 10, "rho" = 10)</code>.
+</p>
+</li>
+<li>
+<p><code>print.level</code>: an integer in {0, 1, 2} that indicates if the MCMC progression should be printed in the console.
+If 0, the MCMC progression is not be printed. If 1 (default value), the progression is printed and if 2,
+the simulations from the posterior distribution are printed.
+</p>
+</li>
+<li>
+<p><code>block.max</code>: The maximal number of entries that can be updated simultaneously in <code class="reqn">\mathbf{A}</code>. It might be
+more efficient to update simultaneously 2 or 3 entries (see Boucher and Houndetoungan, 2022).
+</p>
+</li>
+</ul>
+<p>If <code>block.max</code> &gt; 1, several entries are randomly chosen from the same row and updated simultaneously. The number of entries chosen is randomly
+chosen between 1 and <code>block.max</code>. In addition, the entries are not chosen in order. For example, on the row i, the entries (i, 5) and (i, 9) can be updated simultaneously,
+then the entries (i, 1), (i, 3), (i, 8), and so on.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>A list consisting of:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>n.group</code></td>
+<td>
+<p>number of groups.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N</code></td>
+<td>
+<p>vector of each group size.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>elapsed time to run the MCMC in second.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iteration</code></td>
+<td>
+<p>number of MCMC steps performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>posterior</code></td>
+<td>
+<p>matrix (or list of matrices) containing the simulations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hyperparms</code></td>
+<td>
+<p>return value of <code>hyperparms</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mlinks</code></td>
+<td>
+<p>return value of <code>mlinks</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>accept.rate</code></td>
+<td>
+<p>acceptance rates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prop.net</code></td>
+<td>
+<p>proportion of observed network data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method.net</code></td>
+<td>
+<p>network formation model specification.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start</code></td>
+<td>
+<p>starting values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>input value of <code>formula</code> and <code>mlinks.formula</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contextual</code></td>
+<td>
+<p>input value of <code>contextual</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ctrl.mcmc</code></td>
+<td>
+<p>return value of <code>ctrl.mcmc</code>.</p>
+</td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+<p><code>smmSAR</code>, <code>sim.IV</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# We assume that the network is fully observed 
+# See our vignette for examples where the network is partially observed 
+# Number of groups
+M             &lt;- 50
+# size of each group
+N             &lt;- rep(30,M)
+# individual effects
+beta          &lt;- c(2,1,1.5)
+# contextual effects
+gamma         &lt;- c(5,-3)
+# endogenous effects
+alpha         &lt;- 0.4
+# std-dev errors
+se            &lt;- 1
+# prior distribution
+prior         &lt;- runif(sum(N*(N-1)))
+prior         &lt;- vec.to.mat(prior, N, normalise = FALSE)
+# covariates
+X             &lt;- cbind(rnorm(sum(N),0,5),rpois(sum(N),7))
+# true network
+G0            &lt;- sim.network(prior)
+# normalise
+G0norm        &lt;- norm.network(G0)
+# simulate dependent variable use an external package
+y             &lt;- CDatanet::simsar(~ X, contextual = TRUE, Glist = G0norm,
+                                  theta = c(alpha, beta, gamma, se))
+y             &lt;- y$y
+# dataset
+dataset       &lt;- as.data.frame(cbind(y, X1 = X[,1], X2 = X[,2]))
+out.none1     &lt;- mcmcSAR(formula = y ~ X1 + X2, contextual = TRUE, G0.obs = "all",
+                         G0 = G0, data = dataset, iteration = 1e4)
+summary(out.none1)
+plot(out.none1)
+plot(out.none1, plot.type = "dens")
+
+</code></pre>
+
+
+</div>

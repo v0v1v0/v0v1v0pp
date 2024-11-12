@@ -1,0 +1,132 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>int_conformal_quantile</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Prediction intervals via conformal inference and quantile regression</h2>
+
+<h3>Description</h3>
+
+<p>Nonparametric prediction intervals can be computed for fitted regression
+workflow objects using the split conformal inference method described by
+Romano <em>et al</em> (2019). To compute quantiles, this function uses Quantile
+Random Forests instead of classic quantile regression.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">int_conformal_quantile(object, ...)
+
+## S3 method for class 'workflow'
+int_conformal_quantile(object, train_data, cal_data, level = 0.95, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A fitted <code>workflows::workflow()</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Options to pass to <code>quantregForest::quantregForest()</code> (such as the
+number of trees).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>train_data, cal_data</code></td>
+<td>
+<p>Data frames with the <em>predictor and outcome data</em>.
+<code>train_data</code> should be the same data used to produce <code>object</code> and <code>cal_data</code> is
+used to produce predictions (and residuals). If the workflow used a recipe,
+these should be the data that were inputs to the recipe (and not the product
+of a recipe).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>level</code></td>
+<td>
+<p>The confidence level for the intervals.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Note that the significance level should be specified in this function
+(instead of the <code>predict()</code> method).
+</p>
+<p><code>cal_data</code> should be large enough to get a good estimates of a extreme
+quantile (e.g., the 95th for 95% interval) and should not include rows that
+were in the original training set.
+</p>
+<p>Note that the because of the method used to construct the interval, it is
+possible that the prediction intervals will not include the predicted value.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"int_conformal_quantile"</code> containing the
+information to create intervals (which includes <code>object</code>).
+The <code>predict()</code> method is used to produce the intervals.
+</p>
+
+
+<h3>References</h3>
+
+<p>Romano, Yaniv, Evan Patterson, and Emmanuel Candes. "Conformalized quantile
+regression." <em>Advances in neural information processing systems</em> 32 (2019).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>predict.int_conformal_quantile()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(workflows)
+library(dplyr)
+library(parsnip)
+library(rsample)
+library(tune)
+library(modeldata)
+
+set.seed(2)
+sim_train &lt;- sim_regression(500)
+sim_cal &lt;- sim_regression(200)
+sim_new &lt;- sim_regression(5) %&gt;% select(-outcome)
+
+# We'll use a neural network model
+mlp_spec &lt;-
+  mlp(hidden_units = 5, penalty = 0.01) %&gt;%
+  set_mode("regression")
+
+mlp_wflow &lt;-
+  workflow() %&gt;%
+  add_model(mlp_spec) %&gt;%
+  add_formula(outcome ~ .)
+
+mlp_fit &lt;- fit(mlp_wflow, data = sim_train)
+
+mlp_int &lt;- int_conformal_quantile(mlp_fit, sim_train, sim_cal,
+  level = 0.90
+)
+mlp_int
+
+predict(mlp_int, sim_new)
+
+</code></pre>
+
+
+</div>

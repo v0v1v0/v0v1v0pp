@@ -1,0 +1,122 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>popkin_A</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compute popkin's <code>A</code> and <code>M</code> matrices from genotypes</h2>
+
+<h3>Description</h3>
+
+<p>This function returns lower-level, intermediate calculations for the main <code>popkin</code> function.
+These are not intended for most users, but rather for researchers studying the estimator.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">popkin_A(
+  X,
+  n = NA,
+  loci_on_cols = FALSE,
+  mean_of_ratios = FALSE,
+  mem_factor = 0.7,
+  mem_lim = NA,
+  m_chunk_max = 1000
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>Genotype matrix, <code>BEDMatrix</code> object, or a function <code>X(m)</code> that returns the genotypes of all individuals at <code>m</code> successive locus blocks each time it is called, and <code>NULL</code> when no loci are left.
+If a regular matrix, <code>X</code> must have values only in <code>c(0, 1, 2, NA)</code>, encoded to count the number of reference alleles at the locus, or <code>NA</code> for missing data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>Number of individuals (required only when <code>X</code> is a function, ignored otherwise).
+If <code>n</code> is missing but <code>subpops</code> is not, <code>n</code> is taken to be the length of <code>subpops</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loci_on_cols</code></td>
+<td>
+<p>If <code>TRUE</code>, <code>X</code> has loci on columns and individuals on rows; if <code>FALSE</code> (default), loci are on rows and individuals on columns.
+Has no effect if <code>X</code> is a function.
+If <code>X</code> is a <code>BEDMatrix</code> object, <code>loci_on_cols</code> is ignored (set automatically to <code>TRUE</code> internally).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mean_of_ratios</code></td>
+<td>
+<p>Chose how to weigh loci.
+If <code>FALSE</code> (default) loci have equal weights (in terms of variance, rare variants contribute less than common variants; also called the "ratio-of-means" version, this has known asymptotic behavior).
+If <code>TRUE</code>, rare variant loci are upweighed (in terms of variance, contributions are approximately the same across variant frequencies; also called the "mean-of-ratios" version, its asymptotic behavior is less well understood but performs better for association testing).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mem_factor</code></td>
+<td>
+<p>Proportion of available memory to use loading and processing data.
+Ignored if <code>mem_lim</code> is not <code>NA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mem_lim</code></td>
+<td>
+<p>Memory limit in GB, used to break up data into chunks for very large datasets.
+Note memory usage is somewhat underestimated and is not controlled strictly.
+Default in Linux is <code>mem_factor</code> times the free system memory, otherwise it is 1GB (Windows, OSX and other systems).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m_chunk_max</code></td>
+<td>
+<p>Sets the maximum number of loci to process at the time.
+Actual number of loci loaded may be lower if memory is limiting.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A named list containing:
+</p>
+
+<ul>
+<li> <p><code>A</code>: n-by-n matrix, for individuals <code>j</code> and <code>k</code>, of average <code>w_i * ( ( x_ij - 1 ) * ( x_ik - 1 ) - 1)</code> values across all loci <code>i</code> in <code>X</code>; if <code>mean_of_ratios = FALSE</code>, <code>w_i = 1</code>, otherwise <code>w_i = 1 / (p_est_i * (1 - p_est_i) )</code> where <code>p_est_i</code> is the reference allele frequency.
+</p>
+</li>
+<li> <p><code>M</code>: n-by-n matrix of sample sizes (number of loci with non-missing individual <code>j</code> and <code>k</code> pairs, used to normalize <code>A</code>)
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p>The main <code>popkin()</code> function (a wrapper of this <code>popkin_A</code> function and <code>popkin_A_min_subpops()</code> to estimate the minimum <code>A</code> value).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Construct toy data
+X &lt;- matrix(c(0,1,2,1,0,1,1,0,2), nrow = 3, byrow = TRUE) # genotype matrix
+
+# NOTE: for BED-formatted input, use BEDMatrix!
+# "file" is path to BED file (excluding .bed extension)
+# library(BEDMatrix)
+# X &lt;- BEDMatrix(file) # load genotype matrix object
+
+obj &lt;- popkin_A(X) # calculate A and M from genotypes
+A &lt;- obj$A
+M &lt;- obj$M
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,282 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>penPHcure</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Variable selection in PH cure model with time-varying covariates</h2>
+
+<h3>Description</h3>
+
+<p>This function allows to fit a PH cure model with time varying covariates, to compute confidence intervals for the estimated regression coefficients or to make variable selection through a LASSO/SCAD-penalized model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">penPHcure(
+  formula,
+  cureform,
+  data,
+  X = NULL,
+  maxIterNR = 500,
+  maxIterEM = 500,
+  tol = 1e-06,
+  standardize = TRUE,
+  ties = c("efron", "breslow"),
+  SV = NULL,
+  which.X = c("last", "mean"),
+  inference = FALSE,
+  nboot = 100,
+  constraint = TRUE,
+  pen.type = c("none", "SCAD", "LASSO"),
+  pen.weights = NULL,
+  pen.tuneGrid = NULL,
+  epsilon = 1e-08,
+  pen.thres.zero = 1e-06,
+  print.details = TRUE,
+  warnings = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a formula object, with the response on the left of a <code>~</code> operator and the variables to be included in the latency (survival) component on the right. The response must be a survival object returned by the <code>Surv(time,time2,status)</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cureform</code></td>
+<td>
+<p>a one-sided formula object of the form <code>~ x1 + x2 + ...</code> with the covariates to be included in the incidence (cure) component.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a data.frame (in a counting process format) in which to interpret the variables named in the <code>formula</code> and <code>cureform</code> arguments.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>a matrix of time-invariant covariates to be included in the incidence (cure) component. If the user provide such matrix, the arguments <code>cureform</code> and <code>which.X</code> will be ignored. By default, <code>X = NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxIterNR</code></td>
+<td>
+<p>a positive integer: the maximum number of iterations to attempt for convergence of the Newton-Raphson (NR) algorithm (Cox's and logistic regression model). By default <code>maxIterNR = 500</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxIterEM</code></td>
+<td>
+<p>a positive integer: the maximum number of iterations to attempt for convergence of the Expectation-Maximization (EM) algorithm. By default <code>maxIterEM = 500</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>a positive numeric value used to determine convergence of the NR and EM algorithms. By default, <code>tol = 1e-6</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardize</code></td>
+<td>
+<p>a logical value. If <code>TRUE</code>, the values of the covariates are standardized (centered and scaled), such that their mean and variance will be equal to 0 and 1, respectively. By default, <code>standardize = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ties</code></td>
+<td>
+<p>a character string used to specify the method for handling ties: either <code>"efron"</code> or <code>"breslow"</code>. By default, <code>ties = "efron"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SV</code></td>
+<td>
+<p>a list with elements <code>b</code> and <code>beta</code>, numeric vectors of starting values for the regression coefficients in the incidence (cure) and latency (survival) component, respectively. By default <code>SV = NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>which.X</code></td>
+<td>
+<p>character string used to specify the method used to transform the covariates included in the incidence (cure) component from time-varying to time-invariant. There are two options: either take the last observation (<code>"last"</code>) or the mean over the full history of the covariates (<code>"mean"</code>). By default, <code>which.X = "last"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inference</code></td>
+<td>
+<p>a logical value. If <code>TRUE</code> and <code>pen.type == "none"</code>, confidence intervals for the regression coefficient estimates are computed using the basic/percentile bootstrap method. By default <code>inference = FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nboot</code></td>
+<td>
+<p>a positive integer: the number of bootstrap resamples for the construction of the confidence intervals (used only when <code>inference = TRUE</code>). By default, <code>nboot = 100</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>constraint</code></td>
+<td>
+<p>a logical value. If <code>TRUE</code>, the model makes use of the zero-tail constraint, classifying the individuals with censoring times grater than the largest event time as non-susceptible. For more details, see Sy and Taylor (2000). By default <code>constraint = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pen.type</code></td>
+<td>
+<p>a character string used to specify the type of penalty used to make variable selection: either <code>"none"</code>, <code>"SCAD"</code> or <code>"LASSO"</code>. By default, <code>pen.type="none"</code>, only a standard model is fitted without performing variable selection.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pen.weights</code></td>
+<td>
+<p>a list with elements named <code>CURE</code> and <code>SURV</code>, positive numeric vectors of penalty weights for the covariates in the incidence (cure) and latency (survival) component, respectively. By default, all weights are set equal to 1, except for the intercept in the incidence (cure) component (always equal to 0).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pen.tuneGrid</code></td>
+<td>
+<p>a list with elements named <code>CURE</code> and <code>SURV</code>, named lists of tuning parameter vectors. If <code>pen.type == "SCAD"</code> they should contain two numeric vectors of possible tuning parameters: <code>lambda</code> and <code>a</code>. Whereas, if <code>pen.type == "LASSO"</code>, only one vector <code>lambda</code>. By default <code>lambda = exp(seq(-7,0,length.out = 10))</code> and <code>a = 3.7</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epsilon</code></td>
+<td>
+<p>a positive numeric value used as a perturbation of the penalty function. By default, <code>epsilon = 1e-08</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pen.thres.zero</code></td>
+<td>
+<p>a positive numeric value used as a threshold. After fitting the penalized PH cure model, the estimated regression coefficients with an absolute value lower than this threshold are set equal to zero. By default, <code>pen.thres.zero = 1e-06</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>print.details</code></td>
+<td>
+<p>a logical value. If <code>TRUE</code>, tracing information on the progress of the routines is produced. By default <code>print.details = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>warnings</code></td>
+<td>
+<p>a logical value. If <code>TRUE</code>, possible warnings from the NR and EM algorithms are produced. By default <code>warnings = FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>When the starting values (<code>SV</code>) are not specified and <code>pen.type == "none"</code>:
+</p>
+
+<ul>
+<li> <p><code>SV$b</code> is set equal to the estimates of a logistic regression model with the event indicator (0=censored, 1=event) as dependent variable; and
+</p>
+</li>
+<li> <p><code>SV$beta</code> is set equal to the estimates of a standard Cox's model.
+</p>
+</li>
+</ul>
+<p>Whereas, if <code>pen.type == "SCAD" | "LASSO"</code>, both vectors are filled with zeros.
+</p>
+<p>When performing variable selection (<code>pen.type == "SCAD" | "LASSO"</code>), a penalized PH cure model is fitted for each possible combination of the tuning parameters in <code>pen.tuneGrid</code>. Two models are selected on the basis of the Akaike and Bayesian Information Criteria: </p>
+<p style="text-align: center;"><code class="reqn">AIC=-ln(\hat{L})+2df,</code>
+</p>
+ <p style="text-align: center;"><code class="reqn">BIC=-ln(\hat{L})+ln(n)df,</code>
+</p>
+<p> where <code class="reqn">ln(\hat{L})</code> is the value of the log-likelihood at the penalized MLEs, <code class="reqn">df</code> is the value of the degrees of freedom (number of non-zero coefficients) and <code class="reqn">n</code> is the sample size.
+</p>
+<p>Regarding the possible tuning parameters in <code>pen.tuneGrid</code>, the numeric vectors <code>lambda</code> and <code>a</code> should contain values &gt;= 0 and &gt; 2, respectively.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If the argument <code>pen.type = "none"</code>, this function returns a <code>PHcure.object</code>. Otherwise, if <code>pen.type == "SCAD" | "LASSO"</code>, it returns a <code>penPHcure.object</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Beretta A, Heuchenne C (2019).
+“Variable selection in proportional hazards cure model with time-varying covariates, application to US bank failures.”
+<em>Journal of Applied Statistics</em>, <b>46</b>(9), 1529-1549.
+doi: <a href="https://doi.org/10.1080/02664763.2018.1554627">10.1080/02664763.2018.1554627</a>.
+</p>
+<p>Sy JP, Taylor JM (2000).
+“Estimation in a Cox proportional hazards cure model.”
+<em>Biometrics</em>, <b>56</b>(1), 227-236.
+doi: <a href="https://doi.org/10.1111/j.0006-341X.2000.00227.x">10.1111/j.0006-341X.2000.00227.x</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>penPHcure-package</code>, <code>PHcure.object</code>, <code>penPHcure.object</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Generate some data (for more details type ?penPHcure.simulate in your console)
+data &lt;- penPHcure.simulate()
+
+### Standard PH cure model
+
+# Fit standard cure model (without inference)
+fit &lt;- penPHcure(Surv(time = tstart,time2 = tstop,
+                      event = status) ~ z.1 + z.2 + z.3 + z.4,
+                 cureform = ~ x.1 + x.2 + x.3 + x.4,data = data)
+# The returned PHcure.object has methods summary and predict, 
+#  for more details type ?summary.PHcure or ?predict.PHcure in your console.
+
+# Fit standard cure model (with inference)
+fit2 &lt;- penPHcure(Surv(time = tstart,time2 = tstop,
+                       event = status) ~ z.1 + z.2 + z.3 + z.4,
+                  cureform = ~ x.1 + x.2 + x.3 + x.4,data = data,
+                  inference = TRUE)
+# The returned PHcure.object has methods summary and predict, 
+#  for more details type ?summary.PHcure or ?predict.PHcure in your console.
+
+
+### Tune penalized cure model with SCAD penalties
+
+# First define the grid of possible values for the tuning parameters.
+pen.tuneGrid &lt;- list(CURE = list(lambda = exp(seq(-7,-2,length.out = 10)),
+                                 a = 3.7),
+                     SURV = list(lambda = exp(seq(-7,-2,length.out = 10)),
+                                 a = 3.7))
+# Tune the penalty parameters.
+tuneSCAD &lt;- penPHcure(Surv(time = tstart,time2 = tstop,
+                           event = status) ~ z.1 + z.2 + z.3 + z.4,
+                      cureform = ~ x.1 + x.2 + x.3 + x.4,
+                      data = data,pen.type = "SCAD",
+                      pen.tuneGrid = pen.tuneGrid)
+# The returned penPHcure.object has methods summary and predict, for more
+#  details type ?summary.penPHcure or ?predict.penPHcure in your console.
+
+### Tune penalized cure model with LASSO penalties
+
+# First define the grid of possible values for the tuning parameters.
+pen.tuneGrid &lt;- list(CURE = list(lambda = exp(seq(-7,-2,length.out = 10))),
+                     SURV = list(lambda = exp(seq(-7,-2,length.out = 10))))
+# Tune the penalty parameters.
+tuneLASSO &lt;- penPHcure(Surv(time = tstart,time2 = tstop,
+                            event = status) ~ z.1 + z.2 + z.3 + z.4,
+                       cureform = ~ x.1 + x.2 + x.3 + x.4,
+                       data = data,pen.type = "LASSO",
+                       pen.tuneGrid = pen.tuneGrid)
+# The returned penPHcure.object has methods summary and predict, for more
+#  details type ?summary.penPHcure or ?predict.penPHcure in your console.
+
+</code></pre>
+
+
+</div>

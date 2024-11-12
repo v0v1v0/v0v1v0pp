@@ -1,0 +1,89 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ds_write_tables</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Write FHIR data to managed tables</h2>
+
+<h3>Description</h3>
+
+<p>Writes the data from a data source to a set of tables in the Spark catalog.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ds_write_tables(ds, schema = NULL, import_mode = ImportMode$OVERWRITE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ds</code></td>
+<td>
+<p>The DataSource object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>schema</code></td>
+<td>
+<p>The name of the schema to write the tables to.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>import_mode</code></td>
+<td>
+<p>The import mode to use when writing the data - "overwrite" will overwrite any 
+existing data, "merge" will merge the new data with the existing data based on resource ID.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>No return value, called for side effects only.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><a href="https://pathling.csiro.au/docs/libraries/fhirpath-query#managed-tables-1">Pathling documentation - Writing managed tables</a>
+</p>
+<p><code>ImportMode</code>
+</p>
+<p>Other data sink functions: 
+<code>ds_write_delta()</code>,
+<code>ds_write_ndjson()</code>,
+<code>ds_write_parquet()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Create a temporary warehouse location, which will be used when we call ds_write_tables().
+temp_dir_path &lt;- tempfile()
+dir.create(temp_dir_path)
+sc &lt;- sparklyr::spark_connect(master = "local[*]", config = list(
+  "sparklyr.shell.conf" = c(
+    paste0("spark.sql.warehouse.dir=", temp_dir_path),
+    "spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension",
+    "spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog"
+  )
+), version = pathling_spark_info()$spark_version)
+
+pc &lt;- pathling_connect(sc)
+data_source &lt;- pc %&gt;% pathling_read_ndjson(pathling_examples('ndjson'))
+
+# Write the data to a set of Spark tables in the 'default' database.
+data_source %&gt;% ds_write_tables("default", import_mode = ImportMode$MERGE)
+
+pathling_disconnect(pc)
+unlink(temp_dir_path, recursive = TRUE)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,175 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>dag2pag</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Convert a DAG with latent variables into a PAG</h2>
+
+<h3>Description</h3>
+
+<p>Convert a DAG with latent variables into its corresponding (unique)
+Partial Ancestral Graph (PAG).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">dag2pag(suffStat, indepTest, graph, L, alpha, rules = rep(TRUE,10),
+        verbose = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>suffStat</code></td>
+<td>
+<p>the sufficient statistics, a <code>list</code>
+containing all necessary elements for the conditional independence
+decisions in the function <code>indepTest</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indepTest</code></td>
+<td>
+<p>a <code>function</code> for testing conditional
+independence.  The function is internally called as
+<code>indepTest(x,y,S,suffStat)</code>, and tests conditional independence
+of <code>x</code> and <code>y</code> given <code>S</code>.  Here, <code>x</code> and
+<code>y</code> are variables, and <code>S</code> is a (possibly empty) vector of
+variables (all variables are denoted by their column numbers
+in the adjacency matrix).  <code>suffStat</code> is a list containing
+all relevant elements for the conditional independence
+decisions.  The return value of <code>indepTest()</code> is the p-value of
+the test for conditional independence.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>graph</code></td>
+<td>
+<p>a DAG with <code>p</code> nodes, a <span class="pkg">graph</span> object.  The
+graph must be topological sorted (for example produced using
+<code>randomDAG</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L</code></td>
+<td>
+<p>array containing the labels of the nodes in the <code>graph</code>
+corresponding to the latent variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>significance level in <code class="reqn">(0,1)</code> for the individual
+conditional independence tests.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rules</code></td>
+<td>
+<p>logical vector of length 10 indicating which rules
+should be used when directing edges.  The order of the rules is
+taken from Zhang (2009).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical; if <code>TRUE</code>, detailed output is provided.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function converts a DAG (graph object) with latent variables into
+its corresponding (unique) PAG, an <code>fciAlgo</code> class
+object, using the ancestor information and conditional independence
+tests entailed in the true DAG.  The output of this function is
+exactly the same as the one using
+</p>
+<pre>fci(suffStat, gaussCItest, p, alpha, rules = rep(TRUE, 10))
+</pre>
+<p>using the true correlation matrix in <code>gaussCItest()</code> with a large
+“virtual sample size” and a large alpha, but it is much faster,
+see the example.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of <code>class</code> <code>fciAlgo</code>,
+containing the estimated graph (in the form of an adjacency matrix
+with various possible edge marks), the conditioning sets that lead to
+edge removals (sepset) and several other parameters.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Diego Colombo and
+Markus Kalisch <a href="mailto:kalisch@stat.math.ethz.ch">kalisch@stat.math.ethz.ch</a>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Richardson, T. and Spirtes, P. (2002).
+Ancestral graph Markov models.
+<em>Ann. Statist.</em> <b>30</b>, 962–1030; Theorem 4.2., page 983.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>fci</code>, <code>pc</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## create the graph
+set.seed(78)
+g &lt;- randomDAG(10, prob = 0.25)
+graph::nodes(g) # "1" "2" ... "10" % FIXME: should be kept in result!
+
+## define nodes 2 and 6 to be latent variables
+L &lt;- c(2,6)
+
+## compute the true covariance matrix of g
+cov.mat &lt;- trueCov(g)
+## transform covariance matrix into a correlation matrix
+true.corr &lt;- cov2cor(cov.mat)
+
+## Find PAG
+## as dependence "oracle", we use the true correlation matrix in
+## gaussCItest() with a large "virtual sample size" and a large alpha:
+system.time(
+true.pag &lt;- dag2pag(suffStat = list(C = true.corr, n = 10^9),
+                    indepTest = gaussCItest,
+                    graph=g, L=L, alpha = 0.9999) )
+
+### ---- Find PAG using fci-function --------------------------
+
+## From trueCov(g), delete rows and columns belonging to latent variable L
+true.cov1 &lt;- cov.mat[-L,-L]
+## transform covariance matrix into a correlation matrix
+true.corr1 &lt;- cov2cor(true.cov1)
+
+## Find PAG with FCI algorithm
+## as dependence "oracle", we use the true correlation matrix in
+## gaussCItest() with a large "virtual sample size" and a large alpha:
+system.time(
+true.pag1 &lt;- fci(suffStat = list(C = true.corr1, n = 10^9),
+                 indepTest = gaussCItest,
+                 p = ncol(true.corr1), alpha = 0.9999) )
+
+## confirm that the outputs are equal
+stopifnot(true.pag@amat == true.pag1@amat)
+</code></pre>
+
+
+</div>

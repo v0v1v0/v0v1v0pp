@@ -1,0 +1,152 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>summarize_mlpmms</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Step 2 of PRC-MLPMM (computation of the predicted random effects)</h2>
+
+<h3>Description</h3>
+
+<p>This function performs the second step for the estimation
+of the PRC-MLPMM model proposed in Signorelli et al. (2021)
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">summarize_mlpmms(object, n.cores = 1, verbose = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>a list of objects as produced by <code>fit_mlpmms</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.cores</code></td>
+<td>
+<p>number of cores to use to parallelize part of
+the computations. If <code>ncores = 1</code> (default), no parallelization is done. 
+Pro tip: you can use <code>parallel::detectCores()</code> to check 
+how many cores are available on your computer</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>if <code>TRUE</code> (default and recommended value), information
+on the ongoing computations is printed in the console</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing the following objects:
+</p>
+
+<ul>
+<li> <p><code>call</code>: the function call
+</p>
+</li>
+<li> <p><code>ranef.orig</code>: a matrix with the predicted random effects
+computed for the original data;
+</p>
+</li>
+<li> <p><code>n.boots</code>: number of bootstrap samples;
+</p>
+</li>
+<li> <p><code>boot.ids</code>: a list with the ids of bootstrapped subjects 
+(when <code>n.boots &gt; 0</code>);
+</p>
+</li>
+<li> <p><code>ranef.boot.train</code>: a list where each element is a matrix that 
+contains the predicted random effects for each bootstrap sample 
+(when <code>n.boots &gt; 0</code>);
+</p>
+</li>
+<li> <p><code>ranef.boot.valid</code>: a list where each element is a matrix that 
+contains the predicted random effects on the original data, based on the 
+mlpmms fitted on the cluster bootstrap samples (when <code>n.boots &gt; 0</code>);
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Mirko Signorelli
+</p>
+
+
+<h3>References</h3>
+
+<p>Signorelli, M. (2024). pencal: an R Package for the Dynamic 
+Prediction of Survival with Many Longitudinal Predictors. 
+To appear in: The R Journal. Preprint: arXiv:2309.15600
+</p>
+<p>Signorelli, M., Spitali, P., Al-Khalili Szigyarto, C, 
+The MARK-MD Consortium, Tsonaka, R. (2021). 
+Penalized regression calibration: a method for the prediction 
+of survival outcomes using complex longitudinal and 
+high-dimensional data. Statistics in Medicine, 40 (27), 6178-6196.
+DOI: 10.1002/sim.9178
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>fit_mlpmms</code> (step 1), 
+<code>fit_prcmlpmm</code> (step 3),
+<code>performance_prc</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# generate example data
+set.seed(123)
+n.items = c(4,2,2,3,4,2)
+simdata = simulate_prcmlpmm_data(n = 100, p = length(n.items),  
+             p.relev = 3, n.items = n.items, 
+             type = 'u+b', seed = 1)
+ 
+# specify options for cluster bootstrap optimism correction
+# procedure and for parallel computing 
+do.bootstrap = FALSE
+# IMPORTANT: set do.bootstrap = TRUE to compute the optimism correction!
+n.boots = ifelse(do.bootstrap, 100, 0)
+more.cores = FALSE
+# IMPORTANT: set more.cores = TRUE to speed computations up!
+if (!more.cores) n.cores = 2
+if (more.cores) {
+   # identify number of available cores on your machine
+   n.cores = parallel::detectCores()
+   if (is.na(n.cores)) n.cores = 2
+}
+
+# step 1 of PRC-MLPMM: estimate the MLPMMs
+y.names = vector('list', length(n.items))
+for (i in 1:length(n.items)) {
+  y.names[[i]] = paste('marker', i, '_', 1:n.items[i], sep = '')
+}
+
+step1 = fit_mlpmms(y.names, fixefs = ~ contrast(age),  
+                 ranef.time = age, randint.items = TRUE, 
+                 long.data = simdata$long.data, 
+                 surv.data = simdata$surv.data,
+                 t.from.base = t.from.base,
+                 n.boots = n.boots, n.cores = n.cores)
+
+# step 2 of PRC-MLPMM: compute the summaries 
+step2 = summarize_mlpmms(object = step1, n.cores = n.cores)
+summary(step2)
+
+</code></pre>
+
+
+</div>

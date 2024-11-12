@@ -1,0 +1,146 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>get.boundary.pop</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate the dose escalation and de-escalation boundaries for single-agent trials.</h2>
+
+<h3>Description</h3>
+
+<p>Use this function to generate the dose escalation and deescalation boundaries for single-agent trials.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">get.boundary.pop(target, n, cohortsize, cutoff, K, cutoff_e)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>the target DLT rate</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>total sample size</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cohortsize</code></td>
+<td>
+<p>the cohort size</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cutoff</code></td>
+<td>
+<p>the cutoff for the predictive Bayes Factor (PrBF). Users can specify either a value or a function
+for cutoff. If PrBF &lt; cutoff, we assign the next cohort of patients to an adjacent dose based on observed DLT.
+Otherwise, the evidence is in favor of <code class="reqn">H_{0j}</code> and we need to retain the current dose.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>number of dose levels. It is required when argument cutoff is a function that requires K.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cutoff_e</code></td>
+<td>
+<p>the cutoff for the dose exclusion rule. If <code class="reqn">PrBF_{0,1}&lt;E(n_j)</code>, the evidence is in favor of <code class="reqn">H_{1j}</code>. If <code class="reqn">\hat{\pi}_j &lt; \phi</code>,
+the current dose is deemed as subtherapeutic and we exclude the current dose and lower doses; If <code class="reqn">\hat{\pi}_j &gt; \phi</code>, the current dose
+is overly toxic and we exclude the current dose and higher doses.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>We assume that there are <code class="reqn">J</code> pre-specified dose levels of the drug of interest. Let <code class="reqn">d_1,d_2,\ldots,d_J</code> denote
+these dose levels. The dose-limiting toxicity (DLT) is assessed as a binary outcome, experiencing
+toxicity or not. The true dose toxicity is monotonically increasing as the dose level increases.
+Let <code class="reqn">\phi</code> be the target toxicity rate and <code class="reqn">\pi_j</code> be the true dose-toxicity of dose level <code class="reqn">d_j</code>, for <code class="reqn">j=1,2,\ldots,J</code>.
+</p>
+<p>We formulate our hypothesis as:
+</p>
+<p style="text-align: center;"><code class="reqn">H_{0j}: \pi_j=\phi</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">H_{1j}: \pi_j\ne\phi</code>
+</p>
+
+<p><code class="reqn">H_{0j}</code> indicates that <code class="reqn">d_j</code> is the desired MTD so that we should stay; <code class="reqn">H_{1j}</code> reflects the current dose is
+either below or above the MTD so that we should transit to a lower or upper dose level. Whether
+escalate or de-escalate the dose is straightforward: if the observed toxicity rate is above the target
+toxicity rate <code class="reqn">\phi</code>, we de-escalate the dose; if the observed toxicity rate is below <code class="reqn">\phi</code>, we escalate the dose.
+</p>
+<p>With the hypothesis, the predictive Bayes factor comparing <code class="reqn">H_{0j}</code> and <code class="reqn">H_{1j}</code> is given by
+</p>
+<p style="text-align: center;"><code class="reqn">PrBF_{0,1}=\frac{\phi^{y_i}(1-\phi)^{n_j-y_j}B(y_j+1,n_j-y_j+1)^{n_j}exp(1)}{B(y_j+2,n_j-y_j+1)^{y_j}B(y_j+1,n_j-y_j+2)^{n_j-y_j}}</code>
+</p>
+
+<p>where <code class="reqn">x_j</code> is the toxicity response of the ith subject among <code class="reqn">n_j</code> subjects that received dose <code class="reqn">d_j</code>, for <code class="reqn">j=1,2,\ldots,J</code>.
+<code class="reqn">y_j</code> denotes the sum of toxicity response. We assume that
+</p>
+<p style="text-align: center;"><code class="reqn">y_j \sim Bin(n_j,\pi_j)</code>
+</p>
+
+<p>According to the calibration of the PrBF, a decision rule based on <code class="reqn">PrBF_{0,1}</code> is:
+1. If <code class="reqn">PrBF_{0,1}&gt;C(n_j)</code>, the evidence is in favor of <code class="reqn">H_{0j}</code> and we need to retain the current dose;
+2. Otherwise, we assign the next cohort of patients to an adjacent dose according to the observed
+DLT <code class="reqn">\hat{\pi}_j = y_j/n_j</code>, such as:
+</p>
+<p>(a) If <code class="reqn">\hat{\pi}_j &lt; \phi</code>, we escalate the dose;
+</p>
+<p>(b) If <code class="reqn">\hat{\pi}_j &gt; \phi</code>, we de-escalate the dose.
+</p>
+<p>For patient safety and trial efficiency, the PoP design employs a dose exclusion rule. On
+the one hand, if the PrBF based on the observed DLT indicates a dose is above the MTD with a
+certain evidence, we exclude the current dose and doses above to avoid treating patients at an overly
+toxic dose; on the other hand, if the PrBF implies that a dose is substantially below the MTD, we
+eliminate the current dose and doses below to prevent wasting patients at a subtherapeutic dose.
+Such a dose exclusion rule is as follow:
+</p>
+<p>If <code class="reqn">PrBF_{0,1}&lt;E(n_j)</code>, the evidence is in favor of <code class="reqn">H_{1j}</code> and:
+</p>
+<p>1. If <code class="reqn">\hat{\pi}_j &lt; \phi</code>, the current dose is deemed as subtherapeutic and we exclude the current dose and lower doses;
+</p>
+<p>2. If <code class="reqn">\hat{\pi}_j &gt; \phi</code>, the current dose is overly toxic and we exclude the current dose and higher doses.
+</p>
+<p>Once all the doses are eliminated from further investigation, the trial is terminated early.
+The selection of the cut-off value for the dose exclusion is critical for the performance of the PoP
+design, because it ensure the safety of the patients and efficiency of the design by influencing
+the early termination rule. The exclusion boundaries in the table above were determined using
+<code class="reqn">E(n_j)=exp(-1)</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>get.boundary.pop()</code> returns a list object, including the corresponding decision tables
+<code>$out.boundary</code> and <code>$out.full.boundary</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## get the dose escalation and deescalation boundaries for PoP design with
+## the target DLT rate of 0.3, maximum sample size of 30, and cohort size of 3
+bound &lt;- get.boundary.pop(target=0.5, n = 15, cohortsize = 3,
+                          cutoff=2.5,K=4,cutoff_e=5/24)
+summary(bound) # get the descriptive summary of the boundary
+plot(bound)    # plot the flowchart of the design along with decision boundaries
+
+</code></pre>
+
+
+</div>

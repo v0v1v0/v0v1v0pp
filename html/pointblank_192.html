@@ -1,0 +1,334 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>x_write_disk</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Write an <em>agent</em>, <em>informant</em>, <em>multiagent</em>, or table scan to disk</h2>
+
+<h3>Description</h3>
+
+<p>Writing an <em>agent</em>, <em>informant</em>, <em>multiagent</em>, or even a table scan to disk
+with <code>x_write_disk()</code> can be useful for keeping data validation intel or
+table information close at hand for later retrieval (with <code>x_read_disk()</code>).
+By default, any data table that the <em>agent</em> or <em>informant</em> may have held
+before being committed to disk will be expunged (not applicable to any table
+scan since they never hold a table object). This behavior can be changed by
+setting <code>keep_tbl</code> to <code>TRUE</code> but this only works in the case where the table
+is not of the <code>tbl_dbi</code> or the <code>tbl_spark</code> class.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">x_write_disk(
+  x,
+  filename,
+  path = NULL,
+  keep_tbl = FALSE,
+  keep_extracts = FALSE,
+  quiet = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><em>One of several types of objects</em>
+</p>
+<p><code style="white-space: pre;">⁠&lt;object&gt;⁠</code> // <strong>required</strong>
+</p>
+<p>An <em>agent</em> object of class <code>ptblank_agent</code>, an <em>informant</em> of class
+<code>ptblank_informant</code>, or an table scan of class <code>ptblank_tbl_scan</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filename</code></td>
+<td>
+<p><em>File name</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;character&gt;⁠</code> // <strong>required</strong>
+</p>
+<p>The filename to create on disk for the <code>agent</code>, <code>informant</code>, or table scan.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path</code></td>
+<td>
+<p><em>File path</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;character&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>An optional path to which the file should be saved (this is automatically
+combined with <code>filename</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_tbl</code></td>
+<td>
+<p><em>Keep data table inside object</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;logical&gt;⁠</code> // <em>default:</em> <code>FALSE</code>
+</p>
+<p>An option to keep a data table that is associated with the
+<em>agent</em> or <em>informant</em> (which is the case when the <em>agent</em>, for example, is
+created using <code style="white-space: pre;">⁠create_agent(tbl = &lt;data table, ...)⁠</code>). The default is
+<code>FALSE</code> where the data table is removed before writing to disk. For
+database tables of the class <code>tbl_dbi</code> and for Spark DataFrames
+(<code>tbl_spark</code>) the table is always removed (even if <code>keep_tbl</code> is set to
+<code>TRUE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_extracts</code></td>
+<td>
+<p><em>Keep data extracts inside object</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;logical&gt;⁠</code> // <em>default:</em> <code>FALSE</code>
+</p>
+<p>An option to keep any collected extract data for failing rows. Only applies
+to <em>agent</em> objects. By default, this is <code>FALSE</code> (i.e., extract data is
+removed).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p><em>Inform (or not) upon file writing</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;logical&gt;⁠</code> // <em>default:</em> <code>FALSE</code>
+</p>
+<p>Should the function <em>not</em> inform when the file is written?</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>It is recommended to set up a table-prep formula so that the <em>agent</em> and
+<em>informant</em> can access refreshed data after being read from disk through
+<code>x_read_disk()</code>. This can be done initially with the <code>tbl</code> argument of
+<code>create_agent()</code>/<code>create_informant()</code> by passing in a table-prep formula or a
+function that can obtain the target table when invoked. Alternatively, we can
+use the <code>set_tbl()</code> with a similarly crafted <code>tbl</code> expression to ensure that
+an <em>agent</em> or <em>informant</em> can retrieve a table at a later time.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Invisibly returns <code>TRUE</code> if the file has been written.
+</p>
+
+
+<h3>Examples</h3>
+
+
+
+<h4>A: Writing an <code>agent</code> to disk</h4>
+
+<p>Let's go through the process of (1) developing an agent with a validation
+plan (to be used for the data quality analysis of the <code>small_table</code>
+dataset), (2) interrogating the agent with the <code>interrogate()</code> function, and
+(3) writing the agent and all its intel to a file.
+</p>
+<p>Creating an <code>action_levels</code> object is a common workflow step when creating a
+pointblank agent. We designate failure thresholds to the <code>warn</code>, <code>stop</code>, and
+<code>notify</code> states using <code>action_levels()</code>.
+</p>
+<div class="sourceCode r"><pre>al &lt;- 
+  action_levels(
+    warn_at = 0.10,
+    stop_at = 0.25,
+    notify_at = 0.35
+  )
+</pre></div>
+<p>Now, let's create a pointblank <code>agent</code> object and give it the <code>al</code> object
+(which serves as a default for all validation steps which can be overridden).
+The data will be referenced in the <code>tbl</code> argument with a leading <code>~</code>.
+</p>
+<div class="sourceCode r"><pre>agent &lt;- 
+  create_agent(
+    tbl = ~ small_table,
+    tbl_name = "small_table",
+    label = "`x_write_disk()`",
+    actions = al
+  )
+</pre></div>
+<p>Then, as with any <code>agent</code> object, we can add steps to the validation plan by
+using as many validation functions as we want. After that, use
+<code>interrogate()</code>.
+</p>
+<div class="sourceCode r"><pre>agent &lt;-
+  agent %&gt;% 
+  col_exists(columns = c(date, date_time)) %&gt;%
+  col_vals_regex(
+    columns = b,
+    regex = "[0-9]-[a-z]{3}-[0-9]{3}"
+  ) %&gt;%
+  rows_distinct() %&gt;%
+  col_vals_gt(columns = d, value = 100) %&gt;%
+  col_vals_lte(columns = c, value = 5) %&gt;%
+  interrogate()
+</pre></div>
+<p>The <code>agent</code> can be written to a file with the <code>x_write_disk()</code> function.
+</p>
+<div class="sourceCode r"><pre>x_write_disk(
+  agent,
+  filename = "agent-small_table.rds"
+)
+</pre></div>
+<p>We can read the file back as an agent with the <code>x_read_disk()</code> function and
+we'll get all of the intel along with the restored agent.
+</p>
+<p>If you're consistently writing agent reports when periodically checking data,
+we could make use of the <code>affix_date()</code> or <code>affix_datetime()</code> depending on
+the granularity you need. Here's an example that writes the file with the
+format: <code>"&lt;filename&gt;-YYYY-mm-dd_HH-MM-SS.rds"</code>.
+</p>
+<div class="sourceCode r"><pre>x_write_disk(
+  agent,
+  filename = affix_datetime(
+    "agent-small_table.rds"
+  )
+)
+</pre></div>
+
+
+
+<h4>B: Writing an <code>informant</code> to disk</h4>
+
+<p>Let's go through the process of (1) creating an informant object that
+minimally describes the <code>small_table</code> dataset, (2) ensuring that data is
+captured from the target table using the <code>incorporate()</code> function, and (3)
+writing the informant to a file.
+</p>
+<p>Create a pointblank <code>informant</code> object with <code>create_informant()</code> and the
+<code>small_table</code> dataset. Use <code>incorporate()</code> so that info snippets are
+integrated into the text.
+</p>
+<div class="sourceCode r"><pre>informant &lt;- 
+  create_informant(
+    tbl = ~ small_table,
+    tbl_name = "small_table",
+    label = "`x_write_disk()`"
+  ) %&gt;%
+  info_snippet(
+    snippet_name = "high_a",
+    fn = snip_highest(column = "a")
+  ) %&gt;%
+  info_snippet(
+    snippet_name = "low_a",
+    fn = snip_lowest(column = "a")
+  ) %&gt;%
+  info_columns(
+    columns = a,
+    info = "From {low_a} to {high_a}."
+  ) %&gt;%
+  info_columns(
+    columns = starts_with("date"),
+    info = "Time-based values."
+  ) %&gt;%
+  info_columns(
+    columns = date,
+    info = "The date part of `date_time`."
+  ) %&gt;%
+  incorporate()
+</pre></div>
+<p>The <code>informant</code> can be written to a file with <code>x_write_disk()</code>. Let's do this
+with <code>affix_date()</code> so that the filename has a datestamp.
+</p>
+<div class="sourceCode r"><pre>x_write_disk(
+  informant,
+  filename = affix_date(
+    "informant-small_table.rds"
+  )
+)
+</pre></div>
+<p>We can read the file back into a new informant object (in the same state as
+when it was saved) by using <code>x_read_disk()</code>.
+</p>
+
+
+
+<h4>C: Writing a multiagent to disk</h4>
+
+<p>Let's create one more pointblank agent object, provide it with some
+validation steps, and <code>interrogate()</code>.
+</p>
+<div class="sourceCode r"><pre>agent_b &lt;-
+  create_agent(
+    tbl = ~ small_table,
+    tbl_name = "small_table",
+    label = "`x_write_disk()`",
+    actions = al
+  ) %&gt;%
+  col_vals_gt(
+    columns = b,
+    value = g,
+    na_pass = TRUE,
+    label = "b &gt; g"
+  ) %&gt;%
+  col_is_character(
+    columns = c(b, f),
+    label = "Verifying character-type columns" 
+  ) %&gt;%
+  interrogate()
+</pre></div>
+<p>Now we can combine the earlier <code>agent</code> object with the newer <code>agent_b</code> to
+create a <code>multiagent</code>.
+</p>
+<div class="sourceCode r"><pre>multiagent &lt;- create_multiagent(agent, agent_b)
+</pre></div>
+<p>The <code>multiagent</code> can be written to a file with the <code>x_write_disk()</code> function.
+</p>
+<div class="sourceCode r"><pre>x_write_disk(
+  multiagent,
+  filename = "multiagent-small_table.rds"
+)
+</pre></div>
+<p>We can read the file back as a multiagent with the <code>x_read_disk()</code> function
+and we'll get all of the constituent agents and their associated intel back
+as well.
+</p>
+
+
+
+<h4>D: Writing a table scan to disk</h4>
+
+<p>We can get a report that describes all of the data in the <code>storms</code> dataset.
+</p>
+<div class="sourceCode r"><pre>tbl_scan &lt;- scan_data(tbl = dplyr::storms)
+</pre></div>
+<p>The table scan object can be written to a file with <code>x_write_disk()</code>.
+</p>
+<div class="sourceCode r"><pre>x_write_disk(
+  tbl_scan,
+  filename = "tbl_scan-storms.rds"
+)
+</pre></div>
+
+
+
+<h3>Function ID</h3>
+
+<p>9-1
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Object Ops: 
+<code>activate_steps()</code>,
+<code>deactivate_steps()</code>,
+<code>export_report()</code>,
+<code>remove_steps()</code>,
+<code>set_tbl()</code>,
+<code>x_read_disk()</code>
+</p>
+
+
+</div>

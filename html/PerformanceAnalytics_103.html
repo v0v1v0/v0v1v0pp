@@ -1,0 +1,379 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ETL</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>calculates Expected Shortfall(ES) (or Conditional Value-at-Risk(CVaR) for
+univariate and component, using a variety of analytical methods.</h2>
+
+<h3>Description</h3>
+
+<p>Calculates Expected Shortfall(ES) (also known as) Conditional Value at
+Risk(CVaR) or Expected Tail Loss (ETL) for univariate, component, 
+and marginal cases using a variety of analytical methods.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ETL(
+  R = NULL,
+  p = 0.95,
+  ...,
+  method = c("modified", "gaussian", "historical"),
+  clean = c("none", "boudt", "geltner", "locScaleRob"),
+  portfolio_method = c("single", "component"),
+  weights = NULL,
+  mu = NULL,
+  sigma = NULL,
+  m3 = NULL,
+  m4 = NULL,
+  invert = TRUE,
+  operational = TRUE,
+  SE = FALSE,
+  SE.control = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+<p>a vector, matrix, data frame, timeSeries or zoo object of asset
+returns</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>confidence level for calculation, default p=.95</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>any other passthru parameters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>one of "modified","gaussian","historical", see
+Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clean</code></td>
+<td>
+<p>method for data cleaning through <code>Return.clean</code>.
+Current options are "none", "boudt", "geltner", or "locScaleRob".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>portfolio_method</code></td>
+<td>
+<p>one of "single","component","marginal" defining
+whether to do univariate, component, or marginal calc, see Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>portfolio weighting vector, default NULL, see Details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>If univariate, mu is the mean of the series. Otherwise mu is the
+vector of means of the return series, default NULL, see Details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma</code></td>
+<td>
+<p>If univariate, sigma is the variance of the series. Otherwise
+sigma is the covariance matrix of the return series, default NULL, see
+Details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m3</code></td>
+<td>
+<p>If univariate, m3 is the skewness of the series. Otherwise m3 is
+the coskewness matrix (or vector with unique coskewness values) of the 
+returns series, default NULL, see Details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m4</code></td>
+<td>
+<p>If univariate, m4 is the excess kurtosis of the series. Otherwise
+m4 is the cokurtosis matrix (or vector with unique cokurtosis values) of the 
+return series, default NULL, see Details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>invert</code></td>
+<td>
+<p>TRUE/FALSE whether to invert the VaR measure, see Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>operational</code></td>
+<td>
+<p>TRUE/FALSE, default TRUE, see Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SE</code></td>
+<td>
+<p>TRUE/FALSE whether to ouput the standard errors of the estimates of the risk measures, default FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SE.control</code></td>
+<td>
+<p>Control parameters for the computation of standard errors. Should be done using the <code>RPESE.control</code> function.</p>
+</td>
+</tr>
+</table>
+<h3>Background</h3>
+
+<p>This function provides several estimation methods for
+the Expected Shortfall (ES) (also called Expected Tail Loss (ETL)
+or Conditional Value at Risk (CVaR)) of a return series and the Component ES
+(ETL/CVaR) of a portfolio.
+</p>
+<p>At a preset probability level denoted <code class="reqn">c</code>, which typically is between 1
+and 5 per cent, the ES of a return series is the negative value of the
+expected value of the return when the return is less than its
+<code class="reqn">c</code>-quantile.  Unlike value-at-risk, conditional value-at-risk has all
+the properties a risk measure should have to be coherent and is a convex
+function of the portfolio weights (Pflug, 2000).  With a sufficiently large
+data set, you may choose to estimate ES with the sample average of all
+returns that are below the <code class="reqn">c</code> empirical quantile. More efficient
+estimates of VaR are obtained if a (correct) assumption is made on the
+return distribution, such as the normal distribution. If your return series
+is skewed and/or has excess kurtosis, Cornish-Fisher estimates of ES can be
+more appropriate. For the ES of a portfolio, it is also of interest to
+decompose total portfolio ES into the risk contributions of each of the
+portfolio components. For the above mentioned ES estimators, such a
+decomposition is possible in a financially meaningful way.
+</p>
+
+
+<h3>Univariate estimation of ES</h3>
+
+<p>The ES at a probability level <code class="reqn">p</code> (e.g. 95%) is  the negative value of
+the expected value of the return when the return is less than its
+<code class="reqn">c=1-p</code> quantile. In a set of returns for which sufficently long history
+exists, the per-period ES can be estimated by the negative value of the
+sample average of all returns below the quantile. This method is also
+sometimes called “historical ES”, as it is by definition <em>ex
+post</em> analysis of the return distribution, and may be accessed with
+<code>method="historical"</code>.
+</p>
+<p>When you don't have a sufficiently long set of returns to use non-parametric
+or historical ES, or wish to more closely model an ideal distribution, it is
+common to us a parmetric estimate based on the distribution. Parametric ES
+does a better job of accounting for the tails of the distribution by more
+precisely estimating shape of the distribution tails of the risk quantile.
+The most common estimate is a normal (or Gaussian) distribution  <code class="reqn">R\sim
+N(\mu,\sigma)</code> for the return series. In this case, estimation of ES requires
+the mean return  <code class="reqn">\bar{R}</code>, the return distribution and the variance of
+the returns  <code class="reqn">\sigma</code>. In the most common case, parametric VaR is thus
+calculated by
+</p>
+<p style="text-align: center;"><code class="reqn">\sigma=variance(R)</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">ES=-\bar{R} + \sqrt{\sigma} \cdot \frac{1}{c}\phi(z_{c}) </code>
+</p>
+
+<p>where  <code class="reqn">z_{c}</code> is the  <code class="reqn">c</code>-quantile of the standard normal
+distribution. Represented in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> by <code>qnorm(c)</code>, and may be accessed with
+<code>method="gaussian"</code>. The function <code class="reqn">\phi</code> is the Gaussian
+density function.
+</p>
+<p>The limitations of Gaussian ES are well covered in the literature, since most
+financial return series are non-normal. Boudt, Peterson and Croux (2008)
+provide a modified ES calculation that takes the higher moments of non-normal
+distributions (skewness, kurtosis) into account through the use of a
+Cornish-Fisher expansion, and collapses to standard (traditional) Gaussian ES
+if the return stream follows a standard distribution. More precisely, for a
+loss probability <code class="reqn">c</code>, modified ES is defined as the negative of the
+expected value of all returns below the <code class="reqn">c</code> Cornish-Fisher quantile and
+where the expectation is computed under the second order Edgeworth expansion
+of the true distribution function.
+</p>
+<p>Modified expected shortfall should always be larger than modified Value at
+Risk. Due to estimation problems, this might not always be the case. Set
+Operational = TRUE to replace modified ES with modified VaR in the
+(exceptional) case where the modified ES is smaller than modified VaR.
+</p>
+
+
+<h3>Component ES</h3>
+
+<p>By setting <code>portfolio_method="component"</code> you may calculate the ES
+contribution of each element of the portfolio. The return from the function in
+this case will be a list with three components: the univariate portfolio ES,
+the scalar contribution of each component to the portfolio ES (these will sum
+to the portfolio ES), and a percentage risk contribution (which will sum to
+100%).
+</p>
+<p>Both the numerical and percentage component contributions to ES may contain
+both positive and negative contributions. A negative contribution to Component
+ES indicates a portfolio risk diversifier. Increasing the position weight will
+reduce overall portoflio ES.
+</p>
+<p>If a weighting vector is not passed in via <code>weights</code>, the function will
+assume an equal weighted (neutral) portfolio.
+</p>
+<p>Multiple risk decomposition approaches have been suggested in the literature.
+A naive approach is to set the risk contribution equal to the stand-alone
+risk. This approach is overly simplistic and neglects important
+diversification effects of the units being exposed differently to the
+underlying risk factors. An alternative approach is to measure the ES
+contribution as the weight of the position in the portfolio times the partial
+derivative of the portfolio ES with respect to the component weight. </p>
+<p style="text-align: center;"><code class="reqn">C_i
+\mbox{ES} = w_i \frac{ \partial \mbox{ES} }{\partial w_i}.</code>
+</p>
+<p> Because the portfolio ES is linear in position size, we
+have that by Euler's theorem the portfolio VaR is the sum of these risk
+contributions. Scaillet (2002) shows that for ES, this mathematical
+decomposition of portfolio risk has a financial meaning. It equals the
+negative value of the asset's expected contribution to the portfolio return
+when the portfolio return is less or equal to the negative portfolio VaR:
+</p>
+<p style="text-align: center;"><code class="reqn">C_i \mbox{ES} = = -E\left[ w_i r_{i} | r_{p} \leq - \mbox{VaR}\right]</code>
+</p>
+
+<p>For the decomposition of Gaussian ES, the estimated mean and covariance
+matrix are needed. For the decomposition of modified ES, also estimates of
+the coskewness and cokurtosis matrices are needed. If <code class="reqn">r</code> denotes the
+<code class="reqn">Nx1</code> return vector and <code class="reqn">mu</code> is the mean vector, then the <code class="reqn">N
+\times N^2</code> co-skewness matrix is
+</p>
+<p style="text-align: center;"><code class="reqn"> m3 = E\left[ (r - \mu)(r - \mu)' \otimes (r - \mu)'\right]</code>
+</p>
+
+<p>The <code class="reqn">N \times N^3</code> co-kurtosis matrix is
+</p>
+<p style="text-align: center;"><code class="reqn"> m_{4} =
+    E\left[ (r - \mu)(r - \mu)' \otimes (r - \mu)'\otimes (r - \mu)'
+\right] </code>
+</p>
+ 
+<p>where <code class="reqn">\otimes</code> stands for the Kronecker product. The matrices can
+be estimated through the functions <code>skewness.MM</code> and <code>kurtosis.MM</code>.
+More efficient estimators were proposed by Martellini and Ziemann (2007) and
+will be implemented in the future.
+</p>
+<p>As discussed among others in Cont, Deguest and Scandolo (2007), it is
+important that the estimation of the ES measure is robust to single outliers.
+This is especially the case for  modified VaR and its decomposition, since
+they use higher order moments. By default, the portfolio moments are
+estimated by their sample counterparts. If <code>clean="boudt"</code> then the
+<code class="reqn">1-p</code> most extreme observations are winsorized if they are detected as
+being outliers. For more information, see Boudt, Peterson and Croux (2008)
+and <code>Return.clean</code>.  If your data consist of returns for highly
+illiquid assets, then <code>clean="geltner"</code> may be more appropriate to
+reduce distortion caused by autocorrelation, see <code>Return.Geltner</code>
+for details.
+</p>
+
+
+<h3>Note</h3>
+
+<p>The option to <code>invert</code> the ES measure should appease both
+academics and practitioners.  The mathematical definition of ES as the
+negative value of extreme losses will (usually) produce a positive number.
+Practitioners will argue that ES denotes a loss, and should be internally
+consistent with the quantile (a negative number).  For tables and charts,
+different preferences may apply for clarity and compactness.  As such, we
+provide the option, and set the default to TRUE to keep the return
+consistent with prior versions of PerformanceAnalytics, but make no value
+judgement on which approach is preferable.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Brian G. Peterson and Kris Boudt
+</p>
+
+
+<h3>References</h3>
+
+<p>Boudt, Kris, Peterson, Brian, and Christophe Croux. 2008.
+Estimation and decomposition of downside risk for portfolios with non-normal
+returns. 2008. The Journal of Risk, vol. 11, 79-103.
+</p>
+<p>Cont, Rama, Deguest, Romain and Giacomo Scandolo. Robustness and sensitivity
+analysis of risk measurement procedures. Financial Engineering Report No.
+2007-06, Columbia University Center for Financial Engineering.
+</p>
+<p>Laurent Favre and Jose-Antonio Galeano. Mean-Modified Value-at-Risk
+Optimization with Hedge Funds. Journal of Alternative Investment, Fall 2002,
+v 5.
+</p>
+<p>Martellini, L. and Ziemann, V., 2010. Improved estimates of higher-order 
+comoments and implications for portfolio selection. Review of Financial 
+Studies, 23(4):1467-1502.
+</p>
+<p>Pflug, G. Ch.  Some remarks on the value-at-risk and the conditional
+value-at-risk. In S. Uryasev, ed., Probabilistic Constrained Optimization:
+Methodology and Applications, Dordrecht: Kluwer, 2000, 272-281.
+</p>
+<p>Scaillet, Olivier. Nonparametric estimation and sensitivity analysis of
+expected shortfall. Mathematical Finance, 2002, vol. 14, 74-86.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>VaR</code> <br><code>SharpeRatio.modified</code> <br><code>chart.VaRSensitivity</code> <br><code>Return.clean</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+if(!( Sys.info()[['sysname']]=="Windows") ){
+# if on Windows, cut and paste this example
+
+    data(edhec)
+
+    # first do normal ES calc
+    ES(edhec, p=.95, method="historical")
+
+    # now use Gaussian
+    ES(edhec, p=.95, method="gaussian")
+
+    # now use modified Cornish Fisher calc to take non-normal distribution into account
+    ES(edhec, p=.95, method="modified")
+
+    # now use p=.99
+    ES(edhec, p=.99)
+    # or the equivalent alpha=.01
+    ES(edhec, p=.01)
+
+    # now with outliers squished
+    ES(edhec, clean="boudt")
+
+    # add Component ES for the equal weighted portfolio
+    ES(edhec, clean="boudt", portfolio_method="component")
+
+} # end CRAN Windows check
+    
+</code></pre>
+
+
+</div>

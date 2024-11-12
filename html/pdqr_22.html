@@ -1,0 +1,169 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>form_retype</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Change type of pdqr-function</h2>
+
+<h3>Description</h3>
+
+<p>Modify type of pdqr-function using method of choice.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">form_retype(f, type = NULL, method = "value")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>A pdqr-function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>A desired type of output. Should be one of "discrete" or
+"continuous". If <code>NULL</code> (default), it is chosen as an opposite of <code>f</code>'s
+type.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Retyping method. Should be one of "value", "piecelin", "dirac".</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If type of <code>f</code> is equal to input <code>type</code> then <code>f</code> is returned.
+</p>
+<p>Method "value" uses renormalized columns of <code>f</code>'s "x_tbl" metadata as values
+for output's "x_tbl" metadata. In other words, it preserves ratios between
+values of d-function at certain "x" points. Its main advantages are that this
+method can work well with any pdqr type and that two consecutive conversions
+return the same function. Conversion algorithm is as follows:
+</p>
+
+<ul>
+<li>
+<p> Retyping from "continuous" to <code>type</code> "discrete" is done by creating
+pdqr-function of corresponding class with the following "x_tbl" metadata: "x"
+column is the same as in <code>f</code>; "prob" column is equal to <code>f</code>'s "y" column
+after renormalization (so that their sum is 1).
+</p>
+</li>
+<li>
+<p> Retyping from "discrete" to <code>type</code> "continuous" is done in the same
+fashion: "x" column is the same; "y" column is equal to <code>f</code>'s "prob" column
+after renormalization (so that total integral of piecewise-linear density is
+equal to 1).
+</p>
+</li>
+</ul>
+<p>Method "piecelin" should be used mostly for converting from "continuous" to
+"discrete" type. It uses the fact that 'pdqr' densities are piecewise-linear
+(linear in intervals between values of "x" column of "x_tbl" metadata) on their support:
+</p>
+
+<ul>
+<li>
+<p> Retyping from "continuous" to <code>type</code> "discrete" is done by computing "x"
+values as centers of interval masses with probabilities equal to interval
+total probabilities.
+</p>
+</li>
+<li>
+<p> Retyping from "discrete" to <code>type</code> "continuous" is made approximately by
+trying to compute "x" grid, for which "x" values of input distribution are
+going to be centers of mass. Algorithm is approximate and might result into a
+big errors in case of small number of "x" values or if they are not
+"suitable" for this kind of transformation.
+</p>
+</li>
+</ul>
+<p>Method "dirac" is used mostly for converting from "discrete" to "continuous"
+type (for example, in <code>form_mix()</code> in case different types of input
+pdqr-functions). It works in the following way:
+</p>
+
+<ul>
+<li>
+<p> Retyping from "continuous" to <code>type</code> "discrete" works only if "x_tbl"
+metadata represents a mixture of dirac-like distributions. In that case it is
+transformed to have "x" values from centers of those dirac-like distributions
+with corresponding probabilities.
+</p>
+</li>
+<li>
+<p> Retyping from "discrete" to <code>type</code> "continuous" works by transforming each
+"x" value from "x_tbl" metadata into dirac-like distribution with total
+probability taken from corresponding value of "prob" column. Output
+essentially represents a mixture of dirac-like distributions.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>A pdqr-function with type equal to input <code>type</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>form_regrid()</code> for changing grid (rows of "x_tbl" metadata) of
+pdqr-function.
+</p>
+<p><code>form_resupport()</code> for changing support of pdqr-function.
+</p>
+<p>Other form functions: 
+<code>form_estimate()</code>,
+<code>form_mix()</code>,
+<code>form_regrid()</code>,
+<code>form_resupport()</code>,
+<code>form_smooth()</code>,
+<code>form_tails()</code>,
+<code>form_trans()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">my_con &lt;- new_d(data.frame(x = 1:5, y = c(1, 2, 3, 2, 1) / 9), "continuous")
+meta_x_tbl(my_con)
+
+# By default, conversion is done to the opposite type
+my_dis &lt;- form_retype(my_con)
+meta_x_tbl(my_dis)
+
+# Default retyping (with method "value") is accurate when doing consecutive
+# retyping
+my_con_2 &lt;- form_retype(my_dis, "continuous")
+meta_x_tbl(my_con_2)
+
+# Method "dirac"
+my_dirac &lt;- form_retype(my_dis, "continuous", method = "dirac")
+meta_x_tbl(my_dirac)
+
+# Method "piecelin"
+## From "continuous" to "discrete" (preferred direction)
+my_dis_piece &lt;- form_retype(my_con, "discrete", method = "piecelin")
+meta_x_tbl(my_dis_piece)
+## Conversion from "discrete" to "continuous" is very approximate
+my_con_piece &lt;- form_retype(my_dis_piece, "continuous", method = "piecelin")
+meta_x_tbl(my_con_piece)
+
+plot(my_con, main = 'Approximate nature of method "piecelin"')
+lines(my_con_piece, col = "blue")
+</code></pre>
+
+
+</div>

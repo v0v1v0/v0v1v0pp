@@ -1,0 +1,213 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>add_max_cover_objective</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add maximum coverage objective</h2>
+
+<h3>Description</h3>
+
+<p>Set the objective of a conservation planning problem to
+represent at least one instance of as many features as possible within a
+given budget. This objective does not use targets, and feature
+weights should be used instead to increase the representation of certain
+features by a solution.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">add_max_cover_objective(x, budget)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>problem()</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>budget</code></td>
+<td>
+<p><code>numeric</code> value specifying the maximum expenditure of
+the prioritization. For problems with multiple zones, the argument
+to <code>budget</code> can be a single <code>numeric</code> value to specify a budget
+for the entire solution or a <code>numeric</code> vector to specify
+a budget for each each management zone.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The maximum coverage objective seeks to find the set of planning units that
+maximizes the number of represented features, while keeping cost within a
+fixed budget. Here, features are treated as being represented if
+the reserve system contains at least a single instance of a feature
+(i.e., an amount greater than 1). This formulation has often been
+used in conservation planning problems dealing with binary biodiversity
+data that indicate the presence/absence of suitable habitat
+(e.g., Church &amp; Velle 1974). Additionally, weights can be used to favor the
+representation of certain features over other features (see
+<code>add_feature_weights()</code>). Check out the
+<code>add_max_features_objective()</code> for a more
+generalized formulation which can accommodate user-specified representation
+targets.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An updated <code>problem()</code> object with the objective added to it.
+</p>
+
+
+<h3>Mathematical formulation</h3>
+
+<p>This objective is based on the maximum coverage reserve
+selection problem (Church &amp; Velle 1974; Church <em>et al.</em> 1996).
+The maximum coverage objective for the reserve design problem can be
+expressed mathematically for a set of planning units (<code class="reqn">I</code> indexed by
+<code class="reqn">i</code>) and a set of features (<code class="reqn">J</code> indexed by <code class="reqn">j</code>) as:
+</p>
+<p style="text-align: center;"><code class="reqn">\mathit{Maximize} \space \sum_{i = 1}^{I} -s \space c_i \space x_i +
+\sum_{j = 1}^{J} y_j w_j \\
+\mathit{subject \space to} \\
+\sum_{i = 1}^{I} x_i r_{ij} \geq y_j \times 1 \forall j \in J \\
+\sum_{i = 1}^{I} x_i c_i \leq B</code>
+</p>
+
+<p>Here, <code class="reqn">x_i</code> is the decisions variable (e.g.,
+specifying whether planning unit <code class="reqn">i</code> has been selected (1) or not
+(0)), <code class="reqn">r_{ij}</code> is the amount of feature <code class="reqn">j</code> in planning
+unit <code class="reqn">i</code>, <code class="reqn">y_j</code> indicates if the solution has meet
+the target <code class="reqn">t_j</code> for feature <code class="reqn">j</code>, and <code class="reqn">w_j</code> is the
+weight for feature <code class="reqn">j</code> (defaults to 1 for all features; see
+<code>add_feature_weights()</code> to specify weights). Additionally,
+<code class="reqn">B</code> is the budget allocated for the solution, <code class="reqn">c_i</code> is the
+cost of planning unit <code class="reqn">i</code>, and <code class="reqn">s</code> is a scaling factor used
+to shrink the costs so that the problem will return a cheapest solution
+when there are multiple solutions that represent the same amount of all
+features within the budget.
+</p>
+
+
+<h3>Notes</h3>
+
+<p>In early versions (&lt; 3.0.0.0), the mathematical formulation
+underpinning this function was very different. Specifically,
+as described above, the function now follows the formulations outlined in
+Church <em>et al.</em> (1996). The old formulation is now provided by the
+<code>add_max_utility_objective()</code> function.
+</p>
+
+
+<h3>References</h3>
+
+<p>Church RL and Velle CR (1974) The maximum covering location problem.
+<em>Regional Science</em>, 32: 101–118.
+</p>
+<p>Church RL, Stoms DM, and Davis FW (1996) Reserve selection as a maximum
+covering location problem. <em>Biological Conservation</em>, 76: 105–112.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See objectives for an overview of all functions for adding objectives.
+Also, see <code>add_feature_weights()</code> to specify weights for different features.
+</p>
+<p>Other objectives: 
+<code>add_max_features_objective()</code>,
+<code>add_max_phylo_div_objective()</code>,
+<code>add_max_phylo_end_objective()</code>,
+<code>add_max_utility_objective()</code>,
+<code>add_min_largest_shortfall_objective()</code>,
+<code>add_min_set_objective()</code>,
+<code>add_min_shortfall_objective()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# load data
+sim_pu_raster &lt;- get_sim_pu_raster()
+sim_zones_pu_raster &lt;- get_sim_zones_pu_raster()
+sim_features &lt;- get_sim_features()
+sim_zones_features &lt;- get_sim_zones_features()
+
+# threshold the feature data to generate binary biodiversity data
+sim_binary_features &lt;- sim_features
+thresholds &lt;- terra::global(
+  sim_features, fun = quantile, probs = 0.5, na.rm = TRUE
+)
+for (i in seq_len(terra::nlyr(sim_features))) {
+  sim_binary_features[[i]] &lt;- terra::as.int(
+    sim_features[[i]] &gt; thresholds[[1]][[i]]
+  )
+}
+
+# create problem with maximum cover objective
+p1 &lt;-
+  problem(sim_pu_raster, sim_binary_features) %&gt;%
+  add_max_cover_objective(500) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve problem
+s1 &lt;- solve(p1)
+
+# plot solution
+plot(s1, main = "solution", axes = FALSE)
+
+# threshold the multi-zone feature data to generate binary biodiversity data
+sim_binary_features_zones &lt;- sim_zones_features
+for (z in seq_len(number_of_zones(sim_zones_features))) {
+  thresholds &lt;- terra::global(
+    sim_zones_features[[z]], fun = quantile, probs = 0.5, na.rm = TRUE
+  )
+  for (i in seq_len(number_of_features(sim_zones_features))) {
+    sim_binary_features_zones[[z]][[i]] &lt;- terra::as.int(
+      sim_zones_features[[z]][[i]] &gt; thresholds[[1]][[i]]
+    )
+  }
+}
+
+# create multi-zone problem with maximum cover objective that
+# has a single budget for all zones
+p2 &lt;-
+  problem(sim_zones_pu_raster, sim_binary_features_zones) %&gt;%
+  add_max_cover_objective(800) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve problem
+s2 &lt;- solve(p2)
+
+# plot solution
+plot(category_layer(s2), main = "solution", axes = FALSE)
+
+# create multi-zone problem with maximum cover objective that
+# has separate budgets for each zone
+p3 &lt;-
+  problem(sim_zones_pu_raster, sim_binary_features_zones) %&gt;%
+  add_max_cover_objective(c(400, 400, 400)) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve problem
+s3 &lt;- solve(p3)
+
+# plot solution
+plot(category_layer(s3), main = "solution", axes = FALSE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

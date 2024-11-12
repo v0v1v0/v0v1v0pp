@@ -1,0 +1,118 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pivot_with_specified_interval</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Pivot with specified interval
+</h2>
+
+<h3>Description</h3>
+
+<p>This function returns the value of the cumulative distribution function of a truncated gaussian distribution evaluated in the observed test statistic. Its output is used by the function postselp_value_specified_interval by taking 2*min(output,1-output) for a p-value for a two-sided test. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pivot_with_specified_interval(z_interval, etaj, etajTy, tn_mu, tn_sigma)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>z_interval</code></td>
+<td>
+
+<p>The intervals of type "list" where the OLS estimator gets selected: can be obtained from function "solve_selection_event"
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>etaj</code></td>
+<td>
+
+<p>Vector of type "matrix" and dimension nx1: useful in orthogonal decomposition of y (see Lemma 1 for details)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>etajTy</code></td>
+<td>
+
+<p>The OLS estimator of the j'th selected coefficient in the selected model of type "matrix" and dimension 1x1
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tn_mu</code></td>
+<td>
+
+<p>Integer for the mean of the truncated sampling distribution of the test statistic under the null hypothesis: for example, if you want to test beta_j=0, specify 0 for the mean
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tn_sigma</code></td>
+<td>
+
+<p>Integer for the variance of the truncated sampling distribution of the test statistic
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The cumulative distribution function of a truncated gaussian distribution evaluated in the observed test statistic
+</p>
+
+
+<h3>References</h3>
+
+<p>Pirenne, S. and Claeskens, G. (2024). Exact Post-Selection Inference for Adjusted R Squared.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">  # Generate data
+  n &lt;- 100
+  Data &lt;- datagen.norm(seed = 7, n, p = 10, rho = 0, beta_vec = c(1,0.5,0,0.5,0,0,0,0,0,0))
+  X &lt;- Data$X
+  y &lt;- Data$y
+
+  # Select model
+  result &lt;- fit_all_subset_linear_models(y, X, intercept=FALSE)
+  phat &lt;- result$phat
+  X_M_phat &lt;- result$X_M_phat
+  k &lt;- result$k
+  R_M_phat &lt;- result$R_M_phat
+  kappa_M_phat &lt;- result$kappa_M_phat
+  R_M_k &lt;- result$R_M_k
+  kappa_M_k &lt;- result$kappa_M_k
+
+  # Estimate Sigma from residuals of full model
+  full_model &lt;- lm(y ~ 0 + X)
+  sigma_hat &lt;- sd(resid(full_model))
+  Sigma &lt;- diag(n)*(sigma_hat)^2
+
+  # Construct test statistic
+  Construct_test &lt;- construct_test_statistic(j = 5, X_M_phat, y, phat, Sigma, intercept=FALSE)
+  a &lt;- Construct_test$a
+  b &lt;- Construct_test$b
+  etaj &lt;- Construct_test$etaj
+  etajTy &lt;- Construct_test$etajTy
+
+  # Solve selection event
+  Solve &lt;- solve_selection_event(a,b,R_M_k,kappa_M_k,R_M_phat,kappa_M_phat,k)
+  z_interval &lt;- Solve$z_interval
+
+  # Post-selection inference for beta_j=0
+  tn_sigma &lt;- sqrt((t(etaj)%*%Sigma)%*%etaj)
+  pivot_with_specified_interval(z_interval, etaj, etajTy, tn_mu = 0, tn_sigma)
+</code></pre>
+
+
+</div>

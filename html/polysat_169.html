@@ -1,0 +1,226 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>genotypeDiversity</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Genotype Diversity Statistics
+</h2>
+
+<h3>Description</h3>
+
+<p><code>genotypeDiversity</code> calculates diversity statistics based on
+genotype frequencies, using a distance matrix to assign individuals to
+genotypes.  The <code>Shannon</code> and <code>Simpson</code> functions are also
+available to calculate these statistics directly from a vector
+of frequencies.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">genotypeDiversity(genobject, samples = Samples(genobject),
+                  loci = Loci(genobject),
+                  d = meandistance.matrix(genobject, samples, loci,
+                                          all.distances = TRUE,
+                                          distmetric = Lynch.distance),
+                  threshold = 0, index = Shannon, ...)
+
+Shannon(p, base = exp(1))
+
+Simpson(p)
+
+Simpson.var(p)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>genobject</code></td>
+<td>
+
+<p>An object of the class <code>"genambig"</code> (or more generally,
+<code>"gendata"</code> if a value is supplied to <code>d</code>).  If there is more
+than one population, the <code>PopInfo</code> slot should be filled in.
+<code>genobject</code>
+is the dataset to be analyzed, although the genotypes themselves will
+not be used if <code>d</code> has already been calculated.  Missing genotypes,
+however, will indicate individuals that should be skipped in the analysis.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>samples</code></td>
+<td>
+
+<p>An optional character vector indicating a subset of samples to analyze.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loci</code></td>
+<td>
+
+<p>An optional character vector indicating a subset of loci to analyze.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+
+<p>A list such as that produced by <code>meandistance.matrix</code> or
+<code>meandistance.matrix2</code> when <code>all.distances = TRUE</code>.  The
+first item in the list is a three dimensional array, with the first
+dimension indexed by locus and the second and third dimensions indexed
+by sample.  These are genetic distances between samples, by locus.  The
+second item in the list is the distance matrix averaged across loci.
+This mean matrix will be used only if all loci are being analyzed.  If
+<code>loci</code> is a subset of the loci found in <code>d</code>, the mean matrix
+will be recalculated.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+
+<p>The maximum genetic distance between two samples that can be considered
+to be the same genotype.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index</code></td>
+<td>
+
+<p>The diversity index to calculate.  This should be <code>Shannon</code>,
+<code>Simpson</code>, or a user-defined function that takes as its first
+argument a vector of frequencies that sum to one.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Additional arguments to pass to <code>index</code>, for example the
+<code>base</code> argument for <code>Shannon</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>A vector of counts.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>base</code></td>
+<td>
+
+<p>The base of the logarithm for calculating the Shannon index.  This is
+<code>exp(1)</code> for the natural log, or <code>2</code> for log base 2.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>genotypeDiversity</code> runs <code>assignClones</code> on distance
+matrices for individual loci and then for all loci, for each seperate
+population.  The results of <code>assignClones</code> are used to
+calculate a vector of genotype frequencies, which is passed to
+<code>index</code>.
+</p>
+<p><code>Shannon</code> calculates the Shannon index, which is:
+</p>
+<p style="text-align: center;"><code class="reqn">-\sum \frac{p_i}{N}\ln(\frac{p_i}{N})</code>
+</p>
+
+<p>(or log base 2 or any other base, using the <code>base</code> argument) given
+a vector <code class="reqn">p</code> of genotype counts, where <code class="reqn">N</code> is the sum of those counts.
+</p>
+<p><code>Simpson</code> calculates the Simpson index, which is:
+</p>
+<p style="text-align: center;"><code class="reqn">\sum \frac{p_{i}(p_{i} - 1)}{N(N - 1)}</code>
+</p>
+
+<p><code>Simpson.var</code> calculates the variance of the Simpson index:
+</p>
+<p style="text-align: center;"><code class="reqn">\frac{4N(N-1)(N-2)\sum p_{i}^3 + 2N(N-1)\sum p_{i}^2 -
+    2N(N-1)(2N-3)(\sum p_{i}^2)^2}{[N(N-1)]^2}</code>
+</p>
+
+<p>The variance of the Simpson index can be used to calculate a confidence
+interval, for example the results of <code>Simpson</code> plus or minus twice
+the square root of the results of <code>Simpson.var</code> would be the 95%
+confidence interval.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A matrix of diversity index results, with populations in rows and
+loci in columns.  The final column is called <code>"overall"</code> and gives
+the results when all loci are analyzed together.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>References</h3>
+
+<p>Shannon, C. E. (1948) A mathematical theory of communication.
+<em>Bell System Technical Journal</em> <b>27</b>:379–423 and 623–656.
+</p>
+<p>Simpson, E. H. (1949) Measurement of diversity.  <em>Nature</em>
+<b>163</b>:688.
+</p>
+<p>Lowe, A., Harris, S. and Ashton, P. (2004) <em>Ecological Genetics:
+Design, Analysis, and Application</em>.  Wiley-Blackwell.
+</p>
+<p>Arnaud-Haond, S., Duarte, M., Alberto, F. and Serrao, E. A.  (2007)
+Standardizing methods to address clonality in population studies.
+<em>Molecular Ecology</em> <b>16</b>:5115–5139.
+</p>
+<p><a href="http://www.comparingpartitions.info/index.php?link=Tut4">http://www.comparingpartitions.info/index.php?link=Tut4</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>assignClones</code>, <code>alleleDiversity</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># set up dataset
+mydata &lt;- new("genambig", samples=c("a","b","c"), loci=c("F","G"))
+Genotypes(mydata, loci="F") &lt;- list(c(115,118,124),c(115,118,124),
+                                   c(121,124))
+Genotypes(mydata, loci="G") &lt;- list(c(162,170,174),c(170,172),
+                                    c(166,180,182))
+Usatnts(mydata) &lt;- c(3,2)
+
+# get genetic distances
+mydist &lt;- meandistance.matrix(mydata, all.distances=TRUE)
+
+# calculate diversity under various conditions
+genotypeDiversity(mydata, d=mydist)
+genotypeDiversity(mydata, d=mydist, base=2)
+genotypeDiversity(mydata, d=mydist, threshold=0.3)
+genotypeDiversity(mydata, d=mydist, index=Simpson)
+genotypeDiversity(mydata, d=mydist, index=Simpson.var)
+</code></pre>
+
+
+</div>

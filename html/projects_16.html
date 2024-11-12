@@ -1,0 +1,442 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>new_edit_delete</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create, edit or delete projects, authors and affiliations</h2>
+
+<h3>Description</h3>
+
+<p>These functions create, edit, or delete rows in the <code>projects()</code>,
+<code>authors()</code>, and <code>affiliations()</code> tables, which are
+stored in the <em>.metadata</em> subdirectory of the main
+projects folder.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">new_project(
+  title = NA,
+  current_owner = NA,
+  stage = c("1: design", "2: data collection", "3: analysis", "4: manuscript",
+    "5: under review", "6: accepted", "0: idea"),
+  status = "just created",
+  short_title = NA,
+  authors = NULL,
+  corresp_auth = NA,
+  creator = NA,
+  deadline_type = NA,
+  deadline = NA,
+  id = NA,
+  folder_name = paste0("p", stringr::str_pad(id, 4, pad = "0")),
+  parent_directory = projects_folder(),
+  make_directories = FALSE,
+  template_folder = "default_folder"
+)
+
+new_idea(title, status = "just an idea", ...)
+
+new_author(
+  given_names = NA,
+  last_name = NA,
+  title = NA,
+  affiliations = NULL,
+  degree = NA,
+  email = NA,
+  phone = NA,
+  id = NA
+)
+
+new_affiliation(
+  department_name = NA,
+  institution_name = NA,
+  address = NA,
+  id = NA
+)
+
+edit_project(
+  project,
+  title = NULL,
+  short_title = NULL,
+  authors = NULL,
+  current_owner = NULL,
+  status = NULL,
+  deadline_type = NULL,
+  deadline = NULL,
+  stage = NULL,
+  corresp_auth = NULL,
+  creator = NULL,
+  archived = FALSE
+)
+
+edit_author(
+  author,
+  given_names = NULL,
+  last_name = NULL,
+  affiliations = NULL,
+  title = NULL,
+  degree = NULL,
+  email = NULL,
+  phone = NULL
+)
+
+edit_affiliation(
+  affiliation,
+  department_name = NULL,
+  institution_name = NULL,
+  address = NULL
+)
+
+delete_project(project, archived = FALSE)
+
+delete_author(author)
+
+delete_affiliation(affiliation)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>title</code></td>
+<td>
+<p>For <code>new_project()</code>, <code>new_idea()</code>, and
+<code>edit_project()</code>, the title of the project.
+</p>
+<p>For the <code>new_author()</code> and <code>edit_author()</code>, the job title of the
+author.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>current_owner, corresp_auth, creator</code></td>
+<td>
+<p>An <code>id</code> or unambiguous
+<code>last_name</code>/<code>given_names</code> of one of the authors in the
+<code>authors()</code> table, which will be coerced into a
+projects_author-class object.
+</p>
+<p>If <code>corresp_auth</code> is specified, this author's contact information will
+be especially included in the output of <code>header()</code>.
+</p>
+<p>If <code>creator</code> is left blank, the numeric portion of the resulting
+projects_author-class object will be <code>0:</code>, followed by the
+value of <code>Sys.info()["user"]</code> (e.g., <code>0: user_j_smith</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stage</code></td>
+<td>
+<p>A number or string that will partially match exactly one of
+<code>c("1: design", "2: data collection", "3: analysis", "4: manuscript",
+  "5: under review", "6: accepted", "0: ideas")</code>, communicating the stage the
+project is in. This will be coerced to be a character vector of class
+<code>projects_stage</code>.
+</p>
+<p>For <code>new_project()</code>, defaults to <code>"1: design"</code>.
+</p>
+<p>See projects_stage-class.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>status</code></td>
+<td>
+<p>A free text field, intended to communicate the most current
+condition the project is in.
+</p>
+<p>For <code>new_project()</code>, default is <code>"just created"</code>. For
+<code>new_idea()</code>, default is <code>"just an idea"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>short_title</code></td>
+<td>
+<p>A nickname for the project. Can be used in other
+<code>projects</code> package functions whenever needing to specify a project.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>authors, affiliations</code></td>
+<td>
+<p>For <code>new_project()</code>/<code>new_author()</code>, a
+vector of <code>id</code>s or unambiguous <code>given_names</code>/<code>last_name</code> or
+<code>department_name</code>/<code>institution_name</code> of authors/affiliations.
+Order will be preserved.
+</p>
+<p>For <code>edit_project()</code>/<code>edit_author()</code>, a formula specifying
+authors/affiliations to add or remove from the project/author. Formulas
+must have no left-hand side (i.e., begin with <code>~</code>) and use
+<code>+</code> to add and <code>-</code> to remove (see formula).
+</p>
+<p>Authors and affiliations may be specified by <code>id</code> or name. Each
+element must match an existing row in the
+<code>authors()</code>/<code>affiliations()</code> table.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deadline_type</code></td>
+<td>
+<p>A free text field, intended to communicate the meaning
+of the next field, <code>deadline</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deadline</code></td>
+<td>
+<p>A <code>POSIXct</code> object or something coercible to one
+(via <code>lubridate::as_datetime()</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>An integer that will become the item's permanent identification
+number. Must be in the range 1-9999 or left blank. If left blank, the
+lowest available integer in the aforementioned range will be selected.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>folder_name</code></td>
+<td>
+<p>A character string that can serve as a valid directory
+name. By default, it is "p" followed by the project <code>id</code> number
+left-filled with "0" until the number is four digits long.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parent_directory</code></td>
+<td>
+<p>A character string that can be read as a file path.
+Can be either:
+</p>
+
+<ol>
+<li>
+<p> the <em>absolute</em> path of the projects
+folder (i.e., the value of <code>projects_folder()</code>, which is the
+default)
+</p>
+</li>
+<li>
+<p> an <em>absolute</em> path pointing to a subfolder within the
+projects folder
+</p>
+</li>
+<li>
+<p> a <em>relative</em> path (leading <code>"."</code> optional) that will be
+appended onto the end of the value of <code>projects_folder()</code>.
+</p>
+</li>
+</ol>
+<p>In any case, the result is that the new project folder will be a
+subdirectory of the main projects folder. See also
+<code>setup_projects()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>make_directories</code></td>
+<td>
+<p>Logical, indicating whether or not
+<code>new_project()</code> should create subdirectories specified in the
+<code>path</code> argument that do not already exist. Ignored if <code>path</code> is
+left as the default or if all directories in <code>path</code> already exist.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>template_folder</code></td>
+<td>
+<p>A character string naming a folder in the
+<em>.templates</em> folder that will be copied into the
+projects folder as the new project folder, renamed
+according to the value of the <code>folder_name</code> argument. See also
+<strong>Details</strong> below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments to be passed to <code>new_project()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>given_names, last_name, department_name, institution_name</code></td>
+<td>
+<p>Each a single
+character string. Can be used whenever needing to specify a specific
+author/affiliation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>degree</code></td>
+<td>
+<p>A character string (preferably an abbreviation) denoting the
+author's academic degree(s). Will be written next to author names when
+<code>header()</code> is run.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>email, phone</code></td>
+<td>
+<p>A character string denoting the email/phone of the author.
+Email will be coerced to lowercase. When a project is given a
+<code>corresp_auth</code>, <code>email</code> will be included in "Corresponding
+author:" section written by <code>header()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>address</code></td>
+<td>
+<p>A character string indicating the address of the affiliation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>project, author, affiliation</code></td>
+<td>
+<p>The <code>id</code> or unambiguous name(s) of a
+project/author/affiliation to <code>edit_*()</code> or to <code>delete_*()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>archived</code></td>
+<td>
+<p>Logical indicating whether or not the function should
+consider archived projects when determining which project the user is
+referring to in the <code>project</code> argument. <code>FALSE</code> by default.
+</p>
+<p>See the <strong>Details</strong> section of <code>archive_project()</code> for
+more information on the "archived" status of a project.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>new_project()</code> copies the folder in the <em>.templates</em> folder named
+by the <code>template_name</code> argument into the
+projects folder, giving it the name specified by the
+<code>folder_name</code> argument. It then creates a line in the
+<code>projects()</code> table for the newly created project, filling many of
+its fields with the contents of corresponding arguments of this function. See
+<code>setup_projects()</code> for more information on the <em>.templates</em>
+folder.
+</p>
+<p><code>delete_project()</code> deletes project folders and removes their line from
+the <code>projects()</code> table.
+</p>
+<p>The <code>edit_*()</code> functions and the other <code>new_*()</code> and
+<code>delete_*()</code> functions only create or edit rows in the <em>.metadata</em>
+tables.
+</p>
+<p><code>new_idea()</code> is a convenience function for quickly creating projects in
+the <code>"0: idea"</code> stage.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>new_affiliation()</code> and <code>edit_affiliation()</code> simply return
+the new or edited row of the <code>affiliations()</code> <code>tibble</code>.
+</p>
+<p><code>new_project()</code>, <code>new_author()</code>, <code>edit_project()</code>,
+<code>edit_author()</code>, and the <code>delete_*()</code> functions
+invisibly return the row of the corresponding metadata
+<code>tibble</code> that was added/edited/deleted, although the contents of this
+row are printed as a side-effect along with the other relevant information
+where applicable (e.g., project authors, author affiliations, project file
+paths).
+</p>
+<p><code>new_idea()</code> returns the <code>id</code>, <code>title</code>, and <code>status</code>
+columns of the newly created row of the <code>projects()</code>
+<code>tibble</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#############################################################################
+# SETUP
+old_home &lt;- Sys.getenv("HOME")
+old_ppath &lt;- Sys.getenv("PROJECTS_FOLDER_PATH")
+temp_dir &lt;- tempfile("dir")
+dir.create(temp_dir)
+Sys.unsetenv("PROJECTS_FOLDER_PATH")
+Sys.setenv(HOME = temp_dir)
+setup_projects(path = temp_dir)
+#############################################################################
+
+# Creating affiliations
+new_affiliation(department_name = "Math Dept.",
+                institution_name = "Springfield College",
+                address = "123 College St, Springfield, AB")
+new_affiliation(department_name = "Art Department",
+                institution_name = "Springfield College",
+                address = "321 University Boulevard, Springfield, AB",
+                id = 42)
+
+# Editing an affiliation
+edit_affiliation("Math Dept", department_name = "Mathematics Department")
+
+# Creating authors
+new_author(
+  given_names = "Rosetta",
+  last_name = "Stone",
+  affiliations = c(42, "Math"),
+  degree = "PhD",
+  email = "slab@rock.net",
+  phone = "867-555-5309",
+  id = 8888
+)
+new_author(
+  given_names = "Spiro",
+  last_name = "Agnew",
+  degree = "LLB",
+  affiliations = "Art D", id = 13
+)
+new_author(last_name = "Plato", id = 303)
+
+# Editing an author, showcasing the removal of a text element (last_name)
+edit_author(author = 303, given_names = "Plato", last_name = NA)
+
+# Editing an author, showcasing the addition and removal of affiliations
+edit_author("Spiro", affiliations = ~ -"Art D" + Math)
+
+# Creating a project
+new_project(
+  title = "Understanding the Construction of the United States",
+  short_title = "USA",
+  authors = c(13, "Stone"),
+  stage = 4,
+  deadline = "2055-02-28",
+  deadline_type = "submission",
+  parent_directory = "famous_studied/philosophers/rocks",
+  corresp_auth = "Stone",
+  current_owner = "agnew",
+  make_directories = TRUE,
+  status = "waiting on IRB"
+)
+
+# Editing a project, showcasing the addition and removal of authors
+edit_project(
+  "Understanding",
+  short_title = "usa1",
+  authors = ~ + "303" - 13 - Stone
+)
+
+new_idea(title = "Boiling the Ocean")
+
+# Wrapped in if (interactive()) because it requires interactive console input
+# and fails automated package checking and testing.
+if (interactive()) {
+  delete_project("usa1")
+  delete_author(303)
+  delete_affiliation("Math")
+}
+
+#############################################################################
+# CLEANUP
+Sys.setenv(HOME = old_home, PROJECTS_FOLDER_PATH = old_ppath)
+</code></pre>
+
+
+</div>

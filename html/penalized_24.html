@@ -1,0 +1,188 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Penalized generalized linear models</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Penalized regression</h2>
+
+<h3>Description</h3>
+
+<p>Fitting generalized linear models with L1 (lasso and fused lasso)
+and/or L2 (ridge) penalties, or a combination of the two.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">
+penalized (response, penalized, unpenalized, lambda1=0, 
+  lambda2=0, positive = FALSE, data, fusedl=FALSE,
+  model = c("cox", "logistic", "linear", "poisson"), 
+  startbeta, startgamma, steps =1, epsilon = 1e-10, 
+  maxiter, standardize = FALSE, trace = TRUE)
+
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>response</code></td>
+<td>
+<p>The response variable (vector). This should be a numeric vector for linear regression, a <code>Surv</code> object for Cox regression and <code>factor</code> or a vector of 0/1 values for logistic regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalized</code></td>
+<td>
+<p>The penalized covariates. These may be specified either as a matrix or as a (one-sided) <code>formula</code> object. See also under <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>unpenalized</code></td>
+<td>
+<p>Additional unpenalized covariates. Specified as under <code>penalized</code>. Note that an unpenalized intercept is included in the model by default (except in the Cox model). This can be suppressed by specifying <code>unpenalized = ~0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda1, lambda2</code></td>
+<td>
+<p>The tuning parameters for L1 and L2 penalization. Each must be either a single positive numbers or a vector with length equal to the number of covariates in <code>penalized</code> argument. In the latter case, each covariate is given its own penalty weight.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>positive</code></td>
+<td>
+<p>If <code>TRUE</code>, constrains the estimated regression coefficients of all penalized covariates to be non-negative. If a logical vector with the length of the number of covariates in <code>penalized</code>, constrains the estimated regression coefficients of a subset of the penalized covariates to be non-negative.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A <code>data.frame</code> used to evaluate <code>response</code>, and the terms of  <code>penalized</code> or <code>unpenalized</code> when these have been specified as a  <code>formula</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fusedl</code></td>
+<td>
+<p>If <code>TRUE</code> or a vector, the penalization method used is fused lasso. The value for <code>lambda1</code> is used as the tuning parameter for L1 penalization on the coefficients and the value for <code>lambda2</code> is used as the tuning parameter for L1 penalization on the differences of the coefficients. Default value is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>The model to be used. If missing, the model will be guessed from the <code>response</code> input.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>startbeta</code></td>
+<td>
+<p>Starting values for the regression coefficients of the penalized covariates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>startgamma</code></td>
+<td>
+<p>Starting values for the regression coefficients of the unpenalized covariates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>steps</code></td>
+<td>
+<p>If greater than 1, the algorithm will fit the model for a range of <code>steps</code> <code>lambda1</code>-values, starting from the maximal value down to the value of <code>lambda1</code> specified. This is useful for making plots as in <code>plotpath</code>. With <code>steps = "Park"</code> it is possible to choose the steps in such a way that they are at the approximate value at which the active set changes, following Park and Haste (2007).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epsilon</code></td>
+<td>
+<p>The convergence criterion. As in <code>glm</code>. Convergence is judged separately on the likelihood and on the penalty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxiter</code></td>
+<td>
+<p>The maximum number of iterations allowed. Set by default at 25 when only an L2 penalty is present, infinite otherwise.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardize</code></td>
+<td>
+<p>If <code>TRUE</code>, standardizes all penalized covariates to unit central L2-norm before applying penalization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace</code></td>
+<td>
+<p>If <code>TRUE</code>, prints progress information. Note that setting <code>trace=TRUE</code> may slow down the algorithm up to 30 percent (but it often feels quicker)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>penalized</code> function fits  regression models for a given combination of L1 and L2 penalty parameters.</p>
+
+
+<h3>Value</h3>
+
+<p><code>penalized</code> returns a <code>penfit</code> object when <code>steps = 1</code> or a list of such objects if <code>steps &gt; 1</code>.</p>
+
+
+<h3>Note</h3>
+
+<p>The <code>response</code> argument of the function also accepts formula input as in  <code>lm</code> and related functions. In that case, the right hand side of the <code>response</code> formula is used as the <code>penalized</code> argument or, if that is already given, as the <code>unpenalized</code> argument. For example, the input <code>penalized(y~x)</code> is equivalent to <code>penalized(y, ~x)</code> and <code>penalized(y~x, ~z)</code> to <code>penalized(y, ~z, ~x)</code>.
+</p>
+<p>In case of tied survival times, the function uses Breslow's version of the partial likelihood.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Jelle Goeman: <a href="mailto:j.j.goeman@lumc.nl">j.j.goeman@lumc.nl</a></p>
+
+
+<h3>References</h3>
+
+<p>Goeman J.J. (2010). L-1 Penalized Estimation in the Cox Proportional Hazards Model. Biometrical Journal 52 (1) 70-84.</p>
+
+
+<h3>See Also</h3>
+
+<p><code>penfit</code> for the <code>penfit</code> object returned, <code>plotpath</code>
+for plotting the solution path, and <code>cvl</code> for cross-validation and
+optimizing the tuning parameters.</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># More examples in the package vignette:
+#  type vignette("penalized")
+
+data(nki70)
+
+# A single lasso fit predicting survival
+pen &lt;- penalized(Surv(time, event), penalized = nki70[,8:77],
+    unpenalized = ~ER+Age+Diam+N+Grade, data = nki70, lambda1 = 10)
+show(pen)
+coefficients(pen)
+coefficients(pen, "penalized")
+basehaz(pen)
+
+# A single lasso fit using the clinical risk factors
+pen &lt;- penalized(Surv(time, event), penalized = ~ER+Age+Diam+N+Grade,
+    data = nki70, lambda1=10, standardize=TRUE)
+
+# using steps
+pen &lt;- penalized(Surv(time, event), penalized = nki70[,8:77],
+    data = nki70, lambda1 = 1,steps = 20)
+plotpath(pen)
+
+
+# A fused lasso fit predicting survival
+pen &lt;- penalized(Surv(time, event), penalized = nki70[,8:77], data = nki70, 
+     lambda1 = 1, lambda2 = 2, fusedl = TRUE)
+plot(coefficients(pen, "all"),type="l",xlab = "probes",ylab = "coefficient value")
+plot(predict(pen,penalized=nki70[,8:77]))
+ </code></pre>
+
+
+</div>

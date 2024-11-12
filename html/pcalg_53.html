@@ -1,0 +1,303 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>gies</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate Interventional Markov Equivalence Class of a DAG by GIES</h2>
+
+<h3>Description</h3>
+
+<p>Estimate the interventional essential graph representing the Markov
+equivalence class of a DAG using the greedy interventional equivalence search
+(GIES) algorithm of Hauser and Bühlmann (2012).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">gies(score, labels = score$getNodes(), targets = score$getTargets(),
+     fixedGaps = NULL, adaptive = c("none", "vstructures", "triples"), 
+     phase = c("forward", "backward", "turning"), iterate = length(phase) &gt; 1,
+     turning = NULL, maxDegree = integer(0), verbose = FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>score</code></td>
+<td>
+<p>An <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object inheriting from <code>Score</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>labels</code></td>
+<td>
+<p>Node labels; by default, they are determined from the scoring
+object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>targets</code></td>
+<td>
+<p>A list of intervention targets (cf. details).  A list of
+vectors, each vector listing the vertices of one intervention target.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixedGaps</code></td>
+<td>
+<p>Logical <em>symmetric</em> matrix of dimension p*p.  If entry
+<code>[i, j]</code> is <code>TRUE</code>, the result is guaranteed to have no edge
+between nodes <code class="reqn">i</code> and <code class="reqn">j</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adaptive</code></td>
+<td>
+<p>indicating whether constraints should be adapted to
+newly detected v-structures or unshielded triples (cf. details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phase</code></td>
+<td>
+<p>Character vector listing the phases that should be used; possible
+values: <code>forward</code>, <code>backward</code>, and <code>turning</code> (cf. details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iterate</code></td>
+<td>
+<p>Logical indicating whether the phases listed in the argument
+<code>phase</code> should be iterated more than once (<code>iterate = TRUE</code>) or
+not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>turning</code></td>
+<td>
+<p>Setting <code>turning = TRUE</code> is equivalent to setting
+<code>phases = c("forward", "backward")</code> and <code>iterate = FALSE</code>; the
+use of the argument <code>turning</code> is deprecated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxDegree</code></td>
+<td>
+<p>Parameter used to limit the vertex degree of the estimated
+graph.  Possible values:
+</p>
+
+<ol>
+<li>
+<p> Vector of length 0 (default): vertex degree is not limited.
+</p>
+</li>
+<li>
+<p> Real number <code class="reqn">r</code>, <code class="reqn">0 &lt; r &lt; 1</code>: degree of vertex <code class="reqn">v</code> is
+limited to <code class="reqn">r \cdot n_v</code>, where <code class="reqn">n_v</code> denotes
+the number of data points where <code class="reqn">v</code> was not intervened.
+</p>
+</li>
+<li>
+<p> Single integer: uniform bound of vertex degree for all vertices
+of the graph.
+</p>
+</li>
+<li>
+<p> Integer vector of length <code>p</code>: vector of individual bounds
+for the vertex degrees.
+</p>
+</li>
+</ol>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If <code>TRUE</code>, detailed output is provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments for debugging purposes and fine tuning.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function estimates the interventional Markov equivalence class of a DAG
+based on a data sample with interventional data originating from various
+interventions and possibly observational data. The intervention targets used
+for data generation must be specified by the argument <code>targets</code> as a
+list of (integer) vectors listing the intervened vertices; observational
+data is specified by an empty set, i.e. a vector of the form
+<code>integer(0)</code>.  As an example, if data contains observational samples
+as well as samples originating from an intervention at vertices 1 and 4,
+the intervention targets must be specified as <code>list(integer(0),
+  as.integer(1), as.integer(c(1, 4)))</code>.
+</p>
+<p>An interventional Markov equivalence class of DAGs can be uniquely
+represented by a partially directed graph called interventional essential
+graph.  Its edges have the following interpretation:
+</p>
+
+<ol>
+<li>
+<p> a directed edge <code class="reqn">a \longrightarrow b</code> stands for an arrow
+that has the same orientation in all representatives of the
+interventional Markov equivalence class;
+</p>
+</li>
+<li>
+<p> an undirected edge <code class="reqn">a</code> – <code class="reqn">b</code> stands for an arrow that is
+oriented in one  way in some representatives of the equivalence class and
+in the other way in other representatives of the equivalence class.
+</p>
+</li>
+</ol>
+<p>Note that when plotting the object, undirected and bidirected edges are
+equivalent.
+</p>
+<p>GIES (greedy interventional equivalence search) is a score-based algorithm
+that greedily maximizes a score function (typically the BIC, passed to the
+function via the argument <code>score</code>) in the space of interventional
+essential graphs in three phases, starting from the empty graph:
+</p>
+
+<dl>
+<dt>Forward phase</dt>
+<dd>
+<p>In the forward phase, GIES moves through the space of
+interventional essential graphs in steps that correspond to the addition
+of a single edge in the space of DAGs; the phase is aborted as soon as
+the score cannot be augmented any more.</p>
+</dd>
+<dt>Backward phase</dt>
+<dd>
+<p>In the backward phase, the algorithm performs moves
+that correspond to the removal of a single edge in the space of DAGs
+until the score cannot be augmented any more.</p>
+</dd>
+<dt>Turning phase</dt>
+<dd>
+<p>In the turning phase, the algorithm performs moves
+that correspond to the reversal of a single arrow in the space of DAGs
+until the score cannot be augmented any more.</p>
+</dd>
+</dl>
+<p>The phases that are actually run are specified with the argument 
+<code>phase</code>.  GIES cycles through the specified phases until no augmentation 
+of the score is possible any more if <code>iterate = TRUE</code>.  GIES is an 
+interventional extension of the GES (greedy equivalence search) algorithm of 
+Chickering (2002) which is limited to observational data and hence operates 
+on the space of observational instead of interventional Markov equivalence 
+classes.
+</p>
+<p>Using the argument <code>fixedGaps</code>, one can make sure that certain edges
+will <em>not</em> be present in the resulting essential graph: if the entry
+<code>[i, j]</code> of the matrix passed to <code>fixedGaps</code> is <code>TRUE</code>, there
+will be no edge between nodes <code class="reqn">i</code> and <code class="reqn">j</code>.  Using this argument 
+can speed up the execution of GIES and allows the user to account for
+previous knowledge or other constraints.  The argument <code>adaptive</code> can be
+used to relax the constraints encoded by <code>fixedGaps</code> as follows:
+</p>
+
+<ul>
+<li>
+<p> When <code>adaptive = "vstructures"</code> and the algorithm introduces a 
+new v-structure <code class="reqn">a \longrightarrow b \longleftarrow c</code> in the 
+forward phase, then the edge <code class="reqn">a - c</code> is removed from the list of fixed 
+gaps, meaning that the insertion of an edge between <code class="reqn">a</code> and <code class="reqn">c</code> 
+becomes possible even if it was forbidden by the initial matrix passed to 
+<code>fixedGaps</code>.
+</p>
+</li>
+<li>
+<p> When <code>adaptive = "triples"</code> and the algorithm introduces a new
+unshielded triple in the forward phase (i.e., a subgraph of three nodes
+<code class="reqn">a</code>, <code class="reqn">b</code> and <code class="reqn">c</code> where <code class="reqn">a</code> and <code class="reqn">b</code> as well as <code class="reqn">b</code>
+and <code class="reqn">c</code> are adjacent, but <code class="reqn">a</code> and <code class="reqn">c</code> are not), then the edge
+<code class="reqn">a - c</code> is removed from the list of fixed gaps.
+</p>
+</li>
+</ul>
+<p>This modifications of the forward phase of GIES are inspired by the 
+analog modifications in the forward phase of GES, which makes the successive
+application of a skeleton estimation method and GES restricted to an 
+estimated skeleton a <em>consistent</em> estimator of the DAG (cf. Nandy,
+Hauser and Maathuis, 2015). 
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>gies</code> returns a list with the following two components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>essgraph</code></td>
+<td>
+<p>An object of class <code>EssGraph</code> containing an
+estimate of the equivalence class of the underlying DAG.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>repr</code></td>
+<td>
+<p>An object of a class derived from <code>ParDAG</code>
+containing a (random) representative of the estimated equivalence class.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Alain Hauser (<a href="mailto:alain.hauser@bfh.ch">alain.hauser@bfh.ch</a>)
+</p>
+
+
+<h3>References</h3>
+
+<p>D.M. Chickering (2002).  Optimal structure identification with greedy search.
+<em>Journal of Machine Learning Research</em> <b>3</b>, 507–554
+</p>
+<p>A. Hauser and P. Bühlmann (2012).  Characterization and greedy learning of
+interventional Markov equivalence classes of directed acyclic graphs.
+<em>Journal of Machine Learning Research</em> <b>13</b>, 2409–2464.
+</p>
+<p>P. Nandy, A. Hauser and M. Maathuis (2015).  Understanding consistency in 
+hybrid causal structure learning.  <em>arXiv preprint</em> 1507.02608
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ges</code>, <code>Score</code>, <code>EssGraph</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Load predefined data
+data(gmInt)
+
+## Define the score (BIC)
+score &lt;- new("GaussL0penIntScore", gmInt$x, gmInt$targets, gmInt$target.index)
+
+## Estimate the essential graph
+gies.fit &lt;- gies(score)
+
+## Plot the estimated essential graph and the true DAG
+if (require(Rgraphviz)) {
+  par(mfrow=c(1,2))
+  plot(gies.fit$essgraph, main = "Estimated ess. graph")
+  plot(gmInt$g, main = "True DAG")
+}
+</code></pre>
+
+
+</div>

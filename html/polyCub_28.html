@@ -1,0 +1,213 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>polyCub.SV</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Product Gauss Cubature over Polygonal Domains</h2>
+
+<h3>Description</h3>
+
+<p>Product Gauss cubature over polygons as proposed by
+Sommariva and Vianello (2007).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">polyCub.SV(polyregion, f, ..., nGQ = 20, alpha = NULL, rotation = FALSE,
+  engine = "C", plot = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>polyregion</code></td>
+<td>
+<p>a polygonal domain.
+The following classes are supported:
+<code>"owin"</code> from package <span class="pkg">spatstat.geom</span>,
+<code>"gpc.poly"</code> from <span class="pkg">gpclib</span>,
+<code>"SpatialPolygons"</code>, <code>"Polygons"</code>,
+and <code>"Polygon"</code> from package <span class="pkg">sp</span>, as well as
+<code>"(MULTI)POLYGON"</code> from package <span class="pkg">sf</span>.
+(For these classes, <span class="pkg">polyCub</span> knows how to get an <code>xylist</code>.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>a two-dimensional real-valued function to be integrated over
+<code>polyregion</code> (or <code>NULL</code> to only compute nodes and weights).
+As its first argument it must take a coordinate matrix, i.e., a
+numeric matrix with two columns, and it must return a numeric vector of
+length the number of coordinates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments for <code>f</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nGQ</code></td>
+<td>
+<p>degree of the one-dimensional Gauss-Legendre quadrature rule
+(default: 20) as implemented in function <code>gauss.quad</code>
+of package <a href="https://CRAN.R-project.org/package=statmod"><span class="pkg">statmod</span></a>. Nodes and weights up to <code>nGQ=60</code> are cached
+in <span class="pkg">polyCub</span>, for larger degrees <span class="pkg">statmod</span> is required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>base-line of the (rotated) polygon at <code class="reqn">x = \alpha</code> (see
+Sommariva and Vianello (2007) for an explication). If <code>NULL</code> (default),
+the midpoint of the x-range of each polygon is chosen if no <code>rotation</code>
+is performed, and otherwise the <code class="reqn">x</code>-coordinate of the rotated point
+<code>"P"</code> (see <code>rotation</code>). If <code>f</code> has its maximum value at the
+origin <code class="reqn">(0,0)</code>, e.g., the bivariate Gaussian density with zero mean,
+<code>alpha = 0</code> is a reasonable choice.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rotation</code></td>
+<td>
+<p>logical (default: <code>FALSE</code>) or a list of points
+<code>"P"</code> and <code>"Q"</code> describing the preferred direction. If
+<code>TRUE</code>, the polygon is rotated according to the vertices <code>"P"</code> and
+<code>"Q"</code>, which are farthest apart (see Sommariva and Vianello, 2007). For
+convex polygons, this rotation guarantees that all nodes fall inside the
+polygon.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>engine</code></td>
+<td>
+<p>character string specifying the implementation to use.
+Up to <span class="pkg">polyCub</span> version 0.4-3, the two-dimensional nodes and weights
+were computed by <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> functions and these are still available by setting
+<code>engine = "R"</code>.
+The new C-implementation is now the default (<code>engine = "C"</code>) and
+requires approximately 30% less computation time.<br>
+The special setting <code>engine = "C+reduce"</code> will discard redundant nodes
+at (0,0) with zero weight resulting from edges on the base-line
+<code class="reqn">x = \alpha</code> or orthogonal to it.
+This extra cleaning is only worth its cost for computationally intensive
+functions <code>f</code> over polygons which really have some edges on the
+baseline or parallel to the x-axis.  Note that the old <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+implementation does not have such unset zero nodes and weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>logical indicating if an illustrative plot of the numerical
+integration should be produced.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The approximated value of the integral of <code>f</code> over
+<code>polyregion</code>.<br>
+In the case <code>f = NULL</code>, only the computed nodes and weights are
+returned in a list of length the number of polygons of <code>polyregion</code>,
+where each component is a list with <code>nodes</code> (a numeric matrix with
+two columns), <code>weights</code> (a numeric vector of length
+<code>nrow(nodes)</code>), the rotation <code>angle</code>, and <code>alpha</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Sebastian Meyer<br>
+These R and C implementations of product Gauss cubature are based on the
+original <abbr><span class="acronym">MATLAB</span></abbr> implementation <code>polygauss</code> by Sommariva and
+Vianello (2007), which is available under the GNU GPL (&gt;=2) license from
+<a href="https://www.math.unipd.it/~alvise/software.html">https://www.math.unipd.it/~alvise/software.html</a>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Sommariva, A. and Vianello, M. (2007):
+Product Gauss cubature over polygons based on Green's integration formula.
+<em>BIT Numerical Mathematics</em>, <b>47</b> (2), 441-453.
+<a href="https://doi.org/10.1007/s10543-007-0131-2">doi:10.1007/s10543-007-0131-2</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other polyCub-methods: 
+<code>polyCub()</code>,
+<code>polyCub.exact.Gauss()</code>,
+<code>polyCub.iso()</code>,
+<code>polyCub.midpoint()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## a function to integrate (here: isotropic zero-mean Gaussian density)
+f &lt;- function (s, sigma = 5)
+    exp(-rowSums(s^2)/2/sigma^2) / (2*pi*sigma^2)
+
+## a simple polygon as integration domain
+hexagon &lt;- list(
+    list(x = c(7.33, 7.33, 3, -1.33, -1.33, 3),
+         y = c(-0.5, 4.5, 7, 4.5, -0.5, -3))
+)
+
+## image of the function and integration domain
+plotpolyf(hexagon, f)
+
+## use a degree of nGQ = 3 and show the corresponding nodes
+polyCub.SV(hexagon, f, nGQ = 3, plot = TRUE)
+
+## extract nodes and weights
+nw &lt;- polyCub.SV(hexagon, f = NULL, nGQ = 3)[[1]]
+nrow(nw$nodes)
+
+## manually apply the cubature rule
+sum(nw$weights * f(nw$nodes))
+
+## use an increasing number of nodes
+for (nGQ in c(1:5, 10, 20, 60))
+    cat(sprintf("nGQ = %2i: %.16f\n", nGQ,
+                polyCub.SV(hexagon, f, nGQ = nGQ)))
+
+## polyCub.SV() is the default method used by the polyCub() wrapper
+polyCub(hexagon, f, nGQ = 3)  # calls polyCub.SV()
+
+
+### now using a simple *rectangular* integration domain
+
+rectangle &lt;- list(list(x = c(-1, 7, 7, -1), y = c(-3, -3, 7, 7)))
+polyCub.SV(rectangle, f, plot = TRUE)
+
+## effect of rotation given a very low nGQ
+opar &lt;- par(mfrow = c(1,3))
+polyCub.SV(rectangle, f, nGQ = 4, rotation = FALSE, plot = TRUE)
+           title(main = "without rotation (default)")
+polyCub.SV(rectangle, f, nGQ = 4, rotation = TRUE,  plot = TRUE)
+           title(main = "standard rotation")
+polyCub.SV(rectangle, f, nGQ = 4,
+           rotation = list(P = c(0,0), Q = c(2,-3)), plot = TRUE)
+           title(main = "custom rotation")
+par(opar)
+
+## comparison with the "cubature" package
+if (requireNamespace("cubature")) {
+    fc &lt;- function (s, sigma = 5)  # non-vectorized version of f
+        exp(-sum(s^2)/2/sigma^2) / (2*pi*sigma^2)
+    cubature::hcubature(fc, lowerLimit = c(-1, -3), upperLimit = c(7, 7))
+}
+</code></pre>
+
+
+</div>

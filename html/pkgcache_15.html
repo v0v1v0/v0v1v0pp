@@ -1,0 +1,296 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cranlike_metadata_cache</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Metadata cache for a CRAN-like repository</h2>
+
+<h3>Description</h3>
+
+<p>This is an R6 class that implements the metadata cache of a CRAN-like
+repository. For a higher level interface, see the <code>meta_cache_list()</code>,
+<code>meta_cache_deps()</code>, <code>meta_cache_revdeps()</code> and <code>meta_cache_update()</code>
+functions.
+</p>
+
+
+<h3>Details</h3>
+
+<p>The cache has several layers:
+</p>
+
+<ul>
+<li>
+<p> The data is stored inside the <code>cranlike_metadata_cache</code> object.
+</p>
+</li>
+<li>
+<p> It is also stored as an RDS file, in the session temporary directory.
+This ensures that the same data is used for all queries of a
+<code>cranlike_metadata_cache</code> object.
+</p>
+</li>
+<li>
+<p> It is stored in an RDS file in the user's cache directory.
+</p>
+</li>
+<li>
+<p> The downloaded raw <code style="white-space: pre;">⁠PACKAGES*⁠</code> files are cached, together with HTTP
+ETags, to minimize downloads.
+</p>
+</li>
+</ul>
+<p>It has a synchronous and an asynchronous API.
+</p>
+
+
+<h3>Usage</h3>
+
+<div class="sourceCode"><pre>cmc &lt;- cranlike_metadata_cache$new(
+  primary_path = NULL, replica_path = tempfile(),
+  platforms = default_platforms(), r_version = getRversion(),
+  bioc = TRUE, cran_mirror = default_cran_mirror(),
+  repos = getOption("repos"),
+  update_after = as.difftime(7, units = "days"))
+
+cmc$list(packages = NULL)
+cmc$async_list(packages = NULL)
+
+cmc$deps(packages, dependencies = NA, recursive = TRUE)
+cmc$async_deps(packages, dependencies = NA, recursive = TRUE)
+
+cmc$revdeps(packages, dependencies = NA, recursive = TRUE)
+cmc$async_revdeps(packages, dependencies = NA, recursive = TRUE)
+
+cmc$update()
+cmc$async_update()
+cmc$check_update()
+cmc$asnyc_check_update()
+
+cmc$summary()
+
+cmc$cleanup(force = FALSE)
+</pre></div>
+
+
+<h3>Arguments</h3>
+
+
+<ul>
+<li> <p><code>primary_path</code>: Path of the primary, user level cache. Defaults to
+the user level cache directory of the machine.
+</p>
+</li>
+<li> <p><code>replica_path</code>: Path of the replica. Defaults to a temporary directory
+within the session temporary directory.
+</p>
+</li>
+<li> <p><code>platforms</code>: see <code>default_platforms()</code> for possible values.
+</p>
+</li>
+<li> <p><code>r_version</code>: R version to create the cache for.
+</p>
+</li>
+<li> <p><code>bioc</code>: Whether to include BioConductor packages.
+</p>
+</li>
+<li> <p><code>cran_mirror</code>: CRAN mirror to use, this takes precedence over <code>repos</code>.
+</p>
+</li>
+<li> <p><code>repos</code>: Repositories to use.
+</p>
+</li>
+<li> <p><code>update_after</code>: <code>difftime</code> object. Automatically update the cache if
+it gets older than this. Set it to <code>Inf</code> to avoid updates. Defaults
+to seven days.
+</p>
+</li>
+<li> <p><code>packages</code>: Packages to query, character vector.
+</p>
+</li>
+<li> <p><code>dependencies</code>: Which kind of dependencies to include. Works the same
+way as the <code>dependencies</code> argument of <code>utils::install.packages()</code>.
+</p>
+</li>
+<li> <p><code>recursive</code>: Whether to include recursive dependencies.
+</p>
+</li>
+<li> <p><code>force</code>: Whether to force cleanup without asking the user.
+</p>
+</li>
+</ul>
+<h3>Details</h3>
+
+<p><code>cranlike_metadata_cache$new()</code> creates a new cache object. Creation
+does not trigger the population of the cache. It is only populated on
+demand, when queries are executed against it. In your package, you may
+want to create a cache instance in the <code>.onLoad()</code> function of the
+package, and store it in the package namespace. As this is a cheap
+operation, the package will still load fast, and then the package code
+can refer to the common cache object.
+</p>
+<p><code>cmc$list()</code> lists all (or the specified) packages in the cache.
+It returns a data frame, see the list of columns below.
+</p>
+<p><code>cmc$async_list()</code> is similar, but it is asynchronous, it returns a
+<code>deferred</code> object.
+</p>
+<p><code>cmc$deps()</code> returns a data frame, with the (potentially recursive)
+dependencies of <code>packages</code>.
+</p>
+<p><code>cmc$async_deps()</code> is the same, but it is asynchronous, it
+returns a <code>deferred</code> object.
+</p>
+<p><code>cmc$revdeps()</code> returns a data frame, with the (potentially recursive)
+reverse dependencies of <code>packages</code>.
+</p>
+<p><code>cmc$async_revdeps()</code> does the same, asynchronously, it returns an
+<code>deferred</code> object.
+</p>
+<p><code>cmc$update()</code> updates the the metadata (as needed) in the cache,
+and then returns a data frame with all packages, invisibly.
+</p>
+<p><code>cmc$async_update()</code> is similar, but it is asynchronous.
+</p>
+<p><code>cmc$check_update()</code> checks if the metadata is current, and if it is
+not, it updates it.
+</p>
+<p><code>cmc$async_check_update()</code> is similar, but it is asynchronous.
+</p>
+<p><code>cmc$summary()</code> lists metadata about the cache, including its
+location and size.
+</p>
+<p><code>cmc$cleanup()</code> deletes the cache files from the disk, and also from
+memory.
+</p>
+
+
+<h3>Columns</h3>
+
+<p>The metadata data frame contains all available versions (i.e. sources and
+binaries) for all packages. It usually has the following columns,
+some might be missing on some platforms.
+</p>
+
+<ul>
+<li> <p><code>package</code>: Package name.
+</p>
+</li>
+<li> <p><code>title</code>: Package title.
+</p>
+</li>
+<li> <p><code>version</code>: Package version.
+</p>
+</li>
+<li> <p><code>depends</code>: <code>Depends</code> field from <code>DESCRIPTION</code>, or <code>NA_character_</code>.
+</p>
+</li>
+<li> <p><code>suggests</code>: <code>Suggests</code> field from <code>DESCRIPTION</code>, or <code>NA_character_</code>.
+</p>
+</li>
+<li> <p><code>built</code>:  <code>Built</code> field from <code>DESCIPTION</code>, if a binary package,
+or <code>NA_character_</code>.
+</p>
+</li>
+<li> <p><code>imports</code>: <code>Imports</code> field from <code>DESCRIPTION</code>, or <code>NA_character_</code>.
+</p>
+</li>
+<li> <p><code>archs</code>: <code>Archs</code> entries from <code>PACKAGES</code> files. Might be missing.
+</p>
+</li>
+<li> <p><code>repodir</code>: The directory of the file, inside the repository.
+</p>
+</li>
+<li> <p><code>platform</code>: This is a character vector. See <code>default_platforms()</code> for
+more about platform names. In practice each value of the <code>platform</code>
+column is either
+</p>
+
+<ul>
+<li> <p><code>"source"</code> for source packages,
+</p>
+</li>
+<li>
+<p> a platform string, e.g. <code>x86_64-apple-darwin17.0</code> for macOS
+packages compatible with macOS High Sierra or newer.
+</p>
+</li>
+</ul>
+</li>
+<li> <p><code>needscompilation</code>: Whether the package needs compilation.
+</p>
+</li>
+<li> <p><code>type</code>: <code>bioc</code> or <code>cran</code>  currently.
+</p>
+</li>
+<li> <p><code>target</code>: The path of the package file inside the repository.
+</p>
+</li>
+<li> <p><code>mirror</code>: URL of the CRAN/BioC mirror.
+</p>
+</li>
+<li> <p><code>sources</code>: List column with URLs to one or more possible locations
+of the package file. For source CRAN packages, it contains URLs to
+the <code>Archive</code> directory as well, in case the package has been
+archived since the metadata was cached.
+</p>
+</li>
+<li> <p><code>filesize</code>: Size of the file, if known, in bytes, or <code>NA_integer_</code>.
+</p>
+</li>
+<li> <p><code>sha256</code>: The SHA256 hash of the file, if known, or <code>NA_character_</code>.
+</p>
+</li>
+<li> <p><code>deps</code>: All package dependencies, in a data frame.
+</p>
+</li>
+<li> <p><code>license</code>: Package license, might be <code>NA</code> for binary packages.
+</p>
+</li>
+<li> <p><code>linkingto</code>: <code>LinkingTo</code> field from <code>DESCRIPTION</code>, or <code>NA_character_</code>.
+</p>
+</li>
+<li> <p><code>enhances</code>: <code>Enhances</code> field from <code>DESCRIPTION</code>, or <code>NA_character_</code>.
+</p>
+</li>
+<li> <p><code>os_type</code>: <code>unix</code> or <code>windows</code> for OS specific packages. Usually <code>NA</code>.
+</p>
+</li>
+<li> <p><code>priority</code>: "optional", "recommended" or <code>NA</code>. (Base packages are
+normally not included in the list, so "base" should not appear here.)
+</p>
+</li>
+<li> <p><code>md5sum</code>: MD5 sum, if available, may be <code>NA</code>.
+</p>
+</li>
+<li> <p><code>sysreqs</code>: The <code>SystemRequirements</code> field, if available. This lists the
+required system libraries or other software for the package. This is
+usually available for CRAN and Bioconductor package and when it is
+explicitly available in the repository metadata.
+</p>
+</li>
+<li> <p><code>published</code>: The time the package was published at, in GMT,
+<code>POSIXct</code> class.
+</p>
+</li>
+</ul>
+<p>The data frame contains some extra columns as well, these are for internal
+use only.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+dir.create(cache_path &lt;- tempfile())
+cmc &lt;- cranlike_metadata_cache$new(cache_path, bioc = FALSE)
+cmc$list()
+cmc$list("pkgconfig")
+cmc$deps("pkgconfig")
+cmc$revdeps("pkgconfig", recursive = FALSE)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,123 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>poismf_unsafe</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Poisson factorization with no input casting</h2>
+
+<h3>Description</h3>
+
+<p>This is a faster version of poismf which will not make any checks
+or castings on its inputs. It is intended as a fast alternative when a model is to
+be fit multiple times with different hyperparameters, and for allowing
+custom-initialized factor matrices. <b>Note that since it doesn't make any checks
+or conversions, passing the wrong kinds of inputs or passing inputs with mismatching
+dimensions will crash the R process</b>.
+</p>
+<p>For most use cases, it's recommended to use the function 'poismf' instead.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">poismf_unsafe(A, B, Xcsr, Xcsc, k, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>A</code></td>
+<td>
+<p>Initial values for the user-factor matrix of dimensions [dimA, k],
+assuming row-major order. Can be passed as a vector of dimension [dimA*k], or
+as a matrix of dimension [k, dimA]. Note that R matrices use column-major order,
+so if you want to pass an R matrix as initial values, you'll need to transpose it,
+hence the shape [k, dimA]. Recommended to initialize '~ Uniform(0.3, 0.31)'.
+<b>Will be modified in-place</b>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>Initial values for the item-factor matrix of dimensions [dimB, k]. See
+documentation about 'A' for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xcsr</code></td>
+<td>
+<p>The 'X' matrix in CSR format. Should be an object of class 'Matrix::dgRMatrix'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xcsc</code></td>
+<td>
+<p>The 'X' matrix in CSC format. Should be an object of class 'Matrix::dgCMatrix'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>The number of latent factors. <b>Must match with the dimension of 'A' and 'B'</b>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other hyperparameters that can be passed to 'poismf'. See the documentation
+for poismf for details about possible hyperparameters.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A 'poismf' model object. See the documentation for poismf for details.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>poismf
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(poismf)
+
+### create a random sparse data frame in COO format
+nrow &lt;- 10^2 ## &lt;- users
+ncol &lt;- 10^3 ## &lt;- items
+nnz  &lt;- 10^4 ## &lt;- events (agg)
+set.seed(1)
+X &lt;- data.frame(
+        row_ix = sample(nrow, size=nnz, replace=TRUE),
+        col_ix = sample(ncol, size=nnz, replace=TRUE),
+        count  = rpois(nnz, 1) + 1
+     )
+X &lt;- X[!duplicated(X[, c("row_ix", "col_ix")]), ]
+
+### convert to required format
+Xcsr &lt;- Matrix::sparseMatrix(
+            i=X$row_ix, j=X$col_ix, x=X$count,
+            repr="R"
+)
+Xcsc &lt;- Matrix::sparseMatrix(
+            i=X$row_ix, j=X$col_ix, x=X$count,
+            repr="C"
+)
+
+### initialize factor matrices
+k &lt;- 5L
+A &lt;- rgamma(nrow*k, 1, 1)
+B &lt;- rgamma(ncol*k, 1, 1)
+
+### call function
+model &lt;- poismf_unsafe(A, B, Xcsr, Xcsc, k, nthreads=1)
+</code></pre>
+
+
+</div>

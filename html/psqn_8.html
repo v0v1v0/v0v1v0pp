@@ -1,0 +1,210 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>psqn_hess</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Computes the Hessian.</h2>
+
+<h3>Description</h3>
+
+<p>Computes the Hessian using numerical differentiation with Richardson
+extrapolation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">psqn_hess(
+  val,
+  fn,
+  n_ele_func,
+  n_threads = 1L,
+  env = NULL,
+  eps = 0.001,
+  scale = 2,
+  tol = 1e-09,
+  order = 6L
+)
+
+psqn_generic_hess(
+  val,
+  fn,
+  n_ele_func,
+  n_threads = 1L,
+  env = NULL,
+  eps = 0.001,
+  scale = 2,
+  tol = 1e-09,
+  order = 6L
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>val</code></td>
+<td>
+<p>Where to evaluate the function at.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fn</code></td>
+<td>
+<p>Function to compute the element functions and their derivatives.
+See <code>psqn</code> and <code>psqn_generic</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_ele_func</code></td>
+<td>
+<p>Number of element functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_threads</code></td>
+<td>
+<p>Number of threads to use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>env</code></td>
+<td>
+<p>Environment to evaluate <code>fn</code> in. <code>NULL</code> yields the
+global environment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps</code></td>
+<td>
+<p>Determines the step size. See the details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>Scaling factor in the Richardson extrapolation. See the
+details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>Relative convergence criteria. See the details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>order</code></td>
+<td>
+<p>Maximum number of iteration of the Richardson extrapolation.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function computes the Hessian using numerical differentiation with
+centered differences and subsequent use of Richardson
+extrapolation to refine the estimate.
+</p>
+<p>The additional arguments are as follows: The numerical differentiation
+is applied for each argument with a step size of
+<code>s = max(eps, |x| * eps)</code>.
+The Richardson extrapolation at iteration <code>i</code> uses a step size of
+<code>s * scale^(-i)</code>. The convergence threshold for each comportment of
+the gradient is <code>max(tol, |gr(x)[j]| * tol)</code>.
+</p>
+<p>The numerical differentiation is done on each element function and thus
+much more efficient then doing it on the whole gradient.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># assign model parameters, number of random effects, and fixed effects
+q &lt;- 2 # number of private parameters per cluster
+p &lt;- 1 # number of global parameters
+beta &lt;- sqrt((1:p) / sum(1:p))
+Sigma &lt;- diag(q)
+
+# simulate a data set
+set.seed(66608927)
+n_clusters &lt;- 20L # number of clusters
+sim_dat &lt;- replicate(n_clusters, {
+  n_members &lt;- sample.int(8L, 1L) + 2L
+  X &lt;- matrix(runif(p * n_members, -sqrt(6 / 2), sqrt(6 / 2)),
+              p)
+  u &lt;- drop(rnorm(q) %*% chol(Sigma))
+  Z &lt;- matrix(runif(q * n_members, -sqrt(6 / 2 / q), sqrt(6 / 2 / q)),
+              q)
+  eta &lt;- drop(beta %*% X + u %*% Z)
+  y &lt;- as.numeric((1 + exp(-eta))^(-1) &gt; runif(n_members))
+
+  list(X = X, Z = Z, y = y, u = u, Sigma_inv = solve(Sigma))
+}, simplify = FALSE)
+
+# evaluates the negative log integrand.
+#
+# Args:
+#   i cluster/element function index.
+#   par the global and private parameter for this cluster. It has length
+#       zero if the number of parameters is requested. That is, a 2D integer
+#       vector the number of global parameters as the first element and the
+#       number of private parameters as the second element.
+#   comp_grad logical for whether to compute the gradient.
+r_func &lt;- function(i, par, comp_grad){
+  dat &lt;- sim_dat[[i]]
+  X &lt;- dat$X
+  Z &lt;- dat$Z
+
+  if(length(par) &lt; 1)
+    # requested the dimension of the parameter
+    return(c(global_dim = NROW(dat$X), private_dim = NROW(dat$Z)))
+
+  y &lt;- dat$y
+  Sigma_inv &lt;- dat$Sigma_inv
+
+  beta &lt;- par[1:p]
+  uhat &lt;- par[1:q + p]
+  eta &lt;- drop(beta %*% X + uhat %*% Z)
+  exp_eta &lt;- exp(eta)
+
+  out &lt;- -sum(y * eta) + sum(log(1 + exp_eta)) +
+    sum(uhat * (Sigma_inv %*% uhat)) / 2
+  if(comp_grad){
+    d_eta &lt;- -y + exp_eta / (1 + exp_eta)
+    grad &lt;- c(X %*% d_eta,
+              Z %*% d_eta + dat$Sigma_inv %*% uhat)
+    attr(out, "grad") &lt;- grad
+  }
+
+  out
+}
+
+# compute the hessian
+set.seed(1)
+par &lt;- runif(p + q * n_clusters, -1)
+
+hess &lt;- psqn_hess(val = par, fn = r_func, n_ele_func = n_clusters)
+
+# compare with numerical differentiation from R
+if(require(numDeriv)){
+    hess_num &lt;- jacobian(function(x){
+        out &lt;- numeric(length(x))
+        for(i in seq_len(n_clusters)){
+            out_i &lt;- r_func(i, x[c(1:p, 1:q + (i - 1L) * q + p)], TRUE)
+            out[1:p] &lt;- out[1:p] + attr(out_i, "grad")[1:p]
+            out[1:q + (i - 1L) * q + p] &lt;- attr(out_i, "grad")[1:q + p]
+        }
+        out
+    }, par)
+
+    cat("Output of all.equal\n")
+    print(all.equal(Matrix(hess_num, sparse = TRUE), hess))
+}
+
+</code></pre>
+
+
+</div>

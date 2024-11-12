@@ -1,0 +1,103 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rpcurve</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Marginal piecewise parametric relative survival curve</h2>
+
+<h3>Description</h3>
+
+<p>Fit a marginal relative survival curve based on a <code>relpois</code> fit
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rpcurve(object)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>a <code>relpois</code> object</p>
+</td>
+</tr></table>
+<h3>Details</h3>
+
+<p>Estimates a marginal curve, i.e. the average of all
+possible individual curves. 
+</p>
+<p>Only supported when the reserved <code>FOT</code> variable was used in <code>relpois</code>.
+Computes a curve for each unique combination of covariates (e.g. 4 sets) 
+and returns a weighted average curve based on the counts
+of subjects for each combination (e.g. 1000, 125, 50, 25 respectively). 
+Fairly fast when only categorical variables have been used, otherwise
+go get a cup of coffee.
+</p>
+<p>If delayed entry is present in data due to period analysis limiting,
+the marginal curve is constructed only for those whose follow-up started
+in the respective period.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A 'data.table' of relative survival curves.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Joonas Miettinen
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other relpois functions: 
+<code>RPL</code>,
+<code>relpois()</code>,
+<code>relpois_ag()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## use the simulated rectal cancer cohort
+data("sire", package = "popEpi")
+ab &lt;- c(0,45,55,65,70,Inf)
+sire$agegr &lt;- cut(sire$dg_age, breaks = ab, right = FALSE)
+
+BL &lt;- list(fot= seq(0,10,1/12))
+pm &lt;- data.frame(popEpi::popmort)
+x &lt;- lexpand(sire, breaks=BL, pophaz=pm, 
+             birth = bi_date, 
+             entry = dg_date, exit = ex_date, 
+             status  = status %in% 1:2)
+
+rpm &lt;- relpois(x, formula = lex.Xst %in% 1:2 ~ -1+ FOT + agegr, 
+               fot.breaks=c(0,0.25,0.5,1:8,10))
+pmc &lt;- rpcurve(rpm)
+
+## compare with non-parametric estimates
+names(pm) &lt;- c("sex", "per", "age", "haz")
+x$agegr &lt;- cut(x$dg_age, c(0,45,55,65,75,Inf), right = FALSE)
+st &lt;- survtab(fot ~ adjust(agegr), data = x, weights = "internal",
+              pophaz = pm)
+
+
+plot(st, y = "r.e2.as")
+lines(y = pmc$est, x = pmc$Tstop, col="red")
+
+
+
+
+</code></pre>
+
+
+</div>

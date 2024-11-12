@@ -1,0 +1,118 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>saveGRM</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Save symmetic matrix to GCTA GRM format.</h2>
+
+<h3>Description</h3>
+
+<p>GRM (Genetic  Relatedness Matrix) is  the core  formt of GCTA,  this function
+saves a R symmetric matrix to a file set recgnizable by GCTA.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">saveGRM(pfx, grm, vcm = NULL, fid = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pfx</code></td>
+<td>
+<p>prefix of data files</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grm</code></td>
+<td>
+<p>genome relatedness matrix to save</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vcm</code></td>
+<td>
+<p>variant counts matrix to save (def=1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fid</code></td>
+<td>
+<p>separator after family ID. (def=NULL)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Three files will be saved:
+</p>
+
+<dl>
+<dt>.grm.bin   :</dt>
+<dd>
+<p>genetic relatedness matrix in binary</p>
+</dd>
+<dt>.grm.id    :</dt>
+<dd>
+<p>FID and IID for N individuals in text</p>
+</dd>
+<dt>.grm.N.bin :</dt>
+<dd>
+<p>variant count matrix (VCM) in binary</p>
+</dd>
+</dl>
+<p>FID and IID will be generated if the <code>grm</code> to be saved has no row names.
+</p>
+<p>When save the  <code>vcm</code>, if a single  number is given, this  number is used
+as the variant count for all entries in the GRM.
+</p>
+<p><code>saveGRM</code> is useful in exporting  customized kinship matrices (such as a
+Gaussian or a  Laplacian kernel) to a  GRM acceptable by GCTA,  which are not
+supported by GCTA's own GRM builder.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">pfx &lt;- file.path(system.file("extdata", package="plinkFile"), "m20")
+gmx &lt;- readBED(pfx)  # read genotype matrix from PLINK BED.
+gmx &lt;- scale(gmx)    # standardize
+tmp &lt;- tempdir()     # for example outputs
+dir.create(tmp, FALSE)
+
+# kinship matrix as Gaussian kernel, built from the first 10 variants
+gmx.gau &lt;- gmx[, +(1:10)]                 # the first 10 variants
+not.na.gau &lt;- tcrossprod(!is.na(gmx.gau)) # variant count matrix
+kin.gau &lt;- exp(as.matrix(-dist(gmx.gau, "euc")) / not.na.gau)
+print(kin.gau)                            # the Gaussian kernel
+out.gau &lt;- file.path(tmp, "m20.gau")
+saveGRM(out.gau, kin.gau, not.na.gau)     # gau.grm.* should appear
+
+# kinship matrix as Laplacian kernel, built without the first 10 variants
+gmx.lap &lt;- gmx[, -(1:10)]                 # drop the first 10 variants
+not.na.lap &lt;- tcrossprod(!is.na(gmx.lap)) # variant count matrix
+kin.lap &lt;- exp(as.matrix(-dist(gmx.lap, "man")) / not.na.lap)
+out.lap &lt;- file.path(tmp, "m20.lap")
+print(kin.lap)                            # the Laplacian kernel
+saveGRM(out.lap, kin.lap, not.na.lap)     # lap.grm.* should appear
+
+# merge kinship in R language for a radius based function kernel matrix
+not.na.rbf &lt;- not.na.gau + not.na.lap
+kin.rbf &lt;- (kin.gau * not.na.gau + kin.lap * not.na.lap) / not.na.rbf
+print(kin.rbf)
+out.rbf &lt;- file.path(tmp, "m20.rbf")
+saveGRM(out.rbf, kin.rbf, not.na.rbf)     # rbf.grm.* should appear
+
+# show saved matrices, then clean up
+dir(tmp, "(gau|lap|rbf)")
+unlink(tmp, recursive=TRUE)
+
+</code></pre>
+
+
+</div>

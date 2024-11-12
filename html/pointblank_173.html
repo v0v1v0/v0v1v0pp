@@ -1,0 +1,697 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>col_vals_within_spec</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Do values in column data fit within a specification?</h2>
+
+<h3>Description</h3>
+
+<p>The <code>col_vals_within_spec()</code> validation function, the
+<code>expect_col_vals_within_spec()</code> expectation function, and the
+<code>test_col_vals_within_spec()</code> test function all check whether column values
+in a table correspond to a specification (<code>spec</code>) type (details of which are
+available in the <em>Specifications</em> section). The validation function can be
+used directly on a data table or with an <em>agent</em> object (technically, a
+<code>ptblank_agent</code> object) whereas the expectation and test functions can only
+be used with a data table. Each validation step or expectation will operate
+over the number of test units that is equal to the number of rows in the
+table (after any <code>preconditions</code> have been applied).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">col_vals_within_spec(
+  x,
+  columns,
+  spec,
+  na_pass = FALSE,
+  preconditions = NULL,
+  segments = NULL,
+  actions = NULL,
+  step_id = NULL,
+  label = NULL,
+  brief = NULL,
+  active = TRUE
+)
+
+expect_col_vals_within_spec(
+  object,
+  columns,
+  spec,
+  na_pass = FALSE,
+  preconditions = NULL,
+  threshold = 1
+)
+
+test_col_vals_within_spec(
+  object,
+  columns,
+  spec,
+  na_pass = FALSE,
+  preconditions = NULL,
+  threshold = 1
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><em>A pointblank agent or a data table</em>
+</p>
+<p><code style="white-space: pre;">⁠obj:&lt;ptblank_agent&gt;|obj:&lt;tbl_*&gt;⁠</code> // <strong>required</strong>
+</p>
+<p>A data frame, tibble (<code>tbl_df</code> or <code>tbl_dbi</code>), Spark DataFrame
+(<code>tbl_spark</code>), or, an <em>agent</em> object of class <code>ptblank_agent</code> that is
+commonly created with <code>create_agent()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>columns</code></td>
+<td>
+<p><em>The target columns</em>
+</p>
+<p><code style="white-space: pre;">⁠&lt;tidy-select&gt;⁠</code> // <strong>required</strong>
+</p>
+<p>A column-selecting expression, as one would use inside <code>dplyr::select()</code>.
+Specifies the column (or a set of columns) to which this validation should
+be applied. See the <em>Column Names</em> section for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spec</code></td>
+<td>
+<p><em>Specification type</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;character&gt;⁠</code> // <strong>required</strong>
+</p>
+<p>A specification string for defining the specification type. Examples are
+<code>"email"</code>, <code>"url"</code>, and <code>"postal[USA]"</code>. All options are explained in the
+<em>Specifications</em> section.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na_pass</code></td>
+<td>
+<p><em>Allow missing values to pass validation</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;logical&gt;⁠</code> // <em>default:</em> <code>FALSE</code>
+</p>
+<p>Should any encountered <code>NA</code> values be considered as passing test units? By
+default, this is <code>FALSE</code>. Set to <code>TRUE</code> to give <code>NA</code>s a pass.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>preconditions</code></td>
+<td>
+<p><em>Input table modification prior to validation</em>
+</p>
+<p><code style="white-space: pre;">⁠&lt;table mutation expression&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>An optional expression for mutating the input table before proceeding with
+the validation. This can either be provided as a one-sided R formula using
+a leading <code>~</code> (e.g., <code>~ . %&gt;% dplyr::mutate(col = col + 10)</code> or as a
+function (e.g., <code>function(x) dplyr::mutate(x, col = col + 10)</code>. See the
+<em>Preconditions</em> section for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>segments</code></td>
+<td>
+<p><em>Expressions for segmenting the target table</em>
+</p>
+<p><code style="white-space: pre;">⁠&lt;segmentation expressions&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>An optional expression or set of expressions (held in a list) that serve to
+segment the target table by column values. Each expression can be given in
+one of two ways: (1) as column names, or (2) as a two-sided formula where
+the LHS holds a column name and the RHS contains the column values to
+segment on. See the <em>Segments</em> section for more details on this.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>actions</code></td>
+<td>
+<p><em>Thresholds and actions for different states</em>
+</p>
+<p><code style="white-space: pre;">⁠obj:&lt;action_levels&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>A list containing threshold levels so that the validation step can react
+accordingly when exceeding the set levels for different states. This is to
+be created with the <code>action_levels()</code> helper function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>step_id</code></td>
+<td>
+<p><em>Manual setting of the step ID value</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;character&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>One or more optional identifiers for the single or multiple validation
+steps generated from calling a validation function. The use of step IDs
+serves to distinguish validation steps from each other and provide an
+opportunity for supplying a more meaningful label compared to the step
+index. By default this is <code>NULL</code>, and <strong>pointblank</strong> will automatically
+generate the step ID value (based on the step index) in this case. One or
+more values can be provided, and the exact number of ID values should (1)
+match the number of validation steps that the validation function call will
+produce (influenced by the number of <code>columns</code> provided), (2) be an ID
+string not used in any previous validation step, and (3) be a vector with
+unique values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>label</code></td>
+<td>
+<p><em>Optional label for the validation step</em>
+</p>
+<p><code style="white-space: pre;">⁠vector&lt;character&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>Optional label for the validation step. This label appears in the <em>agent</em>
+report and, for the best appearance, it should be kept quite short. See
+the <em>Labels</em> section for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>brief</code></td>
+<td>
+<p><em>Brief description for the validation step</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;character&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>A <em>brief</em> is a short, text-based description for the validation step. If
+nothing is provided here then an <em>autobrief</em> is generated by the <em>agent</em>,
+using the language provided in <code>create_agent()</code>'s <code>lang</code> argument (which
+defaults to <code>"en"</code> or English). The <em>autobrief</em> incorporates details of the
+validation step so it's often the preferred option in most cases (where a
+<code>label</code> might be better suited to succinctly describe the validation).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>active</code></td>
+<td>
+<p><em>Is the validation step active?</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;logical&gt;⁠</code> // <em>default:</em> <code>TRUE</code>
+</p>
+<p>A logical value indicating whether the validation step should be active. If
+the validation function is working with an <em>agent</em>, <code>FALSE</code> will make the
+validation step inactive (still reporting its presence and keeping indexes
+for the steps unchanged). If the validation function will be operating
+directly on data (no <em>agent</em> involvement), then any step with <code>active = FALSE</code> will simply pass the data through with no validation whatsoever.
+Aside from a logical vector, a one-sided R formula using a leading <code>~</code> can
+be used with <code>.</code> (serving as the input data table) to evaluate to a single
+logical value. With this approach, the <strong>pointblank</strong> function
+<code>has_columns()</code> can be used to determine whether to make a validation step
+active on the basis of one or more columns existing in the table
+(e.g., <code>~ . %&gt;% has_columns(c(d, e))</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p><em>A data table for expectations or tests</em>
+</p>
+<p><code style="white-space: pre;">⁠obj:&lt;tbl_*&gt;⁠</code> // <strong>required</strong>
+</p>
+<p>A data frame, tibble (<code>tbl_df</code> or <code>tbl_dbi</code>), or Spark DataFrame
+(<code>tbl_spark</code>) that serves as the target table for the expectation function
+or the test function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p><em>The failure threshold</em>
+</p>
+<p><code>scalar&lt;integer|numeric&gt;(val&gt;=0)</code> // <em>default:</em> <code>1</code>
+</p>
+<p>A simple failure threshold value for use with the expectation (<code>expect_</code>)
+and the test (<code>test_</code>) function variants. By default, this is set to <code>1</code>
+meaning that any single unit of failure in data validation results in an
+overall test failure. Whole numbers beyond <code>1</code> indicate that any failing
+units up to that absolute threshold value will result in a succeeding
+<strong>testthat</strong> test or evaluate to <code>TRUE</code>. Likewise, fractional values
+(between <code>0</code> and <code>1</code>) act as a proportional failure threshold, where <code>0.15</code>
+means that 15 percent of failing test units results in an overall test
+failure.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>For the validation function, the return value is either a
+<code>ptblank_agent</code> object or a table object (depending on whether an agent
+object or a table was passed to <code>x</code>). The expectation function invisibly
+returns its input but, in the context of testing data, the function is
+called primarily for its potential side-effects (e.g., signaling failure).
+The test function returns a logical value.
+</p>
+
+
+<h3>Supported Input Tables</h3>
+
+<p>The types of data tables that are officially supported are:
+</p>
+
+<ul>
+<li>
+<p> data frames (<code>data.frame</code>) and tibbles (<code>tbl_df</code>)
+</p>
+</li>
+<li>
+<p> Spark DataFrames (<code>tbl_spark</code>)
+</p>
+</li>
+<li>
+<p> the following database tables (<code>tbl_dbi</code>):
+</p>
+
+<ul>
+<li> <p><em>PostgreSQL</em> tables (using the <code>RPostgres::Postgres()</code> as driver)
+</p>
+</li>
+<li> <p><em>MySQL</em> tables (with <code>RMySQL::MySQL()</code>)
+</p>
+</li>
+<li> <p><em>Microsoft SQL Server</em> tables (via <strong>odbc</strong>)
+</p>
+</li>
+<li> <p><em>BigQuery</em> tables (using <code>bigrquery::bigquery()</code>)
+</p>
+</li>
+<li> <p><em>DuckDB</em> tables (through <code>duckdb::duckdb()</code>)
+</p>
+</li>
+<li> <p><em>SQLite</em> (with <code>RSQLite::SQLite()</code>)
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>Other database tables may work to varying degrees but they haven't been
+formally tested (so be mindful of this when using unsupported backends with
+<strong>pointblank</strong>).
+</p>
+
+
+<h3>Specifications</h3>
+
+<p>A specification type must be used with the <code>spec</code> argument. This is a
+character-based keyword that corresponds to the type of data in the specified
+<code>columns</code>. The following keywords can be used:
+</p>
+
+<ul>
+<li> <p><code>"isbn"</code>: The International Standard Book Number (ISBN) is a unique
+numerical identifier for books, pamphletes, educational kits, microforms, and
+digital/electronic publications. The specification has been formalized in
+ISO 2108. This keyword can be used to validate 10- or 13-digit ISBNs.
+</p>
+</li>
+<li> <p><code>"VIN"</code>: A vehicle identification number (VIN) is a unique code (which
+includes a serial number) used by the automotive industry to identify
+individual motor vehicles, motorcycles, scooters, and mopeds as stipulated
+by ISO 3779 and ISO 4030.
+</p>
+</li>
+<li> <p><code>"postal_code[&lt;country_code&gt;]"</code>: A postal code (also known as postcodes,
+PIN, or ZIP codes, depending on region) is a series of letters, digits, or
+both (sometimes including spaces/punctuation) included in a postal address to
+aid in sorting mail. Because the coding varies by country, a country code in
+either the 2- (ISO 3166-1 alpha-2) or 3-letter (ISO 3166-1 alpha-3) formats
+needs to be supplied along with the keywords (e.g., for postal codes in
+Germany, <code>"postal_code[DE]"</code> or <code>"postal_code[DEU]"</code> can be used). The
+keyword alias <code>"zip"</code> can be used for US ZIP codes.
+</p>
+</li>
+<li> <p><code>"credit_card"</code>: A credit card number can be validated and this check works
+across a large variety of credit type issuers (where card numbers are
+allocated in accordance with ISO/IEC 7812). Numbers can be of various lengths
+(typically, they are of 14-19 digits) and the key validation performed here
+is the usage of the Luhn algorithm.
+</p>
+</li>
+<li> <p><code>"iban[&lt;country_code&gt;]"</code>: The International Bank Account Number (IBAN) is a
+system of identifying bank accounts across different countries for the
+purpose of improving cross-border transactions. IBAN values are validated
+through conversion to integer values and performing a basic mod-97 operation
+(as described in ISO 7064) on them. Because the length and coding varies by
+country, a country code in either the 2- (ISO 3166-1 alpha-2) or 3-letter
+(ISO 3166-1 alpha-3) formats needs to be supplied along with the keywords
+(e.g., for IBANs in Germany, <code>"iban[DE]"</code> or <code>"iban[DEU]"</code> can be used).
+</p>
+</li>
+<li> <p><code>"swift"</code>: Business Identifier Codes (also known as SWIFT-BIC, BIC,
+or SWIFT code) are defined in a standard format as described by ISO 9362.
+These codes are unique identifiers for both financial and non-financial
+institutions. SWIFT stands for the Society for Worldwide Interbank Financial
+Telecommunication. These numbers are used when transferring money between
+banks, especially important for international wire transfers.
+</p>
+</li>
+<li> <p><code>"phone"</code>, <code>"email"</code>, <code>"url"</code>, <code>"ipv4"</code>, <code>"ipv6"</code>, <code>"mac"</code>: Phone numbers,
+email addresses, Internet URLs, IPv4 or IPv6 addresses, and MAC addresses can
+be validated with their respective keywords. These validations use
+regex-based matching to determine validity.
+</p>
+</li>
+</ul>
+<p>Only a single <code>spec</code> value should be provided per function call.
+</p>
+
+
+<h3>Column Names</h3>
+
+<p><code>columns</code> may be a single column (as symbol <code>a</code> or string <code>"a"</code>) or a vector
+of columns (<code>c(a, b, c)</code> or <code>c("a", "b", "c")</code>). <code>{tidyselect}</code> helpers
+are also supported, such as <code>contains("date")</code> and <code>where(is.double)</code>. If
+passing an <em>external vector</em> of columns, it should be wrapped in <code>all_of()</code>.
+</p>
+<p>When multiple columns are selected by <code>columns</code>, the result will be an
+expansion of validation steps to that number of columns (e.g.,
+<code>c(col_a, col_b)</code> will result in the entry of two validation steps).
+</p>
+<p>Previously, columns could be specified in <code>vars()</code>. This continues to work,
+but <code>c()</code> offers the same capability and supersedes <code>vars()</code> in <code>columns</code>.
+</p>
+
+
+<h3>Missing Values</h3>
+
+<p>This validation function supports special handling of <code>NA</code> values. The
+<code>na_pass</code> argument will determine whether an <code>NA</code> value appearing in a test
+unit should be counted as a <em>pass</em> or a <em>fail</em>. The default of <code>na_pass = FALSE</code> means that any <code>NA</code>s encountered will accumulate failing test units.
+</p>
+
+
+<h3>Preconditions</h3>
+
+<p>Providing expressions as <code>preconditions</code> means <strong>pointblank</strong> will preprocess
+the target table during interrogation as a preparatory step. It might happen
+that a particular validation requires a calculated column, some filtering of
+rows, or the addition of columns via a join, etc. Especially for an
+<em>agent</em>-based report this can be advantageous since we can develop a large
+validation plan with a single target table and make minor adjustments to it,
+as needed, along the way.
+</p>
+<p>The table mutation is totally isolated in scope to the validation step(s)
+where <code>preconditions</code> is used. Using <strong>dplyr</strong> code is suggested here since
+the statements can be translated to SQL if necessary (i.e., if the target
+table resides in a database). The code is most easily supplied as a one-sided
+<strong>R</strong> formula (using a leading <code>~</code>). In the formula representation, the <code>.</code>
+serves as the input data table to be transformed (e.g., <code>~ . %&gt;% dplyr::mutate(col_b = col_a + 10)</code>). Alternatively, a function could instead
+be supplied (e.g., <code>function(x) dplyr::mutate(x, col_b = col_a + 10)</code>).
+</p>
+
+
+<h3>Segments</h3>
+
+<p>By using the <code>segments</code> argument, it's possible to define a particular
+validation with segments (or row slices) of the target table. An optional
+expression or set of expressions that serve to segment the target table by
+column values. Each expression can be given in one of two ways: (1) as column
+names, or (2) as a two-sided formula where the LHS holds a column name and
+the RHS contains the column values to segment on.
+</p>
+<p>As an example of the first type of expression that can be used,
+<code>vars(a_column)</code> will segment the target table in however many unique values
+are present in the column called <code>a_column</code>. This is great if every unique
+value in a particular column (like different locations, or different dates)
+requires it's own repeating validation.
+</p>
+<p>With a formula, we can be more selective with which column values should be
+used for segmentation. Using <code>a_column ~ c("group_1", "group_2")</code> will
+attempt to obtain two segments where one is a slice of data where the value
+<code>"group_1"</code> exists in the column named <code>"a_column"</code>, and, the other is a
+slice where <code>"group_2"</code> exists in the same column. Each group of rows
+resolved from the formula will result in a separate validation step.
+</p>
+<p>If there are multiple <code>columns</code> specified then the potential number of
+validation steps will be <code>m</code> columns multiplied by <code>n</code> segments resolved.
+</p>
+<p>Segmentation will always occur after <code>preconditions</code> (i.e., statements that
+mutate the target table), if any, are applied. With this type of one-two
+combo, it's possible to generate labels for segmentation using an expression
+for <code>preconditions</code> and refer to those labels in <code>segments</code> without having to
+generate a separate version of the target table.
+</p>
+
+
+<h3>Actions</h3>
+
+<p>Often, we will want to specify <code>actions</code> for the validation. This argument,
+present in every validation function, takes a specially-crafted list
+object that is best produced by the <code>action_levels()</code> function. Read that
+function's documentation for the lowdown on how to create reactions to
+above-threshold failure levels in validation. The basic gist is that you'll
+want at least a single threshold level (specified as either the fraction of
+test units failed, or, an absolute value), often using the <code>warn_at</code>
+argument. This is especially true when <code>x</code> is a table object because,
+otherwise, nothing happens. For the <code style="white-space: pre;">⁠col_vals_*()⁠</code>-type functions, using
+<code>action_levels(warn_at = 0.25)</code> or <code>action_levels(stop_at = 0.25)</code> are good
+choices depending on the situation (the first produces a warning when a
+quarter of the total test units fails, the other <code>stop()</code>s at the same
+threshold level).
+</p>
+
+
+<h3>Labels</h3>
+
+<p><code>label</code> may be a single string or a character vector that matches the number
+of expanded steps. <code>label</code> also supports <code>{glue}</code> syntax and exposes the
+following dynamic variables contextualized to the current step:
+</p>
+
+<ul>
+<li> <p><code>"{.step}"</code>: The validation step name
+</p>
+</li>
+<li> <p><code>"{.col}"</code>: The current column name
+</p>
+</li>
+<li> <p><code>"{.seg_col}"</code>: The current segment's column name
+</p>
+</li>
+<li> <p><code>"{.seg_val}"</code>: The current segment's value/group
+</p>
+</li>
+</ul>
+<p>The glue context also supports ordinary expressions for further flexibility
+(e.g., <code>"{toupper(.step)}"</code>) as long as they return a length-1 string.
+</p>
+
+
+<h3>Briefs</h3>
+
+<p>Want to describe this validation step in some detail? Keep in mind that this
+is only useful if <code>x</code> is an <em>agent</em>. If that's the case, <code>brief</code> the agent
+with some text that fits. Don't worry if you don't want to do it. The
+<em>autobrief</em> protocol is kicked in when <code>brief = NULL</code> and a simple brief will
+then be automatically generated.
+</p>
+
+
+<h3>YAML</h3>
+
+<p>A <strong>pointblank</strong> agent can be written to YAML with <code>yaml_write()</code> and the
+resulting YAML can be used to regenerate an agent (with <code>yaml_read_agent()</code>)
+or interrogate the target table (via <code>yaml_agent_interrogate()</code>). When
+<code>col_vals_within_spec()</code> is represented in YAML (under the top-level <code>steps</code>
+key as a list member), the syntax closely follows the signature of the
+validation function. Here is an example of how a complex call of
+<code>col_vals_within_spec()</code> as a validation step is expressed in R code and in
+the corresponding YAML representation.
+</p>
+<p>R statement:
+</p>
+<div class="sourceCode r"><pre>agent %&gt;% 
+  col_vals_within_spec(
+    columns = a,
+    spec = "email",
+    na_pass = TRUE,
+    preconditions = ~ . %&gt;% dplyr::filter(b &lt; 10),
+    segments = b ~ c("group_1", "group_2"),
+    actions = action_levels(warn_at = 0.1, stop_at = 0.2),
+    label = "The `col_vals_within_spec()` step.",
+    active = FALSE
+  )
+</pre></div>
+<p>YAML representation:
+</p>
+<div class="sourceCode yaml"><pre>steps:
+- col_vals_within_spec:
+    columns: c(a)
+    spec: email
+    na_pass: true
+    preconditions: ~. %&gt;% dplyr::filter(b &lt; 10)
+    segments: b ~ c("group_1", "group_2")
+    actions:
+      warn_fraction: 0.1
+      stop_fraction: 0.2
+    label: The `col_vals_within_spec()` step.
+    active: false
+</pre></div>
+<p>In practice, both of these will often be shorter as only the <code>columns</code> and
+<code>spec</code> arguments require values. Arguments with default values won't be
+written to YAML when using <code>yaml_write()</code> (though it is acceptable to include
+them with their default when generating the YAML by other means). It is also
+possible to preview the transformation of an agent to YAML without any
+writing to disk by using the <code>yaml_agent_string()</code> function.
+</p>
+
+
+<h3>Examples</h3>
+
+<p>The <code>specifications</code> dataset in the package has columns of character data
+that correspond to each of the specifications that can be tested. The
+following examples will validate that the <code>email_addresses</code> column has 5
+correct values (this is true if we get a subset of the data: the first five
+rows).
+</p>
+<div class="sourceCode r"><pre>spec_slice &lt;- specifications[1:5, ]
+
+spec_slice
+#&gt; # A tibble: 5 x 12
+#&gt;   isbn_numbers      vin_numbers       zip_codes credit_card_numbers iban_austria
+#&gt;   &lt;chr&gt;             &lt;chr&gt;             &lt;chr&gt;     &lt;chr&gt;               &lt;chr&gt;       
+#&gt; 1 978 1 85715 201 2 4UZAANDH85CV12329 99553     340000000000009     AT582774098~
+#&gt; 2 978-1-84159-362-3 JM1BL1S59A1134659 36264     378734493671000     AT220332087~
+#&gt; 3 978 1 84159 329 6 1GCEK14R3WZ274764 71660     6703444444444449    AT328650112~
+#&gt; 4 978 1 85715 202 9 2B7JB21Y0XK524370 85225     6703000000000000003 AT193357281~
+#&gt; 5 978 1 85715 198 5 4UZAANDH85CV12329 90309     4035501000000008    AT535755326~
+#&gt; # i 7 more variables: swift_numbers &lt;chr&gt;, phone_numbers &lt;chr&gt;,
+#&gt; #   email_addresses &lt;chr&gt;, urls &lt;chr&gt;, ipv4_addresses &lt;chr&gt;,
+#&gt; #   ipv6_addresses &lt;chr&gt;, mac_addresses &lt;chr&gt;
+</pre></div>
+
+
+<h4>A: Using an <code>agent</code> with validation functions and then <code>interrogate()</code>
+</h4>
+
+<p>Validate that all values in the column <code>email_addresses</code> are correct. We'll
+determine if this validation has any failing test units (there are 5 test
+units, one for each row).
+</p>
+<div class="sourceCode r"><pre>agent &lt;-
+  create_agent(tbl = spec_slice) %&gt;%
+  col_vals_within_spec(
+    columns = email_addresses,
+    spec = "email"
+  ) %&gt;%
+  interrogate()
+</pre></div>
+<p>Printing the <code>agent</code> in the console shows the validation report in the
+Viewer. Here is an excerpt of validation report, showing the single entry
+that corresponds to the validation step demonstrated here.
+</p>
+
+
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_col_vals_within_spec_1.png" alt="This image was generated from the first code example in the `col_vals_within_spec()` help file." style="width:100%;"><h4>B: Using the validation function directly on the data (no <code>agent</code>)</h4>
+
+<p>This way of using validation functions acts as a data filter. Data is passed
+through but should <code>stop()</code> if there is a single test unit failing. The
+behavior of side effects can be customized with the <code>actions</code> option.
+</p>
+<div class="sourceCode r"><pre>spec_slice %&gt;%
+  col_vals_within_spec(
+    columns = email_addresses,
+    spec = "email"
+  ) %&gt;%
+  dplyr::select(email_addresses)
+#&gt; # A tibble: 5 x 1
+#&gt;   email_addresses                                                          
+#&gt;   &lt;chr&gt;                                                                    
+#&gt; 1 test@test.com                                                            
+#&gt; 2 mail+mail@example.com                                                    
+#&gt; 3 mail.email@e.test.com                                                    
+#&gt; 4 abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ@letters-in-local.org
+#&gt; 5 01234567890@numbers-in-local.net
+</pre></div>
+
+
+
+<h4>C: Using the expectation function</h4>
+
+<p>With the <code style="white-space: pre;">⁠expect_*()⁠</code> form, we would typically perform one validation at a
+time. This is primarily used in <strong>testthat</strong> tests.
+</p>
+<div class="sourceCode r"><pre>expect_col_vals_within_spec(
+  spec_slice,
+  columns = email_addresses,
+  spec = "email"
+)
+</pre></div>
+
+
+
+<h4>D: Using the test function</h4>
+
+<p>With the <code style="white-space: pre;">⁠test_*()⁠</code> form, we should get a single logical value returned to
+us.
+</p>
+<div class="sourceCode r"><pre>spec_slice %&gt;%
+  test_col_vals_within_spec(
+    columns = email_addresses,
+    spec = "email"
+  )
+#&gt; [1] TRUE
+</pre></div>
+
+
+
+<h3>Function ID</h3>
+
+<p>2-18
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other validation functions: 
+<code>col_count_match()</code>,
+<code>col_exists()</code>,
+<code>col_is_character()</code>,
+<code>col_is_date()</code>,
+<code>col_is_factor()</code>,
+<code>col_is_integer()</code>,
+<code>col_is_logical()</code>,
+<code>col_is_numeric()</code>,
+<code>col_is_posix()</code>,
+<code>col_schema_match()</code>,
+<code>col_vals_between()</code>,
+<code>col_vals_decreasing()</code>,
+<code>col_vals_equal()</code>,
+<code>col_vals_expr()</code>,
+<code>col_vals_gt()</code>,
+<code>col_vals_gte()</code>,
+<code>col_vals_in_set()</code>,
+<code>col_vals_increasing()</code>,
+<code>col_vals_lt()</code>,
+<code>col_vals_lte()</code>,
+<code>col_vals_make_set()</code>,
+<code>col_vals_make_subset()</code>,
+<code>col_vals_not_between()</code>,
+<code>col_vals_not_equal()</code>,
+<code>col_vals_not_in_set()</code>,
+<code>col_vals_not_null()</code>,
+<code>col_vals_null()</code>,
+<code>col_vals_regex()</code>,
+<code>conjointly()</code>,
+<code>row_count_match()</code>,
+<code>rows_complete()</code>,
+<code>rows_distinct()</code>,
+<code>serially()</code>,
+<code>specially()</code>,
+<code>tbl_match()</code>
+</p>
+
+
+</div>

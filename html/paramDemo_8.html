@@ -1,0 +1,442 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>CalcLifeHist</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Calculating life history variables from parametric models of age-specific demographic rates.
+</h2>
+
+<h3>Description</h3>
+
+<p><code>CalcLifeHist</code> uses parametric models of survival and fertility to calculate age-specific demographic rates, stable age structure, reproductive values, sensitivity and elasticities of the stable population growth rate to demographic rates, as well as different life history variables such as generation time or population entropy.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">CalcLifeHist(theta = NULL, beta = NULL, dx = NULL,
+             model = "GO", shape = "simple",
+             modelFert = "quadratic", ageMatur = 0, 
+             maxAge = NULL, lambdaMethod = "matrix")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>theta </code></td>
+<td>
+<p>Numerical vector of age-specific mortality parameters (see details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta </code></td>
+<td>
+<p>Numerical vector of age-specific fertility parameters (see details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dx </code></td>
+<td>
+<p>Numerical value for the age-interval increments, default is 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model </code></td>
+<td>
+<p>Mortality model, options are “<code>EX</code>” = exponential (i.e., constant mortality with age), “<code>GO</code>” = Gompertz (default), “<code>WE</code>” = Weibull, or “<code>LO</code>” = logistic.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shape </code></td>
+<td>
+<p>The overall shape of the mortality model. Values are: “<code>simple</code>” = no extra parameters added; “<code>Makeham</code>” = a constant parameter is added to the mortality; and “<code>bathtub</code>” = a Gompertz declining mortality for early ages and a constant parameter are added to the mortality model (see <code>details</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>modelFert </code></td>
+<td>
+<p>Age-specific fertility model. Options are “<code>quadratic</code>” (default), “<code>PeristeraKostaki</code>”, “<code>ColcheroMuller</code>”, “<code>Hadwiger</code>”, “<code>gamma</code>”, “<code>beta</code>”, “<code>skewNormal</code>”, “<code>gammaMixture</code>”, “<code>HadwigerMixture</code>”, “<code>skewSymmetric</code>”, “<code>skewLogistic</code>” (see details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ageMatur </code></td>
+<td>
+<p>Numerical value for the age at maturity.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxAge </code></td>
+<td>
+<p>Numerical value for the maximum age. If <code>NULL</code> (default),
+it is calculated from the survival (see details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambdaMethod </code></td>
+<td>
+<p>Character string specifying the method to calculate the intrinsic population growth rate. Values are “<code>matrix</code>” for methods based on population projection matrices, or “<code>Lotka</code>” for numerical approximation of the root of the Lotka equation (see details)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><b>1) Age-specific mortality and survival models:</b>
+</p>
+<p>The function <code>CalcDemo</code> uses parametric functions to calculate age-specific survival, defined as the probability of surviving to a given age. The function follows the conventions from package BaSTA (Colchero and Clark 2012, Colchero <em>et al.</em> 2012, Colchero <em>et al.</em> 2021). The mortality function describes how the risk of mortality changes with age, and is defined as 
+</p>
+<p style="text-align: center;"><code class="reqn">
+\mu(x | \theta) = \lim_{\Delta x \rightarrow 0} \frac{\Pr[x &lt; X &lt; x + \Delta x | X &gt; x]}{\Delta x},
+</code>
+</p>
+
+<p>where <code class="reqn">X</code> is a random variable for ages at death, <code class="reqn">x \geq 0</code> are ages and <code class="reqn">\theta</code> is the vector of mortality parameters. From the mortality function, the survival function is then given by
+</p>
+<p style="text-align: center;"><code class="reqn">
+S(x | \bm{\theta}) = \exp[-\int_0^x \mu(t | \bm{\theta}) dt].
+</code>
+</p>
+
+<p><code>1.1)</code><code>Argument </code>“<code>model</code>”<code>:</code>
+</p>
+<p>The <code>model</code> argument allows the user to choose between four basic mortality functions, namely 
+</p>
+<p>(a) <code>model = </code>“<code>EX</code>”: The exponential model (Cox and Oakes 1974), with constant mortality with age, specified as
+</p>
+<p style="text-align: center;"><code class="reqn">\mu_b(x | \bm{\theta}) = b,</code>
+</p>
+
+<p>where <code class="reqn">b &gt; 0</code>, with survival 
+</p>
+<p style="text-align: center;"><code class="reqn">
+S_b(x | \bm{\theta}) = \exp[-b x].
+</code>
+</p>
+
+<p>(b) <code>model = </code>“<code>GO</code>”: The Gompertz mortality model (Gompertz 1925, Pletcher 1999), calculated as 
+</p>
+<p style="text-align: center;"><code class="reqn">\mu_b(x | \bm{\theta}) = \exp(b_0 + b_1 x),</code>
+</p>
+
+<p>where <code class="reqn">-\infty &lt; b_0, b_1 &lt; \infty</code>, with survival
+</p>
+<p style="text-align: center;"><code class="reqn">
+S_b(x | \bm{\theta}) = \exp\left[\frac{e^{b_0}}{b_1}\left(1 - e^{b_1 x}\right)\right].
+</code>
+</p>
+
+<p>(c) <code>model = </code>“<code>WE</code>”: The Weibull mortality model (Pinder III <em>et al.</em> 1978) calculated as
+</p>
+<p style="text-align: center;"><code class="reqn">\mu_b(x | \bm{\theta}) = b_0 b_1^{b_0} x^{b_0 -1},</code>
+</p>
+
+<p>where <code class="reqn">b_0, b_1 &gt; 0</code>, with survival
+</p>
+<p style="text-align: center;"><code class="reqn">
+S_b(x | \bm{\theta}) = \exp\left[-(b_1 x)^{b_0}\right].
+</code>
+</p>
+
+<p>(d) <code>model = </code>“<code>LO</code>”: The logistic mortality model (Pletcher 1999), calculated as 
+</p>
+<p style="text-align: center;"><code class="reqn">\mu_b(x | \bm{\theta}) = \frac{\exp(b_0 + b_1 x)}{1 + b_2 \frac{e^{b_0}}{b_1} \left(e^{b_1 x}-1\right)},</code>
+</p>
+
+<p>where <code class="reqn">b_0, b_1, b_2 &gt; 0</code>, with survival
+</p>
+<p style="text-align: center;"><code class="reqn">
+S_b(x | \bm{\theta}) = \left[1 + b_2 \frac{e^{b_0}}{b_1} \left(e^{b_1 x} - 1\right)\right]^{-1 / b_2}.
+</code>
+</p>
+
+<p><code>1.2)</code><code>Argument </code>“<code>shape</code>”<code>:</code>
+</p>
+<p>The <code>shape</code> argument allows the user to extend these models in order to explore more complex mortality shapes. 
+</p>
+<p>(a) <code>shape = </code>“<code>simple</code>”: (default) Leaves the model as defined above, with mortality given by
+</p>
+<p style="text-align: center;"><code class="reqn">
+\mu(x | \bm{\theta}) = \mu_b(x | \bm{\theta})
+</code>
+</p>
+
+<p>and survival
+</p>
+<p style="text-align: center;"><code class="reqn">
+S(x | \bm{\theta}) = S_b(x | \bm{\theta}.
+</code>
+</p>
+
+<p>(b) <code>shape = </code>“<code>Makeham</code>”: A constant is added to the mortality, such that the mortality is given by
+</p>
+<p style="text-align: center;"><code class="reqn">
+\mu(x | \bm{\theta}) = c + \mu_b(x | \bm{\theta}_1),
+</code>
+</p>
+
+<p>where <code class="reqn">\bm{\theta} = [c, \bm{\theta}_1]</code>, and with survival
+</p>
+<p style="text-align: center;"><code class="reqn">
+S(x | \bm{\theta}) = e^{-cx} S_b(x | \bm{\theta}_1)
+</code>
+</p>
+
+<p>The most common models with this shape is the Gompertz-Makeham model (Gompertz 1825, Makeham 1866).
+</p>
+<p>(c) <code>shape = </code>“<code>bathtub</code>”: produces a concave shapes in mortality by adding a declining Gompertz term and a constant parameter to the basic mortality model, where the mortality function is
+</p>
+<p style="text-align: center;"><code class="reqn">
+\mu(x | \bm{\theta}) = \exp(a_0 - a_1 x) + c + \mu_b(x | \bm{\theta}_1),
+</code>
+</p>
+
+<p>where <code class="reqn">a_0 \in \mathbb{R}</code>, <code class="reqn">a_1, c \geq 0</code> and <code class="reqn">\bm{\theta}_1 \subset \bm{\theta}</code> are specified based on argument <code>model</code>, and with survival
+</p>
+<p style="text-align: center;"><code class="reqn">
+S(x | \theta) = \exp\left[\frac{e^{a_0}}{a_1}\left(e^{a_1 x} - 1\right)-cx\right] S_b(x | \theta_1).
+</code>
+</p>
+
+<p>The most widely use “<code>bathtub</code>” shaped model is the <b>Siler mortality model</b> (Siler 1979), which provides considerably good fits to mammalian data. The arguments for the Siler model are:
+</p>
+<pre>CalcLifeHist(..., model = "GO", shape = "bathtub", ...)</pre>
+<p><b>2) Specifying theta parameters:</b>
+</p>
+<p>Argument <code>theta</code> requires a numerical vector of parameters. For instance, for a Gompertz model with simple shape and with parameter vector <code class="reqn">\bm{\theta}^{\top} = [b_0, b_1]</code> where <code class="reqn">b_0 = -5</code> and <code class="reqn">b_1 = 0.1</code>, the argument should be specified as 
+</p>
+<p><code>CalcDemo(theta = c(b0 = -5, b1 = 0.1), ...)</code> 
+</p>
+<p>Note that in this example the parameter names are specified directly, this is required when <code>checkTheta = FALSE</code>. Although assigning the names to each parameter is not necessary when <code>checkTheta = TRUE</code>, it is advisable to ensure that the right values are assigned to the right parameter.  
+</p>
+<p>If argument <code>checkTheta</code> is set to <code>TRUE</code>, then the vector of <code>theta</code> parameters is verified for consistency with the requirements of the model and shape selected. 
+</p>
+
+<p><b><em>3) Age-specific fertility models:</em></b>
+</p>
+<p>The age-specific fertility models correspond to the expected number of offspring produced by adults of a given age. Therefore, for a random variable <code class="reqn">Y_{x}</code> with realizations <code class="reqn">y_x</code> for the number of offspring produced by adults of age <code class="reqn">x</code>, we have that <code class="reqn">E(Y_x) = g(x | \bm{\beta})</code>, where <code class="reqn">g: \mathbb{R}_{\ge 0} \rightarrow \mathbb{R}_{\ge 0}</code> is a non-negative smooth fertility function and <code class="reqn">\bm{\beta}</code> is a vector of parameters to be estimated. The functional forms of function <code class="reqn">g</code> fall in two main categories, namely polynomial and distributional models.
+</p>
+<p>3.a) Polynomial:
+</p>
+<p>Of the models available in <code>paramDemo</code>, the “<code>quadratic</code>”, “<code>PeristeraKostaki</code>” (Peristera and Kostaki 2007), and “<code>ColcheroMuller</code>” (Colchero  <em>et al.</em> 2021, Muller <em>et al.</em> 2020) fall within the polynomial category. Both, the “<code>PeristeraKostaki</code>” and “<code>ColcheroMuller</code>” are non-symmetric around the age at maximum fertility.
+</p>
+<p>3.b) Distributional:
+</p>
+<p>The distributional models are of the form
+</p>
+<p style="text-align: center;"><code class="reqn">g(x | \bm{\beta}) = R f(x | \bm{\beta}_1),</code>
+</p>
+
+<p>where <code class="reqn">f: \mathbb{R}_{\ge 0} \rightarrow \mathbb{R}_{\ge 0}</code> is a probability density function, <code class="reqn">R &gt; 0</code> is a parameter for the total fertility rate, and <code class="reqn">\bm{\beta}_1 \subset \bm{\beta}</code> is a vector of parameters. The
+“<code>Hadwiger</code>” (Hadwiger 1940), “<code>gamma</code>” (Hoem <em>et al.</em> 1981), “<code>beta</code>”  (Hoem <em>et al.</em> 1981), “<code>skewNormal</code>” (Mazzuco and Scarpa 2011, 2015), “<code>gammaMixture</code>” (Hoem <em>et al.</em> 1981), “<code>HadwigerMixture</code>” (Chandola <em>et al.</em> 1991), “<code>skewSymmetric</code>” (Mazzuco and Scarpa 2011, 2015), and “<code>skewLogistic</code>” (Asili <em>et al.</em> 2014) all fall in this category. Notably, the “<code>gammaMixture</code>”, “<code>HadwigerMixture</code>”, “<code>skewSymmetric</code>”, “<code>skewLogistic</code>” are appropriate when fertility might be bimodal (Hoem <em>et al.</em> 1981, Chandola <em>et al.</em> 1999, Mazzuco and Scarpa 2011, 2015, Asili <em>et al.</em> 2014). 
+</p>
+<p><b>4) Specifiying beta parameters:</b>
+</p>
+<p>Argument <code>beta</code> requires a vector of parameters. For instance, for a quadratic model with parameter vector <code class="reqn">\bm{\beta}^{\top} = [b_0, b_1, b_2]</code> where <code class="reqn">b_0 = 0.5</code>, <code class="reqn">b_1 = 0.01</code> and <code class="reqn">b_2 = 10</code>, the argument should be specified as
+</p>
+<p><code>CalcLifeHist(..., beta = c(b0 = 0.5, b1 = 0.01, b2 = 10), ...)</code>
+</p>
+<p>Note that in this example the parameter names are specified directly, this is required when <code>checkBeta = FALSE</code>. Although assigning the names to each parameter is not necessary when <code>checkBeta = TRUE</code>, it is advisable to ensure that the right values are assigned to the right parameter.  
+</p>
+<p>If argument <code>checkBeta</code> is set to <code>TRUE</code>, then the vector of <code>beta</code> parameters is verified for consistency with the requirements of the fertility model selected. 
+</p>
+<p><b>5) Methods to estimate lambda, r, stable age structure and reproductive values:</b>
+</p>
+<p>If argument <code>lambdaMethod</code> is set to “<code>matrix</code>”, the function calculates the assymptotic population growth rate <code class="reqn">\lambda</code> as the dominant eigen-value of the resulting population projection matrix <code class="reqn">\bm{A}</code> (Caswell and Wegner 1978, Kroon <em>et al.</em> 1986, Caswell 2001). The intrinsing population growth rate is then <code class="reqn">r = \log \lambda</code>, while the stable age-structure, <code class="reqn">\bm{\omega}^{\top}=[\omega_0, \omega_1, \dots, \omega_\tau]</code>, where <code class="reqn">\tau</code> is the maximum age of the population, is given by the corresponding right eigen vector, standardized by its norm. The reproductive value is the corresponding left eigen vector, <code class="reqn">\bm{\nu}^{\top} = [\nu_0, \nu_1, \dots, \nu_\tau]</code>, standardized such that <code class="reqn">\nu_0 = 1</code>.
+</p>
+<p>If argument <code>lambdaMethod</code> is set to “<code>Lotka</code>”, the function estimates the intrinsic population growth rate, <code class="reqn">r</code>, by finding the real root of Lotka' (1913) equation, given by
+</p>
+<p style="text-align: center;"><code class="reqn">
+\int_0^\tau e^{-rx} S(x) m(x) dx = 1.
+</code>
+</p>
+
+<p>The stable population structure is then calculated as
+</p>
+<p style="text-align: center;"><code class="reqn">
+\omega_x = \frac{e^{-rx} S(x)}{\sum_{k=0}^\tau e^{-rk} S(k)},
+</code>
+</p>
+
+<p>while the reproductive value is given by
+</p>
+<p style="text-align: center;"><code class="reqn">
+\nu_x = \frac{\int_x^\tau{e^{-r(k - x)}} S(k) m(k) dk}{S(x)}.
+</code>
+</p>
+
+<p>The function then calculates the sensitivities of lambda to age-specific survival as
+</p>
+<p style="text-align: center;"><code class="reqn">
+s_{p,x} = \frac{\nu_{x}\omega_{x+1}}{&lt;\bm{\nu}\bm{\omega}&gt;}, \quad \text{for } x&lt;\tau
+</code>
+</p>
+
+<p>where the denominator is the inner product, and the sensitivity of lambda to the reproductive value at <code class="reqn">x</code> is given by
+</p>
+<p style="text-align: center;"><code class="reqn">
+s_{m,x} = \frac{\nu_{1}\omega_{x+1}}{&lt;\bm{\nu}\bm{\omega}&gt;}, \quad \text{for } x&lt;\tau
+</code>
+</p>
+
+<p>Elasticities are calculated as
+</p>
+<p style="text-align: center;"><code class="reqn">
+e_{p,x} = \frac{p_x}{\lambda} s_{p,x} \text{ and } e_{m,x} = \frac{m_x}{\lambda} s_{m,x}.
+</code>
+</p>
+
+<p><b>6) Calculation of life history variables</b>
+</p>
+<p>The first life history variables are the intrinsic population growth rate <code class="reqn">r</code> and the stable population growth rate <code class="reqn">\lambda = e^r</code>, described in the previous section. 
+</p>
+<p>The function also provides a number of life history variables described by Tuljapurkar <em>et al.</em> (2009). For instance, it provides the generation time for the stable population as
+</p>
+<p style="text-align: center;"><code class="reqn">
+T_s = \int_0^{\tau} x e^{-rx} S(x) m(x) dx,
+</code>
+</p>
+
+<p>as well as the cohort generation time, given by
+</p>
+<p style="text-align: center;"><code class="reqn">
+T_c = \frac{\int_0^{\tau} x S(x) m(x) dx}{R_0},
+</code>
+</p>
+
+<p>where <code class="reqn">R_0</code> is the net reproductive rate, given by
+</p>
+<p style="text-align: center;"><code class="reqn">
+R_0 = \int_0^{\tau} S(x) m(x) dx.
+</code>
+</p>
+
+<p>It provides the demographic dispersion given by
+</p>
+<p style="text-align: center;"><code class="reqn">
+\sigma^2_d = \frac{\int_0^\tau (x - T_c)^2 S(x) m(x) dx}{R_0}
+</code>
+</p>
+
+<p>which measures the dispersion of reproduction across ages. 
+</p>
+<p>Finally, it calculates the population entropy as proposed by Demetrius (1974), given by
+</p>
+<p style="text-align: center;"><code class="reqn">
+H = - \frac{\int_0^{\tau} \rho(x) \log \rho(x) dx}{T_s}
+</code>
+</p>
+
+<p>where <code class="reqn">\rho(x) = e^{-r x} S(x) m(x)</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function produces an object of class “<code>PDlifeHist</code>”, which consists of a list with the following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>demoTab </code></td>
+<td>
+<p>A data frame with the resulting individual ages, the survival <code class="reqn">S(x)</code>, the age-specific survival probability <code class="reqn">p_x</code>, the age-specific mortality probability <code class="reqn">q_x</code>, the age-specific fertility rate <code class="reqn">m_x</code>, the stable age structure <code class="reqn">omega_x</code>, the age specific reproductive value <code class="reqn">nu_x</code>, and the sensitivities and elasticities.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lifeHist </code></td>
+<td>
+<p>A data frame with the life history variables described in details, including a description.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>settings </code></td>
+<td>
+<p>A list with the information of the models and parameters as provided by the user.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Fernando Colchero <a href="mailto:fernando_colchero@eva.mpg.de">fernando_colchero@eva.mpg.de</a></p>
+
+
+<h3>References</h3>
+
+<p>Asili S., Rezaei S., Najjar, L. (2014) Using Skew-Logistic Probability Density Function as a Model for Age-Specific Fertility Rate Pattern. <em>BioMed Research International</em>, 2014, 790294.
+</p>
+<p>Azzalini, A. (1985) A Class of Distributions Which Includes the Normal Ones. <em>Scandinavian Journal of Statistics</em>, 2, 171-178.
+</p>
+<p>Caswell, H. &amp; Werner, P. A. (1978) Transient Behavior and Life History Analysis of Teasel (Dipsacus Sylvestris Huds.). Ecology 59, 53-66.
+</p>
+<p>Caswell, H. (2001) Matrix Population Models: Construction, Analysis and Interpretation. (Sinauer Associates).
+</p>
+<p>Chandola, T., Coleman D.A., Hiorns R.W. (1999) Recent European fertility patterns: Fitting curves to ‘distorted’ distributions. <em>Population Studies</em>, 53, 317-329.
+</p>
+<p>Colchero, F. (<em>In prep.</em>) Inference on age-specific fertility in ecology and evolution. Learning from other disciplines and improving the state of the art. 
+</p>
+<p>Colchero, F., Eckardt, W., Stoinski, T. (2021) Evidence of demographic buffering in an endangered great ape: Social buffering on immature survival and the role of refined sex-age classes on population growth rate. <em>Journal of Animal Ecology</em>, 90, 1701-1713.
+</p>
+<p>Colchero, F., J.S. Clark (2012) Bayesian inference on age-specific survival from capture-recapture data for censored and truncated data. <em>Journal of Animal Ecology</em>. 81, 139-149.
+</p>
+<p>Colchero, F., O.R. Jones, M. Rebke. (2012) BaSTA: an R package for Bayesian estimation of age-specific survival from incomplete mark-recapture/recovery data with covariates. <em>Method in Ecology and Evolution</em>. 3, 466-470. 
+</p>
+<p>Colchero, F., <em>et al.</em> (2021) The long lives of primates and the “invariant rate of aging” hypothesis. <em>Nature Communications</em> 12:3666
+</p>
+<p>Cox, D. R., and Oakes D. (1984) <em>Analysis of Survival Data</em>. Chapman and Hall, London.
+</p>
+<p>Demetrius, L. (1974) Demographic parameters and natural selection. <em>PNAS</em> 71, 4645-4647.
+</p>
+<p>Gompertz, B. (1825) On the nature of the function expressive of the law of human mortality, and on a new mode of determining the value of life contingencies. <em>Philosophical Transactions of the Royal Society of London</em>, 115, 513-583.
+</p>
+<p>Hadwiger, H. (1940) Eine analytische Reproduktionssunktion fur biologische Gesamtheiten. <em>Scandinavian Actuarial Journal</em>, 1940, 101-113.
+</p>
+<p>Hoem, J.M., Madien, D., Nielsen, J.L., Ohlsen, E.M., Hansen, H.O., Rennermalm, B. (1981) Experiments in modelling recent Danish fertility curves. <em>Demography</em>, 18, 231-244.
+</p>
+<p>Keyfitz, N., Caswell, H. (2005) Applied Mathematical Demography. (Springer-Verlag).
+</p>
+<p>Kroon, H. de, Plaisier, A., Groenendael, J. van &amp; Ecology, H. C. (1986) Elasticity: the relative contribution of demographic parameters to population growth rate. Ecology 67, 1427-1431.
+</p>
+<p>Lotka, A. J. (1913) A natural population norm. II. Journal of the Washington Academy of Sciences 3, 289-293.
+</p>
+<p>Makeham, W. M. (1866) On the law of mortality <em>Journal of the Institute of Actuaries</em> 13, 1-34.
+</p>
+<p>Mazzuco, S., Scarpa, B. (2011) Fitting age-specific fertility rates by a skew- symmetric probability density function. (Working paper 10), University of Padua.
+</p>
+<p>Mazzuco, S., Scarpa, B. (2015) Fitting age-specific fertility rates by a flexible generalized skew normal probability density function. <em>Journal of the Royal Statistical Society: Series A</em>, 178, 187-203.
+</p>
+<p>Muller M. N., Blurton Jones N. G, Colchero F., Thompson M. E., Enigk D. K. (2020) Sexual dimorphism in chimpanzee (<em>Pan troglodytes schweinfurthii</em>) and human age-specific fertility. <em>Journal of human evolution</em>, 144, 102795.
+</p>
+<p>Peristera P., Kostaki A. (2007) Modeling fertility in modern populations. <em>Demographic Research</em>, 16, 141-194.
+</p>
+<p>Pinder III, J.E., Wiener, J.G. and Smith, M.H. (1978) The Weibull distribution: a new method of summarizing survivorship data. <em>Ecology</em>, 59, 175-179.
+</p>
+<p>Shkolnikov, V., Andreev, E., Begun, A. Z. (2003) Gini coefficient as a life table function. <em>Demographic Research</em> 8, 305-358.
+</p>
+<p>Siler W. A (1979) competing-risk model for animal mortality. <em>Ecology</em> 60, 750-757.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>CalcDemo</code> to calculate parametric demographic functions.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Calculate life histories on the defalult models:
+test &lt;- CalcLifeHist(theta = c(b0 = -3, b1 = 0.1), 
+                     beta = c(b0 = 1, b1 = 0.01, b2 = 5),
+                     ageMatur = 2)
+                     
+# Print results:
+test
+
+# Plot results:
+plot(test, type = "all")
+</code></pre>
+
+
+</div>

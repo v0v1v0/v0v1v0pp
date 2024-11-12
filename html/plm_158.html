@@ -1,0 +1,160 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plm.fast</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Option to Switch On/Off Fast Data Transformations</h2>
+
+<h3>Description</h3>
+
+<p>A significant speed up can be gained by using fast (panel) data transformation
+functions from package <code>collapse</code>.
+An additional significant speed up for the two-way fixed effects case can be
+achieved if package <code>fixest</code> or <code>lfe</code> is installed (package <code>collapse</code>
+needs to be installed for the fast mode in any case).
+</p>
+
+
+<h3>Details</h3>
+
+<p>By default, this speed up is enabled.
+Option <code>plm.fast</code> can be used to enable/disable the speed up. The option is
+evaluated prior to execution of supported transformations (see below), so
+<code>option("plm.fast" = TRUE)</code> enables the speed up while
+<code>option("plm.fast" = FALSE)</code> disables the speed up.
+</p>
+<p>To have it always switched off, put <code>options("plm.fast" = FALSE)</code> in your
+.Rprofile file.
+</p>
+<p>See <strong>Examples</strong> for how to use the option and for a benchmarking example.
+</p>
+<p>For long, package <code>plm</code> used base R implementations and R-based code. The
+package <code>collapse</code> provides fast data transformation functions written
+in C/C++, among them some especially suitable for panel data.
+Having package <code>collapse</code> installed is a requirement for the speed up, so
+this package is a hard dependency for package <code>plm</code>.
+</p>
+<p>Availability of packages <code>fixest</code> and <code>lfe</code> is checked for once when
+package plm is attached and the additional speed up for the two-way fixed
+effect case is enabled automatically (<code>fixest</code> wins over <code>lfe</code>),
+given one of the packages is detected and <code>options("plm.fast" = TRUE)</code>
+(default) is set. If so, the packages' fast algorithms to partial out fixed
+effects are used (<code>fixest::demean</code> (via <code>collapse::fhdwithin</code>),
+<code>lfe::demeanlist</code>). Both packages are 'Suggests' dependencies.
+</p>
+<p>Users might experience neglectable numerical differences between enabled and
+disabled fast mode and base R implementation, depending on the platform and
+the additional packages installed.
+</p>
+<p>Currently, these basic functions benefit from the speed-up, used as building
+blocks in most model estimation functions, e.g., in <code>plm</code> (more functions are
+under investigation):
+</p>
+
+<ul>
+<li>
+<p> between,
+</p>
+</li>
+<li>
+<p> Between,
+</p>
+</li>
+<li>
+<p> Sum,
+</p>
+</li>
+<li>
+<p> Within,
+</p>
+</li>
+<li>
+<p> lag, lead, and diff,
+</p>
+</li>
+<li>
+<p> pseriesfy,
+</p>
+</li>
+<li>
+<p> pdiff (internal function).
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+### A benchmark of plm without and with speed-up
+library("plm")
+library("collapse")
+library("microbenchmark")
+rm(list = ls())
+data("wlddev", package = "collapse")
+form &lt;- LIFEEX ~ PCGDP + GINI
+
+# produce big data set (taken from collapse's vignette)
+wlddevsmall &lt;- get_vars(wlddev, c("iso3c","year","OECD","PCGDP","LIFEEX","GINI","ODA"))
+wlddevsmall$iso3c &lt;- as.character(wlddevsmall$iso3c)
+data &lt;- replicate(100, wlddevsmall, simplify = FALSE)
+rm(wlddevsmall)
+uniquify &lt;- function(x, i) {
+  x$iso3c &lt;- paste0(x$iso3c, i)
+  x
+}
+data &lt;- unlist2d(Map(uniquify, data, as.list(1:100)), idcols = FALSE)
+data &lt;- pdata.frame(data, index = c("iso3c", "year"))
+pdim(data) # Balanced Panel: n = 21600, T = 59, N = 1274400 // but many NAs
+# data &lt;- na.omit(data)
+# pdim(data) # Unbalanced Panel: n = 13300, T = 1-31, N = 93900
+
+times &lt;- 1 # no. of repetitions for benchmark - this takes quite long!
+
+onewayFE &lt;- microbenchmark(
+ {options("plm.fast" = FALSE); plm(form, data = data, model = "within")},
+ {options("plm.fast" = TRUE);  plm(form, data = data, model = "within")},
+  times = times)
+
+summary(onewayFE, unit = "relative")
+
+## two-ways FE benchmark requires pkg fixest and lfe
+## (End-users shall only set option plm.fast. Option plm.fast.pkg.FE.tw shall
+##  _not_ be set by the end-user, it is determined automatically when pkg plm
+## is attached; however, it needs to be set explicitly in this example for the
+## benchmark.)
+if(requireNamespace("fixest", quietly = TRUE) &amp;&amp;
+   requireNamespace("lfe", quietly = TRUE)) {
+
+twowayFE &lt;-  microbenchmark(
+ {options("plm.fast" = FALSE);
+    plm(form, data = data, model = "within", effect = "twoways")},
+ {options("plm.fast" = TRUE, "plm.fast.pkg.FE.tw" = "collapse");
+    plm(form, data = data, model = "within", effect = "twoways")},
+ {options("plm.fast" = TRUE, "plm.fast.pkg.FE.tw" = "fixest");
+    plm(form, data = data, model = "within", effect = "twoways")},
+ {options("plm.fast" = TRUE, "plm.fast.pkg.FE.tw" = "lfe");
+    plm(form, data = data, model = "within", effect = "twoways")},
+  times = times)
+
+summary(twowayFE, unit = "relative")
+}
+
+onewayRE &lt;- microbenchmark(
+ {options("plm.fast" = FALSE); plm(form, data = data, model = "random")},
+ {options("plm.fast" = TRUE);  plm(form, data = data, model = "random")},
+  times = times)
+
+summary(onewayRE, unit = "relative")
+
+twowayRE &lt;-  microbenchmark(
+ {options("plm.fast" = FALSE); plm(form, data = data, model = "random", effect = "twoways")},
+ {options("plm.fast" = TRUE);  plm(form, data = data, model = "random", effect = "twoways")},
+  times = times)
+
+summary(twowayRE, unit = "relative")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,488 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cindex</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Concordance index for right censored survival time data</h2>
+
+<h3>Description</h3>
+
+<p>In survival analysis, a pair of patients is called concordant if the risk of
+the event predicted by a model is lower for the patient who experiences the
+event at a later timepoint. The concordance probability (C-index) is the
+frequency of concordant pairs among all pairs of subjects. It can be used to
+measure and compare the discriminative power of a risk prediction models.
+The function provides an inverse of the probability of censoring weigthed
+estimate of the concordance probability to adjust for right censoring.
+Cross-validation based on bootstrap resampling or bootstrap subsampling can
+be applied to assess and compare the discriminative power of various
+regression modelling strategies on the same set of data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cindex(
+  object,
+  formula,
+  data,
+  eval.times,
+  pred.times,
+  cause,
+  lyl = FALSE,
+  cens.model = "marginal",
+  ipcw.refit = FALSE,
+  ipcw.args = NULL,
+  ipcw.limit,
+  tiedPredictionsIn = TRUE,
+  tiedOutcomeIn = TRUE,
+  tiedMatchIn = TRUE,
+  splitMethod = "noPlan",
+  B,
+  M,
+  model.args = NULL,
+  model.parms = NULL,
+  keep.models = FALSE,
+  keep.residuals = FALSE,
+  keep.pvalues = FALSE,
+  keep.weights = FALSE,
+  keep.index = FALSE,
+  keep.matrix = FALSE,
+  multiSplitTest = FALSE,
+  testTimes,
+  confInt = FALSE,
+  confLevel = 0.95,
+  verbose = TRUE,
+  savePath = NULL,
+  slaveseed = NULL,
+  na.action = na.fail,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A named list of prediction models, where allowed entries are
+(1) R-objects for which a predictSurvProb method exists (see
+details), (2) a <code>call</code> that evaluates to such an R-object (see
+examples), (3) a matrix with predicted probabilities having as many rows as
+<code>data</code> and as many columns as <code>times</code>. For cross-validation all
+objects in this list must include their <code>call</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>A survival formula. The left hand side is used to finde the
+status response variable in <code>data</code>. For right censored data, the right
+hand side of the formula is used to specify conditional censoring models.
+For example, set <code>Surv(time,status)~x1+x2</code> and <code>cens.model="cox"</code>.
+Then the weights are based on a Cox regression model for the censoring times
+with predictors x1 and x2.  Note that the usual coding is assumed:
+<code>status=0</code> for censored times and that each variable name that appears
+in <code>formula</code> must be the column name in <code>data</code>. If there are no
+covariates, i.e. <code>formula=Surv(time,status)~1</code> the <code>cens.model</code> is
+coerced to <code>"marginal"</code> and the Kaplan-Meier estimator for the
+censoring times is used to calculate the weights.  If <code>formula</code> is
+<code>missing</code>, try to extract a formula from the first element in object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame in which to validate the prediction models and to
+fit the censoring model.  If <code>data</code> is missing, try to extract a data
+set from the first element in object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eval.times</code></td>
+<td>
+<p>A vector of timepoints for evaluating the discriminative
+ability. At each timepoint the c-index is computed using only those pairs
+where one of the event times is known to be earlier than this timepoint. If
+<code>eval.times</code> is <code>missing</code> then the largest
+uncensored event time is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pred.times</code></td>
+<td>
+<p>A vector of timepoints for evaluating the prediction
+models. This should either be exactly one timepoint used for all
+<code>eval.times</code>, or be as long as <code>eval.times</code>, in which case the
+predicted order of risk for the jth entry of <code>eval.times</code> is based on
+the jth entry of <code>pred.times</code> corresponding</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cause</code></td>
+<td>
+<p>For competing risks, the event of interest. Defaults to the
+first state of the response, which is obtained by evaluating the left hand
+side of <code>formula</code> in <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lyl</code></td>
+<td>
+<p>If <code>TRUE</code> rank subjects accoring to predicted
+life-years-lost (See Andersen due to this cause instead of predicted risk.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cens.model</code></td>
+<td>
+<p>Method for estimating inverse probability of censoring
+weigths:
+</p>
+<p><code>cox</code>: A semi-parametric Cox proportional hazard model is fitted to the
+censoring times
+</p>
+<p><code>marginal</code>: The Kaplan-Meier estimator for the censoring times
+</p>
+<p><code>nonpar</code>: Nonparametric extension of the Kaplan-Meier for the censoring
+times using symmetric nearest neighborhoods – available for arbitrary many
+strata variables on the right hand side of argument <code>formula</code> but at
+most one continuous variable. See the documentation of the functions
+<code>prodlim</code> and <code>neighborhood</code> from the prodlim package.
+</p>
+<p><code>aalen</code>: The nonparametric Aalen additive model fitted to the censoring
+times. Requires the timereg package maintained by Thomas Scheike.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ipcw.refit</code></td>
+<td>
+<p>If <code>TRUE</code> the inverse probability of censoring
+weigths are estimated separately in each training set during
+cross-validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ipcw.args</code></td>
+<td>
+<p>List of arguments passed to function specified by argument <code>cens.model</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ipcw.limit</code></td>
+<td>
+<p>Value between 0 and 1 (but no equal to 0!) used to cut for
+small weights in order to stabilize the estimate at late times were few
+individuals are observed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tiedPredictionsIn</code></td>
+<td>
+<p>If <code>FALSE</code> pairs with identical predictions
+are excluded, unless also the event times are identical and uncensored and
+<code>tiedMatchIn</code> is set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tiedOutcomeIn</code></td>
+<td>
+<p>If <code>TRUE</code> pairs with identical and uncensored
+event times are excluded, unless also the predictions are identical and
+<code>tiedMatchIn</code> is set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tiedMatchIn</code></td>
+<td>
+<p>If <code>TRUE</code> then pairs with identical predictions and
+identical and uncensored event times are counted as concordant pairs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>splitMethod</code></td>
+<td>
+<p>Defines the internal validation design:
+</p>
+<p><code>none/noPlan</code>: Assess the models in the give <code>data</code>, usually
+either in the same data where they are fitted, or in independent test data.
+</p>
+<p><code>BootCv</code>: Bootstrap cross validation. The prediction models are trained
+on <code>B</code> bootstrap samples, that are either drawn with replacement of the
+same size as the original data or without replacement from <code>data</code> of
+the size <code>M</code>.  The models are assessed in the observations that are NOT
+in the bootstrap sample.
+</p>
+<p><code>Boot632</code>: Linear combination of AppCindex and OutOfBagCindex using the
+constant weight .632.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>Number of bootstrap samples. The default depends on argument
+<code>splitMethod</code>.  When <code>splitMethod</code> in c("BootCv","Boot632") the
+default is 100.  For <code>splitMethod="none"</code> <code>B</code> is the number of
+bootstrap simulations e.g. to obtain bootstrap confidence limits – default
+is 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M</code></td>
+<td>
+<p>The size of the bootstrap samples for resampling without
+replacement. Ignored for resampling with replacement.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model.args</code></td>
+<td>
+<p>List of extra arguments that can be passed to the
+<code>predictSurvProb</code> methods. The list must have an entry for each entry
+in <code>object</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model.parms</code></td>
+<td>
+<p>Experimental.  List of with exactly one entry for each
+entry in <code>object</code>.  Each entry names parts of the value of the fitted
+models that should be extracted and added to the value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.models</code></td>
+<td>
+<p>Logical. If <code>TRUE</code> keep the models in object. Since
+fitted models can be large objects the default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.residuals</code></td>
+<td>
+<p>Experimental.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.pvalues</code></td>
+<td>
+<p>Experimental.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.weights</code></td>
+<td>
+<p>Experimental.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.index</code></td>
+<td>
+<p>Logical. If <code>FALSE</code> remove the bootstrap or
+cross-validation index from the output list which otherwise is included in
+the method part of the output list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.matrix</code></td>
+<td>
+<p>Logical. If <code>TRUE</code> add all <code>B</code> prediction error
+curves from bootstrapping or cross-validation to the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multiSplitTest</code></td>
+<td>
+<p>Experimental.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>testTimes</code></td>
+<td>
+<p>A vector of time points for testing differences between
+models in the time-point specific Brier scores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>confInt</code></td>
+<td>
+<p>Experimental.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>confLevel</code></td>
+<td>
+<p>Experimental.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>if <code>TRUE</code> report details of the progress, e.g. count the
+steps in cross-validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>savePath</code></td>
+<td>
+<p>Place in your filesystem (directory) where training models
+fitted during cross-validation are saved. If <code>missing</code> training models
+are not saved.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>slaveseed</code></td>
+<td>
+<p>Vector of seeds, as long as <code>B</code>, to be given to the
+slaves in parallel computing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.action</code></td>
+<td>
+<p>Passed immediately to model.frame. Defaults to na.fail. If
+set otherwise most prediction models will not work.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Not used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Pairs with identical observed times, where one is uncensored and one is
+censored, are always considered usuable (independent of the value of
+<code>tiedOutcomeIn</code>), as it can be assumed that the event occurs at a later
+timepoint for the censored observation.
+</p>
+<p>For uncensored response the result equals the one obtained with the
+functions <code>rcorr.cens</code> and <code>rcorrcens</code> from the <code>Hmisc</code>
+package (see examples).
+</p>
+
+
+<h3>Value</h3>
+
+<p>Estimates of the C-index.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Thomas A Gerds <a href="mailto:tag@biostat.ku.dk">tag@biostat.ku.dk</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>TA Gerds, MW Kattan, M Schumacher, and C Yu. Estimating a time-dependent
+concordance index for survival prediction models with covariate dependent
+censoring. Statistics in Medicine, Ahead of print:to appear, 2013. DOI =
+10.1002/sim.5681
+</p>
+<p>Wolbers, M and Koller, MT and Witteman, JCM and Gerds, TA (2013) Concordance
+for prognostic models with competing risks Research report 13/3. Department
+of Biostatistics, University of Copenhagen
+</p>
+<p>Andersen, PK (2012) A note on the decomposition of number of life years lost
+according to causes of death Research report 12/2. Department of
+Biostatistics, University of Copenhagen
+</p>
+<p>Paul Blanche, Michael W Kattan, and Thomas A Gerds. The c-index is not
+proper for the evaluation of-year predicted risks. Biostatistics, 20(2):
+347–357, 2018.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+ # simulate data based on Weibull regression  
+library(prodlim)
+ set.seed(13)
+ dat &lt;- SimSurv(100)
+ # fit three different Cox models and a random survival forest
+ # note: low number of trees for the purpose of illustration 
+ library(survival)
+ cox12 &lt;- coxph(Surv(time,status)~X1+X2,data=dat,x=TRUE,y=TRUE)
+ cox1 &lt;- coxph(Surv(time,status)~X1,data=dat,x=TRUE,y=TRUE)
+ cox2 &lt;- coxph(Surv(time,status)~X2,data=dat,x=TRUE,y=TRUE)
+ #
+ # compute the apparent estimate of the C-index at a single time point
+ #
+A1  &lt;- pec::cindex(list("Cox X1"=cox1),
+		  formula=Surv(time,status)~X1+X2,
+		  data=dat,
+		  eval.times=10)
+ #
+ # compute the apparent estimate of the C-index at different time points
+ #
+ApparrentCindex  &lt;- pec::cindex(list("Cox X1"=cox1,
+		       "Cox X2"=cox2,
+		       "Cox X1+X2"=cox12),
+		  formula=Surv(time,status)~X1+X2,
+		  data=dat,
+		  eval.times=seq(1,15,1))
+  print(ApparrentCindex)
+  plot(ApparrentCindex)
+ #
+ # compute the bootstrap-crossvalidation estimate of
+ # the C-index at different time points
+ #
+set.seed(142)
+bcvCindex  &lt;- pec::cindex(list("Cox X1"=cox1,
+		       "Cox X2"=cox2,
+		       "Cox X1+X2"=cox12),
+		  formula=Surv(time,status)~X1+X2,
+		  data=dat,
+                  splitMethod="bootcv",
+                  B=5,
+ 		  eval.times=seq(1,15,1))
+  print(bcvCindex)
+  plot(bcvCindex)
+ # for uncensored data the results are the same
+ # as those obtained with the function rcorr.cens from Hmisc
+
+set.seed(16)
+dat &lt;- SimSurv(30)
+dat$staus=1
+fit12 &lt;- coxph(Surv(time,status)~X1+X2,data=dat,x=TRUE,y=TRUE)
+fit1 &lt;- coxph(Surv(time,status)~X1,data=dat,x=TRUE,y=TRUE)
+fit2 &lt;- coxph(Surv(time,status)~X2,data=dat,x=TRUE,y=TRUE)
+Cpec &lt;- pec::cindex(list("Cox X1+X2"=fit12,"Cox X1"=fit1,"Cox X2"=fit2),
+	       formula=Surv(time,status)~1,
+	       data=dat) 	       
+p1 &lt;- predictSurvProb(fit1,newdata=dat,times=10)
+p2 &lt;- predictSurvProb(fit2,newdata=dat,times=10)
+p12 &lt;- predictSurvProb(fit12,newdata=dat,times=10)
+if (requireNamespace("Hmisc",quietly=TRUE)){
+library(Hmisc)
+harrelC1 &lt;- rcorr.cens(p1,with(dat,Surv(time,status)))
+harrelC2 &lt;- rcorr.cens(p2,with(dat,Surv(time,status)))
+harrelC12 &lt;- rcorr.cens(p12,with(dat,Surv(time,status)))
+harrelC1[["C Index"]]==Cpec$AppCindex[["Cox.X1"]]
+harrelC2[["C Index"]]==Cpec$AppCindex[["Cox.X2"]]
+harrelC12[["C Index"]]==Cpec$AppCindex[["Cox.X1.X2"]]
+}
+ #
+ # competing risks 
+ #
+library(riskRegression)
+library(prodlim)
+set.seed(30)
+dcr.learn &lt;- SimCompRisk(30)
+dcr.val &lt;- SimCompRisk(30)
+pec::cindex(CSC(Hist(time,event)~X1+X2,data=dcr.learn),data=dcr.val)
+fit &lt;- CSC(Hist(time,event)~X1+X2,data=dcr.learn)
+cif &lt;- predictRisk(fit,newdata=dcr.val,times=3,cause=1)
+pec::cindex(list(fit),data=dcr.val,times=3)
+</code></pre>
+
+
+</div>

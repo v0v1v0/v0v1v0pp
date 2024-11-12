@@ -1,0 +1,130 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>board_ms365</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Use a OneDrive or Sharepoint document library as a board</h2>
+
+<h3>Description</h3>
+
+<p>Pin data to a folder in Onedrive or a SharePoint Online document library
+using the Microsoft365R package.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">board_ms365(
+  drive,
+  path,
+  versioned = TRUE,
+  cache = NULL,
+  delete_by_item = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>drive</code></td>
+<td>
+<p>A OneDrive or SharePoint document library object, of class
+<code>Microsoft365R::ms_drive</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path</code></td>
+<td>
+<p>Path to directory to store pins. This can be either a string
+containing the pathname like <code>"path/to/board"</code>, or a
+<code>Microsoft365R::ms_drive_item</code> object pointing to the board path.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>versioned</code></td>
+<td>
+<p>Should this board be registered with support for versions?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cache</code></td>
+<td>
+<p>Cache path. Every board requires a local cache to avoid
+downloading files multiple times. The default stores in a standard
+cache location for your operating system, but you can override if needed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>delete_by_item</code></td>
+<td>
+<p>Whether to handle folder deletions on an item-by-item
+basis, rather than deleting the entire folder at once. You may need to set
+this to <code>TRUE</code> for a board in SharePoint Online or OneDrive for Business,
+due to document protection policies that prohibit deleting non-empty
+folders.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Sharing a board in OneDrive (personal or business) is a bit complicated, as
+OneDrive normally allows only the person who owns the drive to access files
+and folders. First, the drive owner has to set the board folder as shared
+with other users, using either the OneDrive web interface or Microsoft365R's
+<code>ms_drive_item$create_share_link()</code> method. The other users then call
+<code>board_ms365</code> with a <em>drive item object</em> in the <code>path</code> argument, pointing to
+the shared folder. See the examples below.
+</p>
+<p>Sharing a board in SharePoint Online is much more straightforward, assuming
+all users have access to the document library: in this case, everyone can
+use the same call <code>board_ms365(doclib, "path/to/board")</code>. If you want to
+share a board with users outside your team, follow the same steps for sharing
+a board in OneDrive.
+</p>
+<p><code>board_ms365()</code> is powered by the Microsoft365R package, which is a suggested
+dependency of pins (not required for pins in general). If you run into errors
+when deploying content to a server like <a href="https://www.shinyapps.io">https://www.shinyapps.io</a> or
+<a href="https://posit.co/products/enterprise/connect/">Connect</a>, add
+<code>requireNamespace("Microsoft365R")</code> to your app or document for <a href="https://docs.posit.co/connect/user/troubleshooting/#render-missing-r-package">automatic dependency discovery</a>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# A board in your personal OneDrive
+od &lt;- Microsoft365R::get_personal_onedrive()
+board &lt;- board_ms365(od, "myboard")
+board %&gt;% pin_write(iris)
+
+# A board in OneDrive for Business
+odb &lt;- Microsoft365R::get_business_onedrive(tenant = "mytenant")
+board &lt;- board_ms365(odb, "myproject/board")
+
+# A board in a SharePoint Online document library
+sp &lt;- Microsoft365R::get_sharepoint_site("my site", tenant = "mytenant")
+doclib &lt;- sp$get_drive()
+board &lt;- board_ms365(doclib, "general/project1/board")
+
+
+## Sharing a board in OneDrive:
+# First, create the board on the drive owner's side
+board &lt;- board_ms365(od, "myboard")
+
+# Next, let other users write to the folder
+# - set the expiry to NULL if you want the folder to be permanently available
+od$get_item("myboard")$create_share_link("edit", expiry="30 days")
+
+# On the recipient's side: find the shared folder item, then pass it to board_ms365
+shared_items &lt;- od$list_shared_items()
+board_folder &lt;- shared_items$remoteItem[[which(shared_items$name == "myboard")]]
+board &lt;- board_ms365(od, board_folder)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,148 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>add_spells</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add "Spells" to Data</h2>
+
+<h3>Description</h3>
+
+<p><code>add_spells()</code> calculates "spells" in your state-year, leader-year,
+or dyad-year data. The application here is mostly concerned with
+things like "peace spells" between conflicts in a given cross-sectional
+unit (e.g. a state or dyad).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">add_spells(data, conflict_event_type = "ongoing", ongo = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>an applicable data frame (e.g. leader-year, dyad-year, state-year, as created in <span class="pkg">peacesciencer</span>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conflict_event_type</code></td>
+<td>
+<p>type of event for which spells should be calculated, either "ongoing" or "onset".
+Default is "ongoing". If "ongoing", the spells are calculated on the presence of an ongoing event.
+If "onset", spells are calculated on the onset of a conflict event with successive zeros (if observed) calculated as "peace".
+See Details section for more.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ongo</code></td>
+<td>
+<p>If TRUE, successive 1s are considered ongoing events and treated as NA after the first 1. If FALSE, successive 1s
+are all treated as failures. Defaults to FALSE.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function internally uses <code>ps_spells()</code> from <span class="pkg">stevemisc</span>. In
+the interest of full disclosure, <code>ps_spells()</code> leans heavily on
+<code>add_duration()</code> from <span class="pkg">spduration</span>. I optimized some code
+for performance.
+</p>
+<p>Thinking of an application like peace-years, <code>add_spells()</code> will
+only calculate the peace years and will leave the temporal dependence
+adjustment to the taste of the researcher. Importantly, I do not recommend
+manually creating splines or square/cube terms because it creates more
+problems in adjusting for temporal dependence in model predictions.
+In a regression formula in R, you can specify the Carter and Signorino
+(2010) approach as
+<code>... + gmlmidspell + I(gmlmidspell^2) + I(gmlmidspell^3)</code> (assuming
+you ran <code>add_spells()</code> on a dyad-year data frame including the
+Gibler-Miller-Little conflict data). The Beck et al. cubic splines approach
+is <code>... + splines::bs(gmlmidspell, 4)</code>. This function includes the
+spell and three splines (hence the 4 in the command). Either approach
+makes for easier model predictions, given R's functionality.
+</p>
+<p>Thinking of our dyadic analyses of conflict, I've always understood
+that something like "peace-years" should be calculated on the ongoing
+event and not the onset of the event. Think of something like the
+Iran-Iraq War (MID#2115) as illustrative here. The MID (which became
+a war) started in 1980 and ended in 1988. There are no other bilateral
+incidents between Iran-Iraq independent of the war, per Correlates of War
+coding rules. If peace years are calculated at the "onset" of the event,
+it would list peace-years between the two countries from 1981 to 1988.
+I've never understood that to make sense, but still I've seen others insist
+this is the correct way to do it. <code>add_peace_years()</code> would force the
+calculation on the ongoing event, which I still maintain is correct.
+<code>add_spells()</code> will allow you to calculate on onsets, even if
+ongoing events are the default.
+</p>
+<p>The underlying function for <code>add_spells()</code> will stop without a return
+if there are NAs bracketing observed events. The surest way
+this will happen is if you're doing something like a dyad-year analysis
+of inter-state conflicts from 1816 to 2010, but <code>create_dyadyears()</code>
+created observations from 2011 to 2020 for you as well. Remove those
+before using this function and confine the temporal domain to just those
+time-units (e.g. years) for which there is observed event data.
+See what I do in the example below.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>add_spells()</code> takes a dyad-year, leader-year, or  state-year data
+frame and adds spells for ongoing conflicts. Dyadic conflict data supported
+include the Correlates of War (CoW) Militarized Interstate Dispute (MID)
+data set and the Gibler-Miller-Little (GML) corrections to CoW-MID.
+State-level conflict data supported in this function include the UCDP
+armed conflict data and the CoW intra-state war data. Leader-year
+conflict data supported include the GML MID data.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Steven V. Miller
+</p>
+
+
+<h3>References</h3>
+
+<p>Beger, Andreas, Daina Chiba, Daniel W. Hill, Jr, Nils W. Metternich, Shahryar Minhas and Michael D. Ward. 2018.
+“<span class="pkg">spduration</span>: Split-Population and Duration (Cure) Regression.” <em>R package version 0.17.1</em>.
+</p>
+<p>Beck, Nathaniel, Jonathan N. Katz, and Richard Tucker. 1998. "Taking Time Seriously: Time-Series-Cross-Section
+Analysis with a Binary Dependent Variable." <em>American Journal of Political Science</em> 42(4): 1260–1288.
+</p>
+<p>Carter, David B. and Curtis S. Signorino. 2010. "Back to the Future: Modeling Time Dependence in Binary Data."
+<em>Political Analysis</em> 18(3): 271–292.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+# just call `library(tidyverse)` at the top of the your script
+library(magrittr)
+
+aaa &lt;- subset(cow_ddy, year &lt;= 2010)
+
+aaa %&gt;%
+add_gml_mids(keep = NULL) %&gt;%
+add_cow_mids(keep = NULL) %&gt;%
+add_contiguity() %&gt;%
+add_cow_majors() %&gt;%
+filter_prd()  %&gt;%
+add_spells()
+
+
+</code></pre>
+
+
+</div>

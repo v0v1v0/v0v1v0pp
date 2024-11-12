@@ -1,0 +1,378 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>write_testthat_file</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Transform a <strong>pointblank</strong> agent to a <strong>testthat</strong> test file</h2>
+
+<h3>Description</h3>
+
+<p>With a <strong>pointblank</strong> <em>agent</em>, we can write a <strong>testthat</strong> test file and opt
+to place it in the <code>testthat/tests</code> if it is available in the project path
+(we can specify an alternate path as well). This works by transforming the
+validation steps to a series of <code style="white-space: pre;">⁠expect_*()⁠</code> calls inside individual
+<code>testthat::test_that()</code> statements.
+</p>
+<p>A major requirement for using <code>write_testthat_file()</code> on an agent is the
+presence of an expression that can retrieve the target table. Typically, we
+might supply a table-prep formula, which is a formula that can be invoked to
+obtain the target table (e.g., <code>tbl = ~ pointblank::small_table</code>). This
+user-supplied statement will be used by <code>write_testthat_file()</code> to generate a
+table-loading statement at the top of the new <strong>testthat</strong> test file so that
+the target table is available for each of the <code>testthat::test_that()</code>
+statements that follow. If an <em>agent</em> was not created using a table-prep
+formula set for the <code>tbl</code>, it can be modified via the <code>set_tbl()</code> function.
+</p>
+<p>Thresholds will be obtained from those applied for the <code>stop</code> state. This can
+be set up for a <strong>pointblank</strong> <em>agent</em> by passing an <code>action_levels</code> object
+to the <code>actions</code> argument of <code>create_agent()</code> or the same argument of any
+included validation function. If <code>stop</code> thresholds are not available, then a
+threshold value of <code>1</code> will be used for each generated <code style="white-space: pre;">⁠expect_*()⁠</code> statement
+in the resulting <strong>testthat</strong> test file.
+</p>
+<p>There is no requirement that the <strong>agent</strong> first undergo interrogation with
+<code>interrogate()</code>. However, it may be useful as a dry run to interactively
+perform an interrogation on the target data before generating the
+<strong>testthat</strong> test file.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">write_testthat_file(
+  agent,
+  name = NULL,
+  path = NULL,
+  overwrite = FALSE,
+  skips = NULL,
+  quiet = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>agent</code></td>
+<td>
+<p><em>The pointblank agent object</em>
+</p>
+<p><code style="white-space: pre;">⁠obj:&lt;ptblank_agent&gt;⁠</code> // <strong>required</strong>
+</p>
+<p>A <strong>pointblank</strong> <em>agent</em> object that is commonly created through the use of
+the <code>create_agent()</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p><em>Name for generated testthat file</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;character&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>An optional name for for the <strong>testhat</strong> test file. This should be a name
+without extension and without the leading <code>"test-"</code> text. If nothing is
+supplied, the name will be derived from the <code>tbl_name</code> in the agent. If
+that's not present, a generic name will be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path</code></td>
+<td>
+<p><em>File path</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;character&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>A path can be specified here if there shouldn't be an attempt to place the
+file in <code>testthat/tests</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite</code></td>
+<td>
+<p><em>Overwrite a previous file of the same name</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;logical&gt;⁠</code> // <em>default:</em> <code>FALSE</code>
+</p>
+<p>Should a <strong>testthat</strong> file of the same name be overwritten?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skips</code></td>
+<td>
+<p><em>Test skipping</em>
+</p>
+<p><code style="white-space: pre;">⁠vector&lt;character&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>This is an optional vector of test-skipping keywords modeled after the
+<strong>testthat</strong> <code style="white-space: pre;">⁠skip_on_*()⁠</code> functions. The following keywords can be used to
+include <code style="white-space: pre;">⁠skip_on_*()⁠</code> statements: <code>"cran"</code> (<code>testthat::skip_on_cran()</code>),
+<code>"travis"</code> (<code>testthat::skip_on_travis()</code>), <code>"appveyor"</code>
+(<code>testthat::skip_on_appveyor()</code>), <code>"ci"</code> (<code>testthat::skip_on_ci()</code>),
+<code>"covr"</code> (<code>testthat::skip_on_covr()</code>), <code>"bioc"</code>
+(<code>testthat::skip_on_bioc()</code>). There are keywords for skipping tests on
+certain operating systems and all of them will insert a specific
+<code>testthat::skip_on_os()</code> call. These are <code>"windows"</code>
+(<code>skip_on_os("windows")</code>), <code>"mac"</code> (<code>skip_on_os("mac")</code>), <code>"linux"</code>
+(<code>skip_on_os("linux")</code>), and <code>"solaris"</code> (<code>skip_on_os("solaris")</code>). These
+calls will be placed at the top of the generated <strong>testthat</strong> test file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p><em>Inform (or not) upon file writing</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;logical&gt;⁠</code> // <em>default:</em> <code>FALSE</code>
+</p>
+<p>Should the function <em>not</em> inform when the file is written?</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Tests for inactive validation steps will be skipped with a clear message
+indicating that the reason for skipping was due to the test not being active.
+Any inactive validation steps can be forced into an active state by using the
+<code>activate_steps()</code> on an <em>agent</em> (the opposite is possible with the
+<code>deactivate_steps()</code> function).
+</p>
+<p>The <strong>testthat</strong> package comes with a series of <code style="white-space: pre;">⁠skip_on_*()⁠</code> functions which
+conveniently cause the test file to be skipped entirely if certain conditions
+are met. We can quickly set any number of these at the top of the
+<strong>testthat</strong> test file by supplying keywords as a vector to the <code>skips</code>
+option of <code>write_testthat_file()</code>. For instance, setting
+<code style="white-space: pre;">⁠skips = c("cran", "windows)⁠</code> will add the <strong>testthat</strong> <code>skip_on_cran()</code> and
+<code>skip_on_os("windows")</code> statements, meaning that the generated test file
+won't run on a CRAN system or if the system OS is Windows.
+</p>
+<p>Here is an example of <strong>testthat</strong> test file output (<code>"test-small_table.R"</code>):
+</p>
+<div class="sourceCode r"><pre># Generated by pointblank
+
+tbl &lt;- small_table
+
+test_that("column `date_time` exists", {
+  
+  expect_col_exists(
+    tbl,
+    columns = date_time,
+    threshold = 1
+  ) 
+})
+
+test_that("values in `c` should be &lt;= `5`", {
+  
+  expect_col_vals_lte(
+    tbl,
+    columns = c,
+    value = 5,
+    threshold = 0.25
+  ) 
+})
+
+</pre></div>
+<p>This was generated by the following set of R statements:
+</p>
+<div class="sourceCode r"><pre>library(pointblank)
+
+agent &lt;- 
+  create_agent(
+    tbl = ~ small_table,
+    actions = action_levels(stop_at = 0.25)
+  ) %&gt;%
+  col_exists(date_time) %&gt;%
+  col_vals_lte(c, value = 5)
+  
+write_testthat_file(
+  agent = agent,
+  name = "small_table",
+  path = "."
+)
+</pre></div>
+
+
+<h3>Value</h3>
+
+<p>Invisibly returns <code>TRUE</code> if the <strong>testthat</strong> file has been written.
+</p>
+
+
+<h3>Examples</h3>
+
+
+
+<h4>Creating a <strong>testthat</strong> file from an <em>agent</em>
+</h4>
+
+<p>Let's walk through a data quality analysis of an extremely small table. It's
+actually called <code>small_table</code> and we can find it as a dataset in this
+package.
+</p>
+<div class="sourceCode r"><pre>small_table
+#&gt; # A tibble: 13 x 8
+#&gt;    date_time           date           a b             c      d e     f    
+#&gt;    &lt;dttm&gt;              &lt;date&gt;     &lt;int&gt; &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;lgl&gt; &lt;chr&gt;
+#&gt;  1 2016-01-04 11:00:00 2016-01-04     2 1-bcd-345     3  3423. TRUE  high 
+#&gt;  2 2016-01-04 00:32:00 2016-01-04     3 5-egh-163     8 10000. TRUE  low  
+#&gt;  3 2016-01-05 13:32:00 2016-01-05     6 8-kdg-938     3  2343. TRUE  high 
+#&gt;  4 2016-01-06 17:23:00 2016-01-06     2 5-jdo-903    NA  3892. FALSE mid  
+#&gt;  5 2016-01-09 12:36:00 2016-01-09     8 3-ldm-038     7   284. TRUE  low  
+#&gt;  6 2016-01-11 06:15:00 2016-01-11     4 2-dhe-923     4  3291. TRUE  mid  
+#&gt;  7 2016-01-15 18:46:00 2016-01-15     7 1-knw-093     3   843. TRUE  high 
+#&gt;  8 2016-01-17 11:27:00 2016-01-17     4 5-boe-639     2  1036. FALSE low  
+#&gt;  9 2016-01-20 04:30:00 2016-01-20     3 5-bce-642     9   838. FALSE high 
+#&gt; 10 2016-01-20 04:30:00 2016-01-20     3 5-bce-642     9   838. FALSE high 
+#&gt; 11 2016-01-26 20:07:00 2016-01-26     4 2-dmx-010     7   834. TRUE  low  
+#&gt; 12 2016-01-28 02:51:00 2016-01-28     2 7-dmx-010     8   108. FALSE low  
+#&gt; 13 2016-01-30 11:23:00 2016-01-30     1 3-dka-303    NA  2230. TRUE  high
+</pre></div>
+<p>Creating an <code>action_levels</code> object is a common workflow step when creating a
+pointblank agent. We designate failure thresholds to the <code>warn</code>, <code>stop</code>, and
+<code>notify</code> states using <code>action_levels()</code>.
+</p>
+<div class="sourceCode r"><pre>al &lt;- 
+  action_levels(
+    warn_at = 0.10,
+    stop_at = 0.25,
+    notify_at = 0.35
+  )
+</pre></div>
+<p>A pointblank <code>agent</code> object is now created and the <code>al</code> object is provided to
+the agent. The static thresholds provided by the <code>al</code> object make reports a
+bit more useful after interrogation.
+</p>
+<div class="sourceCode r"><pre>agent &lt;- 
+  create_agent(
+    tbl = ~ small_table,
+    label = "An example.",
+    actions = al
+  ) %&gt;%
+  col_exists(c(date, date_time)) %&gt;%
+  col_vals_regex(
+    b,
+    regex = "[0-9]-[a-z]{3}-[0-9]{3}"
+  ) %&gt;%
+  col_vals_gt(d, value = 100) %&gt;%
+  col_vals_lte(c, value = 5) %&gt;%
+  interrogate()
+</pre></div>
+<p>This agent and all of the checks can be transformed into a testthat file with
+<code>write_testthat_file()</code>. The <code>stop</code> thresholds will be ported over to the
+<code style="white-space: pre;">⁠expect_*()⁠</code> functions in the new file.
+</p>
+<div class="sourceCode r"><pre>write_testthat_file(
+  agent = agent,
+  name = "small_table",
+  path = "."
+)
+</pre></div>
+<p>The above code will generate a file with the name <code>"test-small_table.R"</code>. The
+path was specified with <code>"."</code> so the file will be placed in the working
+directory. If you'd like to easily add this new file to the <code>tests/testthat</code>
+directory then <code>path = NULL</code> (the default) will makes this possible (this is
+useful during package development).
+</p>
+<p>What's in the new file? This:
+</p>
+<div class="sourceCode r"><pre># Generated by pointblank
+
+tbl &lt;- small_table
+
+test_that("column `date` exists", {
+  
+  expect_col_exists(
+    tbl,
+    columns = date,
+    threshold = 1
+  ) 
+})
+
+test_that("column `date_time` exists", {
+  
+  expect_col_exists(
+    tbl,
+    columns = date_time,
+    threshold = 1
+  ) 
+})
+
+test_that("values in `b` should match the regular expression: 
+`[0-9]-[a-z]{3}-[0-9]{3}`", {
+  
+  expect_col_vals_regex(
+    tbl,
+    columns = b,
+    regex = "[0-9]-[a-z]{3}-[0-9]{3}",
+    threshold = 0.25
+  ) 
+})
+
+test_that("values in `d` should be &gt; `100`", {
+  
+  expect_col_vals_gt(
+    tbl,
+    columns = d,
+    value = 100,
+    threshold = 0.25
+  ) 
+})
+
+test_that("values in `c` should be &lt;= `5`", {
+  
+  expect_col_vals_lte(
+    tbl,
+    columns = c,
+    value = 5,
+    threshold = 0.25
+  ) 
+})
+</pre></div>
+
+
+
+<h4>Using an <em>agent</em> stored on disk as a YAML file</h4>
+
+<p>An agent on disk as a YAML file can be made into a <strong>testthat</strong> file. The
+<code>"agent-small_table.yml"</code> file is available in the <strong>pointblank</strong> package
+and the path can be obtained with <code>system.file()</code>.
+</p>
+<div class="sourceCode r"><pre>yml_file &lt;- 
+  system.file(
+    "yaml", "agent-small_table.yml",
+    package = "pointblank"
+  )
+</pre></div>
+<p>Writing the <strong>testthat</strong> file into the working directory is much the same as
+before but we're reading the agent from disk this time. It's a read and write
+combo, really. Again, we are choosing to write the file to the working
+directory by using <code>path = "."</code>.
+</p>
+<div class="sourceCode r"><pre>write_testthat_file(
+  agent = yaml_read_agent(yml_file),
+  name = "from_agent_yaml",
+  path = "."
+)
+</pre></div>
+
+
+
+<h3>Function ID</h3>
+
+<p>8-5
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Post-interrogation: 
+<code>all_passed()</code>,
+<code>get_agent_x_list()</code>,
+<code>get_data_extracts()</code>,
+<code>get_sundered_data()</code>
+</p>
+
+
+</div>

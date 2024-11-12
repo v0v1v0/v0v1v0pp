@@ -1,0 +1,136 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>summary.paths</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Summarizing Output from Causal Paths Analysis</h2>
+
+<h3>Description</h3>
+
+<p>Function to report results from causal paths analysis. Report point estimates
+and standard errors for the total effect, direct effect, and each individual
+indirect effect, separately for Type I and Type II decompositions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'paths'
+summary(object, ...)
+
+## S3 method for class 'summary.paths'
+print(x, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>an object of class <code>paths</code> returned by the
+<code>paths</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments to be passed to <code>printCoefmat</code> for the
+<code>print</code> method</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>an object of class <code>summary.paths</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>print.summary.paths</code> tries to smartly format the point
+estimates and confidence intervals, and provides 'significance stars'
+through the <code>printCoefmat</code> function.
+</p>
+<p>It also prints out the names of the treatment, outcome, mediator variables as well
+as pretreatment covariates, which are extracted from the <code>formulas</code> argument of the
+call to <code>paths</code> so that users can verify if the model formulas have been
+correctly specified.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>summary.paths</code>, which is a list containing
+the <code>call</code>, <code>varnames</code>, <code>formulas</code>, <code>classes</code>,
+<code>args</code>, <code>ps_formula</code>, <code>ps_class</code>, <code>ps_args</code>,
+<code>nboot</code>, <code>conf_level</code> components from the <code>paths</code> object,
+plus </p>
+ <dl>
+<dt>nobs</dt>
+<dd>
+<p>number of observations in <code>data</code></p>
+</dd> <dt>estimates</dt>
+<dd>
+<p>a
+list containing four matrices, corresponding to effect estimates obtained
+using the pure imputation estimator and the imputation-based weighting
+estimator, each with Type I and Type II decompositions. Each matrix
+contains the point estimates, standard errors, and confidence intervals of
+the total effect, direct effect, and each individual indirect effect
+for the corresponding decomposition. The elements in each matrix
+are extracted from the <code>paths</code> object.</p>
+</dd>
+</dl>
+<h3>See Also</h3>
+
+<p><code>paths</code>, <code>print.paths</code>, <code>plot.paths</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># **For illustration purposes a small number of bootstrap replicates are used**
+
+data(tatar)
+
+m1 &lt;- c("trust_g1", "victim_g1", "fear_g1")
+m2 &lt;- c("trust_g2", "victim_g2", "fear_g2")
+m3 &lt;- c("trust_g3", "victim_g3", "fear_g3")
+mediators &lt;- list(m1, m2, m3)
+
+formula_m0 &lt;- annex ~ kulak + prosoviet_pre + religiosity_pre + land_pre +
+  orchard_pre + animals_pre + carriage_pre + otherprop_pre + violence
+formula_m1 &lt;- update(formula_m0,    ~ . + trust_g1 + victim_g1 + fear_g1)
+formula_m2 &lt;- update(formula_m1,    ~ . + trust_g2 + victim_g2 + fear_g2)
+formula_m3 &lt;- update(formula_m2,    ~ . + trust_g3 + victim_g3 + fear_g3)
+formula_ps &lt;- violence ~ kulak + prosoviet_pre + religiosity_pre +
+  land_pre + orchard_pre + animals_pre + carriage_pre + otherprop_pre
+
+####################################################
+# Causal Paths Analysis using GLM
+####################################################
+
+# outcome models
+glm_m0 &lt;- glm(formula_m0, family = binomial("logit"), data = tatar)
+glm_m1 &lt;- glm(formula_m1, family = binomial("logit"), data = tatar)
+glm_m2 &lt;- glm(formula_m2, family = binomial("logit"), data = tatar)
+glm_m3 &lt;- glm(formula_m3, family = binomial("logit"), data = tatar)
+glm_ymodels &lt;- list(glm_m0, glm_m1, glm_m2, glm_m3)
+
+# propensity score model
+glm_ps &lt;- glm(formula_ps, family = binomial("logit"), data = tatar)
+
+# causal paths analysis using glm
+# note: For illustration purposes only a small number of bootstrap replicates are used
+paths_glm &lt;- paths(a = "violence", y = "annex", m = mediators,
+  glm_ymodels, ps_model = glm_ps, data = tatar, nboot = 3)
+# plot total, direct, and path-specific effects
+summary(paths_glm)
+
+</code></pre>
+
+
+</div>

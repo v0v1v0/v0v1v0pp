@@ -1,0 +1,207 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>xform_map</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Implement a map between discrete values in accordance with the PMML element
+<b>MapValues</b>.</h2>
+
+<h3>Description</h3>
+
+<p>Implement a map between discrete values in accordance with the PMML element
+<b>MapValues</b>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">xform_map(
+  wrap_object,
+  xform_info,
+  table = NA,
+  default_value = NA,
+  map_missing_to = NA,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>wrap_object</code></td>
+<td>
+<p>Output of xform_wrap or another transformation function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xform_info</code></td>
+<td>
+<p>Specification of details of the transformation. It can be a
+text giving the external file name or a list of data frames. Even if only 1
+variable is to be transformed, the information for that map should be given
+as a list with 1 element.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>table</code></td>
+<td>
+<p>Name of external CSV file containing the map from input to
+output values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>default_value</code></td>
+<td>
+<p>The default value to be given to the transformed
+variable. If 'xform_info' is a list, this is a vector with each element
+corresponding to the corresponding list element.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>map_missing_to</code></td>
+<td>
+<p>Value to be given to the transformed variable if the
+value of the input variable is missing.  If 'xform_info' is a list, this is a
+vector with each element corresponding to the corresponding list element.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to or from other methods.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Map discrete values of an input variable to a discrete value of the
+transformed variable. The map can be given in an external table file
+referred to in the transform command or as a list of data frames, each data
+frame defining a map transform for one variable.
+</p>
+<p>Given a map from the combination of variables <b>InVar1</b>, <b>InVar2</b>,
+... to the transformed variable <b>OutVar</b>, where the variables have the
+data types <b>InType1</b>, <b>InType2</b>, ... and <b>OutType</b>, the map
+command is in the format:
+</p>
+<pre>
+xform_info = "[InVar1,InVar2,... -&gt; OutVar][InType1,InType2,... -&gt; OutType]"
+table = "TableFileName", default_value = "defVal", map_missing_to = "missingVal"
+</pre>
+<p>where <b>TableFileName</b> is the name of the CSV file containing the map.
+The map can be a N to 1 map where N is greater or equal to 1. The data types
+of the variables can be any of the ones defined in the PMML format including
+integer, double or string. <b>defVal</b> is the default value of the
+transformed variable and if any of the map input values are missing,
+<b>missingVal</b> is the value of the transformed variable.
+</p>
+<p>The arguments InType, OutType, default_value and map_missing_to are optional.
+The CSV file containing the table should not have any row and column
+identifiers, and the values given must be in the same order as in the map
+command. If the data types of the variables are not given, the data types of
+the input variables are attempted to be determined from the <b>boxData</b>
+argument.  If that is not possible, the data type is assumed to be string.
+</p>
+<p>It is also possible to give the maps to be implemented without an external
+file using a list of data frames. Each data frame defines a map for 1 input
+variable. Given a data frame with N+1 columns, it is assumed that the map is
+a N to 1 map where the last column of the data frame corresponds to the
+derived field. The 1st row is assumed to be the names of the fields and the
+second row the data types of the fields. The rest of the rows define the
+map; each combination of the input values in a row is mapped to the value in
+the last column of that row. The second row with the data types of the
+fields is not required. If not given, all fields are assumed to be strings.
+In this input format, the 'default_value' and 'map_missing_to' parameters
+should be vectors. The first element of each vector will correspond to the
+derived field defined in the 1st element of the 'xform_info' list etc. These
+are made clearer in the example below.
+</p>
+
+
+<h3>Value</h3>
+
+<p>R object containing the raw data, the transformed data and data
+statistics.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Tridivesh Jena
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>xform_wrap</code>, <code>pmml</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Load the standard audit dataset, part of the pmml package:
+data(audit)
+
+# First wrap the data:
+audit_box &lt;- xform_wrap(audit)
+## Not run: 
+# One of the variables, "Sex", has 2 possible values: "Male"
+# and "Female". If these string values have to be mapped to a
+# numeric value, a file has to be created, say "map_audit.csv",
+# whose content is, for example:
+#
+#  Male,1
+#  Female,2
+#
+# Transform the variable "Gender" to a variable "d_gender"
+# such that:
+#    if Sex = "Male" then d_sex = "1"
+#    if Sex = "Female" then d_sex = "2"
+#
+# Give "d_sex" the value 0 if the input variable value is
+# missing.
+audit_box &lt;- xform_map(audit_box,
+  xform_info = "[Sex -&gt; d_sex][string-&gt;integer]",
+  table = "map_audit.csv", map_missing_to = "0"
+)
+
+## End(Not run)
+# Same as above, with an extra variable, but using data frames.
+# The top 2 rows give the variable names and their data types.
+# The rest represent the map. For example, the third row
+# indicates that when the input variable "Sex" has the value
+# "Male" and the input variable "Employment" has
+# the value "PSLocal", the output variable "d_sex" should have
+# the value 1.
+t &lt;- list()
+m &lt;- data.frame(
+  c("Sex", "string", "Male", "Female"),
+  c("Employment", "string", "PSLocal", "PSState"),
+  c("d_sex", "integer", 1, 0),
+  stringsAsFactors = TRUE
+)
+t[[1]] &lt;- m
+
+# Give default value as a vector and missing value as a string,
+# this is only possible as there is only one map defined. If
+# default values is not given, it will simply not be given in
+# the PMML file as well. In general, the default values and the
+# missing values should be given as a vector, each element of
+# the vector corresponding to the element at the same index in
+# the list. If these values are not given as a vector, they will
+# be used for the first list element only.
+audit_box &lt;- xform_map(audit_box,
+  xform_info = t, default_value = c(3),
+  map_missing_to = "2"
+)
+
+# check what the pmml looks like
+fit &lt;- lm(Adjusted ~ ., data = audit_box$data)
+fit_pmml &lt;- pmml(fit, transforms = audit_box)
+</code></pre>
+
+
+</div>

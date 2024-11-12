@@ -1,0 +1,116 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sequentialSearch_dir</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compute PeakSeg model with given number of peaks</h2>
+
+<h3>Description</h3>
+
+<p>Compute the most likely peak model with at most the number of
+peaks given by <code>peaks.int</code>. This function repeated calls
+<code>PeakSegFPOP_dir</code> with different penalty values, until either
+(1) it finds the <code>peaks.int</code> model, or (2) it concludes that there
+is no <code>peaks.int</code> model, in which case it returns the next simplest
+model (with fewer peaks than <code>peaks.int</code>).
+The first pair of penalty values (0, Inf) is run in parallel
+via the user-specified future plan,
+if the future.apply package is available.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sequentialSearch_dir(problem.dir, 
+    peaks.int, verbose = 0)</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>problem.dir</code></td>
+<td>
+<p>problemID directory in which coverage.bedGraph has already been
+computed. If there is a labels.bed file then the number of
+incorrect labels will be computed in order to find the target
+interval of minimal error penalty values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>peaks.int</code></td>
+<td>
+<p>int: target number of peaks.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>numeric verbosity: if &gt;0 then <code>cat</code> is used to print a message
+for each penalty.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Same result list from <code>PeakSegFPOP_dir</code>, with an additional
+component "others" describing the other models that were computed
+before finding the optimal model with <code>peaks.int</code> (or fewer)
+peaks. Additional loss columns are as follows: under=number of
+peaks in smaller model during binary search; over=number of peaks
+in larger model during binary search; iteration=number of times
+PeakSegFPOP has been run.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Toby Dylan Hocking &lt;toby.hocking@r-project.org&gt; [aut, cre]</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Create simple 6 point data set discussed in supplementary
+## materials. GFPOP/GPDPA computes up-down model with 2 peaks, but
+## neither CDPA (PeakSegDP::cDPA) nor PDPA (jointseg)
+r &lt;- function(chrom, chromStart, chromEnd, coverage){
+  data.frame(chrom, chromStart, chromEnd, coverage)
+}
+supp &lt;- rbind(
+  r("chr1", 0, 1,  3),
+  r("chr1", 1, 2, 9),
+  r("chr1", 2, 3, 18),
+  r("chr1", 3, 4, 15),
+  r("chr1", 4, 5, 20),
+  r("chr1", 5, 6, 2)
+)
+data.dir &lt;- file.path(tempfile(), "chr1-0-6")
+dir.create(data.dir, recursive=TRUE)
+write.table(
+  supp, file.path(data.dir, "coverage.bedGraph"),
+  sep="\t", row.names=FALSE, col.names=FALSE)
+
+## register a parallel future plan to compute the first two
+## penalties in parallel during the sequential search.
+if(interactive() &amp;&amp; requireNamespace("future"))future::plan("multisession")
+
+## Compute optimal up-down model with 2 peaks via sequential search.
+fit &lt;- PeakSegDisk::sequentialSearch_dir(data.dir, 2L)
+
+if(require(ggplot2)){
+  ggplot()+
+    theme_bw()+
+    geom_point(aes(
+      chromEnd, coverage),
+      data=supp)+
+    geom_segment(aes(
+      chromStart+0.5, mean,
+      xend=chromEnd+0.5, yend=mean),
+      data=fit$segments,
+      color="green")
+}
+
+</code></pre>
+
+
+</div>

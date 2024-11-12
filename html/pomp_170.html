@@ -1,0 +1,166 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>kalmanFilter</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Kalman filter</h2>
+
+<h3>Description</h3>
+
+<p>The basic Kalman filter for multivariate, linear, Gaussian processes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">kalmanFilter(object, X0 = rinit(object), A, Q, C, R, tol = 1e-06)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>a pomp object containing data;</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X0</code></td>
+<td>
+<p>length-m vector containing initial state.
+This is assumed known without uncertainty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>A</code></td>
+<td>
+<p><code class="reqn">m\times m</code> latent state-process transition matrix.
+<code class="reqn">E[X_{t+1} | X_t] = A.X_t</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Q</code></td>
+<td>
+<p><code class="reqn">m\times m</code> latent state-process covariance matrix.
+<code class="reqn">Var[X_{t+1} | X_t] = Q</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C</code></td>
+<td>
+<p><code class="reqn">n\times m</code> link matrix.
+<code class="reqn">E[Y_t | X_t] = C.X_t</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+<p><code class="reqn">n\times n</code> observation process covariance matrix.
+<code class="reqn">Var[Y_t | X_t] = R</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>numeric;
+the tolerance to be used in computing matrix pseudoinverses via singular-value decomposition.
+Singular values smaller than <code>tol</code> are set to zero.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If the latent state is <code class="reqn">X</code>, the observed variable is <code class="reqn">Y</code>,
+<code class="reqn">X_t \in R^m</code>, <code class="reqn">Y_t \in R^n</code>, and
+</p>
+<p style="text-align: center;"><code class="reqn">X_t \sim \mathrm{MVN}(A X_{t-1}, Q)</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">Y_t \sim \mathrm{MVN}(C X_t, R)</code>
+</p>
+
+<p>where <code class="reqn">\mathrm{MVN}(M,V)</code> denotes the multivariate normal distribution with mean <code class="reqn">M</code> and variance <code class="reqn">V</code>.
+Then the Kalman filter computes the exact likelihood of <code class="reqn">Y</code>
+given <code class="reqn">A</code>, <code class="reqn">C</code>, <code class="reqn">Q</code>, and <code class="reqn">R</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A named list containing the following elements:
+</p>
+
+<dl>
+<dt>object</dt>
+<dd>
+<p>the ‘pomp’ object</p>
+</dd>
+<dt>A, Q, C, R</dt>
+<dd>
+<p>as in the call</p>
+</dd>
+<dt>filter.mean</dt>
+<dd>
+<p><code class="reqn">E[X_t|y^*_1,\dots,y^*_t]</code></p>
+</dd>
+<dt>pred.mean</dt>
+<dd>
+<p><code class="reqn">E[X_t|y^*_1,\dots,y^*_{t-1}]</code></p>
+</dd>
+<dt>forecast</dt>
+<dd>
+<p><code class="reqn">E[Y_t|y^*_1,\dots,y^*_{t-1}]</code></p>
+</dd>
+<dt>cond.logLik</dt>
+<dd>
+<p><code class="reqn">f(y^*_t|y^*_1,\dots,y^*_{t-1})</code></p>
+</dd>
+<dt>logLik</dt>
+<dd>
+<p><code class="reqn">f(y^*_1,\dots,y^*_T)</code></p>
+</dd>
+</dl>
+<h3>See Also</h3>
+
+<p><code>enkf</code>, <code>eakf</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"> # takes too long for R CMD check
+
+  if (require(dplyr)) {
+
+    gompertz() -&gt; po
+
+    po |&gt;
+      as.data.frame() |&gt;
+      mutate(
+        logY=log(Y)
+      ) |&gt;
+      select(time,logY) |&gt;
+      pomp(times="time",t0=0) |&gt;
+      kalmanFilter(
+        X0=c(logX=0),
+        A=matrix(exp(-0.1),1,1),
+        Q=matrix(0.01,1,1),
+        C=matrix(1,1,1),
+        R=matrix(0.01,1,1)
+      ) -&gt; kf
+
+    po |&gt;
+      pfilter(Np=1000) -&gt; pf
+
+    kf$logLik
+    logLik(pf) + sum(log(obs(pf)))
+    
+  }
+
+</code></pre>
+
+
+</div>

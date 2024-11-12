@@ -1,0 +1,511 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>POMDP</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Define a POMDP Problem</h2>
+
+<h3>Description</h3>
+
+<p>Defines all the elements of a POMDP problem including the discount rate, the
+set of states, the set of actions, the set of observations, the transition
+probabilities, the observation probabilities, and rewards.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">POMDP(
+  states,
+  actions,
+  observations,
+  transition_prob,
+  observation_prob,
+  reward,
+  discount = 0.9,
+  horizon = Inf,
+  terminal_values = NULL,
+  start = "uniform",
+  info = NULL,
+  name = NA
+)
+
+is_solved_POMDP(x, stop = FALSE, message = "")
+
+is_timedependent_POMDP(x)
+
+epoch_to_episode(x, epoch)
+
+is_converged_POMDP(x, stop = FALSE, message = "")
+
+O_(action = NA, end.state = NA, observation = NA, probability)
+
+T_(action = NA, start.state = NA, end.state = NA, probability)
+
+R_(action = NA, start.state = NA, end.state = NA, observation = NA, value)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>states</code></td>
+<td>
+<p>a character vector specifying the names of the states. Note that
+state names have to start with a letter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>actions</code></td>
+<td>
+<p>a character vector specifying the names of the available actions.
+Note that action names have to start with a letter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>observations</code></td>
+<td>
+<p>a character vector specifying the names of the
+observations. Note that observation names have to start with a letter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transition_prob</code></td>
+<td>
+<p>Specifies action-dependent transition probabilities
+between states.  See Details section.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>observation_prob</code></td>
+<td>
+<p>Specifies the probability that an action/state
+combination produces an observation.  See Details section.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reward</code></td>
+<td>
+<p>Specifies the rewards structure dependent on action, states
+and observations.  See Details section.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>discount</code></td>
+<td>
+<p>numeric; discount factor between 0 and 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>horizon</code></td>
+<td>
+<p>numeric; Number of epochs. <code>Inf</code> specifies an infinite
+horizon.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>terminal_values</code></td>
+<td>
+<p>a vector with the terminal values for each state or a
+matrix specifying the terminal rewards via a terminal value function (e.g.,
+the alpha component produced by <code>solve_POMDP()</code>).  A single 0 specifies that all
+terminal values are zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start</code></td>
+<td>
+<p>Specifies the initial belief state of the agent. A vector with the
+probability for each state is supplied. Also the string <code>'uniform'</code>
+(default) can be used.  The belief is used to calculate the total expected cumulative
+reward. It is also used by some solvers. See Details section for more
+information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>info</code></td>
+<td>
+<p>A list with additional information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>a string to identify the POMDP problem.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a POMDP.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stop</code></td>
+<td>
+<p>logical; stop with an error.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>message</code></td>
+<td>
+<p>a error message to be displayed displayed</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epoch</code></td>
+<td>
+<p>integer; an epoch that should be converted to the
+corresponding episode in a time-dependent POMDP.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>action, start.state, end.state, observation, probability, value</code></td>
+<td>
+<p>Values
+used in the helper functions <code>O_()</code>, <code>R_()</code>, and <code>T_()</code> to
+create an entry for <code>observation_prob</code>, <code>reward</code>, or
+<code>transition_prob</code> above, respectively. The default value <code>'*"'</code>
+matches any action/state/observation.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In the following we use the following notation. The POMDP is a 7-duple:
+</p>
+<p><code class="reqn">(S,A,T,R, \Omega ,O, \gamma)</code>.
+</p>
+<p><code class="reqn">S</code> is the set of states; <code class="reqn">A</code>
+is the set of actions; <code class="reqn">T</code> are the conditional transition probabilities
+between states; <code class="reqn">R</code> is the reward function; <code class="reqn">\Omega</code> is the set of
+observations; <code class="reqn">O</code> are the conditional observation probabilities; and
+<code class="reqn">\gamma</code> is the discount factor. We will use lower case letters to
+represent a member of a set, e.g., <code class="reqn">s</code> is a specific state. To refer to
+the size of a set we will use cardinality, e.g., the number of actions is
+<code class="reqn">|A|</code>.
+</p>
+<p>Note that the observation model is in the literature
+often also denoted by the letter <code class="reqn">Z</code>.
+</p>
+<p><strong>Names used for mathematical symbols in code</strong>
+</p>
+
+<ul>
+<li> <p><code class="reqn">S, s, s'</code>: <code style="white-space: pre;">⁠'states', start.state', 'end.state'⁠</code>
+</p>
+</li>
+<li> <p><code class="reqn">A, a</code>: <code style="white-space: pre;">⁠'actions', 'action'⁠</code>
+</p>
+</li>
+<li> <p><code class="reqn">\Omega, o</code>: <code style="white-space: pre;">⁠'observations', 'observation'⁠</code>
+</p>
+</li>
+</ul>
+<p>State names, actions and observations can be specified as strings or index numbers
+(e.g., <code>start.state</code> can be specified as the index of the state in <code>states</code>).
+For the specification as data.frames below, <code>NA</code> can be used to mean
+any  <code>start.state</code>, <code>end.state</code>, <code>action</code> or <code>observation</code>. Note that some POMDP solvers and the POMDP
+file format use <code>'*'</code> for this purpose.
+</p>
+<p>The specification below map to the format used by pomdp-solve
+(see <a href="http://www.pomdp.org">http://www.pomdp.org</a>).
+</p>
+<p><strong>Specification of transition probabilities: <code class="reqn">T(s' | s, a)</code></strong>
+</p>
+<p>Transition probability to transition to state <code class="reqn">s'</code> from given state <code class="reqn">s</code>
+and action <code class="reqn">a</code>. The transition probabilities can be
+specified in the following ways:
+</p>
+
+<ul>
+<li>
+<p> A data.frame with columns exactly like the arguments of <code>T_()</code>.
+You can use <code>rbind()</code> with helper function <code>T_()</code> to create this data
+frame. Probabilities can be specified multiple times and the definition that
+appears last in the data.frame will take affect.
+</p>
+</li>
+<li>
+<p> A named list of matrices, one for each action. Each matrix is square with
+rows representing start states <code class="reqn">s</code> and columns representing end states <code class="reqn">s'</code>.
+Instead of a matrix, also the strings <code>'identity'</code> or <code>'uniform'</code> can be specified.
+</p>
+</li>
+<li>
+<p> A function with the same arguments are <code>T_()</code>, but no default values
+that returns the transition probability.
+</p>
+</li>
+</ul>
+<p><strong>Specification of observation probabilities: <code class="reqn">O(o | a, s')</code></strong>
+</p>
+<p>The POMDP specifies the probability for each observation <code class="reqn">o</code> given an
+action <code class="reqn">a</code> and that the system transitioned to the end state
+<code class="reqn">s'</code>. These probabilities can be specified in the
+following ways:
+</p>
+
+<ul>
+<li>
+<p> A data frame with columns named exactly like the arguments of <code>O_()</code>.
+You can use <code>rbind()</code>
+with helper function <code>O_()</code> to create this data frame. Probabilities can be
+specified multiple times and the definition that
+appears last in the data.frame will take affect.
+</p>
+</li>
+<li>
+<p> A named list of matrices, one for each action. Each matrix has
+rows representing end states <code class="reqn">s'</code> and columns representing an observation <code class="reqn">o</code>.
+Instead of a matrix, also the string <code>'uniform'</code> can be specified.
+</p>
+</li>
+<li>
+<p> A function with the same arguments are <code>O_()</code>, but no default values
+that returns the observation probability.
+</p>
+</li>
+</ul>
+<p><strong>Specification of the reward function: <code class="reqn">R(a, s, s', o)</code></strong>
+</p>
+<p>The reward function can be specified in the following
+ways:
+</p>
+
+<ul>
+<li>
+<p> A data frame with columns named exactly like the arguments of <code>R_()</code>.
+You can use <code>rbind()</code>
+with helper function <code>R_()</code> to create this data frame. Rewards can be specified
+multiple times and the definition that
+appears last in the data.frame will take affect.
+</p>
+</li>
+<li>
+<p> A list of lists. The list levels are <code>'action'</code> and <code>'start.state'</code>. The list elements
+are matrices with
+rows representing end states <code class="reqn">s'</code> and columns representing an observation <code class="reqn">o</code>.
+</p>
+</li>
+<li>
+<p> A function with the same arguments are <code>R_()</code>, but no default values
+that returns the reward.
+</p>
+</li>
+</ul>
+<p>To avoid overflow problems with rewards, reward values should stay well within the
+range of
+<code style="white-space: pre;">⁠[-1e10, +1e10]⁠</code>. <code>-Inf</code> can be used as the reward for unavailable actions and
+will be translated into a large negative reward for solvers that only support
+finite reward values.
+</p>
+<p><strong>Start Belief</strong>
+</p>
+<p>The initial belief state of the agent is a distribution over the states. It is used to calculate the
+total expected cumulative reward printed with the solved model. The function <code>reward()</code> can be
+used to calculate rewards for any belief.
+</p>
+<p>Some methods use this belief to decide which belief states to explore (e.g.,
+the finite grid method).
+</p>
+<p>Options to specify the start belief state are:
+</p>
+
+<ul>
+<li>
+<p> A probability distribution over the states. That is, a vector
+of <code class="reqn">|S|</code> probabilities, that add up to <code class="reqn">1</code>.
+</p>
+</li>
+<li>
+<p> The string <code>"uniform"</code> for a uniform
+distribution over all states.
+</p>
+</li>
+<li>
+<p> An integer in the range <code class="reqn">1</code> to <code class="reqn">n</code> to specify the index of a single starting state.
+</p>
+</li>
+<li>
+<p> A string specifying the name of a single starting state.
+</p>
+</li>
+</ul>
+<p>The default initial belief is a uniform
+distribution over all states.
+</p>
+<p><strong>Convergence</strong>
+</p>
+<p>A infinite-horizon POMDP needs to converge to provide a valid value
+function and policy.
+</p>
+<p>A finite-horizon POMDP may also converging to a infinite horizon solution
+if the horizon is long enough.
+</p>
+<p><strong>Time-dependent POMDPs</strong>
+</p>
+<p>Time dependence of transition probabilities, observation probabilities and
+reward structure can be modeled by considering a set of <strong>episodes</strong>
+representing <strong>epoch</strong> with the same settings. The length of each episode is
+specified as a vector for <code>horizon</code>, where the length is the number of
+episodes and each value is the length of the episode in epochs. Transition
+probabilities, observation probabilities and/or reward structure can contain
+a list with the values for each episode. The helper function <code>epoch_to_episode()</code> converts
+an epoch to the episode it belongs to.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function returns an object of class POMDP which is list of the model specification.
+<code>solve_POMDP()</code> reads the object and adds a list element named
+<code>'solution'</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Hossein Kamalzadeh, Michael Hahsler
+</p>
+
+
+<h3>References</h3>
+
+<p>pomdp-solve website: <a href="http://www.pomdp.org">http://www.pomdp.org</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other POMDP: 
+<code>MDP2POMDP</code>,
+<code>accessors</code>,
+<code>actions()</code>,
+<code>add_policy()</code>,
+<code>plot_belief_space()</code>,
+<code>projection()</code>,
+<code>reachable_and_absorbing</code>,
+<code>regret()</code>,
+<code>sample_belief_space()</code>,
+<code>simulate_POMDP()</code>,
+<code>solve_POMDP()</code>,
+<code>solve_SARSOP()</code>,
+<code>transition_graph()</code>,
+<code>update_belief()</code>,
+<code>value_function()</code>,
+<code>write_POMDP()</code>
+</p>
+<p>Other POMDP_examples: 
+<code>POMDP_example_files</code>,
+<code>RussianTiger</code>,
+<code>Tiger</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Defining the Tiger Problem (it is also available via data(Tiger), see ? Tiger)
+
+Tiger &lt;- POMDP(
+  name = "Tiger Problem",
+  discount = 0.75,
+  states = c("tiger-left" , "tiger-right"),
+  actions = c("listen", "open-left", "open-right"),
+  observations = c("tiger-left", "tiger-right"),
+  start = "uniform",
+
+  transition_prob = list(
+    "listen" =     "identity",
+    "open-left" =  "uniform",
+    "open-right" = "uniform"
+  ),
+
+  observation_prob = list(
+    "listen" = rbind(c(0.85, 0.15),
+                     c(0.15, 0.85)),
+    "open-left" =  "uniform",
+    "open-right" = "uniform"
+  ),
+
+  # the reward helper expects: action, start.state, end.state, observation, value
+  # missing arguments default to NA which matches any value (often denoted as * in POMDPs).
+  reward = rbind(
+    R_("listen",                    v =   -1),
+    R_("open-left",  "tiger-left",  v = -100),
+    R_("open-left",  "tiger-right", v =   10),
+    R_("open-right", "tiger-left",  v =   10),
+    R_("open-right", "tiger-right", v = -100)
+  )
+)
+
+Tiger
+
+### Defining the Tiger problem using functions
+
+trans_f &lt;- function(action, start.state, end.state) {
+  if(action == 'listen')
+    if(end.state == start.state) return(1)
+    else return(0)
+
+  return(1/2) ### all other actions have a uniform distribution
+}
+
+obs_f &lt;- function(action, end.state, observation) {
+  if(action == 'listen')
+    if(end.state == observation) return(0.85)
+  else return(0.15)
+
+  return(1/2)
+}
+
+rew_f &lt;- function(action, start.state, end.state, observation) {
+  if(action == 'listen') return(-1)
+  if(action == 'open-left' &amp;&amp; start.state == 'tiger-left') return(-100)
+  if(action == 'open-left' &amp;&amp; start.state == 'tiger-right') return(10)
+  if(action == 'open-right' &amp;&amp; start.state == 'tiger-left') return(10)
+  if(action == 'open-right' &amp;&amp; start.state == 'tiger-right') return(-100)
+  stop('Not possible')
+}
+
+Tiger_func &lt;- POMDP(
+  name = "Tiger Problem",
+  discount = 0.75,
+  states = c("tiger-left" , "tiger-right"),
+  actions = c("listen", "open-left", "open-right"),
+  observations = c("tiger-left", "tiger-right"),
+  start = "uniform",
+  transition_prob = trans_f,
+  observation_prob = obs_f,
+  reward = rew_f
+)
+
+Tiger_func
+
+# Defining a Time-dependent version of the Tiger Problem called Scared Tiger
+
+# The tiger reacts normally for 3 epochs (goes randomly two one
+# of the two doors when a door was opened). After 3 epochs he gets
+# scared and when a door is opened then he always goes to the other door.
+
+# specify the horizon for each of the two different episodes
+Tiger_time_dependent &lt;- Tiger
+Tiger_time_dependent$name &lt;- "Scared Tiger Problem"
+Tiger_time_dependent$horizon &lt;- c(normal_tiger = 3, scared_tiger = 3)
+Tiger_time_dependent$transition_prob &lt;- list(
+  normal_tiger = list(
+    "listen" = "identity",
+    "open-left" = "uniform",
+    "open-right" = "uniform"),
+  scared_tiger = list(
+    "listen" = "identity",
+    "open-left" = rbind(c(0, 1), c(0, 1)),
+    "open-right" = rbind(c(1, 0), c(1, 0))
+  )
+)
+</code></pre>
+
+
+</div>

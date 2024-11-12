@@ -1,0 +1,87 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>targetIntervalROC</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>targetIntervalROC</h2>
+
+<h3>Description</h3>
+
+<p>Compute a ROC curve using a target interval matrix. A prediction
+less than the lower limit is considered a false positive (penalty
+too small, too many changes), and a prediction greater than the
+upper limit is a false negative (penalty too large, too few
+changes). WARNING: this ROC curve is less detailed than the one
+you get from <code>ROChange</code>! Use <code>ROChange</code> if possible.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">targetIntervalROC(target.mat, 
+    pred)</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>target.mat</code></td>
+<td>
+<p>n x 2 numeric matrix: target intervals of log(penalty) values that
+yield minimal incorrect labels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pred</code></td>
+<td>
+<p>numeric vector: predicted log(penalty) values.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>list describing ROC curves, same as <code>ROChange</code>.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Toby Dylan Hocking &lt;toby.hocking@r-project.org&gt; [aut, cre]</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(penaltyLearning)
+library(data.table)
+data(neuroblastomaProcessed, envir=environment())
+
+pid.vec &lt;- c("1", "4")
+chr &lt;- 2
+incorrect.labels &lt;-
+  neuroblastomaProcessed$errors[profile.id%in%pid.vec &amp; chromosome==chr]
+pid.chr &lt;- paste0(pid.vec, ".", chr)
+target.mat &lt;- neuroblastomaProcessed$target.mat[pid.chr, , drop=FALSE]
+pred.dt &lt;- data.table(profile.id=pid.vec, pred.log.lambda=1.5)
+roc.list &lt;- list(
+  labels=ROChange(incorrect.labels, pred.dt, "profile.id"),
+  targets=targetIntervalROC(target.mat, pred.dt$pred.log.lambda))
+
+err &lt;- data.table(incorrect=names(roc.list))[, {
+  roc.list[[incorrect]]$roc
+}, by=incorrect]
+library(ggplot2)
+ggplot()+
+  ggtitle("incorrect targets is an approximation of incorrect labels")+
+  scale_size_manual(values=c(labels=2, targets=1))+
+  geom_segment(aes(
+    min.thresh, errors,
+    color=incorrect,
+    size=incorrect,
+    xend=max.thresh, yend=errors),
+               data=err)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,55 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>%x&gt;%</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>crossover operators</h2>
+
+<h3>Description</h3>
+
+<p>Binary operators which create the upwards or downwards crossover signals.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">x %x&gt;% y
+
+x %x&lt;% y
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>x, y</code></td>
+<td>
+<p>numeric vectors</p>
+</td>
+</tr></table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(data.table)
+library(pedquant)
+
+data("dt_banks")
+boc = md_stock_adjust(setDT(dt_banks)[symbol=='601988.SH'])
+bocti = pq_addti(boc, x='close_adj', sma=list(n=200), sma=list(n=50))
+
+dtorders = copy(bocti[[1]])[,.(symbol, name, date, close_adj, sma_50, sma_200)
+][sma_50 %x&gt;% sma_200, `:=`(
+    side = 'buy', prices = close_adj
+)][sma_50 %x&lt;% sma_200, `:=`(
+    side = 'sell', prices = close_adj
+)][, (c('side', 'prices')) := lapply(.SD, shift), .SDcols = c('side', 'prices')]
+orders = dtorders[!is.na(side)]
+head(orders)
+
+e = pq_plot(boc,  y='close_adj', addti = list(sma=list(n=200), sma=list(n=50)), orders = orders)
+e[[1]]
+
+</code></pre>
+
+
+</div>

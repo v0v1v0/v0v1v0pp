@@ -1,0 +1,128 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plotMCEPcurve</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Plotting of the Estimated Marginal Causal Effect Predictiveness Curve</h2>
+
+<h3>Description</h3>
+
+<p>Plots point estimates and, if available, pointwise and simultaneous Wald-type bootstrap confidence intervals for the specified marginal causal effect predictiveness (mCEP)
+curve.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">plotMCEPcurve(
+  object,
+  confLevel = 0.95,
+  hingePoint = NULL,
+  title = NULL,
+  xLab = NULL,
+  yLab = NULL,
+  yLim = NULL,
+  pType = c("l", "p")
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>an object returned by <code>summary.riskCurve</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>confLevel</code></td>
+<td>
+<p>the confidence level (0.95 by default) of pointwise and simultaneous confidence intervals</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hingePoint</code></td>
+<td>
+<p>the hinge point estimate (<code>NULL</code> by default)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>title</code></td>
+<td>
+<p>a character string specifying the plot title</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xLab</code></td>
+<td>
+<p>a character string specifying the x-axis label (<code>NULL</code> by default)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yLab</code></td>
+<td>
+<p>a character string specifying the y-axis label (<code>NULL</code> by default)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yLim</code></td>
+<td>
+<p>a numeric vector of length 2 specifying the y-axis range (<code>NULL</code> by default)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pType</code></td>
+<td>
+<p>a character string specifying the type of plot. Possible options are <code>"l"</code> for lines (default) and <code>"p"</code> for points.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>None. The function is called solely for plot generation.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>riskCurve</code>, <code>bootRiskCurve</code> and <code>summary.riskCurve</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">n &lt;- 500
+Z &lt;- rep(0:1, each=n/2)
+S &lt;- MASS::mvrnorm(n, mu=c(2,2,3), Sigma=matrix(c(1,0.9,0.7,0.9,1,0.7,0.7,0.7,1), nrow=3))
+p &lt;- pnorm(drop(cbind(1,Z,(1-Z)*S[,2],Z*S[,3]) %*% c(-1.2,0.2,-0.02,-0.2)))
+Y &lt;- sapply(p, function(risk){ rbinom(1,1,risk) })
+X &lt;- rbinom(n,1,0.5)
+# delete S(1) in placebo recipients
+S[Z==0,3] &lt;- NA
+# delete S(0) in treatment recipients
+S[Z==1,2] &lt;- NA
+# generate the indicator of being sampled into the phase 2 subset
+phase2 &lt;- rbinom(n,1,0.3)
+# delete Sb, S(0) and S(1) in controls not included in the phase 2 subset
+S[Y==0 &amp; phase2==0,] &lt;- c(NA,NA,NA)
+# delete Sb in cases not included in the phase 2 subset
+S[Y==1 &amp; phase2==0,1] &lt;- NA
+data &lt;- data.frame(X,Z,S[,1],ifelse(Z==0,S[,2],S[,3]),Y)
+colnames(data) &lt;- c("X","Z","Sb","S","Y")
+qS &lt;- quantile(data$S, probs=c(0.05,0.95), na.rm=TRUE)
+grid &lt;- seq(qS[1], qS[2], length.out=3)
+
+out &lt;- riskCurve(formula=Y ~ S + factor(X), bsm="Sb", tx="Z", data=data, psGrid=grid)
+boot &lt;- bootRiskCurve(formula=Y ~ S + factor(X), bsm="Sb", tx="Z", data=data,
+                      psGrid=grid, iter=2, seed=10)
+sout &lt;- summary(out, boot, contrast="te")
+plotMCEPcurve(sout)
+
+
+</code></pre>
+
+
+</div>

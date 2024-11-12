@@ -1,0 +1,256 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ProbitSpatialFit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit a spatial probit model.</h2>
+
+<h3>Description</h3>
+
+<p>Approximate likelihood estimation of the probit model with spatial 
+autoregressive (SAR), spatial error (SEM), spatial autoregressive with 
+autoregressive disturbances (SARAR).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ProbitSpatialFit(formula,data,W,
+         DGP='SAR',method="conditional",varcov="varcov",
+         M=NULL,control=list())
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>an object of class <code>formula</code>: a symbolic 
+description of the model to be fitted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>the data set containing the variables of the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>W</code></td>
+<td>
+<p>the spatial weight matrix of class <code>"dgCMatrix"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>DGP</code></td>
+<td>
+<p>the data generating process of <code>data</code>: SAR, SEM, SARAR 
+(Default is SAR).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>the optimisation method: <code>"conditional"</code> or 
+<code>"full-lik"</code> (Defaul is <code>"conditional"</code>, see Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varcov</code></td>
+<td>
+<p>the likelihood function is computed using the 
+variance-covariance matrix (<code>"varcov"</code>) or the precision matrix 
+(<code>"precision"</code>)? Default is <code>"varcov"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M</code></td>
+<td>
+<p>the second spatial weight matrix for SARAR models. Same class as W.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>a list of control parameters. See Details.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The estimation is based on the approximate value of the true likelihood of 
+spatial probit models. 
+The DGP of the spatial autoregressive model (SAR) model is the following
+</p>
+<p style="text-align: center;"><code class="reqn">y = \rho Wy + X\beta + \epsilon,</code>
+</p>
+
+<p>where the disturbances <code class="reqn">\epsilon</code> are iid standard normally distributed, 
+<code class="reqn">W</code> is a sparse spatial weight matrix and <code class="reqn">\rho</code> is the spatial lag 
+parameter. The variance of the error term is equal 
+to <code class="reqn">\Sigma=\sigma^2((I_n-\rho W)^{-1}((I_n-\rho W)^{-1})^{t})</code>.
+The DGP of the spatial error model (SEM) is as follows
+</p>
+<p style="text-align: center;"><code class="reqn">y = X\beta+u,</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">u = \rho W u + \epsilon,</code>
+</p>
+
+<p>where the disturbances <code class="reqn">\epsilon</code> are iid standard normally distributed, 
+<code class="reqn">W</code> is a sparse spatial weight matrix and <code class="reqn">\rho</code> is the spatial 
+error  parameter. The variance of the error term  
+is equal to <code class="reqn">\Sigma=\sigma^2((I_n-\rho W)^{-1}((I_n-\rho W 
+)^{-1})^{t})</code>.
+The DGP of the spatial autoregressive model with autoregressive disturbances 
+(SARAR) is as follows
+</p>
+<p style="text-align: center;"><code class="reqn">y = \rho Wy + X\beta + u,</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">u = \lambda M u + \epsilon,</code>
+</p>
+
+<p>where the disturbances <code class="reqn">\epsilon</code> are iid standard normally distributed, 
+<code class="reqn">W</code> and <code class="reqn">M</code> are two sparse spatial weight matrix, while <code class="reqn">\rho</code> 
+and <code class="reqn">\lambda</code> are the spatial lag and spatial error parameters, 
+respectively. The variance of the error term  
+is equal to <code class="reqn">\Sigma=\sigma^2((I_n-\rho W)^{-1}(I_n-\lambda 
+M)^{-1}((I_n-\lambda M)^{-1})^{t}((I_n-\rho W)^{-1})^{t})</code>.
+</p>
+<p>The approximation is inspired by the Mendell-Elston approximation 
+of the multivariante normal probabilities (see References). It makes use of 
+the Cholesky decomposition of the variance-covariance matrix <code class="reqn">\Sigma</code>.
+</p>
+<p>The <code>ProbitSpatialFit</code> command estimates the model by maximising the 
+approximate log-likelihood. We propose two optimisation method:
+</p>
+
+<dl>
+<dt>
+<code>"conditional"</code>:</dt>
+<dd>
+<p> it relies on a standard probit estimation  
+which applies to the model estimated 
+conditional on <code class="reqn">\rho</code>.</p>
+</dd>
+<dt>
+<code>"full-lik"</code>:</dt>
+<dd>
+<p> it minimises the full-log-likelihood using the 
+analytical gradient functions (only available for SAR and SEM 
+specification). The optimisation is performed by means of the 
+<code>optim</code> function with <code>method = "BFGS"</code>.</p>
+</dd>
+</dl>
+<p>In both cases a <code>"conditional"</code> estimation is performed. If 
+<code>method="conditional"</code>, then <code>ProbitSpatialFit</code> returns 
+the results of this first estimation. In case <code>method="full-lik"</code>,
+the function tries to improve the log-likelihood by means of a further 
+exploration around the value of the parameters found by the conditional 
+step.
+The conditional step is usually very accurate and particularly fast. The 
+second step is more time consuming and does not always improve the results
+of the first step. We dissuade the user from using the full-likelihood 
+method 	for sample sizes bigger than ten thousands, since the computation of 
+the gradients is quite slow.  Simulation studies reported in Martinetti and 
+Geniaux (2017) prove that the conditional estimation is highly reliable,
+even  if compared to the full-likelihood ones.
+</p>
+<p>In order to reduce the computation time of the function
+<code>ProbitSpatialFit</code>, we propose a variant of the likelihood-function 
+estimation that uses the inverse of the variance-covariance matrix (a.k.a. 
+precision matrix). This variant applies to both the <code>"conditional"</code> and 
+the <code>"full-lik"</code> methods and can be invoked by setting 
+<code>varcov="precision"</code>. Simulation studies reported in Martinetti and 
+Geniaux (2017) suggest that the accuracy of the results with the precision 
+matrix are sometimes worst than the one with the true variance-covariance 
+matrix, but the estimation time is considerably reduced.
+</p>
+<p>The control argument is a list that can supply any of the following 
+components:
+</p>
+
+<dl>
+<dt><code>iW_CL</code></dt>
+<dd>
+<p>the order of approximation of <code class="reqn">(I_n-\rho W)^{-1}</code> 
+used in the <code>"conditional"</code> method. Default is 6, while 0 means no 
+approximation (it uses exact inversion of matrixes, not suitable for big 
+sample sizes). See Martinetti and Geniaux (2017) for further references.</p>
+</dd>
+<dt><code>iW_FL</code></dt>
+<dd>
+<p>the order of approximation of <code class="reqn">(I_n-\rho W)^{-1}</code> 
+used in the computation of the likelihood function for the <code>"full-lik"</code> 
+method. Default is 0, meaning no approximation.</p>
+</dd>
+<dt><code>iW_FG</code></dt>
+<dd>
+<p>the order of approximation of <code class="reqn">(I_n-\rho W)^{-1}</code> 
+used in the computation of the gradient functions for the <code>"full-lik"</code> 
+method. Default is 0, meaning no approximation.</p>
+</dd>
+<dt><code>reltol</code></dt>
+<dd>
+<p>relative convergence tolerance. It represents 	
+<code>tol</code> in <code>optimize</code> function  for 
+<code>method="conditional"</code> and  <code>reltol</code> in <code>optim</code> 
+function for <code>method="full-lik"</code>. Default is 1e-5.</p>
+</dd>
+<dt><code>prune</code></dt>
+<dd>
+<p>the pruning value used in the gradients. Default is 0,
+meaning no pruning. Typacl values are around 1e-3 and 1e-6. They help 
+reducing the estimation time of the gradient functions.</p>
+</dd>
+<dt><code>silent</code></dt>
+<dd>
+<p>Default is TRUE.</p>
+</dd>
+</dl>
+<h3>Value</h3>
+
+<p>Return an object of class <code>ProbitSpatial</code>.
+</p>
+
+
+<h3>References</h3>
+
+
+<dl>
+<dt>Mendell and Elston (1974)</dt>
+<dd>
+<p>N. Mendell and R. Elston. Multifactorial 
+qualitative traits: genetic analysis and prediction of recurrence risks. 
+<em>Biometrics</em> 30, 41–57, 1974.</p>
+</dd>
+<dt>Martinetti and Geniaux (2017)</dt>
+<dd>
+<p>D. Martinetti and G. Geniaux. 
+Approximate likelihood estimation of spatial probit models. <em>Regional 
+Science and Urban Economics</em> 64, 30-45, 2017.</p>
+</dd>
+</dl>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+n &lt;- 1000
+nneigh &lt;- 3
+rho &lt;- 0.5
+beta &lt;- c(4,-2,1)
+W &lt;- generate_W(n,nneigh,seed=123)
+X &lt;- cbind(1,rnorm(n,2,2),rnorm(n,0,1))
+colnames(X) &lt;- c("intercept","X1","X2")
+y &lt;- sim_binomial_probit(W=W,X=X,beta=beta,rho=rho,model="SAR")
+d &lt;- as.data.frame(cbind(y,X))
+mod &lt;- ProbitSpatialFit(y~X1+X2,d,W,
+       DGP='SAR',method="conditional",varcov="varcov")
+
+</code></pre>
+
+
+</div>

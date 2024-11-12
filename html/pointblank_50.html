@@ -1,0 +1,244 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>email_blast</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Conditionally send email during interrogation</h2>
+
+<h3>Description</h3>
+
+<p>The <code>email_blast()</code> function is useful for sending an email message that
+explains the result of a <strong>pointblank</strong> validation. It is powered by the
+<strong>blastula</strong> and <strong>glue</strong> packages. This function should be invoked as part
+of the <code>end_fns</code> argument of <code>create_agent()</code>. It's also possible to invoke
+<code>email_blast()</code> as part of the <code>fns</code> argument of the <code>action_levels()</code>
+function (i.e., to send multiple email messages at the granularity of
+different validation steps exceeding failure thresholds).
+</p>
+<p>To better get a handle on emailing with <code>email_blast()</code>, the analogous
+<code>email_create()</code> function can be used with a <strong>pointblank</strong> agent object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">email_blast(
+  x,
+  to,
+  from,
+  credentials = NULL,
+  msg_subject = NULL,
+  msg_header = NULL,
+  msg_body = stock_msg_body(),
+  msg_footer = stock_msg_footer(),
+  send_condition = ~TRUE %in% x$notify
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A reference to the x-list object prepared internally by the agent.
+This version of the x-list is the same as that generated via
+<code style="white-space: pre;">⁠get_agent_x_list(&lt;agent&gt;)⁠</code> except this version is internally generated and
+hence only available in an internal evaluation context.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>to, from</code></td>
+<td>
+<p>The email addresses for the recipients and of the sender.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>credentials</code></td>
+<td>
+<p>A credentials list object that is produced by either of
+the <code>blastula::creds()</code>, <code>blastula::creds_anonymous()</code>,
+<code>blastula::creds_key()</code>, or <code>blastula::creds_file()</code> functions. Please
+refer to the <strong>blastula</strong> documentation for information on how to use these
+functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>msg_subject</code></td>
+<td>
+<p>The subject line of the email message.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>msg_header, msg_body, msg_footer</code></td>
+<td>
+<p>Content for the header, body, and
+footer components of the HTML email message.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>send_condition</code></td>
+<td>
+<p>An expression that should evaluate to a logical vector
+of length 1. If evaluated as <code>TRUE</code> then the email will be sent, if <code>FALSE</code>
+then that won't happen. The expression can use x-list variables (e.g.,
+<code>x$notify</code>, <code>x$type</code>, etc.) and all of those variables can be explored
+using the <code>get_agent_x_list()</code> function. The default expression is <code>~ TRUE %in% x$notify</code>, which results in <code>TRUE</code> if there are any <code>TRUE</code> values in
+the <code>x$notify</code> logical vector (i.e., any validation step that results in a
+'notify' state).</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Nothing is returned. The end result is the side-effect of
+email-sending if certain conditions are met.
+</p>
+
+
+<h3>YAML</h3>
+
+<p>A <strong>pointblank</strong> agent can be written to YAML with <code>yaml_write()</code> and the
+resulting YAML can be used to regenerate an agent (with <code>yaml_read_agent()</code>)
+or interrogate the target table (via <code>yaml_agent_interrogate()</code>). Here is an
+example of how the use of <code>email_blast()</code> inside the <code>end_fns</code> argument of
+<code>create_agent()</code> is expressed in R code and in the corresponding YAML
+representation.
+</p>
+<p>R statement:
+</p>
+<div class="sourceCode r"><pre>create_agent(
+  tbl = ~ small_table,
+  tbl_name = "small_table",
+  label = "An example.",
+  actions = al,
+  end_fns = list(
+    ~ email_blast(
+      x,
+      to = "joe_public@example.com",
+      from = "pb_notif@example.com",
+      msg_subject = "Table Validation",
+      credentials = blastula::creds_key(
+        id = "smtp2go"
+      )
+    )
+  )
+) %&gt;%
+  col_vals_gt(a, 1) %&gt;%
+  col_vals_lt(a, 7) 
+</pre></div>
+<p>YAML representation:
+</p>
+<div class="sourceCode yaml"><pre>type: agent
+tbl: ~small_table
+tbl_name: small_table
+label: An example.
+lang: en
+locale: en
+actions:
+  warn_count: 1.0
+  notify_count: 2.0
+end_fns: ~email_blast(x, to = "joe_public@example.com", 
+  from = "pb_notif@example.com", msg_subject = "Table Validation",
+  credentials = blastula::creds_key(id = "smtp2go"),
+  )
+embed_report: true
+steps:
+- col_vals_gt:
+    columns: c(a)
+    value: 1.0
+- col_vals_lt:
+    columns: c(a)
+    value: 7.0
+</pre></div>
+
+
+<h3>Examples</h3>
+
+<p>For the example provided here, we'll use the included <code>small_table</code> dataset.
+We are also going to create an <code>action_levels()</code> list object since this is
+useful for demonstrating an emailing scenario. It will have absolute values
+for the <code>warn</code> and <code>notify</code> states (with thresholds of <code>1</code> and <code>2</code> 'fail'
+units, respectively, for the two states).
+</p>
+<div class="sourceCode r"><pre>al &lt;- 
+  action_levels(
+    warn_at = 1,
+    notify_at = 2
+  )
+</pre></div>
+<p>Validate that values in column <code>a</code> from <code>small_tbl</code> are always greater than
+<code>1</code> (with the <code>col_vals_gt()</code> validation function), and, that values in <code>a</code>
+or are always less than <code>7</code>.
+</p>
+<p>The <code>email_blast()</code> function call is used in a list given to the <code>end_fns</code>
+argument of <code>create_agent()</code>. The <code>email_blast()</code> call itself has a
+<code>send_condition</code> argument that determines whether or not an email will be
+sent. By default this is set to <code>~ TRUE %in% x$notify</code>. Let's unpack this a
+bit. The variable <code>x</code> is a list (we call it an x-list) and it will be
+populated with elements pertaining to the agent. After interrogation, and
+only if action levels were set for the <code>notify</code> state, <code>x$notify</code> will be
+present as a logical vector where the length corresponds to the number of
+validation steps. Thus, if any of those steps entered the <code>notify</code> state
+(here, it would take two or more failing test units, per step, for that to
+happen), then the statement as a whole is <code>TRUE</code> and the email of the
+interrogation report will be sent. Here is the complete set of statements for
+the creation of an <em>agent</em>, the addition of validation steps, and the
+interrogation of data in <code>small_table</code>:
+</p>
+<div class="sourceCode r"><pre>agent &lt;-
+  create_agent(
+    tbl = small_table,
+    tbl_name = "small_table",
+    label = "An example.",
+    actions = al,
+    end_fns = list(
+      ~ email_blast(
+        x,
+        to =   "a_person@example.com",
+        from = "pb_notif@example.com",
+        msg_subject = "Table Validation",
+        credentials = blastula::creds_key(id = "smtp2go"),
+        send_condition = ~ TRUE %in% x$notify
+      )
+    )
+  ) %&gt;%
+  col_vals_gt(a, value = 1) %&gt;%
+  col_vals_lt(a, value = 7) %&gt;%
+  interrogate()
+</pre></div>
+<p>The reason for the <code>~</code> present in the statements:
+</p>
+
+<ul>
+<li> <p><code>~ email_blast(...)</code> and
+</p>
+</li>
+<li> <p><code>~ TRUE %in% x$notify</code>
+</p>
+</li>
+</ul>
+<p>is because this defers evocation of the emailing functionality (and also
+defers evaluation of the <code>send_condition</code> value) until interrogation is
+complete (with <code>interrogate()</code>).
+</p>
+
+
+<h3>Function ID</h3>
+
+<p>4-1
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Emailing: 
+<code>email_create()</code>,
+<code>stock_msg_body()</code>,
+<code>stock_msg_footer()</code>
+</p>
+
+
+</div>

@@ -1,0 +1,448 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>optim_ARS</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Optimize a function using adaptive random search.</h2>
+
+<h3>Description</h3>
+
+<p>Optimize an objective function using an adaptive random search algorithm.  
+The function works for both discrete and continuous optimization parameters 
+and allows for box-constraints and sets of allowed values.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">optim_ARS(
+  par,
+  fn,
+  lower = NULL,
+  upper = NULL,
+  allowed_values = NULL,
+  loc_fac = 4,
+  no_bounds_sd = par,
+  iter = 400,
+  iter_adapt = 50,
+  adapt_scale = 1,
+  max_run = 200,
+  trace = TRUE,
+  trace_iter = 5,
+  new_par_max_it = 200,
+  maximize = F,
+  parallel = F,
+  parallel_type = NULL,
+  num_cores = NULL,
+  mrgsolve_model = NULL,
+  seed = round(runif(1, 0, 1e+07)),
+  allow_replicates = TRUE,
+  replicates_index = seq(1, length(par)),
+  generator = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>par</code></td>
+<td>
+<p>A vector of initial values for the parameters to be optimized over.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fn</code></td>
+<td>
+<p>A function to be minimized (or maximized), 
+with first argument the vector of parameters over which minimization is to take place. 
+It should return a scalar result.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower</code></td>
+<td>
+<p>Lower bounds on the parameters. A vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper</code></td>
+<td>
+<p>Upper bounds on the parameters. A vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allowed_values</code></td>
+<td>
+<p>A list containing allowed values for each parameter <code>list(par1=c(2,3,4,5,6),par2=c(5,6,7,8))</code>. 
+A vector containing allowed values for all parameters is also allowed <code>c(2,3,4,5,6)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loc_fac</code></td>
+<td>
+<p>Locality factor for determining the standard deviation of the sampling distribution around the current
+position of the parameters. The initial standard deviation is normally calculated as <code>(upper - lower)/loc_fac</code> 
+except in cases when  there are no upper or lower limits (e.g. when <code>upper=Inf</code> or <code>lower=-Inf</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>no_bounds_sd</code></td>
+<td>
+<p>The standard deviation of the sampling distribution around the current
+position of the parameters when there are no upper or lower limits (e.g. when <code>upper=Inf</code> or <code>lower=-Inf</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iter</code></td>
+<td>
+<p>The number of iterations for the algorithm to perform (this is a maximum number, it could be less).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iter_adapt</code></td>
+<td>
+<p>The number of iterations before adapting (shrinking) the parameter search space.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adapt_scale</code></td>
+<td>
+<p>The scale for adapting the size of the sampling distribution.  The adaptation of the 
+standard deviation of the sampling distribution around the current
+position of the parameters is done after <code>iter_adapt</code> iteration with no change in the best objective function.  
+When adapting, the  standard deviation of the sampling distribution is calculated as 
+<code>(upper - lower)/(loc_fac*ff*adapt_scale)</code> where ff starts at 1 and increases by 1 for each adaptation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_run</code></td>
+<td>
+<p>The maximum number of iterations to run without a change in the best parameter estimates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace</code></td>
+<td>
+<p>Should the algorithm output results intermittently.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace_iter</code></td>
+<td>
+<p>How many iterations between each update to the screen about the result of the search.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new_par_max_it</code></td>
+<td>
+<p>The algorithm randomly chooses samples based on the current best set of parameters.  If when drawing 
+these samples the new parameter set has already been tested then a new draw is performed. After <code>new_par_max_it</code> draws, with
+no new parameter sets, then the algorithm stops.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maximize</code></td>
+<td>
+<p>Should the function be maximized?  Default is to minimize.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>Should we use parallel computations?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel_type</code></td>
+<td>
+<p>Which type of parallelization should be used? 
+Can be "snow" or "multicore".  "snow"  works on Linux-like systems &amp; Windows. "multicore" works only on 
+Linux-like systems.  By default this is chosen for you depending on your operating system. 
+See <code>start_parallel</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num_cores</code></td>
+<td>
+<p>The number of cores to use in the parallelization.  By default  is set to the number 
+output from 
+<code>parallel::detectCores()</code>. 
+See <code>start_parallel</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mrgsolve_model</code></td>
+<td>
+<p>If the computations require a mrgsolve model and you
+are using the "snow" method then you need to specify the name of the model
+object created by <code>mread</code> or <code>mcode</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>The random seed to use in the algorithm,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allow_replicates</code></td>
+<td>
+<p>Should the algorithm allow parameters to have the same value?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>replicates_index</code></td>
+<td>
+<p>A vector, the same length as the parameters.
+If two values are the same in this vector then the parameters may not assume the same value in the optimization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>generator</code></td>
+<td>
+<p>A user-defined function that generates new parameter sets to try in the algorithm.  See examples below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed to <code>fn</code> and <code>start_parallel</code>.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+
+<ol>
+<li>
+<p> M. Foracchia, A.C. Hooker, P. Vicini and A. Ruggeri, "PopED, a software fir optimal 
+experimental design in population kinetics", Computer Methods and Programs in Biomedicine, 74, 2004.
+</p>
+</li>
+<li>
+<p> J. Nyberg, S. Ueckert, E.A. Stroemberg, S. Hennig, M.O. Karlsson and A.C. Hooker, "PopED: An extended, 
+parallelized, nonlinear mixed effects models optimal design tool",  
+Computer Methods and Programs in Biomedicine, 108, 2012.
+</p>
+</li>
+</ol>
+<h3>See Also</h3>
+
+<p>Other Optimize: 
+<code>Doptim()</code>,
+<code>LEDoptim()</code>,
+<code>RS_opt()</code>,
+<code>a_line_search()</code>,
+<code>bfgsb_min()</code>,
+<code>calc_autofocus()</code>,
+<code>calc_ofv_and_grad()</code>,
+<code>mfea()</code>,
+<code>optim_LS()</code>,
+<code>poped_optim()</code>,
+<code>poped_optim_1()</code>,
+<code>poped_optim_2()</code>,
+<code>poped_optim_3()</code>,
+<code>poped_optimize()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## "wild" function , global minimum at about -15.81515
+fw &lt;- function(x) 10*sin(0.3*x)*sin(1.3*x^2) + 0.00001*x^4 + 0.2*x+80
+
+# optimization with fewer function evaluations compared to SANN
+res1 &lt;- optim_ARS(50, fw,lower = -50, upper=100)
+
+# often not as good performance when upper and lower bounds are poor
+res2 &lt;- optim_ARS(50, fw, lower=-Inf,upper=Inf)
+
+# Only integer values allowed
+## Not run:  
+res_int &lt;- optim_ARS(50, fw, allowed_values = seq(-50,100,by=1))
+
+## End(Not run)
+
+## Not run:  
+  #plot of the function and solutions
+  require(graphics)
+  plot(fw, -50, 50, n = 1000, main = "Minimizing 'wild function'")
+  points(-15.81515, fw(-15.81515), pch = 16, col = "red", cex = 1)
+  points(res1$par, res1$ofv, pch = 16, col = "green", cex = 1)
+  points(res2$par, res2$ofv, pch = 16, col = "blue", cex = 1)
+
+## End(Not run) 
+
+# optim_ARS does not work great for hard to find minima on flat surface:
+# Rosenbrock Banana function
+# f(x, y) = (a-x)^2 + b(y-x^2)^2
+# global minimum at (x, y)=(a, a^2), where f(x, y)=0. 
+# Usually a = 1 and b = 100.
+## Not run:  
+  fr &lt;- function(x,a=1,b=100) {   
+    x1 &lt;- x[1]
+    x2 &lt;- x[2]
+    b*(x2 - x1*x1)^2 + (a - x1)^2
+  }
+  
+  res3 &lt;- optim_ARS(c(-1.2,1), fr,lower = -5, upper = 5)
+  
+  # plot the surface
+  x &lt;- seq(-50, 50, length= 30)
+  y &lt;- x
+  f &lt;- function(x,y){apply(cbind(x,y),1,fr)}
+  z &lt;- outer(x, y, f)
+  persp(x, y, z, theta = 30, phi = 30, expand = 0.5, col = "lightblue", ticktype="detailed") -&gt; res
+  points(trans3d(1, 1, 0, pmat = res), col = 2, pch = 16,cex=2)
+  points(trans3d(res3$par[1], res3$par[1], res3$ofv, pmat = res), col = "green", pch = 16,cex=2)
+
+## End(Not run)
+
+# box constraints
+flb &lt;- function(x){
+  p &lt;- length(x) 
+  sum(c(1, rep(4, p-1)) * (x - c(1, x[-p])^2)^2) 
+}
+## 25-dimensional box constrained
+#optim(rep(3, 25), flb,lower = rep(2, 25), upper = rep(4, 25),method = "L-BFGS-B") 
+res_box &lt;- optim_ARS(rep(3, 25), flb,lower = rep(2, 25), upper = rep(4, 25)) 
+
+
+## Combinatorial optimization: Traveling salesman problem
+eurodistmat &lt;- as.matrix(eurodist)
+
+distance &lt;- function(sq) {  # Target function
+  sq2 &lt;- embed(sq, 2)
+  sum(eurodistmat[cbind(sq2[,2], sq2[,1])])
+}
+
+genseq &lt;- function(sq) {  # Generate new candidate sequence
+  idx &lt;- seq(2, NROW(eurodistmat)-1)
+  changepoints &lt;- sample(idx, size = 2, replace = FALSE)
+  tmp &lt;- sq[changepoints[1]]
+  sq[changepoints[1]] &lt;- sq[changepoints[2]]
+  sq[changepoints[2]] &lt;- tmp
+  sq
+}
+
+sq &lt;- c(1:nrow(eurodistmat), 1)  # Initial sequence: alphabetic
+res3 &lt;- optim_ARS(sq,distance,generator=genseq) # Near optimum distance around 12842
+
+## Not run:  
+  # plot of initial sequence
+  # rotate for conventional orientation
+  loc &lt;- -cmdscale(eurodist, add = TRUE)$points
+  x &lt;- loc[,1]; y &lt;- loc[,2]
+  s &lt;- seq_len(nrow(eurodistmat))
+  tspinit &lt;- loc[sq,]
+  
+  plot(x, y, type = "n", asp = 1, xlab = "", ylab = "",
+       main = paste("Initial sequence of traveling salesman problem\n",
+                    "Distance =",distance(sq)), axes = FALSE)
+  arrows(tspinit[s,1], tspinit[s,2], tspinit[s+1,1], tspinit[s+1,2],
+         angle = 10, col = "green")
+  text(x, y, labels(eurodist), cex = 0.8)
+  
+  # plot of final sequence from optim_ARS
+  tspres &lt;- loc[res3$par,]
+  plot(x, y, type = "n", asp = 1, xlab = "", ylab = "",
+       main = paste("optim_ARS() 'solving' traveling salesman problem\n",
+                    "Distance =",distance(c(1,res3$par,1))),axes = FALSE)
+  arrows(tspres[s,1], tspres[s,2], tspres[s+1,1], tspres[s+1,2],
+         angle = 10, col = "red")
+  text(x, y, labels(eurodist), cex = 0.8)
+  
+  # using optim
+  set.seed(123) # chosen to get a good soln relatively quickly
+  (res4 &lt;- optim(sq, distance, genseq, method = "SANN",
+                 control = list(maxit = 30000, temp = 2000, trace = TRUE,
+                                REPORT = 500))) 
+  
+  tspres &lt;- loc[res4$par,]
+  plot(x, y, type = "n", asp = 1, xlab = "", ylab = "",
+       main = paste("optim() 'solving' traveling salesman problem\n",
+                    "Distance =",distance(res4$par)),axes = FALSE)
+  arrows(tspres[s,1], tspres[s,2], tspres[s+1,1], tspres[s+1,2],
+         angle = 10, col = "red")
+  text(x, y, labels(eurodist), cex = 0.8)
+
+## End(Not run)  
+
+# one-dimensional function
+## Not run:  
+  f &lt;- function(x)  abs(x)+cos(x)
+  res5 &lt;- optim_ARS(-20,f,lower=-20, upper=20)
+  
+  curve(f, -20, 20)
+  abline(v = res5$par, lty = 4,col="green")
+
+## End(Not run)  
+
+# one-dimensional function
+f &lt;- function(x)  (x^2+x)*cos(x) # -10 &lt; x &lt; 10
+res_max &lt;- optim_ARS(0,f,lower=-10, upper=10,maximize=TRUE) # sometimes to local maxima
+
+## Not run:  
+  res_min &lt;- optim_ARS(0,f,lower=-10, upper=10) # sometimes to local minima
+  
+  curve(f, -10, 10)
+  abline(v = res_min$par, lty = 4,col="green")
+  abline(v = res_max$par, lty = 4,col="red")
+
+## End(Not run)
+
+
+# two-dimensional Rastrigin function
+#It has a global minimum at f(x) = f(0) = 0.
+## Not run:  
+  Rastrigin &lt;- function(x1, x2){
+    20 + x1^2 + x2^2 - 10*(cos(2*pi*x1) + cos(2*pi*x2))
+  }
+  
+  
+  x1 &lt;- x2 &lt;- seq(-5.12, 5.12, by = 0.1)
+  z &lt;- outer(x1, x2, Rastrigin)
+  
+  res6 &lt;- optim_ARS(c(-4,4),function(x) Rastrigin(x[1], x[2]),lower=-5.12, upper=5.12)
+  
+  # color scale
+  nrz &lt;- nrow(z)
+  ncz &lt;- ncol(z)
+  jet.colors &lt;-
+    colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan",
+                       "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+  # Generate the desired number of colors from this palette
+  nbcol &lt;- 100
+  color &lt;- jet.colors(nbcol)
+  # Compute the z-value at the facet centres
+  zfacet &lt;- z[-1, -1] + z[-1, -ncz] + z[-nrz, -1] + z[-nrz, -ncz]
+  # Recode facet z-values into color indices
+  facetcol &lt;- cut(zfacet, nbcol)
+  persp(x1, x2, z, col = color[facetcol], phi = 30, theta = 30)
+  filled.contour(x1, x2, z, color.palette = jet.colors)
+
+## End(Not run)
+
+
+## Parallel computation  
+## works better when each evaluation takes longer
+## here we have added extra time to the computations
+## just to show that it works
+## Not run:  
+  res7 &lt;- optim_ARS(c(-4,4),function(x){Sys.sleep(0.01); Rastrigin(x[1], x[2])},
+                    lower=-5.12, upper=5.12)
+  res8 &lt;- optim_ARS(c(-4,4),function(x){Sys.sleep(0.01); Rastrigin(x[1], x[2])},
+                    lower=-5.12, upper=5.12,parallel = T)
+  res9 &lt;- optim_ARS(c(-4,4),function(x){Sys.sleep(0.01); Rastrigin(x[1], x[2])},
+                    lower=-5.12, upper=5.12,parallel = T,parallel_type = "snow")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

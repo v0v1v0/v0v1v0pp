@@ -1,0 +1,257 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>SPC</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Perform sparse principal component analysis</h2>
+
+<h3>Description</h3>
+
+<p>Performs sparse principal components analysis by applying PMD to a data
+matrix with lasso ($L_1$) penalty on the columns and no penalty on the rows.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">SPC(
+  x,
+  sumabsv = 4,
+  niter = 20,
+  K = 1,
+  orth = FALSE,
+  trace = TRUE,
+  v = NULL,
+  center = TRUE,
+  cnames = NULL,
+  vpos = FALSE,
+  vneg = FALSE,
+  compute.pve = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Data matrix of dimension $n x p$, which can contain NA for missing
+values. We are interested in finding sparse principal components of
+dimension $p$.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sumabsv</code></td>
+<td>
+<p>How sparse do you want v to be? This is the sum of absolute
+values of elements of v. It must be between 1 and square root of number of
+columns of data. The smaller it is, the sparser v will be.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>niter</code></td>
+<td>
+<p>How many iterations should be performed. It is best to run at
+least 20 of so. Default is 20.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>The number of factors in the PMD to be returned; default is 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>orth</code></td>
+<td>
+<p>If TRUE, then use method of Section 3.2 of Witten, Tibshirani
+and Hastie (2008) to obtain multiple sparse principal components. Default is
+FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace</code></td>
+<td>
+<p>Print out progress as iterations are performed? Default is
+TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p>The first right singular vector(s) of the data. (If missing data is
+present, then the missing values are imputed before the singular vectors are
+calculated.) v is used as the initial value for the iterative PMD($L_1$,
+$L_1$) algorithm. If x is large, then this step can be time-consuming;
+therefore, if PMD is to be run multiple times, then v should be computed
+once and saved.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>Subtract out mean of x? Default is TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cnames</code></td>
+<td>
+<p>An optional vector containing a name for each column.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vpos</code></td>
+<td>
+<p>Constrain the elements of v to be positive? TRUE or FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vneg</code></td>
+<td>
+<p>Constrain the elements of v to be negative? TRUE or FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compute.pve</code></td>
+<td>
+<p>Compute percent variance explained? Default TRUE. If not
+needed, then choose FALSE to save time.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>PMD(x,sumabsu=sqrt(nrow(x)), sumabsv=3, K=1) and SPC(x,sumabsv=3, K=1) give
+the same result, since the SPC method is simply PMD with an L1 penalty on
+the columns and no penalty on the rows.
+</p>
+<p>In Witten, Tibshirani, and Hastie (2008), two methods are presented for
+obtaining multiple factors for SPC. The methods are as follows:
+</p>
+<p>(1) If one has already obtained factors $k-1$ factors then oen can compute
+residuals by subtracting out these factors. Then $u_k$ and $v_k$ can be
+obtained by applying the SPC/PMD algorithm to the residuals.
+</p>
+<p>(2) One can require that $u_k$ be orthogonal to $u_i$'s with $i&lt;k$; the
+method is slightly more complicated, and is explained in WT&amp;H(2008).
+</p>
+<p>Method 1 is performed by running SPC with option orth=FALSE (the default)
+and Method 2 is performed using option orth=TRUE. Note that Methods 1 and 2
+always give identical results for the first component, and often given quite
+similar results for later components.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>u</code></td>
+<td>
+<p>u is output. If you asked for multiple factors then each
+column of u is a factor. u has dimension nxK if you asked for K factors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p>v is output. These are the sparse principal components. If you
+asked for multiple factors then each column of v is a factor. v has
+dimension pxK if you asked for K factors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>d is output; it is the
+diagonal of the matrix $D$ in the penalized matrix decomposition. In the
+case of the rank-1 decomposition, it is given in the formulation
+$||X-duv'||_F^2$ subject to $||u||_1 &lt;= sumabsu$, $||v||_1 &lt;= sumabsv$.
+Computationally, $d=u'Xv$ where $u$ and $v$ are the sparse factors output by
+the PMD function and $X$ is the data matrix input to the PMD function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prop.var.explained</code></td>
+<td>
+<p>A vector containing the proportion of variance
+explained by the first 1, 2, ..., K sparse principal components obtaineds.
+Formula for proportion of variance explained is on page 20 of Shen &amp; Huang
+(2008), Journal of Multivariate Analysis 99: 1015-1034.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v.init</code></td>
+<td>
+<p>The
+first right singular vector(s) of the data; these are returned to save on
+computation time if PMD will be run again.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>meanx</code></td>
+<td>
+<p>Mean of x that was
+subtracted out before SPC was performed.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Witten D. M., Tibshirani R.,  and Hastie, T. (2009)
+<em>A penalized matrix decomposition, with applications to sparse principal components and canonical correlation analysis</em>, <em>Biostatistics, Gol 10 (3), 515-534, Jul 2009</em><br></p>
+
+
+<h3>See Also</h3>
+
+<p>SPC.cv, PMD, PMD.cv
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+# A simple simulated example
+#NOT RUN
+#set.seed(1)
+#u &lt;- matrix(c(rnorm(50), rep(0,150)),ncol=1)
+#v &lt;- matrix(c(rnorm(75),rep(0,225)), ncol=1)
+#x &lt;- u%*%t(v)+matrix(rnorm(200*300),ncol=300)
+## Perform Sparse PCA - that is, decompose a matrix w/o penalty on rows
+## and w/ L1 penalty on columns
+## First, we perform sparse PCA and get 4 components, but we do not
+## require subsequent components to be orthogonal to previous components
+#out &lt;- SPC(x,sumabsv=3, K=4)
+#print(out,verbose=TRUE)
+## We could have selected sumabsv by cross-validation, using function SPC.cv
+## Now, we do sparse PCA using method in Section 3.2 of WT&amp;H(2008) for getting
+## multiple components - that is, we require components to be orthogonal
+#out.orth &lt;- SPC(x,sumabsv=3, K=4, orth=TRUE)
+#print(out.orth,verbose=TRUE)
+#par(mfrow=c(1,1))
+#plot(out$u[,1], out.orth$u[,1], xlab="", ylab="")
+## Note that the first components w/ and w/o orth option are identical,
+## since the orth option only affects the way that subsequent components
+## are found
+#print(round(t(out$u)%*%out$u,4)) # not orthogonal
+#print(round(t(out.orth$u)%*%out.orth$u,4)) # orthogonal
+#
+## Use SPC.cv to choose tuning parameters:
+#cv.out &lt;- SPC.cv(x)
+#print(cv.out)
+#plot(cv.out)
+#out &lt;- SPC(x, sumabsv=cv.out$bestsumabsv)
+#print(out)
+## or we could do
+#out &lt;- SPC(x, sumabsv=cv.out$bestsumabsv1se)
+#print(out)
+#
+#
+</code></pre>
+
+
+</div>

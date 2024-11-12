@@ -1,0 +1,188 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>MQDataReader-class</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>S5-RefClass to read MaxQuant .txt files</h2>
+
+<h3>Description</h3>
+
+<p>This class is used to read MQ data tables using <code>MQDataReader::readMQ()</code> while holding
+the internal raw file –&gt; short raw file name mapping (stored in a member called 
+'fn_map') and updating/using it every time <code>MQDataReader::readMQ()</code> is called.
+</p>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+<p>(Relative) path to a MQ txt file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filter</code></td>
+<td>
+<p>Searched for "C" and "R". If present, [c]ontaminants and [r]everse hits are removed if the respective columns are present.
+E.g. to filter both, <code>filter = "C+R"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>Allowed values are:
+"pg" (proteinGroups) [default], adds abundance index columns (*AbInd*, replacing 'intensity')
+"sm" (summary), splits into three row subsets (raw.file, condition, total)
+"ev" (evidence), will fix empty modified.sequence cells for older MQ versions (when MBR is active)
+"msms_scans", will fix invalid (negative) scan event numbers
+Any other value will not add/modify any columns</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>col_subset</code></td>
+<td>
+<p>A vector of column names as read by read.delim(), e.g., spaces are replaced by dot already.
+If given, only columns with these names (ignoring lower/uppercase) will be returned (regex allowed)
+E.g. col_subset=c("^lfq.intensity.", "protein.name")</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add_fs_col</code></td>
+<td>
+<p>If TRUE and a column 'raw.file' is present, an additional column 'fc.raw.file' will be added with 
+common prefix AND common substrings removed (<code>simplifyNames</code>)
+E.g. two rawfiles named 'OrbiXL_2014_Hek293_Control', 'OrbiXL_2014_Hek293_Treated' will give
+'Control', 'Treated'
+If <code>add_fs_col</code> is a number AND the longest short-name is still longer, the names are discarded and replaced by
+a running ID of the form 'file &lt;x&gt;', where &lt;x&gt; is a number from 1 to N.
+If the function is called again and a mapping already exists, this mapping is used.
+Should some raw.files be unknown (ie the mapping from the previous file is incomplete), they will be augmented</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>check_invalid_lines</code></td>
+<td>
+<p>After reading the data, check for unusual number of NA's to detect if file was corrupted by Excel or alike</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>LFQ_action</code></td>
+<td>
+<p>[For type=='pg' only] An additional custom LFQ column ('cLFQ...') is created where
+zero values in LFQ columns are replaced by the following method IFF(!) the corresponding raw intensity is &gt;0 (indicating that LFQ is erroneusly 0)
+"toNA": replace by NA
+"impute": replace by lowest LFQ value &gt;0 (simulating 'noise')</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional parameters passed on to read.delim()</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colname</code></td>
+<td>
+<p>Name of the column (e.g. 'contaminants') in the mq.data table</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>valid_entries</code></td>
+<td>
+<p>Vector of values to be replaced (must contain all values expected in the column – fails otherwise)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>replacements</code></td>
+<td>
+<p>Vector of values inserted with the same length as <code>valid_entries</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Since MaxQuant changes capitalization and sometimes even column names, it seemed convenient
+to have a function which just reads a txt file and returns unified column names, irrespective of the MQ version.
+So, it unifies access to columns (e.g. by using lower case for ALL columns) and ensures columns are
+identically named across MQ versions:
+</p>
+<pre>
+ alternative term          new term
+ -----------------------------------------
+ protease                  enzyme
+ protein.descriptions      fasta.headers
+ potential.contaminant     contaminant
+ mass.deviations           mass.deviations..da.
+ basepeak.intensity        base.peak.intensity
+</pre>
+<p>We also correct 'reporter.intensity.*' naming issues to MQ 1.6 convention, when 'reporter.intensity.not.corrected' is present.
+MQ 1.5 uses: reporter.intensity.X and reporter.intensity.not.corrected.X
+MQ 1.6 uses: reporter.intensity.X and reporter.intensity.corrected.X       
+</p>
+<p>Note: you must find a regex which matches both versions, or explicitly add both terms if you are requesting only a subset
+of columns!
+</p>
+<p>Fixes for msmsScans.txt:
+negative Scan Event Numbers in msmsScans.txt are reconstructed by using other columns
+</p>
+<p>Automatically detects UTF8-BOM encoding and deals with it (since MQ2.4).
+</p>
+<p>Example of usage:
+</p>
+<pre>
+  mq = MQDataReader$new()
+  d_evd = mq$readMQ("evidence.txt", type="ev", filter="R", col_subset=c("proteins", "Retention.Length", "retention.time.calibration")) 
+</pre>
+<p>If the file is empty, this function shows a warning and returns NULL.
+If the file is present but cannot be read, the program will stop.
+</p>
+<p>Wrapper to read a MQ txt file (e.g. proteinGroups.txt).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data.frame of the respective file
+</p>
+<p>Replaces values in the mq.data member with (binary) values.
+Most MQ tables contain columns like 'contaminants' or 'reverse', whose values are either empty strings
+or "+", which is inconvenient and can be much better represented as TRUE/FALSE.
+The params <code>valid_entries</code> and <code>replacements</code> contain the matched pairs, which determine what is replaced with what.
+</p>
+<p>Returns <code>TRUE</code> if successful.
+</p>
+
+
+<h3>Methods</h3>
+
+
+<dl>
+<dt><code>getInvalidLines()</code></dt>
+<dd>
+<p>Detect broken lines (e.g. due to Excel import+export)
+</p>
+<p>When editing a MQ txt file in Microsoft Excel, saving the file can cause it to be corrupted,
+since Excel has a single cell content limit of 32k characters 
+(see http://office.microsoft.com/en-001/excel-help/excel-specifications-and-limits-HP010342495.aspx)
+while MQ can easily reach 60k (e.g. in oxidation sites column).
+Thus, affected cells will trigger a line break, effectively splitting one line into two (or more).
+</p>
+<p>If the table has an 'id' column, we can simply check the numbers are consecutive. If no 'id' column is available,
+we detect line-breaks by counting the number of NA's per row and finding outliers.
+The line break then must be in this line (plus the preceeding or following one). Depending on where
+the break happened we can also detect both lines right away (if both have more NA's than expected).
+</p>
+<p>Currently, we have no good strategy to fix the problem since columns are not aligned any longer, which
+leads to columns not having the class (e.g. numeric) they should have.
+(thus one would need to un-do the linebreak and read the whole file again)
+</p>
+<p>[Solution to the problem: try LibreOffice 4.0.x or above – seems not to have this limitation]
+</p>
+<p>@return Returns a vector of indices of broken (i.e. invalid) lines
+</p>
+</dd>
+</dl>
+</div>

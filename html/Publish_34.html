@@ -1,0 +1,225 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>publish.MIresult</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Present logistic regression and Cox regression  obtained with mitools::MIcombine based on smcfcs::smcfcs multiple imputation analysis</h2>
+
+<h3>Description</h3>
+
+<p>Regression tables after multiple imputations
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'MIresult'
+publish(
+  object,
+  confint.method,
+  pvalue.method,
+  digits = c(2, 4),
+  print = TRUE,
+  factor.reference = "extraline",
+  intercept,
+  units = NULL,
+  fit,
+  data,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>Object obtained with mitools::MIcombine based on smcfcs::smcfcs multiple imputation analysis</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>confint.method</code></td>
+<td>
+<p>No options here. Only Wald type confidence
+intervals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pvalue.method</code></td>
+<td>
+<p>No options here. Only Wald type tests.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>digits</code></td>
+<td>
+<p>Rounding digits for all numbers but the p-values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>print</code></td>
+<td>
+<p>If <code>FALSE</code> suppress printing of the results</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>factor.reference</code></td>
+<td>
+<p>Style for showing results for
+categorical. See <code>regressionTable</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intercept</code></td>
+<td>
+<p>See <code>regressionTable</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>units</code></td>
+<td>
+<p>See <code>regressionTable</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>One fitted model using the same formula as
+<code>object</code>. This can be the fit to the complete case data or
+the fit to one of the completed data. It is used to get
+xlevels, formula and terms. For usage see examples.  is used to
+fit</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Original data set which includes the missing values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>passed to summary.regressionTable, labelUnits and publish.default.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Show results of smcfcs based multiple imputations of missing covariates in publishable format
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Thomas A. Gerds &lt;tag@biostat.ku.dk&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Not run: 
+if (requireNamespace("riskRegression",quietly=TRUE)
+  &amp; requireNamespace("mitools",quietly=TRUE)
+  &amp; requireNamespace("smcfcs",quietly=TRUE)){
+library(riskRegression)
+library(mitools)
+library(smcfcs)
+## continuous outcome: linear regression
+# lava some data with missing values
+set.seed(7)
+d=sampleData(78)
+## generate missing values
+d[X1==1,X6:=NA] 
+d[X2==1,X3:=NA]
+d=d[,.(X8,X4,X3,X6,X7)]
+sapply(d,function(x)sum(is.na(x)))
+
+# multiple imputation (should set m to a large value)
+
+set.seed(17)
+f= smcfcs(d,smtype="lm",
+           smformula=X8~X4+X3+X6+X7,
+           method=c("","","logreg","norm",""),m=3)
+ccfit=lm(X8~X4+X3+X6+X7,data=d)
+mifit=MIcombine(with(imputationList(f$impDatasets),
+                lm(X8~X4+X3+X6+X7)))
+publish(mifit,fit=ccfit,data=d)
+publish(ccfit)
+
+## binary outcome
+# lava some data with missing values
+set.seed(7)
+db=sampleData(78,outcome="binary")
+## generate missing values
+db[X1==1,X6:=NA] 
+db[X2==1,X3:=NA]
+db=db[,.(Y,X4,X3,X6,X7)]
+sapply(db,function(x)sum(is.na(x)))
+
+# multiple imputation (should set m to a large value)
+set.seed(17)
+fb= smcfcs(db,smtype="logistic",
+           smformula=Y~X4+X3+X6+X7,
+           method=c("","","logreg","norm",""),m=2)
+ccfit=glm(Y~X4+X3+X6+X7,family="binomial",data=db)
+mifit=MIcombine(with(imputationList(fb$impDatasets),
+                glm(Y~X4+X3+X6+X7,family="binomial")))
+publish(mifit,fit=ccfit)
+publish(ccfit)
+
+## survival: Cox regression
+library(survival)
+# lava some data with missing values
+set.seed(7)
+ds=sampleData(78,outcome="survival")
+## generate missing values
+ds[X5==1,X6:=NA] 
+ds[X2==1,X3:=NA]
+ds=ds[,.(time,event,X4,X3,X6,X7)]
+sapply(ds,function(x)sum(is.na(x)))
+
+set.seed(17)
+fs= smcfcs(ds,smtype="coxph",
+           smformula="Surv(time,event)~X4+X3+X6+X7",
+           method=c("","","","logreg","norm",""),m=2)
+ccfit=coxph(Surv(time,event)~X4+X3+X6+X7,data=ds)
+mifit=MIcombine(with(imputationList(fs$impDatasets),
+                coxph(Surv(time,event)~X4+X3+X6+X7)))
+publish(mifit,fit=ccfit,data=ds)
+publish(ccfit)
+
+## competing risks: Cause-specific Cox regression 
+library(survival)
+# lava some data with missing values
+set.seed(7)
+dcr=sampleData(78,outcome="competing.risks")
+## generate missing values
+dcr[X5==1,X6:=NA] 
+dcr[X2==1,X3:=NA]
+dcr=dcr[,.(time,event,X4,X3,X6,X7)]
+sapply(dcr,function(x)sum(is.na(x)))
+
+set.seed(17)
+fcr= smcfcs(dcr,smtype="compet",
+           smformula=c("Surv(time,event==1)~X4+X3+X6+X7",
+                       "Surv(time,event==2)~X4+X3+X6+X7"),
+           method=c("","","","logreg","norm",""),m=2)
+## cause 2 
+ccfit2=coxph(Surv(time,event==2)~X4+X3+X6+X7,data=dcr)
+mifit2=MIcombine(with(imputationList(fcr$impDatasets),
+                coxph(Surv(time,event==2)~X4+X3+X6+X7)))
+publish(mifit2,fit=ccfit2,data=dcr)
+publish(ccfit2)
+}
+
+## End(Not run) 
+
+</code></pre>
+
+
+</div>

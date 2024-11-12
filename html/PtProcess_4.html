@@ -1,0 +1,203 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>distribution</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>General Notes on Distribution Fitting</h2>
+
+<h3>Description</h3>
+
+<p>This page contains general notes about fitting probability distributions to datasets.
+</p>
+
+
+<h3>Details</h3>
+
+<p>We give examples of how the maximum likelihood parameters can be estimated using standard optimisation routines provided in the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> software (<code>nlm</code> and <code>optim</code>). We simply numerically maximise the sum of the logarithms of the density evaluated at each of the data points, i.e. log-likelihood function. In fact, by default, the two mentioned optimizers find the <em>minimum</em>, and hence we minimise the negative log-likelihood function.
+</p>
+<p>Both optimization routines require initial starting values. The optimisation function <code>optim</code> uses a grid search technique, and is therefore more robust to poor starting values. The function <code>nlm</code> uses derivatives and the Hessian to determine the size and direction of the next step, which is generally more sensitive to poor initial values, but faster in the neighbourhood of the solution. One possible strategy is to start with <code>optim</code> and then use its solution as a starting value for <code>nlm</code>. This is done below in the example for the tapered Pareto distribution.
+</p>
+<p>The function <code>nlm</code> numerically calculates the Hessian and derivatives, by default. If the surface is very flat, the numerical error involved may be larger in size than the actual gradient. In this case the process will work better if analytic derivatives are supplied. This is done in the tapered Pareto example below. Alternatively, one could simply use the Newton-Raphson algorithm (again, see the tapered Pareto example below).
+</p>
+<p>We also show that parameters can be constrained to be positive (or negative) by transforming the parameters with the exponential function during the maximisation procedure. Similarly, parameters can be restricted to a finite interval by using a modified logit transform during the maximisation procedure. The advantage of using these transformations is that the entire real line is mapped onto the positive real line or the required finite interval, respectively; and further, they are differentiable and monotonic. This eliminates the “hard” boundaries which are sometimes enforced by using a penalty function when the estimation procedure strays into the forbidden region. The addition of such penalty functions causes the function that is being optimised to be non-differentiable at the boundaries, which can cause considerable problems with the optimisation routines.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#    Random number generation method
+RNGkind("Mersenne-Twister", "Inversion")
+set.seed(5)
+
+#--------------------------------------------
+#    Exponential Distribution
+
+#    simulate a sample
+p &lt;- 1
+x &lt;- rexp(n=1000, rate=p)
+
+#    Transform to a log scale so that -infty &lt; log(p) &lt; infty.
+#    Hence no hard boundary, and p &gt; 0.
+#    If LL is beyond machine precision, LL &lt;- 1e20.
+
+neg.LL &lt;- function(logp, data){
+    x &lt;- -sum(log(dexp(data, rate=exp(logp))))
+    if (is.infinite(x)) x &lt;- 1e20
+    return(x)
+}
+
+p0 &lt;- 5
+logp0 &lt;- log(p0)
+z &lt;- nlm(neg.LL, logp0, print.level=0, data=x)
+print(exp(z$estimate))
+
+#    Compare to closed form solution
+print(exp(z$estimate)-1/mean(x))
+
+#--------------------------------------------
+#    Normal Distribution
+
+#    simulate a sample
+x &lt;- rnorm(n=1000, mean=0, sd=1)
+
+neg.LL &lt;- function(p, data){
+    x &lt;- -sum(log(dnorm(data, mean=p[1], sd=exp(p[2]))))
+    if (is.infinite(x)) x &lt;- 1e20
+    return(x)
+}
+
+p0 &lt;- c(2, log(2))
+z &lt;- nlm(neg.LL, p0, print.level=0, data=x)
+p1 &lt;- c(z$estimate[1], exp(z$estimate[2]))
+print(p1)
+
+#    Compare to closed form solution
+print(p1 - c(mean(x), sd(x)))
+
+#--------------------------------------------
+#    Gamma Distribution
+#    shape &gt; 0 and rate &gt; 0
+#    use exponential function to ensure above constraints
+
+#    simulate a sample
+x &lt;- rgamma(n=2000, shape=1, rate=5)
+
+neg.LL &lt;- function(p, data){
+    #   give unreasonable values a very high neg LL, i.e. low LL
+    if (any(exp(p) &gt; 1e15)) x &lt;- 1e15
+    else{
+        x &lt;- -sum(log(dgamma(data, shape=exp(p[1]), rate=exp(p[2]))))
+        if (is.infinite(x)) x &lt;- 1e15
+    }
+    return(x)
+}
+
+p0 &lt;- c(2, 2)
+z &lt;- optim(p0, neg.LL, data=x)
+print(exp(z$par))
+
+z &lt;- nlm(neg.LL, p0, print.level=0, data=x)
+print(exp(z$estimate))
+
+#--------------------------------------------
+#    Beta Distribution
+#    shape1 &gt; 0 and shape2 &gt; 0
+#    use exponential function to ensure above constraints
+
+#    simulate a sample
+x &lt;- rbeta(n=5000, shape1=0.5, shape2=0.2)
+
+#    exclude those where x=0
+x &lt;- x[x!=1]
+
+neg.LL &lt;- function(p, data)
+    -sum(log(dbeta(data, shape1=exp(p[1]), shape2=exp(p[2]))))
+
+p0 &lt;- log(c(0.1, 0.1))
+
+z &lt;- optim(p0, neg.LL, data=x)
+print(exp(z$par))
+
+z &lt;- nlm(neg.LL, p0, typsize=c(0.01, 0.01), print.level=0, data=x)
+print(exp(z$estimate))
+
+#--------------------------------------------
+#    Weibull Distribution
+#    shape &gt; 0 and scale &gt; 0
+#    use exponential function to ensure above constraints
+
+#    simulate a sample
+x &lt;- rweibull(n=2000, shape=2, scale=1)
+
+neg.LL &lt;- function(p, data)
+    -sum(log(dweibull(data, shape=exp(p[1]), scale=exp(p[2]))))
+
+p0 &lt;- log(c(0.1, 0.1))
+z &lt;- optim(p0, neg.LL, data=x)
+print(exp(z$par))
+
+#--------------------------------------------
+#    Pareto Distribution
+#    lambda &gt; 0
+#    Use exponential function to enforce constraint
+
+#    simulate a sample
+x &lt;- rpareto(n=2000, lambda=2, a=1)
+
+neg.LL &lt;- function(p, data){
+    #   give unreasonable values a very high neg LL, i.e. low LL
+    if (exp(p) &gt; 1e15) x &lt;- 1e15
+    else x &lt;- -sum(log(dpareto(data, lambda=exp(p), a=1)))
+    if (is.infinite(x)) x &lt;- 1e15
+    return(x)
+}
+
+p0 &lt;- log(0.1)
+z &lt;- nlm(neg.LL, p0, print.level=0, data=x)
+print(exp(z$estimate))
+
+#--------------------------------------------
+#    Tapered Pareto Distribution
+#    lambda &gt; 0  and  theta &gt; 0
+
+# simulate a sample
+x &lt;- rtappareto(n=2000, lambda=2, theta=4, a=1) 
+
+neg.LL &lt;- function(p, data){
+    x &lt;- -ltappareto(data, lambda=p[1], theta=p[2], a=1)
+    attr(x, "gradient") &lt;- -attr(x, "gradient")
+    attr(x, "hessian") &lt;- -attr(x, "hessian")
+    return(x)
+}
+
+#   use optim to get approx initial value 
+p0 &lt;- c(3, 5)
+z1 &lt;- optim(p0, neg.LL, data=x) 
+p1 &lt;- z1$par
+print(p1)
+print(neg.LL(p1, x))
+
+#   nlm with analytic gradient and hessian
+z2 &lt;- nlm(neg.LL, p1, data=x, hessian=TRUE) 
+p2 &lt;- z2$estimate
+print(z2)
+
+#    Newton Raphson Method
+p3 &lt;- p1
+iter &lt;- 0
+repeat{
+    LL &lt;- ltappareto(data=x, lambda=p3[1], theta=p3[2], a=1)
+    p3 &lt;- p3 - as.numeric(solve(attr(LL,"hessian")) %*% 
+                 matrix(attr(LL,"gradient"), ncol=1))
+    iter &lt;- iter + 1
+    if ((max(abs(attr(LL,"gradient"))) &lt; 1e-8) |
+        (iter &gt; 100)) break
+}
+print(iter)
+print(LL)
+print(p3)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,135 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predict.subgroup_fitted</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Function to predict either benefit scores or treatment recommendations</h2>
+
+<h3>Description</h3>
+
+<p>Predicts benefit scores or treatment recommendations based on a fitted subgroup identification model
+</p>
+<p>Function to obtain predictions for weighted ksvm objects
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'subgroup_fitted'
+predict(
+  object,
+  newx,
+  type = c("benefit.score", "trt.group"),
+  cutpoint = 0,
+  ...
+)
+
+## S3 method for class 'wksvm'
+predict(object, newx, type = c("class", "linear.predictor"), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>fitted object returned by <code>validate.subgrp()</code> function.
+</p>
+<p>For <code>predict.wksvm()</code>, this should be a fitted <code>wksvm</code> object from the <code>weighted.ksvm()</code> function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newx</code></td>
+<td>
+<p>new design matrix for which predictions will be made</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>type of prediction. <code>type = "benefit.score"</code> results in predicted benefit scores and
+<code>type = "trt.group"</code> results in prediction of recommended treatment group.
+</p>
+<p>For <code>predict.wksvm()</code>, <code>type = 'class'</code> yields predicted
+class and <code>type = 'linear.predictor'</code> yields estimated function (the sign of which is the estimated class)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cutpoint</code></td>
+<td>
+<p>numeric value for patients with benefit scores above which
+(or below which if <code>larger.outcome.better = FALSE</code>)
+will be recommended to be in the treatment group. Can also set <code>cutpoint = "median"</code>, which will
+use the median value of the benefit scores as the cutpoint or can set specific quantile values via <code>"quantx"</code>
+where <code>"x"</code> is a number between 0 and 100 representing the quantile value; e.g. <code>cutpoint = "quant75"</code>
+will use the 75th perent upper quantile of the benefit scores as the quantile.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>not used</p>
+</td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+<p><code>fit.subgroup</code> for function which fits subgroup identification models.
+</p>
+<p><code>weighted.ksvm</code> for fitting <code>weighted.ksvm</code> objects
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(personalized)
+
+set.seed(123)
+n.obs  &lt;- 500
+n.vars &lt;- 15
+x &lt;- matrix(rnorm(n.obs * n.vars, sd = 3), n.obs, n.vars)
+
+
+# simulate non-randomized treatment
+xbetat   &lt;- 0.5 + 0.5 * x[,11] - 0.5 * x[,3]
+trt.prob &lt;- exp(xbetat) / (1 + exp(xbetat))
+trt01    &lt;- rbinom(n.obs, 1, prob = trt.prob)
+
+trt      &lt;- 2 * trt01 - 1
+
+# simulate response
+delta &lt;- 2 * (0.5 + x[,2] - x[,3] - x[,11] + x[,1] * x[,12])
+xbeta &lt;- x[,1] + x[,11] - 2 * x[,12]^2 + x[,13]
+xbeta &lt;- xbeta + delta * trt
+
+# continuous outcomes
+y &lt;- drop(xbeta) + rnorm(n.obs, sd = 2)
+
+# create function for fitting propensity score model
+prop.func &lt;- function(x, trt)
+{
+    # fit propensity score model
+    propens.model &lt;- cv.glmnet(y = trt,
+                               x = x, family = "binomial")
+    pi.x &lt;- predict(propens.model, s = "lambda.min",
+                    newx = x, type = "response")[,1]
+    pi.x
+}
+
+subgrp.model &lt;- fit.subgroup(x = x, y = y,
+                            trt = trt01,
+                            propensity.func = prop.func,
+                            loss   = "sq_loss_lasso",
+                            nfolds = 3)              # option for cv.glmnet
+
+subgrp.model$subgroup.trt.effects
+benefit.scores &lt;- predict(subgrp.model, newx = x, type = "benefit.score")
+
+rec.trt.grp &lt;- predict(subgrp.model, newx = x, type = "trt.group")
+</code></pre>
+
+
+</div>

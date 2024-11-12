@@ -1,0 +1,1339 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pspatfit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate spatial or spatio-temporal semiparametric 
+regression models from a spatial econometric perspective.</h2>
+
+<h3>Description</h3>
+
+<p>Estimate geoadditive spatial or spatio-temporal 
+semiparametric regression models of type <em>ps-sar</em>, <em>ps-sem</em>, <em>ps-sarar</em>, 
+<em>ps-sdm</em>, <em>ps-sdem</em> or
+<em>ps-slx</em>. These type of specifications are very
+general and they can include parametric and non-parametric 
+covariates, spatial or spatio-temporal non-parametric
+trends and spatial lags of the dependent and independent variables and/or 
+the noise of the model. 
+The non-parametric terms (either trends or covariates) 
+are modeled using P-Splines. 
+The non-parametric trend can be decomposed in an ANOVA way 
+including main and interactions effects of 2nd and 3rd order. 
+The estimation method can be restricted maximum likelihood (REML)
+or maximum likelihood (ML).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pspatfit(
+  formula,
+  data,
+  na.action,
+  listw = NULL,
+  type = "sim",
+  method = "eigen",
+  Durbin = NULL,
+  zero.policy = NULL,
+  interval = NULL,
+  trs = NULL,
+  cor = "none",
+  dynamic = FALSE,
+  demean = FALSE,
+  eff_demean = "individual",
+  index = NULL,
+  control = list()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>A formula similar to GAM specification including
+parametric and non-parametric terms. Parametric covariates
+are included in the usual way and non-parametric P-spline smooth terms are
+specified using <code>pspl(.)</code> and <code>pspt(.)</code> for the non-parametric 
+covariates and spatial   or spatio-temporal trend, respectively.
+More details in <em>Details</em> and <em>Examples</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame containing the parametric and non-parametric
+covariates included in the model. Also, if a <code>pspt(.)</code> term is 
+included in formula, the data frame must include the spatial and temporal
+coordinates specified in <code>pspt(.)</code>. In this case coordinates
+must be ordered choosing time as fast index and spatial coordinates
+as low indexes. See <code>head(unemp_it)</code> as an example.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.action</code></td>
+<td>
+<p>A function (default <code>options("na.action")</code>),
+can also be 'na.omit' or 'na.exclude' with consequences 
+for residuals and fitted values. It may be necessary to set 
+'zero.policy' to 'TRUE' because this subsetting may 
+create no-neighbour observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>listw</code></td>
+<td>
+<p>Default = 'NULL' This will create a model with no spatial dependency.
+To include spatial dependency, <code>listw</code> should be a spatial neighbours list object 
+created for example by <code>nb2listw</code> from <span class="pkg">spdep</span>
+package; if <code>nb2listw</code> not given, set to 
+the same spatial weights as the <code>listw</code> argument. It can
+also be a spatial weighting matrix of order <em>(NxN)</em> instead of
+a <code>listw</code> neighbours list object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>Type of spatial model specification following 
+the usual spatial econometric terminology. 
+Default = <code>"sim"</code> this creates
+a model with no type of spatial dependency. 
+Types of spatial models available (similar to 
+<span class="pkg">spsur</span> package):
+<code>"sar"</code>, <code>"sem"</code>, <code>"sdm"</code>, 
+<code>"sdem"</code>, <code>"sarar"</code>, or <code>"slx"</code>. 
+When creating a <code>"slx"</code>, <code>"sdem"</code>
+or <code>"sdm"</code> model, it is necessary to include the formula of the Durbin part in 
+the <code>Durbin</code> argument in the same way than 
+<span class="pkg">spsur</span> or <span class="pkg">spatialreg</span> packages.
+There are examples on how to create these models 
+in <em>Examples</em> section.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Similar to the corresponding parameter of 
+<code>lagsarlm</code> function in <span class="pkg">spatialreg</span> package. 
+"eigen" (default) - the Jacobian is computed as the product of 
+(1 - rho*eigenvalue) using <code>eigenw</code> from package
+spatialreg. For big samples (&gt; 500) method = "eigen" is not recommended.
+Use "spam" or "Matrix_J" for strictly symmetric weights lists of 
+styles "B" and "C", or made symmetric by similarity 
+(Ord, 1975, Appendix C) if possible for styles "W" and "S", 
+using code from the spam or Matrix packages to calculate the 
+determinant; "Matrix" and "spam_update" provide updating Cholesky 
+decomposition methods; "LU" provides an alternative sparse matrix 
+decomposition approach. In addition, there are "Chebyshev" and 
+Monte Carlo "MC" approximate log-determinant methods; 
+the Smirnov/Anselin (2009) trace approximation is available 
+as "moments". Three methods: "SE_classic", "SE_whichMin", 
+and "SE_interp" are provided experimentally, the first to 
+attempt to emulate the behaviour of Spatial Econometrics 
+toolbox ML fitting functions. All use grids of log determinant 
+values, and the latter two attempt to ameliorate some features 
+of "SE_classic".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Durbin</code></td>
+<td>
+<p>Default = 'NULL'. 
+If model is of <code>type = "sdm"</code>, <code>"sdem"</code> or 
+<code>"slx"</code> then this argument should be a formula
+of the subset of explanatory variables to be 
+spatially lagged in the right hand side part of 
+the model. See <code>spsurml</code> for 
+a similar argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zero.policy</code></td>
+<td>
+<p>Similar to the corresponding parameter of 
+<code>lagsarlm</code> function in <span class="pkg">spatialreg</span> package. 
+If 'TRUE' assign zero to the lagged value of zones without 
+neighbours, if 'FALSE' assign 'NA' - causing 
+<code>pspatfit()</code> to terminate with an error. Default = 'NULL'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interval</code></td>
+<td>
+<p>Search interval for autoregressive parameter.
+Default = 'NULL'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trs</code></td>
+<td>
+<p>Similar to the corresponding parameter of 
+<code>lagsarlm</code> function in <span class="pkg">spatialreg</span> package.
+Default 'NULL', if given, a vector of powered spatial weights 
+matrix traces output by <code>trW</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cor</code></td>
+<td>
+<p>Type of temporal correlation for temporal data. Possible values 
+are <code>"none"</code> (default) or <code>"ar1"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dynamic</code></td>
+<td>
+<p>Logical value to set a dynamic model.
+Dynamic models include a temporal lag of the dependent
+variable in the right-hand side of the equation.
+Default = 'FALSE'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>demean</code></td>
+<td>
+<p>Logical value to include a demeaning 
+for panel data. Default = 'FALSE'. 
+The demeaning is done previously to the estimation for
+both parametric and nonparametric terms. It is not possible
+to set <code>demean = TRUE</code> when spatio-temporal trends
+are included.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eff_demean</code></td>
+<td>
+<p>Type of demeaning for panel data.
+Possible values are <code>"individual"</code> (default), 
+<code>"time"</code> or <code>"twoways"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index</code></td>
+<td>
+<p>Vector of variables indexing panel data. 
+First variable corresponds to individuals and second 
+variable corresponds to temporal coordinate (fast index). 
+It follows the same rules than <code>plm</code> function
+in package <span class="pkg">plm</span>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>List of extra control arguments. See 
+<em>Control Arguments</em> section below.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Function to estimate the model:
+</p>
+<p style="text-align: center;"><code class="reqn"> y = (\rho*W_{N} \otimes I_T) y 
+    + f(s_1,s_2,\tau_{t}) 
+    + X \beta 
+    + (W_{N} \otimes I_T) X \theta  
+    + \sum_{i = 1}^k g(z_i) 
+    + \sum_{i = 1}^k g((\gamma_i*W_{N} \otimes I_T) z_i)  
+    + \epsilon </code>
+</p>
+
+<p>where:
+</p>
+
+<ul>
+<li> <p><code class="reqn">f(s_1,s_2,\tau_t)</code> is a smooth spatio-temporal trend
+of the spatial coordinates <code class="reqn">s1,s_2</code> and of the temporal
+coordinates <code class="reqn">\tau_t</code>.
+</p>
+</li>
+<li> <p><code class="reqn">X</code> is a matrix including values of parametric covariates.
+</p>
+</li>
+<li> <p><code class="reqn">g(z_i)</code> are non-parametric smooth functions of the
+covariates <code class="reqn">z_i</code>.
+</p>
+</li>
+<li> <p><code class="reqn">W_N</code> is the spatial weights matrix.
+</p>
+</li>
+<li> <p><code class="reqn">\rho</code> is the spatial spillover parameter.
+</p>
+</li>
+<li> <p><code class="reqn">I_T</code> is an identity matrix of order <code class="reqn">T</code> (<em>T=1</em>
+for pure spatial data).
+</p>
+</li>
+<li> <p><code class="reqn">\epsilon ~ N(0,R)</code> where <code class="reqn">R = \sigma^2 I_T</code> if errors
+are uncorrelated or it follows an AR(1) temporal autoregressive 
+structure for serially correlated errors.
+</p>
+</li>
+</ul>
+<dl>
+<dt>Including non-parametric terms</dt>
+<dd>
+<p>The non-parametric terms are included in <code>formula</code> using
+<code>pspt(.)</code> for spatial or spatio-temporal trends and 
+<code>pspl(.)</code> for other non-parametric smooth additive terms.
+For example, if a model includes:
+</p>
+
+<ul>
+<li>
+<p> An spatio-temporal trend with 
+variables <em>long</em> and <em>lat</em> 
+as spatial coordinates,and <em>year</em> 
+as temporal coordinate.
+</p>
+</li>
+<li>
+<p> Two non-parametric covariates named 
+<em>empgrowth</em> and <em>serv</em>.
+</p>
+</li>
+<li>
+<p>  Three parametric covariates named 
+<em>partrate</em>, <em>agri</em> and <em>cons</em>.
+</p>
+</li>
+</ul>
+<p>Then, the formula should be written as (choosing default values
+for each term): <br></p>
+<p><code> unrate ~ partrate + agri + cons +
+                   pspl(serv) + pspl(empgrowth) +
+                   pspt(long,lat,year) </code> <br></p>
+<p>For a spatial trend case, the term <code>pspt(.)</code> does not include a 
+temporal coordinate, that is, in the previous example would be 
+specified as <code>pspt(long,lat)</code>.
+</p>
+</dd>
+<dt>How to use <code>pspl()</code> and <code>pspt()</code>
+</dt>
+<dd>   
+<p>Note that both in <code>pspl(.)</code> and <code>pspt(.)</code>, we have 
+to include the number of knots, named <code>nknots</code>, 
+which is the dimension of the basis used to represent the smooth term.
+The value of <code>nknots</code> should not be less than the dimension of the null space of the penalty
+for the term, see <code>null.space.dimension</code> 
+and <code>choose.k</code> from <span class="pkg">mgcv</span> 
+package to know how to choose <code>nknots</code>.
+</p>
+<p>In <code>pspl(.)</code> the default is <code>nknots = 10</code>, see the help of <code>pspl</code> function.
+In this term we can only include single variables, so if we want more than one 
+non-parametric variable we will use a <code>pspl(.)</code> term for each nonparametric variable.
+</p>
+<p>On the other hand, <code>pspt(.)</code> is used for spatial smoothing 
+(when temporal coordinate is 'NULL')  or 
+spatio-temporal smoothing (when a variable is provided for
+the temporal coordinate). 
+The default for the temporal coordinate is <code>time = NULL</code>, 
+see the help of <code>pspt</code>, and the default number of knots
+are <code>nknots = c(10, 10, 5)</code>. If only 
+include spatial smoothing, <code>nknots</code> will be a length 2 vector 
+indicating the basis for each spatial coordinate. 
+For spatio-temporal smoothing, it will be a length 3 vector.
+</p>
+</dd>
+<dt>ANOVA descomposition</dt>
+<dd>
+<p>In many situations the  spatio-temporal trend, given by 
+<code class="reqn">f(s_1,s_2,\tau_t)</code>, can be very complex and the use of a 
+multidimensional smooth function may not be flexible enough to 
+capture the structure in the data. Furthermore, the estimation of 
+this trend can become computationally intensive especially for 
+large databases.<br>
+To solve this problem, Lee and Durban (2011) proposed an ANOVA-type
+decomposition of this spatio-temporal trend where spatial and 
+temporal main effects, and second- and third-order interaction 
+effects can be identified as:
+</p>
+<p style="text-align: center;"><code class="reqn"> f(s_1, s_2, \tau_t) = f_1(s_1) + f_2(s_2) + f_t(\tau_t) +
+         f_{1,2}(s_1, s_2) +  f_{1,t}(s_1, \tau_t) +
+         f_{2,t}(s_2, \tau_t) + f_{1,2,t}(s_1, s_2, \tau_t) </code>
+</p>
+
+<p>In this equation the decomposition of the spatio-temporal trend 
+is as follows:
+</p>
+
+<ul>
+<li>
+<p> Main effects given by the functions 
+<code class="reqn">f_1(s_1), f_2(s_2)</code> and <code class="reqn">f_t(\tau_t)</code>.
+</p>
+</li>
+<li>
+<p> Second-order interaction effects given by the functions 
+<code class="reqn">f_{1,2}(s_1,s_2), f_{1,t}(s_1,\tau_t)</code> 
+and <code class="reqn">f_{2,t}(s_2,\tau_t)</code>.
+</p>
+</li>
+<li>
+<p> Third-order interaction effect given by the 
+function <code class="reqn">f_{1,2,t}(s_1,s_2,\tau_t)</code>.    
+</p>
+</li>
+</ul>
+<p>In this case, each effect can have its own 
+degree of smoothing allowing a greater flexibility for the 
+spatio-temporal trend. The ANOVA decomposition of the trend
+can be set as an argument in <code>pspt(.)</code> terms choosing
+<code>psanova = TRUE</code>.
+</p>
+<p>For example to choose an ANOVA decomposition in the 
+previous case we can set: <br></p>
+<p><code>pspt(long, lat, year, nknots = c(18,18,8),
+  psanova = TRUE)</code>
+<br></p>
+<p>In most empirical cases main effects functions are more flexible than 
+interaction effects functions and therefore, the number of knots in B-Spline 
+bases for interaction effects do not need to be as big as the 
+number of knots for main effects. 
+<em>Lee et al.</em>, (2013) proposed a nested basis procedure
+in which the number of knots for the interaction effects functions are 
+reduced using <em>divisors</em> such that the space spanned by 
+B-spline bases used for interaction effects are a subset of the 
+space spanned by B-spline bases used for main effects. 
+The <em>divisors</em> can be specified as an argument in 
+<code>pspt(.)</code> terms. <br> 
+To do this, there are three
+arguments available inside <code>pspt()</code> to define the divisors.
+These arguments are named <code>nest_sp1</code>, <code>nest_sp2</code> and 
+<code>nest_time</code>, respectively. 
+The value for these arguments
+are vector parameters including divisors of
+the <code>nknots</code> values. <br></p>
+<p>For example, if we set <code>nest_sp1 =
+  c(1,2,2)</code> between the arguments of <code>pspl(.)</code>, 
+we will have all knots for main effect of <em>s_1</em>, 
+<em>18/2=9</em> knots for each second-order effect including <em>s_1</em>, 
+and <em>8/2=4</em> knots for the third order effect including <em>s_1</em>. It
+is important that the vector of numbers will be integer divisors 
+of the values in <code>nknots</code>.
+See section <em>Examples</em> for more details.
+</p>
+<p>Eventually, any effect function can be excluded of the ps-anova
+spatio-temporal trend. To exclude main effects, the arguments  
+<code>f1_main</code>, <code>f2_main</code> or <code>ft_main</code> have to be set to
+'FALSE' (default='TRUE').
+We can also exclude the second- and third-order
+effects functions setting to 'FALSE' the arguments <code>f12_int</code>, <code>f1t_int</code>, 
+<code>f2t_int</code> or <code>f12t_int</code> in <code>pspl(.)</code>.
+</p>
+</dd>
+</dl>
+<p>All the terms included in the model are jointly fitted using Separation of Anisotropic 
+Penalties (SAP) algorithm (see <em>Rodriguez-Alvarez et al., (2015)</em>) 
+which allows to the mixed model reparameterization of the model. 
+For type of models <code>"sar", "sem", "sdm", "sdem", "sarar"</code>  or 
+<code>cor = "ar1"</code>, the parameters <code class="reqn">\rho</code>, <code class="reqn">\lambda</code> and <code class="reqn">\phi</code> 
+are numerically estimated using 
+<code>bobyqa</code> function implemented in package <span class="pkg">minqa</span>.
+In these cases, an iterative process between SAP and numerical 
+optimization of <code class="reqn">\rho</code>, <code class="reqn">\lambda</code> and <code class="reqn">\phi</code> is applied until
+convergence. See details in <em>Minguez et al.</em>, (2018).
+</p>
+   
+<dl>
+<dt>Plotting non-parametric terms</dt>
+<dd>
+<p>To plot the non-linear functions corresponding to 
+non-parametric terms we need to compute the fitted values,
+and standard erros, using <code>fit_terms()</code> function 
+and, afterwards, use <code>plot_terms()</code> function to 
+plot the non-linear functions. <br> 
+An example of how plot the functions of non-parametric 
+terms given by <code>"var1"</code> and <code>"var2"</code> variables is given by 
+the next lines of code (it is assumed that a previous 
+model has been fitted using <code>pspatfit(.)</code> and 
+saved as an object named <code>model</code>): <br></p>
+<p><code>list_varnopar &lt;- c("var1", "var2")</code> <br><code>terms_nopar &lt;- fit_terms(model, list_varnopar)</code> <br><code>plot_terms(terms_nopar, data)</code> 
+<br></p>
+<p>The <code>data</code> argument of <code>plot_terms()</code> usually 
+corresponds to the dataframe used to fitted the model 
+although a different database can be used to plot the 
+non-parametric terms.</p>
+</dd>
+<dt>Spatial impacts</dt>
+<dd>
+<p>For the spatial models given by  <code>type = "sar"</code>, 
+<code>"sdm"</code>, <code>"sdem"</code>, <code>"sarar"</code> 
+or <code>"slx"</code> it is possible to compute spatial 
+spillovers as usual in spatial econometric specifications. 
+Nevertheless, in this case we need to distinguish between 
+parametric and non-parametric covariates when computing spatial 
+impacts.</p>
+</dd>
+</dl>
+<ul>
+<li>
+<p> spatial impacts for parametric covariates <br>
+In this case, the spatial impacts are computed in the 
+usual way using simulation. See LeSage and Page (2009) 
+for computational details. The function <code>impactspar()</code>
+computes the direct, indirect and total impacts for 
+parametric covariates and return and object similar to 
+the case of <span class="pkg">spatialreg</span> and <span class="pkg">spsur</span> packages.
+The inference for <code>"sar"</code>, <code>"sdm"</code>, 
+and <code>"sarar"</code> types is based on simulations 
+and for <code>"slx"</code> and <code>"sdem"</code> types the 
+standard errors or total impacts are computed using 
+the variance-covariance matrix of the fitted model. 
+The <code>summary()</code> method can be used to present the 
+the complete table of spatial impacts in this parametric case.
+See the help of <code>impactspar</code> to know the 
+additional arguments of the function. A little example 
+is given in the next lines of code:<br></p>
+<p><code>imp_parvar &lt;- impactspar(MODEL, listw = W)</code> <br><code>summary(imp_parvar)</code>
+</p>
+</li>
+<li>
+<p> spatial impacts for non-parametric covariates <br>
+In this case direct, indirect and total 
+<em>spatial impacts functions</em> are 
+obtained using <code>impactsnopar</code>. The details of 
+computation and inference can be obtained from the help 
+of <code>impactsnopar</code>. 
+The argument <code>viewplot</code> of <code>impactsnopar</code> 
+have to be set as 'TRUE' to plot the spatial impacts 
+functions. Another way to get the same plots is using 
+<code>plot_impactsnopar</code> function with the output 
+of <code>impactsnopar</code>. 
+Next lines give an example of both cases: <br></p>
+<p><code>imp_nparvar &lt;- impactsnopar(MODEL, listw = W, viewplot = TRUE)</code> <br><code>imp_nparvar &lt;- impactsnopar(MODEL, listw = W, viewplot = FALSE)</code> <br><code>plot_impactsnopar(imp_nparvar, data = DATA)</code> <br></p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>A list object of class <em>pspatreg</em>
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+ <code>call</code> </td>
+<td style="text-align: left;"> Matched call. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>terms</code> </td>
+<td style="text-align: left;"> The terms object used. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>contrasts</code> </td>
+<td style="text-align: left;"> (only where relevant) the contrasts used
+             for parametric covariates. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>xlevels</code> </td>
+<td style="text-align: left;"> (only where relevant) a record of the levels
+             of the parametric factors used in fitting. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>data</code> </td>
+<td style="text-align: left;"> dataframe used as database. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>nsp</code> </td>
+<td style="text-align: left;"> number of spatial observations. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>nt</code> </td>
+<td style="text-align: left;"> number of temporal observations. It is set
+   to <code>nt=1</code> for spatial data. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>nfull</code> </td>
+<td style="text-align: left;"> total number of observations. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>edftot</code> </td>
+<td style="text-align: left;"> Equivalent degrees of freedom for the whole model. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>edfspt</code> </td>
+<td style="text-align: left;"> Equivalent degrees of freedom for smooth
+             spatio-temporal or spatial trend. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>edfnopar</code> </td>
+<td style="text-align: left;"> Equivalent degrees of freedom for
+             non-parametric covariates. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>psanova</code> </td>
+<td style="text-align: left;"> <em>TRUE</em> if spatio-temporal or spatial trend is 
+   PS-ANOVA. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>type</code> </td>
+<td style="text-align: left;"> Value of <code>type</code> argument in the call to <code>pspatfit</code>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>listw</code> </td>
+<td style="text-align: left;"> Value of <code>listw</code> argument in the call to <code>pspatfit</code>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>Durbin</code> </td>
+<td style="text-align: left;"> Value of <code>Durbin</code> argument in the call to <code>pspatfit</code>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>cor</code> </td>
+<td style="text-align: left;"> Value of <code>cor</code> argument in the call to <code>pspatfit</code>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>dynamic</code> </td>
+<td style="text-align: left;"> Value of <code>dynamic</code> argument in the call to <code>pspatfit</code>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>demean</code> </td>
+<td style="text-align: left;"> Value of <code>demean</code> argument in the call to <code>pspatfit</code>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>eff_demean</code> </td>
+<td style="text-align: left;"> Value of <code>eff_demean</code> argument in the call to <code>pspatfit</code>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>index</code> </td>
+<td style="text-align: left;"> Value of <code>index</code> argument in the call to <code>pspatfit</code>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>bfixed</code> </td>
+<td style="text-align: left;"> Estimated betas corresponding to fixed effects in
+             mixed model. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>se_bfixed</code> </td>
+<td style="text-align: left;"> Standard errors of fixed betas. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>brandom</code> </td>
+<td style="text-align: left;"> Estimated betas corresponding to random effects
+             in mixed model. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>se_brandom</code>
+</td>
+<td style="text-align: left;"> Standard errors of random betas. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>vcov_fr</code> </td>
+<td style="text-align: left;"> Covariance matrix of fixed and random
+             effects using frequentist or sandwich method. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>vcov_by</code> </td>
+<td style="text-align: left;"> Covariance matrix of fixed and random
+             effects using bayesian method. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>rho</code> </td>
+<td style="text-align: left;"> Estimated rho for spatial lag of the
+   dependent variable. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>se_rho</code> </td>
+<td style="text-align: left;"> Standard error of <code class="reqn">rho</code>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>delta</code> </td>
+<td style="text-align: left;"> Estimated delta for spatial error models. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>se_delta</code> </td>
+<td style="text-align: left;"> Standard error of <code class="reqn">delta</code>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>phi</code> </td>
+<td style="text-align: left;"> Estimated phi. If <code>cor="none"</code> always <code class="reqn">phi=0</code>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>se_phi</code> </td>
+<td style="text-align: left;"> Standard error of <code class="reqn">phi</code>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>fitted.values</code> </td>
+<td style="text-align: left;"> Vector of fitted values of the dependent
+             variable. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>se_fitted.values</code> </td>
+<td style="text-align: left;"> Vector of standard errors of
+      <code>fitted.values</code>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>fitted.values_Ay</code> </td>
+<td style="text-align: left;"> Vector of fitted values of the spatial lag of
+     dependent variable: <code class="reqn">(\rho*W_N \otimes I_T) y</code>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>se_fitted.values_Ay</code> </td>
+<td style="text-align: left;"> Vector of standard errors of
+      <code>fitted.values_Ay</code>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>residuals</code> </td>
+<td style="text-align: left;"> Vector of residuals. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>df.residual</code> </td>
+<td style="text-align: left;"> Equivalent degrees of freedom for <code>residuals</code>. 
+   </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>sig2</code>  </td>
+<td style="text-align: left;"> Residual variance computed as SSR/df.residual. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>llik</code> </td>
+<td style="text-align: left;"> Log-likelihood value. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>llik_reml</code> </td>
+<td style="text-align: left;"> Restricted log-likelihood value. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>aic</code> </td>
+<td style="text-align: left;"> Akaike information criterion. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>bic</code> </td>
+<td style="text-align: left;"> Bayesian information criterion. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>sp1</code> </td>
+<td style="text-align: left;"> First spatial coordinate. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>sp2</code> </td>
+<td style="text-align: left;"> Second spatial coordinate. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>time</code> </td>
+<td style="text-align: left;"> Time coordinate. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>y</code> </td>
+<td style="text-align: left;"> Dependent variable. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>X</code> </td>
+<td style="text-align: left;"> Model matrix for fixed effects. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>Z</code> </td>
+<td style="text-align: left;"> Model matrix for random effects. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<h3>Control Arguments</h3>
+
+
+<table>
+<tr>
+<td style="text-align: left;">
+  <code>optim</code> </td>
+<td style="text-align: left;"> method of estimation: <code>"llik_reml"</code> (default) or
+    <code>"llik"</code>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  <code>typese</code> </td>
+<td style="text-align: left;"> method to compute 
+    standard errors. <code>"sandwich"</code>  or <code>"bayesian"</code> (default).
+    See Fahrmeir et al, pp. 375 for details of computations. </td>
+</tr>
+<tr>
+<td style="text-align: left;">   
+  <code>vary_init</code> </td>
+<td style="text-align: left;"> Initial value of the noise variance in the model.
+    Default = `NULL`. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  <code>trace</code> </td>
+<td style="text-align: left;"> A logical value set to <em>TRUE</em> to show 
+    intermediate results during the estimation process. 
+    Default = <em>FALSE</em>. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  <code>tol1</code> </td>
+<td style="text-align: left;"> Numerical value for the tolerance of convergence
+    of penalization parameters during the estimation process. 
+    Default 1e-3. This tolerance is only used 
+    for small samples (&lt;= 500 observations). </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  <code>tol2</code> </td>
+<td style="text-align: left;"> Numerical value for the tolerance of convergence
+    of total estimated degrees of freedom ("edftot") during the 
+    estimation process. Default 1e-1. This tolerance is used for 
+    medium or big samples (&gt; 500 observations). </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  <code>tol3</code> </td>
+<td style="text-align: left;"> Numerical value for the tolerance of convergence
+    of spatial and correlation parameters during the 
+    estimation process. Default 1e-2.  </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  <code>maxit</code> </td>
+<td style="text-align: left;"> An integer value for the maximum number of 
+    iterations until convergence. Default = 200. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  <code>rho_init</code> </td>
+<td style="text-align: left;"> An initial value for <code class="reqn">rho</code> parameter. 
+    Default 0. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  <code>delta_init</code> </td>
+<td style="text-align: left;"> An initial value for <code class="reqn">delta</code> parameter. 
+    Default 0. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  <code>phi_init</code> </td>
+<td style="text-align: left;"> An initial value for <code class="reqn">phi</code> parameter. 
+    Default 0. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  <code>Imult</code> </td>
+<td style="text-align: left;"> default 2; used for preparing the Cholesky 
+      decompositions for updating in the Jacobian function </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  <code>super</code> </td>
+<td style="text-align: left;">  if `NULL` (default), set to `FALSE` to use 
+      a simplicial decomposition for the sparse Cholesky decomposition 
+      and method "Matrix_J", set to `as.logical(NA)` for method "Matrix", if 
+      `TRUE`, use a supernodal decomposition </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>cheb_q</code> </td>
+<td style="text-align: left;"> default 5; highest power of the approximating 
+      polynomial for the Chebyshev approximation </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>MC_p</code> </td>
+<td style="text-align: left;"> default 16; number of random variates </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>MC_m</code> </td>
+<td style="text-align: left;"> default 30; number of products of random variates 
+      matrix and spatial weights matrix </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>spamPivot</code> </td>
+<td style="text-align: left;">  default "MMD", alternative "RCM" </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>in_coef</code> </td>
+<td style="text-align: left;"> default 0.1, coefficient value for initial Cholesky 
+      decomposition in "spam_update" </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>type</code> </td>
+<td style="text-align: left;"> default "MC", used with method "moments"; alternatives 
+      "mult" and "moments", for use if trs is missing </td>
+</tr>
+<tr>
+<td style="text-align: left;"> 
+    <code>correct</code> </td>
+<td style="text-align: left;"> default `TRUE`, used with method "moments" to 
+      compute the Smirnov/Anselin correction term </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>trunc</code> </td>
+<td style="text-align: left;"> default `TRUE`, used with method "moments" to 
+      truncate the Smirnov/Anselin correction term </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>SE_method</code> </td>
+<td style="text-align: left;"> default "LU", may be "MC" </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>nrho</code> </td>
+<td style="text-align: left;"> default 200, as in SE toolbox; the size of the first 
+      stage lndet grid; it may be reduced to for example 40 </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>interpn</code> </td>
+<td style="text-align: left;"> default 2000, as in SE toolbox; the size of the 
+      second stage lndet grid </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>SElndet</code> </td>
+<td style="text-align: left;"> default `NULL`, may be used to pass a 
+      pre-computed SE toolbox style matrix of coefficients and their lndet 
+      values to the "SE_classic" and "SE_whichMin" methods </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>LU_order</code> </td>
+<td style="text-align: left;"> default `FALSE`; used in "LU_prepermutate", 
+      note warnings given for lu method </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>pre_eig</code> </td>
+<td style="text-align: left;"> default `NULL`; may be used to pass a 
+      pre-computed vector of eigenvalues </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ </td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+
+<table>
+<tr>
+<td style="text-align: left;">
+    Roman Minguez </td>
+<td style="text-align: left;"> <a href="mailto:roman.minguez@uclm.es">roman.minguez@uclm.es</a> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    Roberto Basile </td>
+<td style="text-align: left;"> <a href="mailto:roberto.basile@univaq.it">roberto.basile@univaq.it</a> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    Maria Durban </td>
+<td style="text-align: left;"> <a href="mailto:mdurban@est-econ.uc3m.es">mdurban@est-econ.uc3m.es</a> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    Gonzalo Espana-Heredia </td>
+<td style="text-align: left;"> <a href="mailto:gehllanza@gmail.com">gehllanza@gmail.com</a> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  </td>
+</tr>
+</table>
+<h3>References</h3>
+
+ 
+<ul>
+<li>
+<p> Basile, R.; Durban, M.; Minguez, R.; Montero, J. M.; and 
+Mur, J. (2014). Modeling regional economic dynamics: Spatial
+dependence, spatial heterogeneity and nonlinearities. 
+<em>Journal of Economic Dynamics and Control</em>, (48), 229-245.
+&lt;doi:10.1016/j.jedc.2014.06.011&gt;
+</p>
+</li>
+<li>
+<p> Eilers, P. and Marx, B. (1996). Flexible Smoothing with 
+B-Splines and Penalties. <em>Statistical Science</em>, (11), 89-121.
+</p>
+</li>
+<li>
+<p> Eilers, P. and Marx, B. (2021). <em>Practical Smoothing. 
+The Joys of P-Splines</em>. Cambridge University Press.
+</p>
+</li>
+<li>
+<p> Fahrmeir, L.; Kneib, T.;  Lang, S.; and Marx, B. (2021). 
+<em>Regression. Models, Methods and Applications (2nd Ed.)</em>.
+Springer.
+</p>
+</li>
+<li>
+<p> Lee, D. and Durban, M. (2011). P-Spline ANOVA Type Interaction 
+Models for Spatio-Temporal Smoothing. <em>Statistical Modelling</em>, 
+(11), 49-69. &lt;doi:10.1177/1471082X1001100104&gt;
+</p>
+</li>
+<li>
+<p> Lee, D. J., Durban, M., and Eilers, P. (2013). Efficient
+two-dimensional smoothing with P-spline ANOVA mixed models 
+and nested bases. <em>Computational Statistics &amp; Data Analysis</em>, 
+(61), 22-37. &lt;doi:10.1016/j.csda.2012.11.013&gt;
+</p>
+</li>
+<li>
+<p> LeSage, J. and Pace, K. (2009). <em>Introduction to 
+Spatial Econometrics</em>. CRC Press, Boca Raton.
+</p>
+</li>
+<li>
+<p> Minguez, R.; Basile, R. and Durban, M. (2020). An Alternative 
+Semiparametric Model for Spatial Panel Data. <em>Statistical Methods and Applications</em>,
+(29), 669-708. &lt;doi:10.1007/s10260-019-00492-8&gt;
+</p>
+</li>
+<li>
+<p> Montero, J., Minguez, R., and Durban, M. (2012). SAR models 
+with nonparametric spatial trends: A P-Spline approach. 
+<em>Estadistica Espanola</em>, (54:177), 89-111.
+</p>
+</li>
+<li>
+<p> Rodriguez-Alvarez, M. X.; Kneib, T.; Durban, M.; Lee, D.J.
+and Eilers, P. (2015). Fast smoothing parameter separation 
+in multidimensional generalized P-splines: the SAP algorithm.
+<em>Statistics and Computing</em> 25 (5), 941-957. 
+&lt;doi:10.1007/s11222-014-9464-2&gt;
+</p>
+</li>
+<li>
+<p> Wood, S.N. (2017). <em>Generalized Additive Models. 
+An Introduction with <code>R</code></em> (second edition). CRC Press, Boca Raton.
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+
+<ul>
+<li> <p><code>impactspar</code> compute total, direct and indirect effect
+functions for parametric continuous 
+covariates.
+</p>
+</li>
+<li> <p><code>impactsnopar</code> compute total, direct and indirect effect
+functions for non-parametric continuous 
+covariates.
+</p>
+</li>
+<li> <p><code>fit_terms</code> compute smooth functions for non-parametric
+continuous covariates.
+</p>
+</li>
+<li>
+<p><code>gam</code> well-known alternative of estimation
+of semiparametric models in <span class="pkg">mgcv</span> 
+package.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">################################################
+
+##########################
+library(pspatreg)
+###############################################
+# Examples using spatial data of Ames Houses.
+###############################################
+# Getting and preparing the data
+library(spdep)
+library(sf)
+ames &lt;- AmesHousing::make_ames() # Raw Ames Housing Data
+ames_sf &lt;- st_as_sf(ames, coords = c("Longitude", "Latitude"))
+ames_sf$Longitude &lt;- ames$Longitude
+ames_sf$Latitude &lt;- ames$Latitude
+ames_sf$lnSale_Price &lt;- log(ames_sf$Sale_Price)
+ames_sf$lnLot_Area &lt;- log(ames_sf$Lot_Area)
+ames_sf$lnTotal_Bsmt_SF &lt;- log(ames_sf$Total_Bsmt_SF+1)
+ames_sf$lnGr_Liv_Area &lt;- log(ames_sf$Gr_Liv_Area)
+ames_sf1 &lt;- ames_sf[(duplicated(ames_sf$Longitude) == FALSE), ]
+
+####  GAM pure with pspatreg
+form1 &lt;- lnSale_Price ~ Fireplaces + Garage_Cars +
+          pspl(lnLot_Area, nknots = 20) + 
+          pspl(lnTotal_Bsmt_SF, nknots = 20) +
+          pspl(lnGr_Liv_Area, nknots = 20)    
+gampure &lt;- pspatfit(form1, data = ames_sf1)
+summary(gampure)
+
+######################  Get Non-parametric terms of GAM with pspatreg
+list_varnopar &lt;- c("lnLot_Area", "lnTotal_Bsmt_SF", 
+"lnGr_Liv_Area")
+terms_nopar &lt;- fit_terms(gampure, list_varnopar, intercept = TRUE)
+######################  Plot non-parametric terms
+plot_terms(terms_nopar, ames_sf1)
+
+ 
+########### Constructing the spatial weights matrix
+coord_sf1 &lt;- cbind(ames_sf1$Longitude, ames_sf1$Latitude)
+k5nb &lt;- knn2nb(knearneigh(coord_sf1, k = 5, 
+                          longlat = TRUE, use_kd_tree = FALSE), sym = TRUE)
+lw_ames &lt;- nb2listw(k5nb, style = "W", 
+                  zero.policy = FALSE)
+                  
+#####################  GAM + SAR Model
+gamsar &lt;- pspatfit(form1, data = ames_sf1, 
+                   type = "sar", listw = lw_ames,
+                   method = "Chebyshev")
+summary(gamsar)
+                  
+######### Non-Parametric Total, Direct and Indirect impacts
+### with impactsnopar(viewplot = TRUE)
+nparimpacts &lt;- impactsnopar(gamsar, 
+                            listw = lw_ames, 
+                            viewplot = TRUE)
+############ Non-Parametric Total, Direct and Indirect impacts
+### with impactsnopar(viewplot = FALSE) and using plot_impactsnopar()
+nparimpacts &lt;- impactsnopar(gamsar, listw = lw_ames, viewplot = FALSE)
+plot_impactsnopar(nparimpacts, data = ames_sf1, smooth = TRUE)
+
+###################### Parametric Total, Direct and Indirect impacts
+parimpacts &lt;- impactspar(gamsar, listw = lw_ames)
+summary(parimpacts)
+
+###############################################
+### Models with 2d spatial trend
+form2 &lt;- lnSale_Price ~ Fireplaces + Garage_Cars +
+          pspl(lnLot_Area, nknots = 20) + 
+          pspl(lnTotal_Bsmt_SF, nknots = 20) +
+          pspl(lnGr_Liv_Area, nknots = 20) +
+          pspt(Longitude, Latitude, 
+               nknots = c(10, 10), 
+               psanova = FALSE)
+#####################  GAM + GEO Model
+gamgeo2d &lt;- pspatfit(form2, data = ames_sf1)
+summary(gamgeo2d)
+
+gamgeo2dsar &lt;- pspatfit(form2, data = ames_sf1,
+                        type = "sar", 
+                        listw = lw_ames, 
+                        method = "Chebyshev")
+summary(gamgeo2dsar)
+####### plot spatial trend for spatial point coordinate
+plot_sp2d(gamgeo2dsar, data = ames_sf1)
+### Models with psanova 2d spatial trend
+form3 &lt;- lnSale_Price ~ Fireplaces + Garage_Cars +
+          pspl(lnLot_Area, nknots = 20) + 
+          pspl(lnTotal_Bsmt_SF, nknots = 20) +
+          pspl(lnGr_Liv_Area, nknots = 20) +
+          pspt(Longitude, Latitude, 
+               nknots = c(10, 10), 
+               psanova = TRUE)
+gamgeo2danovasar &lt;- pspatfit(form3, data = ames_sf1,
+                        type = "sar", 
+                        listw = lw_ames, method = "Chebyshev")
+summary(gamgeo2danovasar)
+####### plot spatial trend for spatial point coordinate
+plot_sp2d(gamgeo2danovasar, data = ames_sf1, 
+addmain = TRUE, addint = TRUE)
+
+## Comparison between models
+anova(gampure, gamsar, gamgeo2d, gamgeo2dsar,
+gamgeo2danovasar, lrtest = FALSE)
+
+###############################################
+###################### Examples using a panel data of rate of
+###################### unemployment for 103 Italian provinces in 1996-2019.
+###############################################
+## load spatial panel and Wsp_it
+## 103 Italian provinces. Period 1996-2019
+data(unemp_it, package = "pspatreg")
+## Wsp_it is a matrix. Create a neighboord list 
+lwsp_it &lt;- spdep::mat2listw(Wsp_it)
+ ### Models with spatio-temporal trend
+ ### Spatio-temporal semiparametric ANOVA model without spatial lag
+ ### Interaction terms f12,f1t,f2t and f12t with nested basis
+ ### Remark: nest_sp1, nest_sp2 and nest_time must be divisors of nknots
+ form4 &lt;- unrate ~ partrate + agri + cons +
+                   pspl(serv, nknots = 15) + 
+                   pspl(empgrowth, nknots = 20) +
+                   pspt(long, lat, year, 
+                        nknots = c(18, 18, 12),
+                        psanova = TRUE, 
+                        nest_sp1 = c(1, 2, 3), 
+                        nest_sp2 = c(1, 2, 3),
+                        nest_time = c(1, 2, 2))
+ sptanova &lt;- pspatfit(form4, data = unemp_it)
+ summary(sptanova)
+ 
+### Create sf object to make the plot 
+### of spatio-temporal trends
+library(sf)
+unemp_it_sf &lt;- st_as_sf(dplyr::left_join(
+                              unemp_it, 
+                              map_it,  
+                        by = c("prov" = "COD_PRO")))
+###### Plot spatio-temporal trends for different years
+plot_sp3d(sptanova, data = unemp_it_sf, 
+          time_var = "year", 
+          time_index = c(1996, 2005, 2019),
+          addmain = FALSE, addint = FALSE)
+###### Plot of spatio-temporal trend, main effects 
+######      and interaction effect for a year
+plot_sp3d(sptanova, data = unemp_it_sf, 
+          time_var = "year", 
+          time_index = c(2019),
+          addmain = TRUE, addint = TRUE)
+          
+###### Plot of temporal trends for each province
+plot_sptime(sptanova, 
+            data = unemp_it, 
+            time_var = "year", 
+            reg_var = "prov")
+
+ 
+ ###############################################
+ ### Spatio-temporal semiparametric ANOVA model without spatial lag
+ ### Now we repeat previous spatio-temporal model but 
+ ### restricting some interactions
+ ### Interaction terms f12,f1t and f12t with nested basis
+ ### Interaction term f2t restricted to 0
+ 
+  form5 &lt;- unrate ~ partrate + agri + cons + empgrowth +
+                  pspl(serv, nknots = 15) + 
+                  pspt(long, lat, year, 
+                       nknots = c(18, 18, 6), 
+                       psanova = TRUE,
+                       nest_sp1 = c(1, 2, 3), 
+                       nest_sp2 = c(1, 2, 3),
+                       nest_time = c(1, 2, 2), 
+                       f2t_int = FALSE)
+ ## Add sar specification and ar1 temporal correlation 
+ sptanova2_sar_ar1 &lt;- pspatfit(form5, data = unemp_it, 
+                              listw = lwsp_it, 
+                              type = "sar",
+                              cor = "ar1")
+summary(sptanova2_sar_ar1)                     
+################ Comparison with parametric panels            
+######################  Demeaning (Within Estimators)
+formpar &lt;- unrate ~ partrate + agri + cons
+# Not demeaning model
+param &lt;- pspatfit(formpar, data = unemp_it, listw = lwsp_it)
+summary(param)
+# Demeaning model
+param_dem &lt;- pspatfit(formpar, data = unemp_it,
+                      demean = TRUE,
+                      index = c("prov", "year"),
+                      eff_demean = "individual" )
+summary(param_dem)
+# Compare results with plm package
+param_plm &lt;- plm::plm(formula = formpar,
+                      data = unemp_it,
+                      index = c("prov", "year"),
+                      effect = "individual",
+                      model = "within")
+summary(param_plm)                                              
+param_dem_time &lt;- pspatfit(formpar, 
+                      data = unemp_it, 
+                      listw = lwsp_it,
+                      demean = TRUE,
+                      eff_demean = "time",
+                      index = c("prov", "year"))
+summary(param_dem_time)
+param_plm_time &lt;- plm::plm(formula = formpar,
+                      data = unemp_it,
+                      index = c("prov", "year"),
+                      effect = "time",
+                      model = "within")
+summary(param_plm_time)
+param_dem_twoways &lt;- pspatfit(formpar, data = unemp_it,
+                      demean = TRUE,
+                      eff_demean = "twoways",
+                      index = c("prov", "year") )
+summary(param_dem_twoways)
+param_plm_twoways &lt;- plm::plm(formula = formpar,
+                      data = unemp_it,
+                      index = c("prov", "year"),
+                      effect = "twoways",
+                      model = "within")
+summary(param_plm_twoways)
+##### Demeaning with nonparametric covariates
+formgam &lt;- unrate ~ partrate + agri + cons +  
+                    pspl(serv, nknots = 15) +
+                    pspl(empgrowth, nknots = 20)
+                    
+gam_dem &lt;- pspatfit(formula = formgam,
+                      data = unemp_it,
+                      demean = TRUE,
+                      index = c("prov", "year"))
+summary(gam_dem)   
+# Compare with GAM pure without demeaning                    
+gam &lt;- pspatfit(formula = formgam,
+                 data = unemp_it)
+summary(gam)
+
+## Demeaning with type = "sar" model
+gamsar_dem &lt;- pspatfit(formula = formgam,
+                      data = unemp_it,
+                      type = "sar", 
+                      listw = lwsp_it,
+                      demean = TRUE,
+                      index = c("prov", "year"))
+summary(gamsar_dem)
+
+               
+</code></pre>
+
+
+</div>

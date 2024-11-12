@@ -1,0 +1,179 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>parentChild2taxonTree</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a Taxonomy-Based Phylogeny ('Taxon Tree') from a Table of Parent-Child Taxon Relationships</h2>
+
+<h3>Description</h3>
+
+<p>This function takes a two-column matrix of taxon names,
+indicating a set of binary parent-taxon:child-taxon 
+paired relationships with a common root, and returns
+a 'taxonomy-tree' phylogeny object of class <code>phylo</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">parentChild2taxonTree(parentChild, tipSet = "nonParents", cleanTree = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>parentChild</code></td>
+<td>
+<p>A two-column matrix of type <code>character</code> where
+each element is a taxon name. Each row represents a parent-child relationship
+with first the parent (column 1) taxon name and then the child (column 2).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tipSet</code></td>
+<td>
+<p>This argument controls which taxa are selected as tip taxa for the
+output tree. The default <code>tipSet = "nonParents"</code> selects all child taxa which
+are not listed as parents in <code>parentChild</code>. Alternatively, <code>tipSet = "all"</code>
+will add a tip to every internal node with the parent-taxon name encapsulated in
+parentheses.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cleanTree</code></td>
+<td>
+<p>When <code>TRUE</code> (the default), the tree is run through a series of
+post-processing, including having singles collapsed,
+nodes reordered and being written out as a Newick string and read
+back in, to ensure functionality with ape functions
+and ape-derived functions. 
+If <code>FALSE</code>, none of this post-processing is done and
+users should beware, as such trees can lead to hard-crashes of R.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>All taxa listed must be traceable via their parent-child relationships to a single,
+common ancestor which will act as the root node for output phylogeny. Additionally,
+the root used will be the parent taxon to all tip taxa closest in terms of parent-child
+relationships to the tip taxa: i.e., the most recent common ancestor. Ancestral taxa which
+are singular internal nodes that trace to this root are removed, and a message
+is printed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A phylogeny of class <code>phylo</code>, with tip taxa as
+controlled by argument <code>tipSet</code>.
+The output tree is returned with no edge lengths.
+</p>
+<p>The names of higher taxa than the tips should be appended
+as the element <code>$node.label</code> for the internal nodes.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David W. Bapst
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>makePBDBtaxonTree</code>, <code>taxonTable2taxonTree</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+#let's create a small, really cheesy example
+pokexample &lt;- rbind(
+    cbind("Squirtadae", c("Squirtle","Blastoise","Wartortle")),
+    c("Shelloidea","Lapras"), c("Shelloidea","Squirtadae"),
+    c("Pokezooa","Shelloidea"), c("Pokezooa","Parasect"),
+    c("Rodentapokemorpha","Linoone"), c("Rodentapokemorpha","Sandshrew"),
+    c("Rodentapokemorpha","Pikachu"), c("Hirsutamona","Ursaring"),
+    c("Hirsutamona","Rodentapokemorpha"), c("Pokezooa","Hirsutamona")
+    )
+
+#Default: tipSet = 'nonParents'
+pokeTree &lt;- parentChild2taxonTree(
+    parentChild = pokexample,
+    tipSet = "nonParents")
+plot(pokeTree)
+nodelabels(pokeTree$node.label)
+
+#Get ALL taxa as tips with tipSet = 'all'
+pokeTree &lt;- parentChild2taxonTree(
+    parentChild = pokexample,
+    tipSet = "all")
+plot(pokeTree)
+nodelabels(pokeTree$node.label)
+
+
+## Not run: 
+
+# let's try a dataset where not all the
+    # taxon relationships lead to a common root
+
+pokexample_bad &lt;- rbind(
+    cbind("Squirtadae", c("Squirtle","Blastoise","Wartortle")),
+    c("Shelloidea","Lapras"), c("Shelloidea","Squirtadae"),
+    c("Pokezooa","Shelloidea"), c("Pokezooa","Parasect"),
+    c("Rodentapokemorpha","Linoone"), c("Rodentapokemorpha","Sandshrew"),
+    c("Rodentapokemorpha","Pikachu"), c("Hirsutamona","Ursaring"),
+    c("Hirsutamona","Rodentapokemorpha"), c("Pokezooa","Hirsutamona"),
+    c("Umbrarcheota","Gengar")
+    )
+
+# this should return an error
+    # as Gengar doesn't share common root
+pokeTree &lt;- parentChild2taxonTree(parentChild = pokexample_bad)
+
+
+# another example, where a taxon is listed as both parent and child
+pokexample_bad2 &lt;- rbind(
+    cbind("Squirtadae", c("Squirtle","Blastoise","Wartortle")),
+    c("Shelloidea", c("Lapras","Squirtadae","Shelloidea")),
+    c("Pokezooa","Shelloidea"), c("Pokezooa","Parasect"),
+    c("Rodentapokemorpha","Linoone"), c("Rodentapokemorpha","Sandshrew"),
+    c("Rodentapokemorpha","Pikachu"), c("Hirsutamona","Ursaring"),
+    c("Hirsutamona","Rodentapokemorpha"), c("Pokezooa","Hirsutamona"),
+    c("Umbrarcheota","Gengar")
+    )
+
+#this should return an error, as Shelloidea is its own parent
+pokeTree &lt;- parentChild2taxonTree(parentChild = pokexample_bad2)
+
+
+## End(Not run)
+
+
+
+# note that we should even be able to do this
+    # with ancestor-descendent pairs from
+    # simulated datasets from simFossilRecord, like so:
+set.seed(444)
+record &lt;- simFossilRecord(
+    p = 0.1, q = 0.1, nruns = 1,
+    nTotalTaxa = c(30, 40), 
+    nExtant = 0
+    )
+taxa &lt;- fossilRecord2fossilTaxa(record)
+# need to reorder the columns so parents
+    # (ancestors) first, then children 
+parentChild2taxonTree(parentChild = taxa[,2:1])
+# now note that it issues a warning that
+    # the input wasn't type character
+    # and it will be coerced to be such
+
+</code></pre>
+
+
+</div>

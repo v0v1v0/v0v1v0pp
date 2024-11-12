@@ -1,0 +1,140 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ReconstructProbDup</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Reconstruct an object of class ProbDup</h2>
+
+<h3>Description</h3>
+
+<p><code>ReconstructProbDup</code> reconstructs a data frame of probable duplicate 
+sets created using the function <code>ReviewProbDup</code> and subjected to manual 
+clerical review, back into an object of class <code>ProbDup</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ReconstructProbDup(rev)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>rev</code></td>
+<td>
+<p>A data frame with the the core columns(fields) <code>SET_NO</code>, 
+<code>TYPE</code>, <code>K</code>, <code>PRIM_ID</code>, <code>DEL</code>, <code>SPLIT</code>, 
+<code>COUNT</code> and <code>IDKW</code></p>
+</td>
+</tr></table>
+<h3>Details</h3>
+
+<p>A data frame created using the function <code>ReviewProbDup</code> 
+from an object of class <code>ProbDup</code> for manual clerical review of 
+identified probable duplicate sets can be reconstituted back to the same 
+object after the review using this function. The instructions for modifying 
+the sets entered in the appropriate format in the columns <code>DEL</code> and 
+<code>SPLIT</code> during clerical review are taken into account for reconstituting
+the probable duplicate sets.
+</p>
+<p>Any records with <code>Y</code> in column <code>DEL</code> are deleted and records with 
+identical integers in the column <code>SPLIT</code> other than the default <code>0</code>
+are reassembled into a new set.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>ProbDup</code> with the modified fuzzy,
+phonetic and semantic probable duplicate sets according to the instructions
+specified under clerical review.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ProbDup</code>, <code>ReviewProbDup</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+
+## Not run: 
+
+# Load PGR passport database
+GN &lt;- GN1000
+
+# Specify as a vector the database fields to be used
+GNfields &lt;- c("NationalID", "CollNo", "DonorID", "OtherID1", "OtherID2")
+
+# Clean the data
+GN[GNfields] &lt;- lapply(GN[GNfields], function(x) DataClean(x))
+y1 &lt;- list(c("Gujarat", "Dwarf"), c("Castle", "Cary"), c("Small", "Japan"),
+c("Big", "Japan"), c("Mani", "Blanco"), c("Uganda", "Erect"),
+c("Mota", "Company"))
+y2 &lt;- c("Dark", "Light", "Small", "Improved", "Punjab", "SAM")
+y3 &lt;- c("Local", "Bold", "Cary", "Mutant", "Runner", "Giant", "No.",
+        "Bunch", "Peanut")
+GN[GNfields] &lt;- lapply(GN[GNfields], function(x) MergeKW(x, y1, delim = c("space", "dash")))
+GN[GNfields] &lt;- lapply(GN[GNfields], function(x) MergePrefix(x, y2, delim = c("space", "dash")))
+GN[GNfields] &lt;- lapply(GN[GNfields], function(x) MergeSuffix(x, y3, delim = c("space", "dash")))
+
+# Generate KWIC index
+GNKWIC &lt;- KWIC(GN, GNfields)
+
+# Specify the exceptions as a vector
+exep &lt;- c("A", "B", "BIG", "BOLD", "BUNCH", "C", "COMPANY", "CULTURE", 
+         "DARK", "E", "EARLY", "EC", "ERECT", "EXOTIC", "FLESH", "GROUNDNUT", 
+         "GUTHUKAI", "IMPROVED", "K", "KUTHUKADAL", "KUTHUKAI", "LARGE", 
+         "LIGHT", "LOCAL", "OF", "OVERO", "P", "PEANUT", "PURPLE", "R", 
+         "RED", "RUNNER", "S1", "SAM", "SMALL", "SPANISH", "TAN", "TYPE", 
+         "U", "VALENCIA", "VIRGINIA", "WHITE")
+          
+# Specify the synsets as a list
+syn &lt;- list(c("CHANDRA", "AH114"), c("TG1", "VIKRAM"))
+
+# Fetch probable duplicate sets
+GNdup &lt;- ProbDup(kwic1 = GNKWIC, method = "a", excep = exep, fuzzy = TRUE,
+                 phonetic = TRUE, encoding = "primary", 
+                 semantic = TRUE, syn = syn)
+
+# Get disjoint probable duplicate sets of each kind
+disGNdup &lt;- DisProbDup(GNdup, combine = NULL)
+
+# Get the data frame for reviewing the duplicate sets identified
+RevGNdup &lt;- ReviewProbDup(pdup = disGNdup, db1 = GN1000,
+                          extra.db1 = c("SourceCountry", "TransferYear"), 
+                          max.count = 30, insert.blanks = TRUE)
+# Examine and review the duplicate sets using edit function
+RevGNdup &lt;- edit(RevGNdup)
+
+# Examine and make changes to a set
+subset(RevGNdup, SET_NO==12 &amp; TYPE=="P", select= c(IDKW, DEL, SPLIT))
+RevGNdup[c(110, 112, 114, 118, 121, 122, 124), 6] &lt;- "Y"
+RevGNdup[c(111, 115, 128), 7] &lt;- 1
+RevGNdup[c(113, 117, 120), 7] &lt;- 2
+RevGNdup[c(116, 119), 7] &lt;- 3
+RevGNdup[c(123, 125), 7] &lt;- 4
+RevGNdup[c(126, 127), 7] &lt;- 5
+subset(RevGNdup, SET_NO==12 &amp; TYPE=="P", select= c(IDKW, DEL, SPLIT))
+
+# Reconstruct ProDup object
+GNdup2 &lt;- ReconstructProbDup(RevGNdup)
+lapply(disGNdup, nrow)
+lapply(GNdup2, nrow)
+
+
+## End(Not run)
+
+
+
+</code></pre>
+
+
+</div>

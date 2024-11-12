@@ -1,0 +1,107 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>compute_contourLength</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compute contour lenghts</h2>
+
+<h3>Description</h3>
+
+<p>Computes the contour lengths for the excursion sets in <code>gpRealizations</code>
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">compute_contourLength(gpRealizations, threshold, nRealizations, verb = 1)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>gpRealizations</code></td>
+<td>
+<p>a matrix of size <code>nRealizations</code>x<code>imageSize^2</code> containing the GP realizations stored as long vectors. For example the object returned by <code>simulate_and_interpolate</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>threshold value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nRealizations</code></td>
+<td>
+<p>number of simulations of the excursion set</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verb</code></td>
+<td>
+<p>an integer to choose the level of verbosity</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A vector of size <code>nRealizations</code> containing the countour lines lenghts.
+</p>
+
+
+<h3>References</h3>
+
+<p>Azzimonti D. F., Bect J., Chevalier C. and Ginsbourger D. (2016). Quantifying uncertainties on excursion sets under a Gaussian random field prior. SIAM/ASA Journal on Uncertainty Quantification, 4(1):850–874.
+</p>
+<p>Azzimonti, D. (2016). Contributions to Bayesian set estimation relying on random field priors. PhD thesis, University of Bern.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">### Simulate and interpolate for a 2d example
+if (!requireNamespace("DiceKriging", quietly = TRUE)) {
+stop("DiceKriging needed for this example to work. Please install it.",
+     call. = FALSE)
+}
+if (!requireNamespace("DiceDesign", quietly = TRUE)) {
+stop("DiceDesign needed for this example to work. Please install it.",
+     call. = FALSE)
+}
+# Define the function
+g=function(x){
+  return(-DiceKriging::branin(x))
+}
+d=2
+# Fit OK km model
+design&lt;-DiceDesign::maximinESE_LHS(design = DiceDesign::lhsDesign(n=50,
+                                                                  dimension = 2,
+                                                                  seed=42)$design)$design
+colnames(design)&lt;-c("x1","x2")
+observations&lt;-apply(X = design,MARGIN = 1,FUN = g)
+kmModel&lt;-DiceKriging::km(formula = ~1,design = design,response = observations,
+                         covtype = "matern3_2",control=list(trace=FALSE))
+# Get simulation points
+# Here they are not optimized, you can use optim_dist_measure to find optimized points
+simu_points &lt;- DiceDesign::maximinSA_LHS(DiceDesign::lhsDesign(n=100,
+                                                               dimension = d,
+                                                               seed=1)$design)$design
+
+
+# obtain nsims posterior realization at simu_points
+nsims &lt;- 1
+nn_data&lt;-expand.grid(seq(0,1,,50),seq(0,1,,50))
+nn_data&lt;-data.frame(nn_data)
+colnames(nn_data)&lt;-colnames(kmModel@X)
+approx.simu &lt;- simulate_and_interpolate(object=kmModel, nsim = nsims, simupoints = simu_points,
+                                        interpolatepoints = as.matrix(nn_data),
+                                        nugget.sim = 0, type = "UK")
+cLLs&lt;- compute_contourLength(gpRealizations = approx.simu,threshold = -10,
+                             nRealizations = nsims,verb = 1)
+</code></pre>
+
+
+</div>

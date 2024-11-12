@@ -1,0 +1,140 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pulsar-function</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Graphical model functions for pulsar</h2>
+
+<h3>Description</h3>
+
+<p>Correctly specify a function for graphical model estimation that is compatible with the pulsar package.
+</p>
+
+
+<h3>Details</h3>
+
+<p>It is easy to construct your own function for penalized model estimation that can be used with this package. The R function must have correctly specified inputs and outputs and is passed into the <code>fun</code> argument to <code>pulsar</code> or <code>batch.pulsar</code>. Any function that does not follow these rules will fail to give the desired output and may trigger an error.
+</p>
+<p>These packages on CRAN have functions that work out of the box, so you won't need to construct a wrapper:
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+  ~function~ </td>
+<td style="text-align: left;"> ~package~</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   huge     </td>
+<td style="text-align: left;">   huge   </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   sugm     </td>
+<td style="text-align: left;">   flare
+</td>
+</tr>
+</table>
+<p>Inputs:
+</p>
+<p>The function may take arbitrary, named arguments but the first argument must be the data <code class="reqn">n*p</code> data matrix with the <code class="reqn">n</code> samples in rows and <code class="reqn">p</code> features in the columns.
+At least one argument must be named "lambda", which is expected to be a decreasing numeric vector of penalties. The non-data arguments should be passed into <code>pulsar</code> or <code>batch.pulsar</code> as a named list (the names must match function arguments exactly) to the <code>fargs</code> argument.
+</p>
+<p>Outputs:
+</p>
+<p>The output from the function must be a list or another S3 object inherited from a list. At least one member must be named <code>path</code>. This <code>path</code> object itself must be a list of <code class="reqn">p*p</code> adjacency matrices, one for each value of lambda. Each cell in the adjacency matrix contains a 1 or TRUE if there is an edge between two nodes or 0/FALSE otherwise. It is highly recommended (though not enforced by <span class="pkg">pulsar</span>) that each adjacency matrix be a column-oriented, compressed, sparse matrix from the <span class="pkg">Matrix</span> package. For example, <code>dgCMatrix</code>/<code>dsCMatrix</code> (general/symmetric numeric Matrix) or the 1-bit <code>lgCMatrix</code>/<code>lsCMatrix</code> classes.
+The function may return other named outputs, but these will be ignored.
+</p>
+
+
+<h3>References</h3>
+
+<p>Müller, C. L., Bonneau, R. A., &amp; Kurtz, Z. D. (2016). Generalized Stability Approach for Regularized Graphical Models. arXiv: https://arxiv.org/abs/1605.07072.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pulsar</code>, <code>batch.pulsar</code>, <span class="pkg">huge</span>, <span class="pkg">Matrix</span>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Generate a hub example
+ dat &lt;- huge::huge.generator(100, 40, 'hub', verbose=FALSE)
+
+## Simple correlation thresholding
+corrthresh &lt;- function(data, lambda) {
+  S &lt;- cor(data)
+  path &lt;- lapply(lambda, function(lam) {
+    tmp &lt;- abs(S) &gt; lam
+    diag(tmp) &lt;- FALSE
+    as(tmp, 'lMatrix')
+  })
+  list(path=path)
+}
+
+## Inspect output
+lam &lt;- getLamPath(getMaxCov(dat$sigmahat), 1e-4, 10)
+out.cor  &lt;- pulsar(dat$data, corrthresh, fargs=list(lambda=lam))
+out.cor
+
+## Not run: 
+## Additional examples
+## quic
+library(QUIC)
+quicr &lt;- function(data, lambda, ...) {
+    S    &lt;- cov(data)
+    est  &lt;- QUIC(S, rho=1, path=lambda, msg=0, tol=1e-2, ...)
+    est$path &lt;-  lapply(seq(length(lambda)), function(i) {
+                   ## convert precision array to adj list
+                   tmp &lt;- est$X[,,i]; diag(tmp) &lt;- 0
+                 as(tmp!=0, "lMatrix")
+    })
+    est
+}
+## clime
+library(clime)
+climer &lt;- function(data, lambda, tol=1e-5, ...) {
+     est &lt;- clime(data, lambda, ...)
+     est$path &lt;- lapply(est$Omegalist, function(x) {
+                     diag(x) &lt;- 0
+                     as(abs(x) &gt; tol, "lMatrix")
+                 })
+     est
+}
+
+## inverse cov shrinkage Schafer and Strimmer, 2005
+library(corpcor)
+icovshrink &lt;- function(data, lambda, tol=1e-3, ...) {
+     path &lt;- lapply(lambda, function(lam) {
+                     tmp &lt;- invcov.shrink(data, lam, verbose=FALSE)
+                     diag(tmp) &lt;- 0
+                     as(abs(tmp) &gt; tol, "lMatrix")
+                 })
+     list(path=path)
+}
+
+## Penalized linear model, only
+library(glmnet)
+lasso &lt;- function(data, lambda, respind=1, family="gaussian", ...) {
+         n &lt;- length(lambda)
+         tmp &lt;- glmnet(data[,-respind], data[,respind],
+                                   family=family, lambda=lambda, ...)
+         path &lt;-lapply(1:n, function(i) as(tmp$beta[,i,drop=FALSE], "lMatrix"))
+         list(path=path)
+}
+
+## alternative stability selection (DIFFERENT from hdi package)
+out &lt;- pulsar(dat$data, lasso, fargs=list(lambda=lam))
+mergmat &lt;- do.call('cbind', tmp$stars$merge)
+image(mergmat)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

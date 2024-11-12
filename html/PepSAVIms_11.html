@@ -1,0 +1,226 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rankEN</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Rank compounds via the Elastic Net path</h2>
+
+<h3>Description</h3>
+
+<p>Returns identifying information for the compounds in the order in which the
+corresponding regression coefficient for a given compound first becomes
+nonzero as part of the Elastic Net path
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rankEN(msObj, bioact, region_ms = NULL, region_bio = NULL, lambda,
+  pos_only = TRUE, ncomp = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>msObj</code></td>
+<td>
+<p>An object of class <code>msDat</code> containing mass spectrometry
+abundances data and identifying information.  Note that this includes
+objects created by the functions <code>binMS</code>, <code>filterMS</code>, and
+<code>msDat</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bioact</code></td>
+<td>
+<p>Either a numeric vector or matrix, or a data frame providing
+bioactivity data.  If a numeric vector, then it is assumed that each
+entry corresponds to a particular fraction.  If the data is
+2-dimensional, then it is assumed that each column corresponds to a
+particular fraction, and that each row corresponds to a particular
+bioactivity replicate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>region_ms</code></td>
+<td>
+<p>Either <code>NULL</code>, or a vector either of mode character or
+mode numeric providing information specifying which fractions from the
+mass spectrometry abundances data are to be included in the data
+analysis.  If <code>NULL</code>, then it is assumed that the entirety of the
+mass spectrometry abundances data encapsulated in the argument to
+<code>msObj</code> is to be included in the analysis.  If numeric then the
+entries should provide the indices for the region of interest in the mass
+spectrometry data (i.e. the indices of the columns corresponding to the
+appropriate fractions in the data).  If character then the entries should
+uniquely specify the region of interest through partial string matching
+(i.e. the names of the columns corresponding to the appropriate fractions
+in the data).  The methods <code>dim</code>, <code>dimnames</code>, and
+<code>colnamesMS</code> can be used as interfaces to the mass spectrometry data
+encapsulated in <code>msObj</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>region_bio</code></td>
+<td>
+<p>Either <code>NULL</code>, or a vector either of mode character or
+mode numeric providing information specifying which fractions from the
+bioactivity data are to be included in the data analysis.  If
+<code>NULL</code>, then it is assumed that the entirety of bioactivity data
+provided as the argument to <code>bioact</code> is to be included in the
+analysis.  If numeric then the entries should provide the indices for the
+region of interest in the bioactivity data (i.e. the indices of the
+columns corresponding to the appropriate fractions in the data).  If
+character then the entries should uniquely specify the region of interest
+through partial string matching (i.e. the names of the columns
+corresponding to the appropriate fractions in the data).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>A single nonnegative numeric value providing the quadratic
+penalty mixture parameter argument for the elastic net model.  The
+elastic net fits the least squares model with penalty function
+</p>
+<p style="text-align: center;"><code class="reqn">\gamma|\beta|_1 + \lambda|\beta|^2</code>
+</p>
+<p> where <code class="reqn">\beta</code> is the vector
+of regression coefficients and <code class="reqn">\gamma, \lambda \ge 0</code>.
+<code>rankEN</code> constructs a list of candidate compounds by tracking the
+entrance of compounds into the elastic net model as <code class="reqn">\gamma</code> is
+decreased from <code class="reqn">\infty</code> to <code class="reqn">0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pos_only</code></td>
+<td>
+<p>Either <code>TRUE</code> or <code>FALSE</code>; specifies whether the
+list of candidate compounds that the algorithm produces should include
+only those compounds that are positively correlated with bioactivity
+levels, or conversely should include all compounds.  The correlation is
+calculated using only observations from the region of interest, and when
+bioactivity replicates are present, the within-fraction replicates are
+averaged prior to calculation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncomp</code></td>
+<td>
+<p>Either <code>NULL</code>, or a numeric value no less than 1 specifying
+the maximum number of candidate compounds that the function should
+report.  When <code>NULL</code>, this is taken to mean that all compounds that
+enter the model should be reported, possibly after removing compounds
+nonpositively correlated with bioactivity levels, as specified by
+<code>pos_only</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>rankEN</code> prepares the data by extracting the region of interest
+from the mass spectrometry abundance data and from the bioactivity data.
+If bioactivity replicates are present, then the within-fraction
+replicates are averaged.  Once the data has been converted into the
+appropriate form, then an elastic net model is fitted by invoking the
+<code>enet</code> function from the <code>elasticnet</code> package, and an ordered
+list of candidate compounds is constructed such that compounds are ranked
+by the order in which they first enter the model.  The list may be
+filtered and / or pruned before being returned to the user, as determined
+by the arguments to <code>pos_only</code> and <code>ncomp</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns an object of class <code>rankEN</code>.  This object is a
+<code>list</code> with elements described below.  The class is equipped with a
+<code>print</code>, <code>summary</code>, and <code>extract_ranked</code> function.
+</p>
+
+<dl>
+<dt><code>mtoz</code></dt>
+<dd>
+<p> A vector providing the mass-to-charge values of the
+candidate compounds, such that the <code>k</code>-th element of the vector
+provides the mass-to-charge value of the <code>k</code>-th compound to
+enter the elastic net model, possibly after removing compounds
+nonpositively correlated with bioactivity levels. </p>
+</dd>
+<dt><code>charge</code></dt>
+<dd>
+<p> A vector providing the charge state of the
+candidate compounds, such that the <code>k</code>-th element of the vector
+provides the charge state of the <code>k</code>-th compound to enter the
+elastic net model, possibly after removing compounds nonpositively
+correlated with bioactivity levels. </p>
+</dd>
+<dt><code>comp_cor</code></dt>
+<dd>
+<p> A vector providing the correlation between each
+of the candidate compounds and the bioactivity levels, such that the
+<code>k</code>-th element of the vector provides the correlation between
+the <code>k</code>-th compound to enter the elastic net model and the
+bioactivity levels, possibly after removing compounds nonpositively
+correlated with bioactivity levels. </p>
+</dd>
+<dt><code>enet_fit</code></dt>
+<dd>
+<p> The fitted model object produced by
+<code>rankEN</code>'s internal invokation of the <code>enet</code> function from
+the <code>elasticnet</code> package.</p>
+</dd>
+<dt><code>summ_info</code></dt>
+<dd>
+<p> A list containing information related to the
+data used to fit the elastic net model; used by the summary
+function. </p>
+</dd>
+</dl>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Load mass spectrometry data
+data(mass_spec)
+
+# Convert mass_spec from a data.frame to an msDat object
+ms &lt;- msDat(mass_spec = mass_spec,
+            mtoz = "m/z",
+            charge = "Charge",
+            ms_inten = c(paste0("_", 11:43), "_47"))
+
+# Load growth inhibition bioactivity data.  Each element in bioact is a
+# stand-alone dataset for a species of virus or bacteria.
+data(bioact)
+
+# Perform the candidate ranking procedure with fractions 21-24 as the region
+# of interest.  Note that it is not advisable to calculate the elastic net
+# estimates with 30,799 candidate compounds on 4 data points!
+
+## Not run: 
+
+    rank_out &lt;- rankEN(msObj = ms,
+                       bioact = bioact$ec,
+                       region_ms = paste0("_", 21:24),
+                       region_bio = paste0("_", 21:24),
+                       lambda = 0.001,
+                       pos_only = TRUE,
+                       ncomp = NULL)
+
+    # print, summary function
+    rank_out
+    summary(rank_out)
+
+    # Extract ranked compounds as a data.frame
+    ranked_candidates &lt;- extract_ranked(rank_out)
+
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

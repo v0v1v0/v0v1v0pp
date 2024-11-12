@@ -1,0 +1,316 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sim_followup</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate follow up time and number of events by simulation</h2>
+
+<h3>Description</h3>
+
+<p><code>sim_follwup</code> is used to estimate follow-up time and number of events (given calander time, or number of randomized samples, or number of events).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sim_followup(at, type = 'calander', group="Group 1", strata='Strata 1',
+            allocation=1, event_lambda=NA, drop_rate=NA, death_lambda=NA,
+            n_rand=NULL, rand_rate=NULL, total_sample=NULL, extra_follow=0,
+            by_group=FALSE, by_strata=FALSE, advanced_dist=NULL,
+            stat=c(mean, median, sum), follow_up_endpoint=c('death', 'drop_out',
+            'cut'), count_in_extra_follow=FALSE, count_insufficient_event=FALSE,
+            start_date=NULL, rep=300, seed=1818)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>at</code></td>
+<td>
+<p>specify a vector of occasions. When <code>type='calander'</code>, <code>at</code> is the time from fisrt randomization; when <code>type='event'</code>, <code>at</code> is the number of accumulated events; when <code>type='sample'</code>, <code>at</code> is  the number of randomized samples. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>specify the type of <code>at</code>. Must be <code>'calander'</code>, <code>event</code> or <code>sample</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group</code></td>
+<td>
+<p>a character vector of the names of each group (e.g., <code>c('treatment','control')</code>). See <code>simdata</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>strata</code></td>
+<td>
+<p>a character vector of the names of strata in groups (e.g., <code>c('young','old')</code>). See <code>simdata</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allocation</code></td>
+<td>
+<p>the relative ratio of sample size in each subgroup (<code>group*strata</code>).  The value will be recycled if the length is less than needed. See <code>simdata</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>event_lambda</code></td>
+<td>
+<p>the hazard rate of the primary endpoint (event). The value will be recycled if the length is less than needed. See <code>simdata</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop_rate</code></td>
+<td>
+<p>(optional) the drop-out rate (patients/month). Not hazard rate. The value will be recycled if the length is less than needed. See <code>simdata</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>death_lambda</code></td>
+<td>
+<p>(optional) the hazard rate of death. The value will be recycled if the length is less than needed. See <code>simdata</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_rand</code></td>
+<td>
+<p>(required when <code>rand_rate=NULL</code>) a vector of the number of randomization each month; can be non-integers. See <code>simdata</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rand_rate</code></td>
+<td>
+<p>(required when <code>n_rand=NULL</code>) the randomization rate (patients/month; can be non-integer). See <code>simdata</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>total_sample</code></td>
+<td>
+<p>(required when <code>n_rand=NULL</code>) total scheduled sample size. See <code>simdata</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extra_follow</code></td>
+<td>
+<p>delay the analysis time by extra time (<code>extra_follow</code>) after the time specified by <code>at</code>. See details. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>by_group</code></td>
+<td>
+<p>logical; if TRUE, also return results by each group. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>by_strata</code></td>
+<td>
+<p>logical; if TRUE, also return results by each stratum. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>advanced_dist</code></td>
+<td>
+<p>use user-specified distributions for event, drop-out and death. A list containing random generation functions. See details and examples in <code>simdata</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stat</code></td>
+<td>
+<p>a vector of functions to summarize the follow-up time. See example. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>follow_up_endpoint</code></td>
+<td>
+<p>Which endpoints can be regarded as the end of follow-up. Choose from 'death', 'drop_out', 'cut' (censored at the end of the trial) or 'event'.'</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>count_in_extra_follow</code></td>
+<td>
+<p>logical; whether to count subjects who are randomized after the time spcified by <code>at</code> but before the time specified by <code>at</code> + <code>extra_follow</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>count_insufficient_event</code></td>
+<td>
+<p>logical; only affects the result when <code>type='event'</code>. If TRUE, for samples that cannot achieve required number of events, the last follow-up time is the analysis time. If FALSE, these samples will be dropped. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start_date</code></td>
+<td>
+<p>the start date of the first randomization; in the format: "2000-01-30"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rep</code></td>
+<td>
+<p>number simulated iterations. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>a random seed. </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>See the help document of <code>simdata</code> for most arguments details.
+</p>
+<p>When <code>type='calander'</code>, the function estimates the follow-up time and number of events at time <code>at</code> plus <code>extra_follow</code>; when <code>type='event'</code>,  the function estimates these at the time when total number of events is <code>at</code> plus time <code>extra_follow</code>; when <code>type='sample'</code>, the function estimates these at the time when total number of randomized subjects is <code>at</code> plus time <code>extra_follow</code>.
+</p>
+<p>The <code>stat</code> specifies a vector of user defined functions. Each of them must take a vector of individual follow-up time as input and return a single summary value. See example.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data frame containing the some of these columns:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>ID</code></td>
+<td>
+<p>subject ID</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group</code></td>
+<td>
+<p>group indicator</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>strata</code></td>
+<td>
+<p>stratum indicator</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>randT</code></td>
+<td>
+<p>randomization time (from the beginning of the trial)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eventT</code></td>
+<td>
+<p>event time (from <code>randT</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eventT_abs</code></td>
+<td>
+<p>event time (from the beginning of the trial)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dropT</code></td>
+<td>
+<p>drop-out time (from <code>randT</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dropT_abs</code></td>
+<td>
+<p>drop-out time (from the beginning of the trial)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deathT</code></td>
+<td>
+<p>death time (from <code>randT</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deathT_abs</code></td>
+<td>
+<p>death time (from the beginning of the trial)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>censor</code></td>
+<td>
+<p>censoring (drop-out or death) indicator</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>censor_reason</code></td>
+<td>
+<p>censoring reason ('drop_out','death','never_event'(followT=inf))</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>event</code></td>
+<td>
+<p>event indicator</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>followT</code></td>
+<td>
+<p>follow-up time / observed time (from <code>randT</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>followT_abs</code></td>
+<td>
+<p>follow-up time / observed time (from the beginning of the trial)</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p><code>event_lambda</code>, <code>drop_rate</code>, <code>death_lambda</code> can be 0, which means the corresponding subgroup will have an Inf value for each variable.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Tianchen Xu <a href="mailto:zjph602xutianchen@gmail.com">zjph602xutianchen@gmail.com</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>simdata</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Two groups. Treatment:place=1:2. Drop rate=3%/month. Hazard ratio=0.7.
+
+# define the piecewiese exponential event generation function
+myevent_dist_trt &lt;- function(n)rpwexp(n, rate=c(0.1, 0.01, 0.2)*0.7, breakpoint=c(5,14))
+myevent_dist_con &lt;- function(n)rpwexp(n, rate=c(0.1, 0.01, 0.2), breakpoint=c(5,14))
+
+# user defined summary function, the proportion of subjects that follow more than 12 month
+prop_12 &lt;- function(x)mean(x &gt;= 12)
+
+# estimate the event curve or timeline:
+# (here rep=60 is for demo purpose only, please increase this value in practice!)
+event_curve &lt;- sim_followup(at=seq(20,90,10), type = 'calendar', group = c('trt','con'),
+             rand_rate = 20, total_sample = 1000, drop_rate = 0.03, allocation = 1:2,
+             advanced_dist = list(event_dist=c(myevent_dist_trt, myevent_dist_con)),
+             by_group = TRUE, stat = c(median, mean, prop_12), start_date = "2020-01-01",
+             rep=60)
+time_curve &lt;- sim_followup(at=seq(200,600,100), type = 'event', group = c('trt','con'),
+             rand_rate = 20, total_sample = 1000, drop_rate = 0.03, allocation = 1:2,
+             advanced_dist = list(event_dist=c(myevent_dist_trt, myevent_dist_con)),
+             stat = c(median, mean, prop_12), start_date = "2020-01-01", rep=60)
+# plot event curve or timeline
+plot(event_curve$T_all$analysis_time_c, event_curve$T_all$event, xlab='Time',
+    ylab='Number of events', type='b')
+plot(time_curve$T_all$event, time_curve$T_all$analysis_time_c, xlab='Number of
+    events', ylab='Time', type='b')
+</code></pre>
+
+
+</div>

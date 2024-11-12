@@ -1,0 +1,169 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>use_docker</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Use docker packaging tools</h2>
+
+<h3>Description</h3>
+
+<p>Wrapper function around other <code>pracpac</code> functions. See help for the functions linked below for detail on individual functions.
+All arguments to <code>use_docker()</code> are passed to downstream functions. <code>use_docker()</code> will sequentially run:
+</p>
+
+<ol>
+<li> <p>pkg_info to get information about the current R package.
+</p>
+</li>
+<li> <p>create_docker_dir to create the <code style="white-space: pre;">⁠docker/⁠</code> directory in the specified location, if it doesn't already exist.
+</p>
+</li>
+<li> <p>renv_deps (if <code>use_renv=TRUE</code>, the default) to capture package dependencies with renv and create an <code>renv.lock</code> file
+</p>
+</li>
+<li> <p>add_dockerfile to create a Dockerfile using template specified by <code>use_case</code>
+</p>
+</li>
+<li> <p>add_assets depending on the <code>use_case</code>
+</p>
+</li>
+<li> <p>build_pkg to build the current R package source .tar.gz, and place it into the <code style="white-space: pre;">⁠docker/⁠</code> directory
+</p>
+</li>
+<li> <p>build_image optional, default <code>FALSE</code>; if TRUE, will build the Docker image.
+</p>
+</li>
+</ol>
+<p>The default <code>build=FALSE</code> means that everything up to <code>build_image()</code> is run,
+but the image is not actually built. Instead, <code>use_docker()</code> will message the
+<code style="white-space: pre;">⁠docker build⁠</code> command, and return that string in <code style="white-space: pre;">⁠$buildcmd⁠</code> in the
+invisibly returned output.
+</p>
+<p>See <code>vignette("use-cases", package="pracpac")</code> for details on use cases.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">use_docker(
+  pkg_path = ".",
+  img_path = NULL,
+  use_renv = TRUE,
+  use_case = "default",
+  base_image = NULL,
+  other_packages = NULL,
+  build = FALSE,
+  repos = NULL,
+  overwrite_assets = TRUE,
+  overwrite_renv = TRUE,
+  consent_renv = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pkg_path</code></td>
+<td>
+<p>Path to the package directory. Default is <code>"."</code> for the current working directory, which assumes developer is working in R package root. However, this can be set to another path as needed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>img_path</code></td>
+<td>
+<p>Path to the write the docker image definition contents. The default <code>NULL</code> will use <code style="white-space: pre;">⁠docker/⁠</code> as a subdirectory of the <code>pkg_path</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_renv</code></td>
+<td>
+<p>Logical; use renv? Defaults to <code>TRUE</code>. If <code>FALSE</code>, package dependencies are scraped from the <code>DESCRIPTION</code> file without version information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_case</code></td>
+<td>
+<p>Name of the use case. Defaults to <code>"default"</code>, which only uses the base boilerplate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>base_image</code></td>
+<td>
+<p>Name of the base image to start <code>FROM</code>. Default is <code>NULL</code> and the base image will be derived based on <code>use_case</code>. Optionally override this by setting the name of the base image (including tag if desired).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>other_packages</code></td>
+<td>
+<p>Vector of other packages to be included in <code>renv</code> lock file; default is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>build</code></td>
+<td>
+<p>Logical as to whether or not the image should be built. Default is <code>TRUE</code>, and if <code>FALSE</code> the <code style="white-space: pre;">⁠docker build⁠</code> command will be messaged.  Setting <code>build=FALSE</code> could be useful if additional <code style="white-space: pre;">⁠docker build⁠</code> options or different tags are desired. In either case the <code style="white-space: pre;">⁠docker build⁠</code> command will be returned invisibly.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>repos</code></td>
+<td>
+<p>Option to override the repos used for installing packages with <code>renv</code> by passing name of repository. Only used if <code>use_renv = TRUE</code>. Default is <code>NULL</code> meaning that the repos specified in <code>renv</code> lockfile will remain as-is and not be overridden.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite_assets</code></td>
+<td>
+<p>Logical; should existing asset files should be overwritten? Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overwrite_renv</code></td>
+<td>
+<p>Logical; should an existing lock file should be overwritten? Default is <code>TRUE</code>; ignored if <code>use_renv = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>consent_renv</code></td>
+<td>
+<p>Logical; give renv consent in this session with <code>options(renv.consent = TRUE)</code>? Default is <code>TRUE</code>. See renv::consent for details.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Invisibly returns a list with information about the package (<code style="white-space: pre;">⁠$info⁠</code>) and
+the <code style="white-space: pre;">⁠docker build⁠</code> command (<code style="white-space: pre;">⁠$buildcmd⁠</code>). Primarily called for side effect.
+Creates <code style="white-space: pre;">⁠docker/⁠</code> directory, identifies renv dependencies and creates lock
+file (if <code>use_renv = TRUE</code>), writes Dockerfile, builds package tar.gz,
+moves all relevant assets to the <code style="white-space: pre;">⁠docker/⁠</code> directory, and builds Docker
+image (if <code>build = TRUE</code>).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+
+# Specify path to example package source and copy to tempdir()
+# Note that in practice you do not need to copy to a tempdir()
+# And in fact it may be easiest to use pracpac relative to your package directory root
+ex_pkg_src &lt;- system.file("hellow", package = "pracpac", mustWork = TRUE)
+file.copy(from = ex_pkg_src, to = tempdir(), recursive = TRUE)
+
+# Run use_docker to create Docker directory and assets for the example package
+use_docker(pkg_path = file.path(tempdir(), "hellow"))
+# To not use renv
+use_docker(pkg_path = file.path(tempdir(), "hellow"), use_renv=FALSE)
+# To specify a use case
+use_docker(pkg_path = file.path(tempdir(), "hellow"), use_case="pipeline")
+# To overwrite the default base image
+use_docker(pkg_path = file.path(tempdir(), "hellow"), base_image="alpine:latest")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

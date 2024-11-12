@@ -1,0 +1,198 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plasmaPredictions-class</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Class <code>"plasmaPredictions"</code>
+</h2>
+
+<h3>Description</h3>
+
+<p>The <code>plasmaPredictions</code> object class is returned when running the
+<code>predict</code> method on an object of class <code>plasma</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S4 method for signature 'plasmaPredictions,missing'
+plot(x, y, col = c("blue", "red"),
+                 lwd = 2, xlab = "", ylab = "Fraction Surviving",
+                 mark.time = TRUE, legloc = "topright", ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>An object of the <code>plasmaPredictions</code> class for plotting the Kaplan-Meier curves.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>An ignored argument for the plot method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>col</code></td>
+<td>
+<p>A vector of color specifications. Default is c(“blue”, “red”).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lwd</code></td>
+<td>
+<p>A vactor specifying the line width. Default is “2”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xlab</code></td>
+<td>
+<p>A character string to label the x-axis. Default is “”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ylab</code></td>
+<td>
+<p>A character string to label the y-axis. Default is “Fraction Surviving”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mark.time</code></td>
+<td>
+<p>A logical value; should tickmarks indicate censored
+data? Default is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>legloc</code></td>
+<td>
+<p>A character string indicating where to put the legend. Default is “topright”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other graphical parameters.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The <code>predict</code> method on an object of the <code>plasma</code>
+class returns an object of the <code>plasmaPredictions</code>
+class. The <code>plot</code> method invisibly returns the value on which it
+was invoked.
+</p>
+
+
+<h3>Objects from the Class</h3>
+
+<p>Users shold not create objects of this class directly. They will be
+automatically created when you apply the <code>predict</code> method to a
+fully worked out <code>plasma</code> model.
+</p>
+
+
+<h3>Slots</h3>
+
+
+<dl>
+<dt>
+<code>meanPredictions</code>:</dt>
+<dd>
+<p>A matrix with samples as rows and
+factors as columns that is a result of taking the mean of the
+PLS component predictions from each dataset.</p>
+</dd>
+<dt>
+<code>riskDF</code>:</dt>
+<dd>
+<p>Object of type <code>data.frame</code> containing
+the original <code>outcome</code> dataframe and additional columns for
+"Risk", and "Split", corresponding to the risk of the event
+calculated by the model, and patient assignment to low versus
+high-risk groups, respectively.</p>
+</dd>
+<dt>
+<code>riskModel</code>:</dt>
+<dd>
+<p>Object of type <code>coxph</code> that uses
+predicted Risk (continuous) as the predictor variable and
+survival as the response variable. See documentation for
+<code>link{coxph}</code>.</p>
+</dd> 
+<dt>
+<code>splitModel</code>:</dt>
+<dd>
+<p>Object of type <code>coxph</code> that uses
+predicted Split (predicted Risk categorized into “high”
+and “low” risk by the median predicted Risk) as the
+predictor variable and survival as the response variable. See
+documentation for <code>link{coxph}</code>.</p>
+</dd> 
+<dt>
+<code>SF</code>:</dt>
+<dd>
+<p>Object of type <code>survfit</code> which is used by
+the <code>plot</code> method to plot Kaplan-Meier curves grouped by
+predicted Split. See documentation for <code>link{survfit}</code>.</p>
+</dd> 
+</dl>
+<h3>Methods</h3>
+
+
+<dl>
+<dt>
+<code>plot</code>:</dt>
+<dd>
+<p>Produces Kaplan-Meier curves for the
+low risk and high risk groups.</p>
+</dd>
+</dl>
+<h3>Note</h3>
+
+<p>An object of <code>plasmaPredictions</code> class contains many models that
+are similar to an object of <code>MultiplePLSCoxModels</code> class.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Kevin R. Coombes <a href="mailto:krc@silicovore.com">krc@silicovore.com</a>,
+Kyoko Yamaguchi <a href="mailto:kyoko.yamaguchi@osumc.edu">kyoko.yamaguchi@osumc.edu</a></p>
+
+
+<h3>See Also</h3>
+
+<p>plasma</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">fls &lt;- try(loadESCAdata())
+if (inherits(fls, "try-error")) {
+  stop("Unable to load data from remote server.")
+}
+# restrict data set size
+MO &lt;- with(plasmaEnv, prepareMultiOmics(
+    assemble[c("ClinicalBin", "ClinicalCont", "RPPA")], Outcome))
+
+splitVec &lt;- with(plasmaEnv, rbinom(nrow(Outcome), 1, 0.6))
+trainD &lt;- MO[, splitVec == 1]
+testD &lt;- MO[, splitVec == 0]
+
+firstPass &lt;- fitCoxModels(trainD, "Days", "vital_status", "dead")
+pl &lt;- plasma(object = trainD, multi = firstPass)
+
+testpred &lt;- predict(pl, testD)
+plot(testpred, main = "Testing", xlab = "Time (Days)")
+</code></pre>
+
+
+</div>

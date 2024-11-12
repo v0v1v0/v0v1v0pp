@@ -1,0 +1,130 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>smote</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Synthetic Minority Oversampling Technique (SMOTE)</h2>
+
+<h3>Description</h3>
+
+<p><code>smote</code> performs type of data augmentation for the selected (usually minority). In order to process continuous and
+categorical risk factors simultaneously, Heterogeneity Euclidean Overlapping Metric (HEOM) is used in nearest neighbors
+algorithm.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">smote(
+  db,
+  target,
+  minority.class,
+  osr,
+  ordinal.rf = NULL,
+  num.rf.const = NULL,
+  k = 5,
+  seed = 81000
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>db</code></td>
+<td>
+<p>Data set of risk factors and target variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p>Name of target variable within <code>db</code> argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minority.class</code></td>
+<td>
+<p>Value of minority class. It can be numeric or character value, but it has to exist in target variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>osr</code></td>
+<td>
+<p>Oversampling rate. It has to be numeric value greater than 0 (for example 0.2 for 20% oversampling).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ordinal.rf</code></td>
+<td>
+<p>Character vector of ordinal risk factors. Default value is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>num.rf.const</code></td>
+<td>
+<p>Data frame with constrains for numeric risk factors. It has to contain the following columns:
+<code>rf</code>(numeric risk factor names from <code>db</code>),
+<code>lower</code> (lower bound of numeric risk factor),
+<code>upper</code> (upper bound of numeric risk factor),
+<code>type</code> (type of numeric risk factor - <code>"numeric"</code> or <code>"integer"</code>).
+Constrains are used for correction of synthetic data for selected numeric risk factors.
+Default value is <code>NULL</code> which means that no corrections are assumed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Number of nearest neighbors. Default value is 5.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Random seed needed for ensuring the result reproducibility. Default is 81000.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The command <code>smote</code> returns a data frame with added synthetic observations for selected minority class.
+The data frame contains all variables from <code>db</code> data frame plus additional variable (<code>smote</code>) that serves as
+indicator for distinguishing between original and synthetic observations.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">suppressMessages(library(PDtoolkit))
+data(loans)
+#check numeric variables (note that one of variables is target not a risk factor)
+names(loans)[sapply(loans, is.numeric)]
+#define constains of numeric risk factors
+num.rf.const &lt;- data.frame(rf = c("Duration of Credit (month)", "Credit Amount", "Age (years)"),
+			   lower = c(4, 250, 19),
+			   upper = c(72, 20000, 75),
+			   type = c("integer", "numeric", "integer"))
+num.rf.const
+
+#loans$"Account Balance"[990:1000] &lt;- NA
+#loans$"Credit Amount"[900:920] &lt;- NA
+
+loans.s &lt;- smote(db = loans,
+	     target = "Creditability",
+	     minority.class = 1,  
+	     osr = 0.05,
+	     ordinal.rf = NULL, 
+	     num.rf.const = num.rf.const, 
+	     k = 5, 
+	     seed = 81000)
+str(loans.s)
+table(loans.s$Creditability, loans.s$smote)
+#select minority class
+loans.mc &lt;- loans.s[loans.s$Creditability%in%1, ]
+head(loans.mc)
+</code></pre>
+
+
+</div>

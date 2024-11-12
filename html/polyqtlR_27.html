@@ -1,0 +1,214 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>QTLscan</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>General QTL function that allows for co-factors, completely randomised block designs and the possibility to derive LOD thresholds using a permutation test</h2>
+
+<h3>Description</h3>
+
+<p>Function to run QTL analysis using IBD probabilties given (possibly replicated) phenotypes, assuming randomised experimental design
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">QTLscan(
+  IBD_list,
+  Phenotype.df,
+  genotype.ID,
+  trait.ID,
+  block = NULL,
+  cofactor_df = NULL,
+  allelic_interaction = FALSE,
+  folder = NULL,
+  filename.short,
+  prop_Pheno_rep = 0.5,
+  perm_test = FALSE,
+  N_perm.max = 1000,
+  alpha = 0.05,
+  gamma = 0.05,
+  ncores = 1,
+  log = NULL,
+  verbose = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>IBD_list</code></td>
+<td>
+<p>List of IBD probabilities</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Phenotype.df</code></td>
+<td>
+<p>A data.frame containing phenotypic values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>genotype.ID</code></td>
+<td>
+<p>The colname of <code>Phenotype.df</code> that contains the offspring identifiers (F1 names)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trait.ID</code></td>
+<td>
+<p>The colname of <code>Phenotype.df</code> that contains the response variable to use in the model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>block</code></td>
+<td>
+<p>The blocking factor to be used, if any (must be colname of <code>Phenotype.df</code>). By default <code>NULL</code>, in which case no blocking structure (for unreplicated experiments)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cofactor_df</code></td>
+<td>
+<p>A 3-column data frame of co-factor(s); column 1 gives the numeric linkage group identifier(s), 
+column 2 specifies the cM position of the co-factor(s), column 3 specifies whether the QTL was fitted using "a" = additive effects or 
+"f" = full allelic interactions (note that any other symbol for the full model will also be accepted, as long as it is not "a"). 
+For backward compatibility with package versions &lt;= 0.0.9, it is possible to just supply the first two columns, 
+in which case an additive-effects model is assumed for each cofactor (so, a third column will be automatically filled with "a"). 
+By default <code>cofactor_df = NULL</code>, in which case no co-factors are included in the analysis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allelic_interaction</code></td>
+<td>
+<p>The QTL detection model can be for additive main effects only (by default <code>allelic_interaction = FALSE</code>). If <code>TRUE</code>, then the full model is used
+(i.e. all possible genotype combinations are included as predictors in the model). This runs the risk of overfitting, especially if double reduction was also allowed. 
+Both types of analyses can ideally be performed and compared. Note that if IBD probabilities were estimated using the "heuristic" method rather than the HMM method 
+(see <code>estimate_IBD</code>), then IBDs are actually haplotype probabilities rather than genotype probabilities, meaning that allelic interaction effects cannot be included in the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>folder</code></td>
+<td>
+<p>If markers are to be used as co-factors, the path to the folder in which the imported IBD probabilities is contained can be provided here. 
+By default this is <code>NULL</code>, if files are in working directory.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filename.short</code></td>
+<td>
+<p>If TetraOrigin was used and co-factors are being included, the shortened stem of the filename of the <code>.csv</code> files containing the output of TetraOrigin, 
+i.e. without the tail "_LinkageGroupX_Summary.csv" which is added by default to all output of TetraOrigin.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prop_Pheno_rep</code></td>
+<td>
+<p>The minimum proportion of phenotypes represented across blocks. If less than this, the individual is removed from the analysis. If there is incomplete
+data, the missing phenotypes are imputed using the mean values across the recorded observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>perm_test</code></td>
+<td>
+<p>Logical, by default <code>FALSE</code>. If <code>TRUE</code>, a permutation test will be performed to determine a
+genome-wide significance threshold.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N_perm.max</code></td>
+<td>
+<p>The maximum number of permutations to run if <code>perm_test</code> is <code>TRUE</code>; by default this is 1000.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>The P-value to be used in the selection of a threshold if <code>perm_test</code> is <code>TRUE</code>, by default 0.05 (i.e. the 0.95 quantile).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>The width of the confidence intervals used around the permutation test threshold using the approach of Nettleton &amp; Doerge (2000), by default 0.05.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+<p>Number of cores to use if parallel computing is required. Works both for Windows and UNIX (using <code>doParallel</code>).
+Use <code>parallel::detectCores()</code> to find out how many cores you have available.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>log</code></td>
+<td>
+<p>Character string specifying the log filename to which standard output should be written. If <code>NULL</code> log is send to stdout.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical, by default <code>TRUE</code>. Should messages be printed during running?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments passed to <code>plot</code></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A nested list; each list element (per linkage group) contains the following items:
+</p>
+
+<dl>
+<dt>QTL.res</dt>
+<dd>
+<p>Single matrix of QTL results with columns chromosome, position, LOD, adj.r.squared and PVE (percentage variance explained).</p>
+</dd>
+<dt>Perm.res</dt>
+<dd>
+<p>If <code>perm_test</code> = <code>FALSE</code>, this will be <code>NULL</code>.
+Otherwise, Perm.res contains a list of the results of the permutation test, with list items
+"quantile","threshold" and "scores". Quantile refers to which quantile of scores was used to determine the threshold.
+Note that scores are each of the maximal LOD scores across the entire genome scan per permutation, thus returning a
+genome-wide threshold rather than a chromosome-specific threshold. If the latter is preferred, restricting the
+<code>IBD_list</code> to a single chromosome and re-running the permutation test will provide the desired threshold.</p>
+</dd>
+<dt>Residuals</dt>
+<dd>
+<p>If a blocking factor or co-factors are used, this is the (named) vector of residuals used as input for the
+QTL scan. Otherwise, this is the set of (raw) phenotypes used in the QTL scan.</p>
+</dd>
+<dt>Map</dt>
+<dd>
+<p>Original map of genetic marker positions upon which the IBDs were based, most often used
+for adding rug of marker positions to QTL plots.</p>
+</dd>
+<dt>LG_names</dt>
+<dd>
+<p>Names of the linkage groups</p>
+</dd>
+<dt>allelic_interaction</dt>
+<dd>
+<p>Whether argument <code>allelic_interaction</code> was <code>TRUE</code> or <code>FALSE</code> in the QTL scan</p>
+</dd>
+</dl>
+<h3>Examples</h3>
+
+<pre><code class="language-R">data("IBD_4x","Phenotypes_4x")
+qtl_LODs.4x &lt;- QTLscan(IBD_list = IBD_4x,
+                       Phenotype.df = Phenotypes_4x,
+                       genotype.ID = "geno",
+                       trait.ID = "pheno",
+                       block = "year")
+</code></pre>
+
+
+</div>

@@ -1,0 +1,158 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>OwenT</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Owen's T Function</h2>
+
+<h3>Description</h3>
+
+<p>Computes Owen's T function using the modified Euler's arctangent series, tetrachoric series or Vasicek's series.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">OwenT(h, a, opt = TRUE, fun = c("mOwenT", "tOwenT", "vOwenT"))</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>h</code></td>
+<td>
+<p>Numeric scalar or vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p>Numeric scalar or vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt</code></td>
+<td>
+<p>If TRUE, an optimized calculation is performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fun</code></td>
+<td>
+<p>The name of the internal function being used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If <code>h</code> and <code>a</code> are both vectors, they must be of the same length. If one of <code>h</code> and <code>a</code> is a vector and the other is a scalar, the latter is replicated to the length of the former. The calculation is performed component-wise.
+</p>
+<p>The parameter <code>fun</code> specifies which series is used:
+</p>
+
+<dl>
+<dt>“mOwenT”:</dt>
+<dd>
+<p>modified Euler's arctangent series (default).</p>
+</dd>
+<dt>“tOwenT”:</dt>
+<dd>
+<p>tetrachoric series.</p>
+</dd>
+<dt>“vOwenT”:</dt>
+<dd>
+<p>Vasicek's series.</p>
+</dd>
+</dl>
+<p>The <code>opt</code> parameter enables checking the results in the submitted article and may be dropped later.
+</p>
+<p>If <code>fun = "mOwenT"</code> and <code>opt = TRUE</code>, the external arctangent function is used, otherwise all necessary values are calculated on the fly, but usually more iterations are needed.
+</p>
+<p>If <code>fun = "tOwenT"</code> or <code>fun = "vOwenT"</code>, and <code>opt = TRUE</code>, then the parameters transformation is performed when it makes sense, which significantly reduces the number of iterations.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The value of computed function is returned, scalar or vector.  The attribute ‘nIter’ of returned value means the number of iterations.</p>
+
+
+<h3>Note</h3>
+
+<p>Function is ready to work with the <span class="pkg">Rmpfr</span> package, which enables using arbitrary precision numbers instead of double precision ones.  Assuming <span class="pkg">Rmpfr</span> is loaded, it is sufficient to be called with parameters ‘h’ and ‘a’, which have class ‘mpfr’ and the same precision.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Janez Komelj</p>
+
+
+<h3>References</h3>
+
+<p>Komelj, J. (2023): The Bivariate Normal Integral via Owen's T Function as a Modified Euler's Arctangent Series, <em>American Journal of Computational Mathematics</em>, <b>13</b>, 4, 476–504, <a href="https://doi.org/10.4236/ajcm.2023.134026">doi:10.4236/ajcm.2023.134026</a> (or reprint <a href="https://arxiv.org/pdf/2312.00011.pdf">https://arxiv.org/pdf/2312.00011.pdf</a> with better typography).
+</p>
+<p>Owen, D. B. (1956): Tables for Computing Bivariate Normal Probabilities, <em>The Annals of Mathematical Statistics</em>, <b>27</b>, 4, 1075–1090, <a href="https://doi.org/10.1214/aoms/1177728074">doi:10.1214/aoms/1177728074</a>.
+</p>
+<p>Owen, D. B. (1980): A table of normal integrals, <em>Communications in Statistics – Simulation and Computation</em>, <b>9</b>, 4, 389–419, <a href="https://doi.org/10.1080/03610918008812164">doi:10.1080/03610918008812164</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>Phi2xy</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">OwenT(2, 0.5)
+OwenT(2, 0.5, fun = "mOwenT") # modified arctangent series (default)
+OwenT(2, 0.5, fun = "tOwenT") # tetrachoric series
+OwenT(2, 0.5, fun = "vOwenT") # Vasicek's series
+
+rho &lt;- 0.6
+a &lt;- rho/sqrt(1 - rho^2)
+OwenT(0.3, a)
+OwenT(0.3, a, fun = "tOwenT") 
+OwenT(c(-1, 0.5, 4), a, fun = "vOwenT")
+
+OwenT(2, c(-1, -0.5, 0, 0.5, 1), fun = "vOwenT")
+
+function (h, a, opt = TRUE, fun = c("mOwenT", "tOwenT", "vOwenT")) 
+{
+    chkArgs1(h = h, a = a, opt = opt)
+    if (length(h) &lt; length(a)) 
+        h &lt;- rep(h, length(a))
+    if (length(a) &lt; length(h)) 
+        a &lt;- rep(a, length(h))
+    z &lt;- h
+    n &lt;- rep(0, length(z))
+    z[a == 0] &lt;- 0
+    z[is.na(a)] &lt;- NA
+    i &lt;- a != 0 &amp; !is.na(a)
+    if (any(i)) {
+        h &lt;- h[i]
+        a &lt;- a[i]
+        ph &lt;- pnorm(h)
+        fun &lt;- match.arg(fun)
+        if (fun == "mOwenT") 
+            j &lt;- abs(a) &gt; 1
+        if (fun == "tOwenT") 
+            j &lt;- opt &amp; abs(a) &gt; 1
+        if (fun == "vOwenT") 
+            j &lt;- opt &amp; abs(a) &lt; 1
+        pah &lt;- h
+        if (any(j)) 
+            pah[j] &lt;- pnorm(a[j] * h[j])
+        pah[is.nan(pah)] &lt;- 0
+        w &lt;- eval(call(fun, h, a, ph, pah, opt))
+        z[i] &lt;- w
+        n[i] &lt;- attr(w, "nIter")
+    }
+    attr(z, "nIter") &lt;- n
+    return(z)
+  }
+</code></pre>
+
+
+</div>

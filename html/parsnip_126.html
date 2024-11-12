@@ -1,0 +1,170 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>details_poisson_reg_glmer</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Poisson regression via mixed models</h2>
+
+<h3>Description</h3>
+
+<p>The <code>"glmer"</code> engine estimates fixed and random effect regression parameters
+using maximum likelihood (or restricted maximum likelihood) estimation.
+</p>
+
+
+<h3>Details</h3>
+
+<p>For this engine, there is a single mode: regression
+</p>
+
+
+<h4>Tuning Parameters</h4>
+
+<p>This model has no tuning parameters.
+</p>
+
+
+
+<h4>Translation from parsnip to the original package</h4>
+
+<p>The <strong>multilevelmod</strong> extension package is required to fit this model.
+</p>
+<div class="sourceCode r"><pre>library(multilevelmod)
+
+poisson_reg(engine = "glmer") %&gt;% 
+  set_engine("glmer") %&gt;% 
+  translate()
+</pre></div>
+<div class="sourceCode"><pre>## Poisson Regression Model Specification (regression)
+## 
+## Computational engine: glmer 
+## 
+## Model fit template:
+## lme4::glmer(formula = missing_arg(), data = missing_arg(), weights = missing_arg(), 
+##     family = stats::poisson)
+</pre></div>
+
+
+
+<h4>Predicting new samples</h4>
+
+<p>This model can use subject-specific coefficient estimates to make
+predictions (i.e. partial pooling). For example, this equation shows the
+linear predictor (<code style="white-space: pre;">⁠\eta⁠</code>) for a random intercept:
+</p>
+<div class="sourceCode"><pre>\eta_{i} = (\beta_0 + b_{0i}) + \beta_1x_{i1}
+</pre></div>
+<p>where $i$ denotes the <code>i</code>th independent experimental unit
+(e.g. subject). When the model has seen subject <code>i</code>, it can use that
+subject’s data to adjust the <em>population</em> intercept to be more specific
+to that subjects results.
+</p>
+<p>What happens when data are being predicted for a subject that was not
+used in the model fit? In that case, this package uses <em>only</em> the
+population parameter estimates for prediction:
+</p>
+<div class="sourceCode"><pre>\hat{\eta}_{i'} = \hat{\beta}_0+ \hat{\beta}x_{i'1}
+</pre></div>
+<p>Depending on what covariates are in the model, this might have the
+effect of making the same prediction for all new samples. The population
+parameters are the “best estimate” for a subject that was not included
+in the model fit.
+</p>
+<p>The tidymodels framework deliberately constrains predictions for new
+data to not use the training set or other data (to prevent information
+leakage).
+</p>
+
+
+
+<h4>Preprocessing requirements</h4>
+
+<p>There are no specific preprocessing needs. However, it is helpful to
+keep the clustering/subject identifier column as factor or character
+(instead of making them into dummy variables). See the examples in the
+next section.
+</p>
+
+
+
+<h4>Other details</h4>
+
+<p>The model can accept case weights.
+</p>
+<p>With parsnip, we suggest using the formula method when fitting:
+</p>
+<div class="sourceCode r"><pre>library(tidymodels)
+
+poisson_reg() %&gt;% 
+  set_engine("glmer") %&gt;% 
+  fit(y ~ time + x + (1 | subject), data = longitudinal_counts)
+</pre></div>
+<p>When using tidymodels infrastructure, it may be better to use a
+workflow. In this case, you can add the appropriate columns using
+<code>add_variables()</code> then supply the typical formula when adding the model:
+</p>
+<div class="sourceCode r"><pre>library(tidymodels)
+
+glmer_spec &lt;- 
+  poisson_reg() %&gt;% 
+  set_engine("glmer")
+
+glmer_wflow &lt;- 
+  workflow() %&gt;% 
+  # The data are included as-is using:
+  add_variables(outcomes = y, predictors = c(time, x, subject)) %&gt;% 
+  add_model(glmer_spec, formula = y ~ time + x + (1 | subject))
+
+fit(glmer_wflow, data = longitudinal_counts)
+</pre></div>
+
+
+
+<h4>Case weights</h4>
+
+<p>This model can utilize case weights during model fitting. To use them,
+see the documentation in case_weights and the examples
+on <code>tidymodels.org</code>.
+</p>
+<p>The <code>fit()</code> and <code>fit_xy()</code> arguments have arguments called
+<code>case_weights</code> that expect vectors of case weights.
+</p>
+
+
+
+<h4>References</h4>
+
+
+<ul>
+<li>
+<p> J Pinheiro, and D Bates. 2000. <em>Mixed-effects models in S and S-PLUS</em>.
+Springer, New York, NY
+</p>
+</li>
+<li>
+<p> West, K, Band Welch, and A Galecki. 2014. <em>Linear Mixed Models: A
+Practical Guide Using Statistical Software</em>. CRC Press.
+</p>
+</li>
+<li>
+<p> Thorson, J, Minto, C. 2015, Mixed effects: a unifying framework for
+statistical modelling in fisheries biology. <em>ICES Journal of Marine
+Science</em>, Volume 72, Issue 5, Pages 1245–1256.
+</p>
+</li>
+<li>
+<p> Harrison, XA, Donaldson, L, Correa-Cano, ME, Evans, J, Fisher, DN,
+Goodwin, CED, Robinson, BS, Hodgson, DJ, Inger, R. 2018. <em>A brief
+introduction to mixed effects modelling and multi-model inference in
+ecology</em>. PeerJ 6:e4794.
+</p>
+</li>
+<li>
+<p> DeBruine LM, Barr DJ. Understanding Mixed-Effects Models Through Data
+Simulation. 2021. <em>Advances in Methods and Practices in Psychological
+Science</em>.
+</p>
+</li>
+</ul>
+</div>

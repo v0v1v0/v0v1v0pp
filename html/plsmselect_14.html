@@ -1,0 +1,157 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predict.gamlasso</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Prediction from a fitted gamlasso model</h2>
+
+<h3>Description</h3>
+
+<p>Takes a fitted <code>gamlasso</code> object produced by <code>gamlasso</code> and
+returns predictions given a new set of values of the linear and smooth
+variables.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'gamlasso'
+predict(
+  object,
+  newdata = NULL,
+  type = "link",
+  s = "lambda.min",
+  new.event.times = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>fitted model object of the class <code>gamlasso</code> as
+produced by <code>gamlasso</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>A data frame with the values of the linear and smooth
+variables for which predictions are to be made. If not provided then
+predictions corresponding to the original data used to fit <code>object</code>
+is returned. If provided then the variable names (column names) should
+match with the variable names used to fit <code>object</code>: the code throws
+an error if not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>When this has the value <code>"link"</code> (default) then the
+linear predictor (with offset added if needed) is returned. When
+<code>type = "response"</code> predictions on the response scale is returned,
+depending on the family used while fitting <code>object</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s</code></td>
+<td>
+<p>Value of the lasso penalty parameter <code>lambda</code> at which
+predictions are required. Default is <code>"lambda.min"</code> but alternatively
+<code>"lambda.1se"</code> can be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new.event.times</code></td>
+<td>
+<p>A vector of new event times to be used for predicting
+survival times when <code>type = "response"</code> for a gamlasso object fitted
+with <code>family = "cox"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other arguments</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Lasso models do not have standard errors so <code>predict.gamlasso</code>
+does not provide them either. The standard errors for the gam part of the
+model can be accesed by using <code>mgcv::predict.gam</code> with suitable options.
+Offsets are always included in the prediction if present in the original call
+to <code>gamlasso</code>. Also if <code>type</code> is anything other than <code>"link"</code>
+or <code>"response"</code> then the function throws an error.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a vector of the same length as <code>nrow(newdata)</code> with
+the values of the linear predictor or on the response scale depending
+on <code>type</code>. For <code>type = "link"</code> the value is simply the elementwise
+sum of the predictions from the gam and lasso models in <code>object</code>.
+For <code>type = "response"</code> the values are on the response scale, for
+example exponential of the linear response is returned if
+<code>object$inherit$family = "poisson"</code>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>gamlasso</code>, <code>predict.gam</code>,
+<code>predict.glmnet</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(plsmselect)
+
+data(simData)
+
+## Fit poisson gamlasso model using the term specification approach:
+## (L2-penalty on linear terms &amp; L2-penalty on smooth terms)
+pfit = gamlasso(response="Yp",
+                linear.terms=paste0("x",1:10),
+                smooth.terms=paste0("z",1:4),
+                data=simData,
+                linear.penalty = "l2",
+                smooth.penalty = "l2",
+                family="poisson",
+                num.knots = 5,
+                seed=1)
+
+## fitted values (of linear predictor):
+fitted.values &lt;- predict(pfit)
+
+## predicted values on response scale:
+pred.response &lt;- predict(pfit, type="response", newdata=simData)
+
+## For same model as above, but with L1-penalty on linear terms
+## i.e. L1-penalty on the model matrix (X) we can use formula approach:
+simData$X = model.matrix(~x1+x2+x3+x4+x5+x6+x7+x8+x9+x10, data=simData)[,-1]
+
+pfit = gamlasso(Yp ~ X +
+                   s(z1, k=5) + # L2-penalty (bs="tp") is default (see ?mgcv::s)
+                   s(z2, k=5) +
+                   s(z3, k=5) +
+                   s(z4, k=5),
+                 family="poisson",
+                 data = simData,
+                 seed=1)
+
+# See ?gamlasso for an example fitting a gaussian response model
+# See ?summary.gamlasso for an example fitting a binomial response model
+# See ?cumbasehaz for an example fitting a survival response model
+</code></pre>
+
+
+</div>

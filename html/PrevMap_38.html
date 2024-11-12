@@ -1,0 +1,215 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>poisson.log.MCML</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Monte Carlo Maximum Likelihood estimation for the Poisson model</h2>
+
+<h3>Description</h3>
+
+<p>This function performs Monte Carlo maximum likelihood (MCML) estimation for the geostatistical Poisson model with log link function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">poisson.log.MCML(
+  formula,
+  units.m = NULL,
+  coords,
+  data,
+  ID.coords = NULL,
+  par0,
+  control.mcmc,
+  kappa,
+  fixed.rel.nugget = NULL,
+  start.cov.pars,
+  method = "BFGS",
+  low.rank = FALSE,
+  knots = NULL,
+  messages = TRUE,
+  plot.correlogram = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>an object of class <code>formula</code> (or one that can be coerced to that class): a symbolic description of the model to be fitted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>units.m</code></td>
+<td>
+<p>an object of class <code>formula</code> indicating the multiplicative offset for the mean of the Poisson model; if not specified this is then internally set as 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coords</code></td>
+<td>
+<p>an object of class <code>formula</code> indicating the geographic coordinates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a data frame containing the variables in the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ID.coords</code></td>
+<td>
+<p>vector of ID values for the unique set of spatial coordinates obtained from <code>create.ID.coords</code>. These must be provided if, for example, spatial random effects are defined at location-level but some of the covariates are at individual level. <b>Warning</b>: the spatial coordinates must all be distinct otherwise see <code>jitterDupCoords</code>. Default is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>par0</code></td>
+<td>
+<p>parameters of the importance sampling distribution: these should be given in the following order <code>c(beta,sigma2,phi,tau2)</code>, where <code>beta</code> are the regression coefficients, <code>sigma2</code> is the variance of the Gaussian process, <code>phi</code> is the scale parameter of the spatial correlation and <code>tau2</code> is the variance of the nugget effect (if included in the model).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control.mcmc</code></td>
+<td>
+<p>output from <code>control.mcmc.MCML</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kappa</code></td>
+<td>
+<p>fixed value for the shape parameter of the Matern covariance function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixed.rel.nugget</code></td>
+<td>
+<p>fixed value for the relative variance of the nugget effect; <code>fixed.rel.nugget=NULL</code> if this should be included in the estimation. Default is <code>fixed.rel.nugget=NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start.cov.pars</code></td>
+<td>
+<p>a vector of length two with elements corresponding to the starting values of <code>phi</code> and the relative variance of the nugget effect <code>nu2</code>, respectively, that are used in the optimization algorithm. If <code>nu2</code> is fixed through <code>fixed.rel.nugget</code>, then <code>start.cov.pars</code> represents the starting value for <code>phi</code> only.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>method of optimization. If <code>method="BFGS"</code> then the <code>maxBFGS</code> function is used; otherwise <code>method="nlminb"</code> to use the <code>nlminb</code> function. Default is <code>method="BFGS"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>low.rank</code></td>
+<td>
+<p>logical; if <code>low.rank=TRUE</code> a low-rank approximation of the Gaussian spatial process is used when fitting the model. Default is <code>low.rank=FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>knots</code></td>
+<td>
+<p>if <code>low.rank=TRUE</code>, <code>knots</code> is a matrix of spatial knots that are used in the low-rank approximation. Default is <code>knots=NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>messages</code></td>
+<td>
+<p>logical; if <code>messages=TRUE</code> then status messages are printed on the screen (or output device) while the function is running. Default is <code>messages=TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.correlogram</code></td>
+<td>
+<p>logical; if <code>plot.correlogram=TRUE</code> the autocorrelation plot of the samples of the random effect is displayed after completion of conditional simulation. Default is <code>plot.correlogram=TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function performs parameter estimation for a geostatistical Poisson model with log link function. Conditionally on a zero-mean stationary Gaussian process <code class="reqn">S(x)</code> and mutually independent zero-mean Gaussian variables <code class="reqn">Z</code> with variance <code>tau2</code>, the observations <code>y</code> are generated from a Poisson distribution with mean <code class="reqn">m\lambda</code>, where <code class="reqn">m</code> is an offset defined through the argument <code>units.m</code>. A canonical log link is used, thus the linear predictor assumes the form
+</p>
+<p style="text-align: center;"><code class="reqn">\log(\lambda) = d'\beta + S(x) + Z,</code>
+</p>
+
+<p>where <code class="reqn">d</code> is a vector of covariates with associated regression coefficients <code class="reqn">\beta</code>. The Gaussian process <code class="reqn">S(x)</code> has isotropic Matern covariance function (see <code>matern</code>) with variance <code>sigma2</code>, scale parameter <code>phi</code> and shape parameter <code>kappa</code>.
+In the <code>poisson.log.MCML</code> function, the shape parameter is treated as fixed. The relative variance of the nugget effect, <code>nu2=tau2/sigma2</code>, can also be fixed through the argument <code>fixed.rel.nugget</code>; if <code>fixed.rel.nugget=NULL</code>, then the relative variance of the nugget effect is also included in the estimation.
+</p>
+<p><b>Monte Carlo Maximum likelihood.</b>
+The Monte Carlo maximum likelihood method uses conditional simulation from the distribution of the random effect <code class="reqn">T(x) = d(x)'\beta+S(x)+Z</code> given the data <code>y</code>, in order to approximate the high-dimensiional intractable integral given by the likelihood function. The resulting approximation of the likelihood is then maximized by a numerical optimization algorithm which uses analytic epression for computation of the gradient vector and Hessian matrix. The functions used for numerical optimization are <code>maxBFGS</code> (<code>method="BFGS"</code>), from the <span class="pkg">maxLik</span> package, and <code>nlminb</code> (<code>method="nlminb"</code>).
+</p>
+<p><b>Low-rank approximation.</b>
+In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process <code class="reqn">S(x)</code> might be computationally beneficial. Let <code class="reqn">(x_{1},\dots,x_{m})</code> and <code class="reqn">(t_{1},\dots,t_{m})</code> denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then <code class="reqn">S(x)</code> is approximated as <code class="reqn">\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}</code>, where <code class="reqn">U_{i}</code> are zero-mean mutually independent Gaussian variables with variance <code>sigma2</code> and <code class="reqn">K(.;\phi, \kappa)</code> is the isotropic Matern kernel (see <code>matern.kernel</code>). Since the resulting approximation is no longer a stationary process (but only approximately), the parameter <code>sigma2</code> is then multiplied by a factor <code>constant.sigma2</code> so as to obtain a value that is closer to the actual variance of <code class="reqn">S(x)</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class "PrevMap".
+The function <code>summary.PrevMap</code> is used to print a summary of the fitted model.
+The object is a list with the following components:
+</p>
+<p><code>estimate</code>: estimates of the model parameters; use the function <code>coef.PrevMap</code> to obtain estimates of covariance parameters on the original scale.
+</p>
+<p><code>covariance</code>: covariance matrix of the MCML estimates.
+</p>
+<p><code>log.lik</code>: maximum value of the log-likelihood.
+</p>
+<p><code>y</code>: observations.
+</p>
+<p><code>units.m</code>: offset.
+</p>
+<p><code>D</code>: matrix of covariates.
+</p>
+<p><code>ID.coords</code>: set of ID values defined through the argument <code>ID.coords</code>.
+</p>
+<p><code>coords</code>: matrix of the observed sampling locations.
+</p>
+<p><code>method</code>: method of optimization used.
+</p>
+<p><code>kappa</code>: fixed value of the shape parameter of the Matern function.
+</p>
+<p><code>knots</code>: matrix of the spatial knots used in the low-rank approximation.
+</p>
+<p><code>const.sigma2</code>: adjustment factor for <code>sigma2</code> in the low-rank approximation.
+</p>
+<p><code>h</code>: vector of the values of the tuning parameter at each iteration of the Langevin-Hastings MCMC algorithm; see <code>Laplace.sampling</code>, or <code>Laplace.sampling.lr</code> if a low-rank approximation is used.
+</p>
+<p><code>samples</code>: matrix of the random effects samples from the importance sampling distribution used to approximate the likelihood function.
+</p>
+<p><code>fixed.rel.nugget</code>: fixed value for the relative variance of the nugget effect.
+</p>
+<p><code>call</code>: the matched call.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Emanuele Giorgi <a href="mailto:e.giorgi@lancaster.ac.uk">e.giorgi@lancaster.ac.uk</a>
+</p>
+<p>Peter J. Diggle <a href="mailto:p.diggle@lancaster.ac.uk">p.diggle@lancaster.ac.uk</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Diggle, P.J., Giorgi, E. (2019). <em>Model-based Geostatistics for Global Public Health.</em> CRC/Chapman &amp; Hall.
+</p>
+<p>Giorgi, E., Diggle, P.J. (2017). <em>PrevMap: an R package for prevalence mapping.</em> Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
+</p>
+<p>Christensen, O. F. (2004). <em>Monte carlo maximum likelihood in model-based geostatistics.</em> Journal of Computational and Graphical Statistics 13, 702-718.
+</p>
+<p>Higdon, D. (1998). <em>A process-convolution approach to modeling temperatures in the North Atlantic Ocean.</em> Environmental and Ecological Statistics 5, 173-190.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>Laplace.sampling</code>, <code>Laplace.sampling.lr</code>, <code>summary.PrevMap</code>, <code>coef.PrevMap</code>, <code>matern</code>, <code>matern.kernel</code>,  <code>control.mcmc.MCML</code>.
+</p>
+
+
+</div>

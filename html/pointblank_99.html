@@ -1,0 +1,246 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>get_sundered_data</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Sunder the data, splitting it into 'pass' and 'fail' pieces</h2>
+
+<h3>Description</h3>
+
+<p>Validation of the data is one thing but, sometimes, you want to use the best
+part of the input dataset for something else. The <code>get_sundered_data()</code>
+function works with an agent object that has intel (i.e., post
+<code>interrogate()</code>) and gets either the 'pass' data piece (rows with no failing
+test units across all row-based validation functions), or, the 'fail' data
+piece (rows with at least one failing test unit across the same series of
+validations). As a final option, we can have emit all the data with a new
+column (called <code>.pb_combined</code>) which labels each row as passing or failing
+across validation steps. These labels are <code>"pass"</code> and <code>"fail"</code> by default
+but their values can be easily customized.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">get_sundered_data(
+  agent,
+  type = c("pass", "fail", "combined"),
+  pass_fail = c("pass", "fail"),
+  id_cols = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>agent</code></td>
+<td>
+<p><em>The pointblank agent object</em>
+</p>
+<p><code style="white-space: pre;">⁠obj:&lt;ptblank_agent&gt;⁠</code> // <strong>required</strong>
+</p>
+<p>A <strong>pointblank</strong> <em>agent</em> object that is commonly created through the use of
+the <code>create_agent()</code> function. It should have had <code>interrogate()</code> called on
+it, such that the validation steps were actually carried out.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>The desired piece of data resulting from the splitting. Options
+for returning a single table are <code>"pass"</code> (the default) and <code>"fail"</code>. Each
+of these options return a single table with, in the <code>"pass"</code> case, only the
+rows that passed across all validation steps (i.e., had no failing test
+units in any part of a row for any validation step), or, the complementary
+set of rows in the <code>"fail"</code> case. Providing <code>NULL</code> returns both of the
+split data tables in a list (with the names of <code>"pass"</code> and <code>"fail"</code>). The
+option <code>"combined"</code> applies a categorical (pass/fail) label (settable in
+the <code>pass_fail</code> argument) in a new <code>.pb_combined</code> flag column. For this
+case the ordering of rows is fully retained from the input table.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pass_fail</code></td>
+<td>
+<p>A vector for encoding the flag column with 'pass' and 'fail'
+values when <code>type = "combined"</code>. The default is <code>c("pass", "fail")</code> but
+other options could be <code>c(TRUE, FALSE)</code>, <code>c(1, 0)</code>, or <code>c(1L, 0L)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id_cols</code></td>
+<td>
+<p>An optional specification of one or more identifying columns.
+When taken together, we can count on this single column or grouping of
+columns to distinguish rows. If the table undergoing validation is not a
+data frame or tibble, then columns need to be specified for <code>id_cols</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>There are some caveats to sundering. The validation steps considered for this
+splitting has to be of the row-based variety (e.g., the <code style="white-space: pre;">⁠col_vals_*()⁠</code>
+functions or <code>conjointly()</code>, but not <code>rows_distinct()</code>). Furthermore,
+validation steps that experienced evaluation issues during interrogation are
+not considered, and, validation steps where <code>active = FALSE</code> will be
+disregarded. The collection of validation steps that fulfill the above
+requirements for sundering are termed in-consideration validation steps.
+</p>
+<p>If using any <code>preconditions</code> for validation steps, we must ensure that all
+in-consideration validation steps use the same specified <code>preconditions</code>
+function. Put another way, we cannot split the target table using a
+collection of in-consideration validation steps that use different forms of
+the input table.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list of table objects if <code>type</code> is <code>NULL</code>, or, a single table if a
+<code>type</code> is given.
+</p>
+
+
+<h3>Examples</h3>
+
+<p>Create a series of two validation steps focused on testing row values for
+part of the <code>small_table</code> object. Then, use <code>interrogate()</code> to put the
+validation plan into action.
+</p>
+<div class="sourceCode r"><pre>agent &lt;-
+  create_agent(
+    tbl = small_table %&gt;%
+      dplyr::select(a:f),
+    label = "`get_sundered_data()`"
+  ) %&gt;%
+  col_vals_gt(columns = d, value = 1000) %&gt;%
+  col_vals_between(
+    columns = c,
+    left = vars(a), right = vars(d),
+    na_pass = TRUE
+  ) %&gt;%
+  interrogate()
+</pre></div>
+<p>Get the sundered data piece that contains only rows that passed both
+validation steps (the default piece). This yields 5 of 13 total rows.
+</p>
+<div class="sourceCode r"><pre>agent %&gt;% get_sundered_data()
+</pre></div>
+<pre>## # A tibble: 5 × 6
+##       a b             c      d e     f    
+##   &lt;int&gt; &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;lgl&gt; &lt;chr&gt;
+## 1     2 1-bcd-345     3  3423. TRUE  high 
+## 2     3 5-egh-163     8 10000. TRUE  low  
+## 3     2 5-jdo-903    NA  3892. FALSE mid  
+## 4     4 2-dhe-923     4  3291. TRUE  mid  
+## 5     1 3-dka-303    NA  2230. TRUE  high</pre>
+<p>Get the complementary data piece: all of those rows that failed either of the
+two validation steps. This yields 8 of 13 total rows.
+</p>
+<div class="sourceCode r"><pre>agent %&gt;% get_sundered_data(type = "fail")
+</pre></div>
+<pre>## # A tibble: 8 × 6
+##       a b             c     d e     f    
+##   &lt;int&gt; &lt;chr&gt;     &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt; &lt;chr&gt;
+## 1     6 8-kdg-938     3 2343. TRUE  high 
+## 2     8 3-ldm-038     7  284. TRUE  low  
+## 3     7 1-knw-093     3  843. TRUE  high 
+## 4     4 5-boe-639     2 1036. FALSE low  
+## 5     3 5-bce-642     9  838. FALSE high 
+## 6     3 5-bce-642     9  838. FALSE high 
+## 7     4 2-dmx-010     7  834. TRUE  low  
+## 8     2 7-dmx-010     8  108. FALSE low</pre>
+<p>We can get all of the input data returned with a flag column (called
+<code>.pb_combined</code>). This is done by using <code>type = "combined"</code> and that rightmost
+column will contain <code>"pass"</code> and <code>"fail"</code> values.
+</p>
+<div class="sourceCode r"><pre>agent %&gt;% get_sundered_data(type = "combined")
+</pre></div>
+<pre>## # A tibble: 13 × 7
+##        a b             c      d e     f     .pb_combined
+##    &lt;int&gt; &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;lgl&gt; &lt;chr&gt; &lt;chr&gt;
+##  1     2 1-bcd-345     3  3423. TRUE  high  pass
+##  2     3 5-egh-163     8 10000. TRUE  low   pass
+##  3     6 8-kdg-938     3  2343. TRUE  high  fail
+##  4     2 5-jdo-903    NA  3892. FALSE mid   pass
+##  5     8 3-ldm-038     7   284. TRUE  low   fail
+##  6     4 2-dhe-923     4  3291. TRUE  mid   pass
+##  7     7 1-knw-093     3   843. TRUE  high  fail
+##  8     4 5-boe-639     2  1036. FALSE low   fail
+##  9     3 5-bce-642     9   838. FALSE high  fail
+## 10     3 5-bce-642     9   838. FALSE high  fail
+## 11     4 2-dmx-010     7   834. TRUE  low   fail
+## 12     2 7-dmx-010     8   108. FALSE low   fail
+## 13     1 3-dka-303    NA  2230. TRUE  high  pass</pre>
+<p>We can change the <code>"pass"</code> or <code>"fail"</code> text values to another type of coding
+with the <code>pass_fail</code> argument. One possibility is <code>TRUE</code>/<code>FALSE</code>.
+</p>
+<div class="sourceCode r"><pre>agent %&gt;%
+  get_sundered_data(
+    type = "combined",
+    pass_fail = c(TRUE, FALSE)
+  )
+</pre></div>
+<pre>## # A tibble: 13 × 7
+##        a b             c      d e     f     .pb_combined
+##    &lt;int&gt; &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;lgl&gt; &lt;chr&gt; &lt;lgl&gt;
+##  1     2 1-bcd-345     3  3423. TRUE  high  TRUE
+##  2     3 5-egh-163     8 10000. TRUE  low   TRUE
+##  3     6 8-kdg-938     3  2343. TRUE  high  FALSE
+##  4     2 5-jdo-903    NA  3892. FALSE mid   TRUE
+##  5     8 3-ldm-038     7   284. TRUE  low   FALSE
+##  6     4 2-dhe-923     4  3291. TRUE  mid   TRUE
+##  7     7 1-knw-093     3   843. TRUE  high  FALSE
+##  8     4 5-boe-639     2  1036. FALSE low   FALSE
+##  9     3 5-bce-642     9   838. FALSE high  FALSE
+## 10     3 5-bce-642     9   838. FALSE high  FALSE
+## 11     4 2-dmx-010     7   834. TRUE  low   FALSE
+## 12     2 7-dmx-010     8   108. FALSE low   FALSE
+## 13     1 3-dka-303    NA  2230. TRUE  high  TRUE</pre>
+<p>...and using <code>0</code> and <code>1</code> might be worthwhile in some situations.
+</p>
+<div class="sourceCode r"><pre>agent %&gt;%
+  get_sundered_data(
+    type = "combined",
+    pass_fail = 0:1
+  )
+</pre></div>
+<pre>## # A tibble: 13 × 7
+##        a b             c      d e     f     .pb_combined
+##    &lt;int&gt; &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;lgl&gt; &lt;chr&gt;        &lt;int&gt;
+##  1     2 1-bcd-345     3  3423. TRUE  high             0
+##  2     3 5-egh-163     8 10000. TRUE  low              0
+##  3     6 8-kdg-938     3  2343. TRUE  high             1
+##  4     2 5-jdo-903    NA  3892. FALSE mid              0
+##  5     8 3-ldm-038     7   284. TRUE  low              1
+##  6     4 2-dhe-923     4  3291. TRUE  mid              0
+##  7     7 1-knw-093     3   843. TRUE  high             1
+##  8     4 5-boe-639     2  1036. FALSE low              1
+##  9     3 5-bce-642     9   838. FALSE high             1
+## 10     3 5-bce-642     9   838. FALSE high             1
+## 11     4 2-dmx-010     7   834. TRUE  low              1
+## 12     2 7-dmx-010     8   108. FALSE low              1
+## 13     1 3-dka-303    NA  2230. TRUE  high             0</pre>
+
+
+<h3>Function ID</h3>
+
+<p>8-3
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Post-interrogation: 
+<code>all_passed()</code>,
+<code>get_agent_x_list()</code>,
+<code>get_data_extracts()</code>,
+<code>write_testthat_file()</code>
+</p>
+
+
+</div>

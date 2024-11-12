@@ -1,0 +1,185 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>features</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Get features by comparison.</h2>
+
+<h3>Description</h3>
+
+<p>The features of two objects, usually a <code>partition</code> defining a corpus of
+interest (coi), and a <code>partition</code> defining a reference corpus (ref) are compared.
+The most important purpose is term extraction.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">features(x, y, ...)
+
+## S4 method for signature 'partition'
+features(x, y, included = FALSE, method = "chisquare", verbose = FALSE)
+
+## S4 method for signature 'count'
+features(
+  x,
+  y,
+  by = NULL,
+  included = FALSE,
+  method = "chisquare",
+  verbose = TRUE
+)
+
+## S4 method for signature 'partition_bundle'
+features(
+  x,
+  y,
+  included = FALSE,
+  method = "chisquare",
+  verbose = TRUE,
+  mc = getOption("polmineR.mc"),
+  progress = FALSE
+)
+
+## S4 method for signature 'count_bundle'
+features(
+  x,
+  y,
+  included = FALSE,
+  method = "chisquare",
+  verbose = !progress,
+  mc = getOption("polmineR.mc"),
+  progress = FALSE
+)
+
+## S4 method for signature 'ngrams'
+features(x, y, included = FALSE, method = "chisquare", verbose = TRUE, ...)
+
+## S4 method for signature 'Cooccurrences'
+features(x, y, included = FALSE, method = "ll", verbose = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A <code>partition</code> or <code>partition_bundle</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>A <code>partition</code> object, it is assumed that the coi is a subcorpus of
+ref</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further parameters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>included</code></td>
+<td>
+<p>TRUE if coi is part of ref, defaults to FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>the statistical test to apply (chisquare or log likelihood)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A <code>logical</code> value, defaults to TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>by</code></td>
+<td>
+<p>the columns used for merging, if NULL (default), the p-attribute of
+x will be used</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mc</code></td>
+<td>
+<p>logical, whether to use multicore</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progress</code></td>
+<td>
+<p>logical</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Andreas Blaette
+</p>
+
+
+<h3>References</h3>
+
+<p>Baker, Paul (2006): <em>Using Corpora in Discourse Analysis</em>. London: continuum, p. 121-149 (ch. 6).
+</p>
+<p>Manning, Christopher D.; Schuetze, Hinrich (1999): <em>Foundations of Statistical Natural Language
+Processing</em>. MIT Press: Cambridge, Mass., pp. 151-189 (ch. 5).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+use("polmineR")
+
+kauder &lt;- partition(
+  "GERMAPARLMINI",
+  speaker = "Volker Kauder", interjection = "speech",
+  p_attribute = "word"
+  )
+all &lt;- partition("GERMAPARLMINI", interjection = "speech", p_attribute = "word")
+
+terms_kauder &lt;- features(x = kauder, y = all, included = TRUE)
+top100 &lt;- subset(terms_kauder, rank_chisquare &lt;= 100)
+head(top100)
+
+# a different way is to compare count objects
+kauder_count &lt;- as(kauder, "count")
+all_count &lt;- as(all, "count")
+terms_kauder &lt;- features(kauder_count, all_count, included = TRUE)
+top100 &lt;- subset(terms_kauder, rank_chisquare &lt;= 100)
+head(top100)
+
+## End(Not run)
+
+# get matrix with features (dontrun to keep time for examples short)
+## Not run: 
+use("RcppCWB")
+docs &lt;- partition_bundle("REUTERS", s_attribute = "id") %&gt;%
+  enrich( p_attribute = "word")
+all &lt;- corpus("REUTERS") %&gt;%
+  count(p_attribute = "word")
+docs_terms &lt;- features(docs[1:5], all, included = TRUE, progress = FALSE)
+dtm &lt;- as.DocumentTermMatrix(docs_terms, col = "chisquare", verbose = FALSE)
+
+## End(Not run)
+# Get features of objects in a count_bundle
+ref &lt;- corpus("GERMAPARLMINI") %&gt;% count(p_attribute = "word")
+cois &lt;- corpus("GERMAPARLMINI") %&gt;%
+  subset(speaker %in% c("Angela Dorothea Merkel", "Hubertus Heil")) %&gt;%
+  split(s_attribute = "speaker") %&gt;%
+  count(p_attribute = "word")
+y &lt;- features(cois, ref, included = TRUE, method = "chisquare", progress = TRUE)
+</code></pre>
+
+
+</div>

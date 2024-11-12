@@ -1,0 +1,158 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>TexasElectr</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Production of Electricity in Texas</h2>
+
+<h3>Description</h3>
+
+<p>yearly observations of 10 firms from 1966 to 1983
+</p>
+<p><em>number of observations</em> : 180
+</p>
+<p><em>number of  time-series </em> :  18 
+</p>
+<p><em>country</em> :  Texas 
+</p>
+<p><em>package</em> : productionpanel
+</p>
+<p><em>JEL codes: </em>D24, C13, C51, C23, J31
+</p>
+<p><em>Chapter</em> : 02, 03
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">data(TexasElectr)</code></pre>
+
+
+<h3>Format</h3>
+
+<p>A dataframe containing:
+</p>
+
+<dl>
+<dt>id</dt>
+<dd>
+<p>the firm identifier</p>
+</dd>
+<dt>year</dt>
+<dd>
+<p>the year, from 1966 to 1983</p>
+</dd>
+<dt>output</dt>
+<dd>
+<p>output</p>
+</dd>
+<dt>pfuel</dt>
+<dd>
+<p>price of fuel</p>
+</dd>
+<dt>plab</dt>
+<dd>
+<p>price of labor</p>
+</dd>
+<dt>pcap</dt>
+<dd>
+<p>price of capital</p>
+</dd>
+<dt>expfuel</dt>
+<dd>
+<p>expense in fuel</p>
+</dd>
+<dt>explab</dt>
+<dd>
+<p>expense in labor</p>
+</dd>
+<dt>expcap</dt>
+<dd>
+<p>expense in capital</p>
+</dd>
+</dl>
+<h3>Source</h3>
+
+<p>Journal of Applied Econometrics Data Archive : <a href="http://qed.econ.queensu.ca/jae/">http://qed.econ.queensu.ca/jae/</a></p>
+
+
+<h3>References</h3>
+
+<p>Kumbhakar SC (1996) “Estimation of Cost Efficiency with Heteroscedasticity: An Application to Electric Utilities”, <em>Journal of the Royal Statistical Society, Series D</em>, <b>45</b>, 319–335.
+</p>
+<p>Horrace and Schmidt (1996) “Confidence Statements for Efficiency Estimates From Stochastic Frontier Models”, <em>Journal of Productity Analysis</em>, <b>7</b>, 257–282, doi: <a href="https://doi.org/10.1007/BF00157044">10.1007/BF00157044</a>
+.
+</p>
+<p>Horrace and Schmidt (2012) “Multiple Comparisons with the Best, with Economic Applications”, <em>Journal of Applied Econometrics</em>, <b>15(1)</b>, 1–26, doi: <a href="https://doi.org/10.1002/(SICI)1099-1255(200001/02)15:1%3C1::AID-JAE551%3E3.0.CO;2-Y">10.1002/(SICI)1099-1255(200001/02)15:1&lt;1::AID-JAE551&gt;3.0.CO;2-Y</a>
+.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#### Example 2-6
+
+## ------------------------------------------------------------------------
+data("TexasElectr", package = "pder")
+library("plm")
+TexasElectr$cost &lt;- with(TexasElectr, explab + expfuel + expcap)
+TE &lt;- pdata.frame(TexasElectr)
+summary(log(TE$output))
+ercomp(log(cost) ~ log(output), TE)
+models &lt;- c("within", "random", "pooling", "between")
+sapply(models, function(x)
+       coef(plm(log(cost) ~ log(output), TE, model = x))["log(output)"])
+
+#### Example 3-2
+
+## ------------------------------------------------------------------------
+data("TexasElectr", package = "pder")
+
+if (requireNamespace("dplyr")){
+    library("dplyr")
+    TexasElectr &lt;- mutate(TexasElectr,
+                          pf = log(pfuel / mean(pfuel)),
+                          pl = log(plab / mean(plab)) - pf,
+                          pk = log(pcap / mean(pcap)) - pf)
+
+## ------------------------------------------------------------------------
+    TexasElectr &lt;- mutate(TexasElectr, q = log(output / mean(output)))
+
+## ------------------------------------------------------------------------
+    TexasElectr &lt;- mutate(TexasElectr,
+                          C = expfuel + explab + expcap,
+                          sl = explab / C,
+                          sk = expcap / C,
+                          C = log(C / mean(C)) - pf)
+    
+## ------------------------------------------------------------------------
+    TexasElectr &lt;- mutate(TexasElectr,
+                          pll = 1/2 * pl ^ 2,
+                          plk = pl * pk,
+                          pkk = 1/2 * pk ^ 2,
+                          qq = 1/2 * q ^ 2)
+
+## ------------------------------------------------------------------------
+    cost &lt;- C ~ pl + pk + q + pll + plk + pkk + qq
+    shlab &lt;- sl ~ pl + pk
+    shcap &lt;- sk ~ pl + pk
+
+## ------------------------------------------------------------------------
+    R &lt;- matrix(0, nrow = 6, ncol = 14)
+    R[1, 2] &lt;- R[2, 3] &lt;- R[3, 5] &lt;- R[4, 6] &lt;- R[5, 6] &lt;- R[6, 7] &lt;- 1
+    R[1, 9] &lt;- R[2, 12] &lt;- R[3, 10] &lt;- R[4, 11] &lt;- R[5, 13] &lt;- R[6, 14] &lt;- -1
+
+## ------------------------------------------------------------------------
+    z &lt;- plm(list(cost = C ~ pl + pk + q + pll + plk + pkk + qq,
+                  shlab = sl ~ pl + pk,
+                  shcap = sk ~ pl + pk),
+             TexasElectr, model = "random",
+             restrict.matrix = R)
+    summary(z)
+}
+
+</code></pre>
+
+
+</div>

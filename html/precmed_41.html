@@ -1,0 +1,209 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>intxmean</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate the CATE model using specified scoring methods</h2>
+
+<h3>Description</h3>
+
+<p>Coefficients of the CATE estimated with boosting, linear regression, two regression, contrast regression, random forest, generalized additive model
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">intxmean(
+  y,
+  trt,
+  x.cate,
+  x.init,
+  x.ps,
+  score.method = c("boosting", "gaussian", "twoReg", "contrastReg", "gam",
+    "randomForest"),
+  ps.method = "glm",
+  minPS = 0.01,
+  maxPS = 0.99,
+  initial.predictor.method = "boosting",
+  xvar.smooth.init,
+  xvar.smooth.score,
+  tree.depth = 2,
+  n.trees.rf = 1000,
+  n.trees.boosting = 200,
+  B = 1,
+  Kfold = 2,
+  plot.gbmperf = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Observed outcome; vector of size <code>n</code> (observations)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trt</code></td>
+<td>
+<p>Treatment received; vector of size <code>n</code> units with treatment coded as 0/1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x.cate</code></td>
+<td>
+<p>Matrix of <code>p.cate</code> baseline covariates; dimension <code>n</code> by <code>p.cate</code> (covariates in the outcome model)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x.init</code></td>
+<td>
+<p>Matrix of <code>p.init</code> baseline covariates; dimension <code>n</code> by <code>p.init</code>
+It must be specified when <code>score.method = contrastReg</code> or <code>twoReg</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x.ps</code></td>
+<td>
+<p>Matrix of <code>p.ps</code> baseline covariates (plus a leading column of 1 for the intercept);
+dimension <code>n</code> by <code>p.ps + 1</code> (covariates in the propensity score model plus intercept)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>score.method</code></td>
+<td>
+<p>A vector of one or multiple methods to estimate the CATE score.
+Allowed values are: <code>'boosting'</code>, <code>'gaussian'</code>, <code>'twoReg'</code>, <code>'contrastReg'</code>,
+<code>'randomForest'</code>, <code>'gam'</code>. Default specifies all 6 methods.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ps.method</code></td>
+<td>
+<p>A character value for the method to estimate the propensity score.
+Allowed values include one of:
+<code>'glm'</code> for logistic regression with main effects only (default), or
+<code>'lasso'</code> for a logistic regression with main effects and LASSO penalization on
+two-way interactions (added to the model if interactions are not specified in <code>ps.model</code>).
+Relevant only when <code>ps.model</code> has more than one variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minPS</code></td>
+<td>
+<p>A numerical value (in '[0, 1]') below which estimated propensity scores should be
+truncated. Default is <code>0.01</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxPS</code></td>
+<td>
+<p>A number above which estimated propensity scores should be trimmed; scalar</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initial.predictor.method</code></td>
+<td>
+<p>A character vector for the method used to get initial
+outcome predictions conditional on the covariates in <code>cate.model</code>
+in <code>score.method = 'twoReg'</code> and <code>'contrastReg'</code>. Allowed values include
+one of <code>'gaussian'</code> (fastest), <code>'boosting'</code> (default) and <code>'gam'</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xvar.smooth.init</code></td>
+<td>
+<p>A vector of characters indicating the name of the variables used as
+the smooth terms if <code>initial.predictor.method = 'gam'</code>. The variables must be selected
+from the variables listed in <code>init.model</code>.
+Default is <code>NULL</code>, which uses all variables in <code>init.model</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xvar.smooth.score</code></td>
+<td>
+<p>A vector of characters indicating the name of the variables used as
+the smooth terms if <code>score.method = 'gam'</code>. The variables must be selected
+from the variables listed in <code>cate.model</code>.
+Default is <code>NULL</code>, which uses all variables in <code>cate.model</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tree.depth</code></td>
+<td>
+<p>A positive integer specifying the depth of individual trees in boosting
+(usually 2-3). Used only if <code>score.method = 'boosting'</code> or
+if <code>score.method = 'twoReg'</code> or <code>'contrastReg'</code> and
+<code>initial.predictor.method = 'boosting'</code>. Default is <code>2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.trees.rf</code></td>
+<td>
+<p>A positive integer specifying the number of trees. Used only if
+<code>score.method = 'randomForest'</code>. Default is <code>1000</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.trees.boosting</code></td>
+<td>
+<p>A positive integer specifying the maximum number of trees in boosting
+(usually 100-1000). Used only if <code>score.method = 'boosting'</code> or
+if <code>score.method = 'twoReg'</code> or <code>'contrastReg'</code> and
+<code>initial.predictor.method = 'boosting'</code>. Default is <code>200</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>A positive integer specifying the number of time cross-fitting is repeated in
+<code>score.method = 'twoReg'</code> and <code>'contrastReg'</code>. Default is <code>3</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Kfold</code></td>
+<td>
+<p>A positive integer specifying the number of folds (parts) used in cross-fitting
+to partition the data in <code>score.method = 'twoReg'</code> and <code>'contrastReg'</code>.
+Default is <code>6</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.gbmperf</code></td>
+<td>
+<p>A logical value indicating whether to plot the performance measures in
+boosting. Used only if <code>score.method = 'boosting'</code> or if <code>score.method = 'twoReg'</code>
+or <code>'contrastReg'</code> and <code>initial.predictor.method = 'boosting'</code>. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments for <code>gbm()</code></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Depending on what score.method is, the outputs is a combination of the following:
+result.boosting: Results of boosting fit and best iteration, for trt = 0 and trt = 1 separately
+result.gaussian: Linear regression estimator (beta1 - beta0); vector of length <code>p.cate</code> + 1
+result.twoReg: Two regression estimator (beta1 - beta0); vector of length <code>p.cate</code> + 1
+result.contrastReg: A list of the contrast regression results with 3 elements:
+$delta.contrastReg: Contrast regression DR estimator; vector of length <code>p.cate</code> + 1
+$sigma.contrastReg: Variance covariance matrix for delta.contrastReg; matrix of size <code>p.cate</code> + 1 by <code>p.cate</code> + 1
+result.randomForest: Results of random forest fit and best iteration, for trt = 0 and trt = 1 separately
+result.gam: Results of generalized additive model fit and best iteration, for trt = 0 and trt = 1 separately
+best.iter: Largest best iterations for boosting (if used)
+fgam: Formula applied in GAM when <code>initial.predictor.method = 'gam'</code>
+warn.fit: Warnings occurred when fitting <code>score.method</code>
+err.fit:: Errors occurred when fitting <code>score.method</code>
+</p>
+
+
+</div>

@@ -1,0 +1,271 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pchreg</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Piecewise Constant Hazard Models
+</h2>
+
+<h3>Description</h3>
+
+<p>This function estimates piecewise exponential models on right-censored, left-truncated, or interval-censored data.
+The function is mainly intended for prediction and, unlike the <code>phreg</code> function available in the <span class="pkg">eha</span> package, 
+it allows the effect of covariates, and not just the baseline hazard, to depend on time.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pchreg(formula, breaks, data, weights, splinex = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+
+<p>an object of class “<code>formula</code>”: a symbolic description of the regression model. 
+The response must be a <kbd>Surv</kbd> object as returned by <code>Surv</code> (see ‘Details’).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>breaks</code></td>
+<td>
+
+<p>either a numeric vector of two or more unique cut points, or a single number 
+giving the number of intervals. If missing, the number and position of the <kbd>breaks</kbd>
+are determined automatically.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+
+<p>an optional data frame containing the variables in the model.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+
+<p>an optional vector of weights to be used in the fitting process. 
+The weights will be normalized to sum to the sample size. 
+This implies that, for example, using double weights will not halve the standard errors.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>splinex</code></td>
+<td>
+
+<p>either <code>NULL</code>, or an object created with <code>splinex</code> (see ‘Details’). 
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The left side of the <kbd>formula</kbd> must be specified as <kbd>Surv(time, event)</kbd>, for right-censored data; 
+<kbd>Surv(time0, time, event)</kbd>, for right-censored and left-truncated data 
+(<kbd>time0 &lt; time</kbd>, <code>time0</code> can be <kbd>-Inf</kbd>);
+and <kbd>Surv(time1, time2, type = "interval2")</kbd> for interval-censored data (use <kbd>time1 = time2</kbd> 
+for exact observations, <kbd>time1 = -Inf</kbd> or <kbd>NA</kbd> for left-censored, and <kbd>time2 = Inf</kbd> or <kbd>NA</kbd> 
+for right-censored). Using <kbd>Surv(time)</kbd> is also allowed and indicates that the data are neither censored 
+nor truncated. Note that the response variable (and thus the <code>breaks</code>) can be negative.
+</p>
+<p>To fit the model, the time interval is first divided in sub-intervals as defined by <code>breaks</code>.
+When the location of <code>breaks</code> is not specified, the empirical quantiles are used as cut points.
+A different costant hazard (exponential) model is then fitted in each sub-interval, modeling 
+the log-hazard as a linear function of covariates.
+The special function <code>splinex</code> can be used to build flexible models.
+</p>
+<p>This type of model can be utilized to obtain a nonparametric maximum likelihood estimator 
+of a conditional distribution, achieving the flexibility of nonparametric estimators
+while keeping the model parametric in practice. Users unfamiliar with this approach
+are recommended to read Geman and Hwang (1982) for an overview, and the paper by Ackerberg, Chen and Hahn (2012) 
+describing how this approach can be applied to simplify inference in two-step semiparametric models.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class “<code>pch</code>”, which is a list with the following items:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>the matched call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>a matrix of regression coefficients. Rows correspond to covariates, while columns correspond to different time intervals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>breaks</code></td>
+<td>
+<p>the used cut points, with attributes <code>'h'</code> indicating the length of each interval, and 
+<code>'k'</code> denoting the number of intervals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covar</code></td>
+<td>
+<p>the estimated asymptotic covariance matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>logLik</code></td>
+<td>
+<p>the value of the maximized log-likelihood, with attribute “<code>df</code>” indicating the number of free model parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>the fitted hazard values in each interval.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Lambda</code></td>
+<td>
+<p>the fitted cumulative hazard values at the end of each interval.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mf</code></td>
+<td>
+<p>the model frame used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>the model matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conv.status</code></td>
+<td>
+<p>a code indicating the convergence status. It takes value <kbd>0</kbd> if the
+algorithm has converged successfully; <kbd>1</kbd> if convergence has not been achieved; 
+and <kbd>2</kbd> if, although convergence has been achieved, more than 1% of observations
+have an associated survival numerically equal to zero, indicating that the solution may not be
+well-behaved or the model is misspecified.</p>
+</td>
+</tr>
+</table>
+<p>The accessor functions <code>summary</code>, <code>coef</code>, <code>predict</code>, <code>nobs</code>, <code>logLik</code>, <code>AIC</code>, <code>BIC</code> can be used to extract information from the fitted model.
+This function is mainly intended for prediction and simulation: see <code>predict.pch</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>NOTE1. Right-censoring is a special case of interval censoring, in which exact events are identified by
+<code>time2 = time1</code>, while censored observations have <code>time2 = Inf</code>.
+Note, however, that <code>pchreg</code> will <em>not</em> use the same routines for right-censored
+and interval-censored data, implying that
+<code>pchreg(Surv(time1, time2, type = "interval2") ~ x)</code>
+may not be identical to <code>pchreg(Surv(time = time1, event = (time2 &lt; Inf)) ~ x)</code>.
+The latter is usually faster and slightly more accurate.
+</p>
+<p>NOTE2. Within each interval, the risk of the event may be zero at some covariate values.
+For each covariate <code>x</code>, the algorithm will try to identify a threshold <code>c</code> 
+such that all events (in any given interval) occur when <code>x &lt; c</code> (<code>x &gt; c</code>).
+A zero risk will be automatically fitted above (below) the threshold, using an offset of <kbd>-100</kbd>
+on the log-hazard. 
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Paolo Frumento &lt;paolo.frumento@unipi.it&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>Ackerberg, D., Chen, X., and Hahn, J. (2012). A Practical Asymptotic Variance Estimator for Two-Step Semiparametric Estimators. The Review of Economics and Statistics, 94(2), 481-498.
+</p>
+<p>Friedman, M. (1982). Piecewise Exponential Models for Survival Data with Covariates. The Annals of Statistics, 10(1), pp. 101-113.
+</p>
+<p>Geman, S., and Hwang, C.R. (1982). Nonparametric Maximum Likelihood Estimation by the Method of Sieves.
+The Annals of Statistics,10(2), 401-414. 
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>predict.pch</code>, <code>splinex</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+  # Simulate right-censored data
+  
+  n &lt;- 1000
+  x &lt;- runif(n) # a covariate
+  time &lt;- rexp(n, exp(1 + x)) # time-to-event
+  cens &lt;- runif(n,0,2) # censoring event
+  y &lt;- pmin(time,cens) # observed variable
+  d &lt;- (time &lt;= cens) # indicator of the event
+  model &lt;- pchreg(Surv(y,d) ~ x, breaks = 10)
+
+
+
+
+  # Simulate right-censored, left-truncated data
+  
+  n &lt;- 1000
+  x &lt;- runif(n) # a covariate
+  time0 &lt;- rexp(n, 10) # time at enrollment
+  time &lt;- rexp(n, exp(1 + x)) # time-to-event
+  cens &lt;- runif(n,0,2) # censoring event
+  
+  # y,d,x are only observed if (y &gt; time0)
+  y &lt;- pmin(time,cens)
+  d &lt;- (time &lt;= cens)
+  u &lt;- (y &gt; time0)
+  y &lt;- y[u]
+  d &lt;- d[u]
+  x &lt;- x[u]
+  z &lt;- time0[u]
+  model &lt;- pchreg(Surv(z,y,d) ~ x, breaks = 10)
+
+
+
+
+  # Simulate interval-censored data
+  
+  n &lt;- 1000
+  x &lt;- runif(n) # a covariate
+  time &lt;- 10*rexp(n, exp(1 + x)) # time-to-event
+  time1 &lt;- floor(time)
+  time2 &lt;- ceiling(time)
+  # Individuals are observed at discrete times
+  # I observe (time1,time2) such that time1 &lt;= time &lt;= time2
+  model &lt;- pchreg(Surv(time1,time2, type = "interval2") ~ x, breaks = 10)
+  
+  
+  
+  
+  # Try summary(model), predict(model)
+  # See the documentation of predict.pch for more examples
+</code></pre>
+
+
+</div>

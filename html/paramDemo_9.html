@@ -1,0 +1,288 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>CalcLifeTable</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Calculating a Life Table from Data.
+</h2>
+
+<h3>Description</h3>
+
+<p><code>CalcLifeTable</code> uses non-parametric methods to calculate life tables and confidence intervals.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">CalcLifeTable(ageLast, ageFirst = NULL, departType, dx = 1, 
+                          calcCIs = FALSE, nboot = 1000, alpha = 0.05)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ageLast </code></td>
+<td>
+<p>Numerical vector with the ages at last detection (i.e., death and censoring) (see <code>details</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ageFirst </code></td>
+<td>
+<p>Numerical vector of ages at first detection (i.e., truncation). If <code>NULL</code> then all values are set to 0 (see <code>details</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>departType </code></td>
+<td>
+<p>Character string vector for the type of departure (i.e., last detection), with values “<code>D</code>” for death and “<code>C</code>” for censoring (see <code>details</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dx </code></td>
+<td>
+<p>Age interval size, default set at 1 (see <code>details</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>calcCIs </code></td>
+<td>
+<p>Logical indicating whether confidence intervals should be calculated</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nboot </code></td>
+<td>
+<p>Number of bootstrap iterations</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha </code></td>
+<td>
+<p>Alpha level. Default is 0.05 for 95% CIs</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><b>1) Data structure:</b>
+</p>
+<p><code>CalcLifeTable</code> allows to construct life tables for data that includes the following types of records:
+</p>
+ 
+<ul>
+<li>
+<p><b>Uncensored</b>: individuals with known ages at death;
+</p>
+</li>
+<li>
+<p><b>right-censored</b>: individuals last seen alive;
+</p>
+</li>
+<li>
+<p><b>left-truncated</b>: individuals born before the start of the study and are truncated at the age of entry. 
+</p>
+</li>
+</ul>
+<p>The data required are the ages at last detection (i.e., <em>uncensored</em> or <em>right-censored</em>) passed through argument “<code>ageLast</code>”, the type of departure via argument “<code>departType</code>”, which takes two values, namely “<code>D</code>” for death, and “<code>C</code>” for censored (i.e., right-censored). 
+</p>
+<p>In addition, if there is <em>left-truncation</em>, it takes the ages at entry to the study by means of argument “<code>ageFirst</code>”. If all the individuals were born during the study, the value of “<code>ageFirst</code>” can be left as <code>NULL</code>, which will make them all equal to 0. 
+</p>
+<p><b>2) Computing life tables</b>
+</p>
+<p>To calculate life tables, the function uses conventional formal demgraphic methods as depicted by Preston <em>et al.</em> (2001). Argument “<code>ageLast</code>” provides a vector of ages at last detection, <code class="reqn">\bold{x}^{\top} = [x_1, x_2, \dots, x_n]</code>, while argument “<code>ageFirst</code>” provides a vector of ages at first detection <code class="reqn">\bold{y}^{\top} = [y_1, y_2, \dots, y_n]</code>. From argument “<code>departType</code>” the function produces an indicator vector for censoring <code class="reqn">\bold{v} = \{v_i\}_{i \in \mathbb{N}_n}</code> where <code class="reqn">v_i = 1</code> if individual <code class="reqn">i</code> is censored and 0 otherwise. 
+</p>
+<p>The function creates a partition of the interval of ages between 0 and <code class="reqn">\max(x)</code>, for age intervals <code class="reqn">[x, x + \Delta x)</code> where <code class="reqn">\Delta x</code> is specified by argument “<code>dx</code>”. As default <code>dx = 1</code>. At each age interval, the function calculates the following variables:
+</p>
+
+<ul>
+<li> <p><code>Nx</code>: which corresponds to number of individuals that entered the interval, but considering the proportion of time they were present within the interval as a function of left-truncation. It is given by
+</p>
+<p style="text-align: center;"><code class="reqn">
+N_x = \sum_{i \in I_x} \lambda_{i,x},
+</code>
+</p>
+
+<p>where <code class="reqn">I_x</code> is the subset of individuals recorded within the interval, and <code class="reqn">\lambda_{i, x}</code> is the proportion of time during the age interval each individual was present in the study. For individuals that entered the study before <code class="reqn">x</code> then <code class="reqn">\lambda_{i,x} = 1</code>, while for those that were truncated within the interval <code class="reqn">\lambda_{i,x} = (x + \Delta x - y_i) / \Delta x</code>. 
+</p>
+</li>
+<li> <p><code>Dx</code>: the number of individuals dying in the interval.
+</p>
+</li>
+<li> <p><code>qx</code>: the age-specific mortality probability, calculated as <code class="reqn">q_x = D_x / N_x</code>. 
+</p>
+</li>
+<li> <p><code>px</code>: the age-specific survival probability, given by <code class="reqn">p_x = 1 - q_x</code>.
+</p>
+</li>
+<li> <p><code>lx</code>: the life table survival calculated as 
+</p>
+<p style="text-align: center;"><code class="reqn">
+l_x = \prod_{j = 0}^{x-1} p_j
+</code>
+</p>
+
+<p>where <code class="reqn">l_0 = 1</code>. 
+</p>
+</li>
+<li> <p><code>ax</code>: Proportion of the interval lived by those that died in the interval, given by
+</p>
+<p style="text-align: center;"><code class="reqn">
+a_x = \frac{\sum_{i\in J_{x}} \delta_{i,x}}{D_x}
+</code>
+</p>
+
+<p>where <code class="reqn">J_{x}</code> is the subset of individuals that died within the interval, and <code class="reqn">\delta_{i,x}</code> is the proportion lived by those individuals from the start of the interval to their deaths, this is <code class="reqn">\delta_{i,x} = (x_i - x) / \Delta x</code>. 
+</p>
+</li>
+<li> <p><code>Lx</code>: The number of individual years lived within the interval, given by
+</p>
+<p style="text-align: center;"><code class="reqn">
+L_x = l_x (1 - a_x q_x)
+</code>
+</p>
+
+</li>
+<li> <p><code>Tx</code>: The total number of individual years lived after age <code class="reqn">x</code>, given by <code class="reqn">T_x = \sum_{j = x}^{\infty} L_j \Delta x</code>
+</p>
+</li>
+<li> <p><code>ex</code>: the remaining life expectancy at the beginning of each age interval, calculated as <code class="reqn">e_x = T_x / l_x</code>.
+</p>
+</li>
+</ul>
+<p><b>3) Calculating confidence intervals</b>
+If argument “<code>calcCIs</code>” is set to <code>TRUE</code>, the function uses a non-parametric bootstrap by sampling with replacement the data. Argument <code>nboot</code> specifies the number of bootstrap steps, with default <code>nboot = 2000</code>. From each re-sampled dataset, it uses function <code>CalcLifeTable</code> to construct the corresponding life table and stores the values of $l_x$, $q_x$, $p_x$, and $e_x$ from each iteration. From these, it calculates quantiles at the given alpha level. 
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>CalcLifeTable</code> returns an object of class “<code>paramDemoLT</code>” with output consisting of a list with the life table and, if indicated by the user, with the confidence interval information. The life table in matrix format includes the following columns:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>Ages </code></td>
+<td>
+<p>Ages with increments given by <code>dx</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Nx </code></td>
+<td>
+<p>Number of individuals entering the interval, does not need to be an integer since it considers truncation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Dx </code></td>
+<td>
+<p>Number of individuals that died within the age interval</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lx </code></td>
+<td>
+<p>Survival (i.e., cumulative survival)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>px </code></td>
+<td>
+<p>Age-specific survival probability</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>qx </code></td>
+<td>
+<p>Age-specific mortality probability</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Lx </code></td>
+<td>
+<p>Number of individual years lived within the interval</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Tx </code></td>
+<td>
+<p>Number of individual years lived after age x</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ex </code></td>
+<td>
+<p>Remaining life expectancy at each age</p>
+</td>
+</tr>
+</table>
+<p>If argument <code>calcCIs = TRUE</code>, the function also returns a list containing the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>lx </code></td>
+<td>
+<p>Matrix with Ages and mean and upper and lower CIs for the life table survival</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>qx </code></td>
+<td>
+<p>Matrix with Ages and mean and upper and lower CIs for the age-specific mortality probability</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>px </code></td>
+<td>
+<p>Matrix with Ages and mean and upper and lower CIs for the age-specific survival probability</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ex </code></td>
+<td>
+<p>Matrix with Ages and mean and upper and lower CIs for the remaining life expectancy</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Settings </code></td>
+<td>
+<p>Numerical vector including whether CIs were calculated, the number of bootstrap iterations, “<code>nboot</code>” and the alpha level “<code>alpha</code>”</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Fernando Colchero <a href="mailto:fernando_colchero@eva.mpg.de">fernando_colchero@eva.mpg.de</a></p>
+
+
+<h3>References</h3>
+
+<p>Preston, S.H., Heuveline, P. and Guillot, M. (2001) Demography: Measuring and Modeling Population Processes. Blackwell, Oxford.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>CalcProductLimitEst</code> to calculate product limit estimators.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Simulate age at death data from Gompertz model:
+ages &lt;- SampleRandAge(n = 100, theta = c(b0 = -5, b1 = 0.1))
+
+# Calculate life table:
+lt &lt;- CalcLifeTable(ageLast = ages, departType = rep("D", 100))
+
+# Calculate life table with 95% CIs:
+ltCIs &lt;- CalcLifeTable(ageLast = ages, departType = rep("D", 100), 
+                       calcCIs = TRUE, nboot = 100)
+
+</code></pre>
+
+
+</div>

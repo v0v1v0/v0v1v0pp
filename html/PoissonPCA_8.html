@@ -1,0 +1,219 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Poisson_Corrected_PCA</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>PCA with Poisson measurement error
+
+</h2>
+
+<h3>Description</h3>
+
+<p>Estimates the principal
+components of the latent Poisson means (possibly with transformation) of
+high-dimensional data with independent Poisson measurement error.
+
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">Poisson_Corrected_PCA(X,k=dim(X)[2]-1,transformation=NULL,seqdepth=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>Matrix or data frame of count variables</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Number of principal components to calculate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transformation</code></td>
+<td>
+<p>For estimating the principal components of a
+transformation of the Poisson mean.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seqdepth</code></td>
+<td>
+<p>Indicates what sort of sequencing depth correction
+should be used (if any).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The options for the transformation parameter are:
+</p>
+<p>NULL or "linear" - these perform no transformation.
+</p>
+<p>"log" - this performs a logarithmic transformation
+</p>
+<p>a list of the following functions:
+</p>
+<p>f(x) - evaluates the function
+deriv(x) - evaluates the derivative of the function
+solvefunction(target) - evaluates the inverse of the function
+g(x) - an estimator for f(lambda) from a Poisson observation x
+with mean lambda
+CVar(x) - an estimator for the conditional variance of g(x)
+conditional on lambda from the observed value x
+</p>
+<p>the function polynomial_transformation creates such a list in the
+case where f is a polynomial using unbiassed estimators for g and
+CVar. The function makelogtransformation creates an estimator for
+the logarithmic transformation. The "log" option uses this function
+with parameters a=3 and N=4, which from experiments appear to
+produce reasonable results in most situations.
+</p>
+<p>The options for the seqdepth parameter are:
+</p>
+<p>FALSE - indicating no sequencing depth correction
+</p>
+<p>TRUE - indicating standard sequencing depth correction for linear
+PCA
+</p>
+<p>"minvar" - uses the minimum covariance estimator for the corrected
+variance. This subtracts the largest constant from all
+entries of the matrix, such that the matrix is still
+non-negative definite.	     
+</p>
+<p>"compositional" - uses the best compositional variance approximation
+to the estimated covariance matrix.
+</p>
+<p>The package estimates latent principal components using the methods
+in http://arxiv.org/abs/1904.11745
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of type "princomp" and "transformedprincomp" that has the
+following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>sdev</code></td>
+<td>
+<p>The standard deviation associated to each principal component</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loadings</code></td>
+<td>
+<p>The principal component vectors</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>The mean of the transformed data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>A vector of ones of length n</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.obs</code></td>
+<td>
+<p>The number of observations</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scores</code></td>
+<td>
+<p>The principal scores. For the linear transformation,
+these are just the projection of the data onto the principal component
+space. For transformed principal components, these use a combination
+of likelihood and mean squared error.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>means</code></td>
+<td>
+<p>The corresponding estimated untransformed Poisson
+means. This provides a useful diagnostic of the performance in
+simulation studies. These means should be closer to the true Lambda
+than the original X data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>variance</code></td>
+<td>
+<p>The corrected covariance matrix for the transformed
+latent Sigma.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>non_compositional_variance</code></td>
+<td>
+<p>The corrected covariance matrix
+without sequencing depth correction.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>The function call used</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Toby Kenney <a href="mailto:tkenney@mathstat.dal.ca">tkenney@mathstat.dal.ca</a> and Tianshu Huang </p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+set.seed(12345)
+n&lt;-20  #20 observations
+p&lt;-5   #5 dimensions
+r&lt;-2   #rank 2
+
+mean&lt;-10*c(1,3,2,1,1)
+
+Z&lt;-rnorm(n*r)
+dim(Z)&lt;-c(n,r)
+U&lt;-rnorm(p*r)
+dim(U)&lt;-c(r,p)
+
+Latent&lt;-Z%*%U+rep(1,n)%*%t(mean)
+
+X&lt;-rpois(n*p,as.vector(Latent))
+dim(X)&lt;-c(n,p)
+
+Poisson_Corrected_PCA(X,k=2,transformation=NULL,seqdepth=FALSE)
+
+seqdepth&lt;-exp(rnorm(n)+2)
+Xseqdep&lt;-rpois(n*p,as.vector(diag(seqdepth)%*%Latent))
+dim(Xseqdep)&lt;-c(n,p)
+
+Poisson_Corrected_PCA(Xseqdep,k=2,transformation=NULL,seqdepth=TRUE)
+
+squaretransform&lt;-polynomial_transformation(c(1,0))
+
+Xexp&lt;-rpois(n*p,as.vector(diag(seqdepth)%*%exp(Latent)))
+
+Poisson_Corrected_PCA(Xseqdep,k=2,transformation="log",seqdepth="minvar")
+
+
+</code></pre>
+
+
+</div>

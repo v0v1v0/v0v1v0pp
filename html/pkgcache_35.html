@@ -1,0 +1,164 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>package_cache</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>A simple package cache</h2>
+
+<h3>Description</h3>
+
+<p>This is an R6 class that implements a concurrency safe package cache.
+</p>
+
+
+<h3>Details</h3>
+
+<p>By default these fields are included for every package:
+</p>
+
+<ul>
+<li> <p><code>fullpath</code> Full package path.
+</p>
+</li>
+<li> <p><code>path</code> Package path, within the repository.
+</p>
+</li>
+<li> <p><code>package</code> Package name.
+</p>
+</li>
+<li> <p><code>url</code> URL it was downloaded from.
+</p>
+</li>
+<li> <p><code>etag</code> ETag for the last download, from the given URL.
+</p>
+</li>
+<li> <p><code>sha256</code> SHA256 hash of the file.
+</p>
+</li>
+</ul>
+<p>Additional fields can be added as needed.
+</p>
+<p>For a simple API to a session-wide instance of this class, see
+<code>pkg_cache_summary()</code> and the other functions listed there.
+</p>
+
+
+<h3>Usage</h3>
+
+<div class="sourceCode"><pre>pc &lt;- package_cache$new(path = NULL)
+
+pc$list()
+pc$find(..., .list = NULL)
+pc$copy_to(..., .list = NULL)
+pc$add(file, path, sha256 = shasum256(file), ..., .list = NULL)
+pc$add_url(url, path, ..., .list = NULL, on_progress = NULL,
+  http_headers = NULL)
+pc$async_add_url(url, path, ..., .list = NULL, on_progress = NULL,
+  http_headers = NULL)
+pc$copy_or_add(target, urls, path, sha256 = NULL, ..., .list = NULL,
+               on_progress = NULL, http_headers = NULL)
+pc$async_copy_or_add(target, urls, path, ..., sha256 = NULL, ...,
+               .list = NULL, on_progress = NULL, http_headers = NULL)
+pc$update_or_add(target, urls, path, ..., .list = NULL,
+               on_progress = NULL, http_headers = NULL)
+pc$async_update_or_add(target, urls, path, ..., .list = NULL,
+               on_progress = NULL, http_headers = NULL)
+pc$delete(..., .list = NULL)
+</pre></div>
+
+
+<h3>Arguments</h3>
+
+
+<ul>
+<li> <p><code>path</code>: For <code>package_cache$new()</code> the location of the cache. For other
+functions the location of the file inside the cache.
+</p>
+</li>
+<li> <p><code>...</code>: Extra attributes to search for. They have to be named.
+</p>
+</li>
+<li> <p><code>.list</code>: Extra attributes to search for, they have to in a named list.
+</p>
+</li>
+<li> <p><code>file</code>:  Path to the file to add.
+</p>
+</li>
+<li> <p><code>url</code>: URL attribute. This is used to update the file, if requested.
+</p>
+</li>
+<li> <p><code>sha256</code>: SHA256 hash of the file.
+</p>
+</li>
+<li> <p><code>on_progress</code>: Callback to create progress bar. Passed to internal
+function <code>http_get()</code>.
+</p>
+</li>
+<li> <p><code>target</code>: Path to copy the (first) to hit to.
+</p>
+</li>
+<li> <p><code>urls</code>: Character vector or URLs to try to download the file from.
+</p>
+</li>
+<li> <p><code>http_headers</code>: HTTP headers to add to all HTTP queries.
+</p>
+</li>
+</ul>
+<h3>Details</h3>
+
+<p><code>package_cache$new()</code> attaches to the cache at <code>path</code>. (By default
+a platform dependent user level cache directory.) If the cache does
+not exists, it creates it.
+</p>
+<p><code>pc$list()</code> lists all files in the cache, returns a data frame with all the
+default columns, and potentially extra columns as well.
+</p>
+<p><code>pc$find()</code> list all files that match the specified criteria (<code>fullpath</code>,
+<code>path</code>, <code>package</code>, etc.). Custom columns can be searched for as well.
+</p>
+<p><code>pc$copy_to()</code> will copy the first matching file from the cache to
+<code>target</code>. It returns the data frame of <em>all</em> matching records, invisibly.
+If no file matches, it returns an empty (zero-row) data frame.
+</p>
+<p><code>pc$add()</code> adds a file to the cache.
+</p>
+<p><code>pc$add_url()</code> downloads a file and adds it to the cache.
+</p>
+<p><code>pc$async_add_url()</code> is the same, but it is asynchronous.
+</p>
+<p><code>pc$copy_or_add()</code> works like <code>pc$copy_to()</code>, but if the file is not in
+the cache, it tries to download it from one of the specified URLs first.
+</p>
+<p><code>pc$async_copy_or_add()</code> is the same, but asynchronous.
+</p>
+<p><code>pc$update_or_add()</code> is like <code>pc$copy_to_add()</code>, but if the file is in
+the cache it tries to update it from the urls, using the stored ETag to
+avoid unnecessary downloads.
+</p>
+<p><code>pc$async_update_or_add()</code> is the same, but it is asynchronous.
+</p>
+<p><code>pc$delete()</code> deletes the file(s) from the cache.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Although package_cache usually stores packages, it may store
+## arbitrary files, that can be search by metadata
+pc &lt;- package_cache$new(path = tempfile())
+pc$list()
+
+cat("foo\n", file = f1 &lt;- tempfile())
+cat("bar\n", file = f2 &lt;- tempfile())
+pc$add(f1, "/f1")
+pc$add(f2, "/f2")
+pc$list()
+pc$find(path = "/f1")
+pc$copy_to(target = f3 &lt;- tempfile(), path = "/f1")
+readLines(f3)
+</code></pre>
+
+
+</div>

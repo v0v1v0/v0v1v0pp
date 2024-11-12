@@ -1,0 +1,148 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>calculate_kegg_enrichment</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Perform KEGG pathway enrichment analysis</h2>
+
+<h3>Description</h3>
+
+<p>Analyses enrichment of KEGG pathways associated with proteins in the fraction of significant
+proteins compared to all detected proteins. A Fisher's exact test is performed to test
+significance of enrichment.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">calculate_kegg_enrichment(
+  data,
+  protein_id,
+  is_significant,
+  pathway_id = pathway_id,
+  pathway_name = pathway_name,
+  plot = TRUE,
+  plot_cutoff = "adj_pval top10"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a data frame that contains at least the input variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>protein_id</code></td>
+<td>
+<p>a character column in the <code>data</code> data frame that contains the protein
+accession numbers.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>is_significant</code></td>
+<td>
+<p>a logical column in the <code>data</code> data frame that indicates if the
+corresponding protein has a significantly changing peptide. The input data frame may contain
+peptide level information with significance information. The function is able to extract
+protein level information from this.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pathway_id</code></td>
+<td>
+<p>a character column in the <code>data</code> data frame that contains KEGG pathway
+identifiers. These can be obtained from KEGG using <code>fetch_kegg</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pathway_name</code></td>
+<td>
+<p>a character column in the <code>data</code> data frame that contains KEGG pathway
+names. These can be obtained from KEGG using <code>fetch_kegg</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>a logical value indicating whether the result should be plotted or returned as a
+table.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot_cutoff</code></td>
+<td>
+<p>a character value indicating if the plot should contain the top 10 most
+significant proteins (p-value or adjusted p-value), or if a significance cutoff should be used
+to determine the number of GO terms in the plot. This information should be provided with the
+type first followed by the threshold separated by a space. Example are
+<code>plot_cutoff = "adj_pval top10"</code>, <code>plot_cutoff = "pval 0.05"</code> or
+<code>plot_cutoff = "adj_pval 0.01"</code>. The threshold can be chosen freely.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A bar plot displaying negative log10 adjusted p-values for the top 10 enriched pathways.
+Bars are coloured according to the direction of the enrichment. If <code>plot = FALSE</code>, a data
+frame is returned.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Load libraries
+library(dplyr)
+
+set.seed(123) # Makes example reproducible
+
+# Create example data
+kegg_data &lt;- fetch_kegg(species = "eco")
+
+if (!is.null(kegg_data)) { # only proceed if information was retrieved
+  data &lt;- kegg_data %&gt;%
+    group_by(uniprot_id) %&gt;%
+    mutate(significant = rep(
+      sample(
+        x = c(TRUE, FALSE),
+        size = 1,
+        replace = TRUE,
+        prob = c(0.2, 0.8)
+      ),
+      n = n()
+    ))
+
+  # Plot KEGG enrichment
+  calculate_kegg_enrichment(
+    data,
+    protein_id = uniprot_id,
+    is_significant = significant,
+    pathway_id = pathway_id,
+    pathway_name = pathway_name,
+    plot = TRUE,
+    plot_cutoff = "pval 0.05"
+  )
+
+  # Calculate KEGG enrichment
+  kegg &lt;- calculate_kegg_enrichment(
+    data,
+    protein_id = uniprot_id,
+    is_significant = significant,
+    pathway_id = pathway_id,
+    pathway_name = pathway_name,
+    plot = FALSE
+  )
+
+  head(kegg, n = 10)
+}
+
+</code></pre>
+
+
+</div>

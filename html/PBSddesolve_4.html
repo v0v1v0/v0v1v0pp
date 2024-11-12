@@ -1,0 +1,206 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>dde</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Solve Delay Differential Equations</h2>
+
+<h3>Description</h3>
+
+<p>A solver for systems of delay differential equations based on numerical routines from
+C source code <code>solv95</code> by 
+<a href="https://www.maths.ed.ac.uk/~swood34/simon/dde.html">Simon Wood</a>.
+This solver is also capable of solving systems of ordinary differential equations. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">dde(y, times, func, parms=NULL, switchfunc=NULL, mapfunc=NULL, 
+   tol=1e-08, dt=0.1, hbsize=10000) 
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p><code>numeric</code> – vector of initial values of the DDE system.
+The size of the supplied vector determines the number of variables in the system.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>times</code></td>
+<td>
+<p><code>numeric</code> – vector of specific times to solve. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>func</code></td>
+<td>
+<p><code>function</code> – a user-supplied function that computes the gradients in 
+the DDE system at time <code>t</code>.
+The function must be defined using the arguments: <code>(t,y)</code> or <code>(t,y,parms)</code>,
+where <code>t</code> is the current time in the integration, <code>y</code> is a vector of the 
+current estimated variables of the DDE system, and <code>parms</code> is any R object 
+representing additional parameters (optional).<br>
+The argument <code>func</code> must return one of the two following return types:<br>
+1) a vector containing the calculated gradients for each variable; or <br>
+2) a list with two elements - the first a vector of calculated gradients, the second 
+a vector (possibly named) of values for a variable specified by the user at each 
+point in the integration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parms</code></td>
+<td>
+<p><code>list</code> – any constant parameters to pass to <code>func</code>,
+<code>switchfunc</code>, and <code>mapfunc</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>switchfunc</code></td>
+<td>
+<p><code>function</code> – an optional function that is used to manipulate
+state values at given times. 
+The switch function takes the arguments <code>(t,y)</code> or <code>(t,y,parms)</code> and must 
+return a numeric vector. 
+The size of the vector determines the number of switches used by the model. 
+As values of <code>switchfunc</code> pass through zero (from positive to negative), a 
+corresponding call to <code>mapfunc</code> is made, which can then modify any state value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mapfunc</code></td>
+<td>
+<p><code>function</code> – if <code>switchfunc</code> is defined, then a map function
+must also be supplied with arguments <code>(t, y, switch_id)</code> or 
+<code>t, y, switch_id, parms)</code>, where <code>t</code> is the time, <code>y</code> are the current
+state values, <code>switch_id</code> is the index of the triggered switch, and <code>parms</code>
+are additional constant parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p><code>numeric</code> – maximum error tolerated at each time step (as a proportion
+of the state variable concerned).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dt</code></td>
+<td>
+<p><code>numeric</code> – maximum initial time step.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hbsize</code></td>
+<td>
+<p><code>numeric</code> – history buffer size required for solving DDEs.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Please see the included demos (<code>'blowflies'</code>, <code>'cooling'</code>, <code>'icecream'</code>,
+<code>'lorenz'</code>) for examples of how to use <code>dde</code>.<br><br>
+The demos can be run two ways:
+</p>
+
+<ol>
+<li>
+<p> Using the package <code>utils</code>, run the command:<br><code>demo(icecream, package="PBSddesolve", ask=FALSE)</code>
+</p>
+</li>
+<li>
+<p> Using the package <code>PBSmodelling</code>, run the commands:<br><code>require(PBSmodelling); runDemos()</code>
+</p>
+</li>
+</ol>
+<p>The latter produces a GUI that shows all demos available from locally installed packages.
+Choose <code>PBSddesolve</code>. 
+Note that the examples are run in the temporary working environment <code>.PBSddeEnv</code>.
+</p>
+<p>The user supplied function <code>func</code> can access past values (lags) of <code>y</code> by
+calling the <code>pastvalue</code> function. 
+Past gradients are accessible by the <code>pastgradient</code> function.
+These functions can only be called from <code>func</code> and can only be passed values of
+<code>t</code> greater or equal to the start time, but less than the current time of the 
+integration point.
+For example, calling <code>pastvalue(t)</code> is not allowed, since these values are the
+current values which are passed in as <code>y</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data frame with one column for <code>t</code>, a column for every variable in the system,
+and a column for every additional value that may (or may not) have been returned by
+<code>func</code> in the second element of the list.
+</p>
+<p>If the initial <code>y</code> values parameter was named, then the solved values column will
+use the same names. Otherwise <code>y1</code>, <code>y2</code>, ... will be used.
+</p>
+<p>If <code>func</code> returned a list, with a named vector as the second element, then those
+names will be used as the column names. 
+If the vector was not named, then <code>extra1</code>, <code>extra2</code>, ... will be used.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p><a href="mailto:alex@mofo.ca">Alex Couture-Beil</a> – Software Engineer, Earthly Technologies, Victoria BC<br></p>
+<p>Maintainer: <a href="mailto:rowan.haigh@dfo-mpo.gc.ca">Rowan Haigh</a>, Program Head – Offshore Rockfish<br>
+Pacific Biological Station (PBS), Fisheries &amp; Oceans Canada (DFO), Nanaimo BC<br><em>locus opus</em>: Offsite, Vancouver BC<br>
+Last modified <code>Rd: 2024-01-04</code>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pastvalue</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">##################################################
+## This is just a single example of using dde.
+## For more examples see demo(package="PBSddesolve")
+## the demos require the package PBSmodelling
+##################################################
+
+require(PBSddesolve)
+local(env=.PBSddeEnv, expr={
+  #create a func to return dde gradient
+  yprime &lt;- function(t,y,parms) {
+    if (t &lt; parms$tau)
+      lag &lt;- parms$initial
+    else
+      lag &lt;- pastvalue(t - parms$tau)
+    y1 &lt;- parms$a * y[1] - (y[1]^3/3) + parms$m * (lag[1] - y[1])
+    y2 &lt;- y[1] - y[2]
+    return(c(y1,y2))
+  }
+
+  #define initial values and parameters
+  yinit &lt;- c(1,1)
+  parms &lt;- list(tau=3, a=2, m=-10, initial=yinit)
+
+  # solve the dde system
+  yout &lt;- dde(y=yinit,times=seq(0,30,0.1),func=yprime,parms=parms)
+
+  # and display the results
+  plot(yout$time, yout$y1, type="l", col="red", xlab="t", ylab="y", 
+    ylim=c(min(yout$y1, yout$y2), max(yout$y1, yout$y2)))
+  lines(yout$time, yout$y2, col="blue")
+  legend("topleft", legend = c("y1", "y2"),lwd=2, lty = 1, 
+    xjust = 1, yjust = 1, col = c("red","blue"))
+})
+</code></pre>
+
+
+</div>

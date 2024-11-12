@@ -1,0 +1,156 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>aftGL</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Function to Fit the Penalized Parametric Bayesian Accelerated Failure Time Model with Group Lasso Prior
+</h2>
+
+<h3>Description</h3>
+
+<p>Penalized parametric Bayesian accelerated failure time model with group lasso prior is implemented to analyze survival data with high-dimensional covariates.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">aftGL(Y, data, grpInx, hyperParams, startValues, mcmc)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+
+<p>a data.frame containing univariate time-to-event outcomes from <code>n</code> subjects. It is of dimension <code class="reqn">n\times 2</code>: the columns correspond to <code class="reqn">y</code>, <code class="reqn">\delta</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+
+<p>a data.frame containing <code class="reqn">p</code> covariate vectors from <code>n</code> subjects. It is of dimension <code class="reqn">n\times p</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grpInx</code></td>
+<td>
+
+<p>a vector of <code class="reqn">p</code> group indicator for each variable
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hyperParams</code></td>
+<td>
+
+<p>a list containing hyperparameter values in hierarchical models:
+(<code>nu0</code>, <code>sigSq0</code>): hyperparameters for the prior of <code class="reqn">\sigma^2</code>; (<code>alpha0</code>, <code>h0</code>): hyperparameters for the prior of <code class="reqn">\alpha</code>; (<code>rLam</code>, <code>deltaLam</code>): hyperparameters for the prior of <code class="reqn">\lambda^2</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>startValues</code></td>
+<td>
+
+<p>a list containing starting values for model parameters. See Examples below.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mcmc</code></td>
+<td>
+
+<p>a list containing variables required for MCMC sampling. Components include,
+<code>numReps</code>, total number of scans; <code>thin</code>, extent of thinning; <code>burninPerc</code>, the proportion of burn-in. See Examples below.
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>aftGL</code> returns an object of class <code>aftGL</code>. <br></p>
+
+
+<h3>Author(s)</h3>
+
+<p>Kyu Ha Lee, Sounak Chakraborty, (Tony) Jianguo Sun
+</p>
+
+
+<h3>References</h3>
+
+<p>Lee, K. H., Chakraborty, S., and Sun, J. (2017). 
+Variable Selection for High-Dimensional Genomic Data with Censored Outcomes Using Group Lasso Prior. <em>Computational Statistics and Data Analysis</em>, Volume 112, pages 1-13.<br></p>
+
+
+<h3>See Also</h3>
+
+<p><code>VS</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# generate some survival data	
+	set.seed(204542)
+	
+	p = 20
+	n = 200
+	logHR.true &lt;- c(rep(4, 10), rep(0, (p-10)))	
+
+	CovX&lt;-matrix(0,p,p)
+
+	for(i in 1:10){
+		for(j in 1:10){
+			CovX[i,j] &lt;- 0.3^abs(i-j)
+			}
+		}
+		
+	diag(CovX) &lt;- 1
+	
+	data	&lt;- apply(rmvnorm(n, sigma=CovX, method="chol"), 2, scale)	
+	pred &lt;- as.vector(exp(rowSums(scale(data, center = FALSE, scale = 1/logHR.true))))
+	
+	t 		&lt;- rexp(n, rate = pred)
+	cen		&lt;- runif(n, 0, 8)      
+	tcen 		&lt;- pmin(t, cen)
+	di 		&lt;- as.numeric(t &lt;= cen)
+	
+	n &lt;- dim(data)[1]
+	p &lt;- dim(data)[2]
+
+	Y &lt;- data.frame(cbind(tcen, di))
+	colnames(Y) &lt;- c("time", "event")
+
+	grpInx &lt;- 1:p
+	K &lt;- length(unique(grpInx))
+	
+	############################
+	hyperParams &lt;- list(nu0=3, sigSq0=1, alpha0=0, h0=10^6, rLam=0.5, deltaLam=2)
+
+	############################
+	startValues &lt;- list(alpha=0.1, beta=rep(1,p), sigSq=1, tauSq=rep(0.4,p), lambdaSq=5,
+	 				w=log(tcen))
+
+	############################	
+	mcmc &lt;- list(numReps=100, thin=1, burninPerc=0.5)
+	
+	############################
+	fit &lt;- aftGL(Y, data, grpInx, hyperParams, startValues, mcmc)
+## Not run:   
+vs &lt;- VS(fit, X=data)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

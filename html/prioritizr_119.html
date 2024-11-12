@@ -1,0 +1,211 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>add_relative_targets</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add relative targets</h2>
+
+<h3>Description</h3>
+
+<p>Set targets as a proportion (between 0 and 1) of the maximum level of
+representation of features in the study area. Please note that proportions
+are scaled according to the features' total abundances in the study area
+(including any locked out planning units, or planning units with <code>NA</code>
+cost values) using the <code>feature_abundances()</code> function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">add_relative_targets(x, targets)
+
+## S4 method for signature 'ConservationProblem,numeric'
+add_relative_targets(x, targets)
+
+## S4 method for signature 'ConservationProblem,matrix'
+add_relative_targets(x, targets)
+
+## S4 method for signature 'ConservationProblem,character'
+add_relative_targets(x, targets)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>problem()</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>targets</code></td>
+<td>
+<p>Object that specifies the targets for each feature.
+See the Targets format section for more information.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Targets are used to specify the minimum amount or proportion of a
+feature's distribution that needs to be protected. Most conservation
+planning problems require targets with the exception of the maximum cover
+(see <code>add_max_cover_objective()</code>) and maximum utility
+(see <code>add_max_utility_objective()</code>) problems. Attempting to solve
+problems with objectives that require targets without specifying targets
+will throw an error.
+</p>
+<p>For problems associated with multiple management zones,
+<code>add_absolute_targets()</code> can
+be used to set targets that each pertain to a single feature and a single
+zone. To set targets that can be met through allocating different
+planning units to multiple zones, see the <code>add_manual_targets()</code>
+function. An example of a target that could be met through allocations
+to multiple zones might be where each management zone is expected to
+result in a different amount of a feature and the target requires that
+the total amount of the feature in all zones must exceed a certain
+threshold. In other words, the target does not require that any single
+zone secure a specific amount of the feature, but the total amount held
+in all zones must secure a specific amount. Thus the target could,
+potentially, be met through allocating all planning units to any specific
+management zone, or through allocating the planning units to different
+combinations of management zones.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An updated <code>problem()</code> object with the targets added to it.
+</p>
+
+
+<h3>Targets format</h3>
+
+<p>The <code>targets</code> for a problem can be specified using the following formats.
+</p>
+
+<dl>
+<dt>
+<code>targets</code> as a <code>numeric</code> vector</dt>
+<dd>
+<p>containing target values for each
+feature.
+Additionally, for convenience, this format can be a single
+value to assign the same target to each feature. Note that this format
+cannot be used to specify targets for problems with multiple zones.</p>
+</dd>
+<dt>
+<code>targets</code> as a <code>matrix</code> object</dt>
+<dd>
+<p>containing a target for each feature
+in each zone.
+Here, each row corresponds to a different feature in argument to
+<code>x</code>, each column corresponds to a different zone in argument to
+<code>x</code>, and each cell contains the target value for a given feature
+that the solution needs to secure in a given zone.</p>
+</dd>
+<dt>
+<code>targets</code> as a <code>character</code> vector</dt>
+<dd>
+<p>containing the column name(s) in the
+feature data associated with the argument to <code>x</code> that
+contain targets. This format can only be used when the
+feature data associated with <code>x</code> is a <code>sf::st_sf()</code> or <code>data.frame</code>.
+For problems that contain a single zone, the argument to <code>targets</code> must
+contain a single column name. Otherwise, for problems that
+contain multiple zones, the argument to <code>targets</code> must
+contain a column name for each zone.</p>
+</dd>
+</dl>
+<h3>See Also</h3>
+
+<p>See targets for an overview of all functions for adding targets.
+</p>
+<p>Other targets: 
+<code>add_absolute_targets()</code>,
+<code>add_loglinear_targets()</code>,
+<code>add_manual_targets()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# set seed for reproducibility
+set.seed(500)
+sim_pu_raster &lt;- get_sim_pu_raster()
+sim_features &lt;- get_sim_features()
+sim_zones_pu_raster &lt;- get_sim_zones_pu_raster()
+sim_zones_features &lt;- get_sim_zones_features()
+
+# create base problem
+p &lt;-
+  problem(sim_pu_raster, sim_features) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# create problem with 10% targets
+p1 &lt;- p %&gt;% add_relative_targets(0.1)
+
+# create problem with varying targets for each feature
+targets &lt;- c(0.1, 0.2, 0.3, 0.4, 0.5)
+p2 &lt;- p %&gt;% add_relative_targets(targets)
+
+# solve problem
+s3 &lt;- c(solve(p1), solve(p2))
+names(s3) &lt;- c("10% targets", "varying targets")
+
+# plot solution
+plot(s3, main = , axes = FALSE)
+
+# create a problem with multiple management zones
+p4 &lt;-
+  problem(sim_zones_pu_raster, sim_zones_features) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# create a problem with targets that specify an equal amount of each feature
+# to be represented in each zone
+p4_targets &lt;- matrix(
+  0.1, nrow = 5, ncol = 3, dimnames = list(
+    feature_names(sim_zones_features), zone_names(sim_zones_features)
+  )
+)
+print(p4_targets)
+
+p5 &lt;- p4 %&gt;% add_relative_targets(p4_targets)
+
+# solve problem
+s5 &lt;- solve(p5)
+
+# plot solution (pixel values correspond to zone identifiers)
+plot(category_layer(s5), main = "equal targets")
+
+# create a problem with targets that require a varying amount of each
+# feature to be represented in each zone
+p6_targets &lt;- matrix(
+  runif(15, 0.01, 0.2), nrow = 5, ncol = 3, dimnames = list(
+    feature_names(sim_zones_features), zone_names(sim_zones_features)
+  )
+)
+print(p6_targets)
+
+p6 &lt;- p4 %&gt;% add_relative_targets(p6_targets)
+
+# solve problem
+s6 &lt;- solve(p6)
+
+# plot solution (pixel values correspond to zone identifiers)
+plot(category_layer(s6), main = "varying targets")
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

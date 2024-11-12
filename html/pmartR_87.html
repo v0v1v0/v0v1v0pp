@@ -1,0 +1,308 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>normalize_global</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate Normalization Parameters and Apply Global Normalization</h2>
+
+<h3>Description</h3>
+
+<p>Calculates normalization parameters based on the data using the specified
+subset and normalization functions with option to apply the normalization to
+the data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">normalize_global(
+  omicsData,
+  subset_fn,
+  norm_fn,
+  params = NULL,
+  apply_norm = FALSE,
+  backtransform = FALSE,
+  min_prop = NULL,
+  check.names = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>omicsData</code></td>
+<td>
+<p>an object of the class 'pepData', 'proData', 'metabData',
+'lipidData', 'nmrData', created by <code>as.pepData</code>,
+<code>as.proData</code>, <code>as.metabData</code>,
+<code>as.lipidData</code>, <code>as.nmrData</code>, respectively. The
+function <code>group_designation</code> must have been run on omicsData to
+use several of the subset functions (i.e. rip and ppp_rip).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset_fn</code></td>
+<td>
+<p>character string indicating the subset function to use for
+normalization. See details for the current offerings.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>norm_fn</code></td>
+<td>
+<p>character string indicating the normalization function to use
+for normalization. See details for the current offerings.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params</code></td>
+<td>
+<p>additional arguments passed to the specified subset function.
+See details for parameter specification and default values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>apply_norm</code></td>
+<td>
+<p>logical argument indicating if the normalization should be
+applied to the data. Defaults to FALSE. If TRUE, the normalization is
+applied to the data and an S3 object of the same class as <code>omicsData</code>
+(e.g. 'pepData') with normalized values in <code>e_data</code> is returned. If
+FALSE, the normalization is not applied to the data and an S3 object of
+class 'normRes' is returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>backtransform</code></td>
+<td>
+<p>logical argument indicating if parameters for back
+transforming the data, after normalization, should be calculated. Defaults
+to FALSE. If TRUE, the parameters for back transforming the data after
+normalization will be calculated, and subsequently included in the data
+normalization if <code>apply_norm</code> is TRUE. See the details section for an 
+explanation of how these factors are calculated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_prop</code></td>
+<td>
+<p>numeric threshold between 0 and 1 giving the minimum value
+for the proportion of biomolecules subset (rows of <code>e_data</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>check.names</code></td>
+<td>
+<p>deprecated</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Below are details for specifying function and parameter options.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If apply_norm is FALSE, an S3 object of type 'normRes' is returned.
+This object contains a list with: subset method, normalization method,
+normalization parameters, number of biomolecules used in normalization, and
+proportion of biomolecules used in normalization. plot() and summary() methods
+are available for this object. If apply_norm is TRUE, then the normalized
+data is returned in an object of the appropriate S3 class (e.g. pepData).
+</p>
+
+
+<h3>Subset Functions</h3>
+
+<p>Specifying a subset function indicates the subset
+of biomolecules (rows of <code>e_data</code>) that should be used for computing
+normalization factors. The following are valid options: "all", "los",
+"ppp", "complete", "rip", and "ppp_rip". The option "all" is the subset
+that includes all biomolecules (i.e. no subsetting is done). The option 
+"los" identifies the subset of the biomolecules associated with the top 
+<code>L</code> order statistics, where <code>L</code> is a proportion between 0 and 1.
+Specifically, the biomolecules falling within the top <code>L</code> proportion of highest
+absolute abundance are retained for each sample, and the union of these
+biomolecules is taken as the subset identified (Wang et al., 2006). The option
+"ppp" (originally stands for percentage of peptides present) identifies the
+subset of biomolecules that are present/non-missing for a minimum
+<code>proportion</code> of samples (Karpievitch et al., 2009; Kultima et al.,
+2009). The option "complete" retains molecules with no missing data across
+all samples, equivalent to "ppp" with proportion = 1. The option "rip"
+identifies biomolecules with complete data that have a p-value greater than a
+defined threshold <code>alpha</code> (common values include 0.1 or 0.25) when
+subjected to a Kruskal-Wallis test based (non-parametric one-way ANOVA) on
+group membership (Webb-Robertson et al., 2011). The option "ppp_rip" is
+equivalent to "rip" however rather than requiring biomolecules with complete
+data, biomolecules with at least a <code>proportion</code> of non-missing values are
+subject to the Kruskal-Wallis test.
+</p>
+
+
+<h3>Normalization Functions</h3>
+
+<p>Specifying a normalization function
+indicates how normalization scale and location parameters should be
+calculated. The following are valid options: "median", "mean", "zscore",
+and "mad". For median centering, the location estimates are the sample-wise
+medians of the subset data and there are no scale estimates. For mean
+centering, the location estimates are the sample-wise means of the subset
+data and there are no scale estimates. For z-score transformation, the
+location estimates are the subset means for each sample and the scale
+estimates are the subset standard deviations for each sample. For median
+absolute deviation (MAD) transformation, the location estimates are the
+subset medians for each sample and the scale estimates are the subset MADs
+for each sample.
+</p>
+
+
+<h3>Specifying Subset Parameters Using the <code>params</code> Argument</h3>
+
+<p>Parameters for the chosen subset function should be specified in a list
+with the function specification followed by an equal sign and the desired
+parameter value. For example, if LOS with 0.1 is desired, one should use
+<code>params = list(los = 0.1)</code>. ppp_rip can be specified in one of two
+ways: specify the parameters with each separate function or combine using a
+nested list (e.g. <code>params = list(ppp_rip = list(ppp = 0.5, rip =
+  0.2))</code>).
+</p>
+<p>The following functions have parameters that can be specified:
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;"> los </td>
+<td style="text-align: left;"> a value between 0 and 1 indicating the top
+  proportion of order statistics. Defaults to 0.05 if unspecified. </td>
+</tr>
+<tr>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;">
+  </td>
+</tr>
+<tr>
+<td style="text-align: left;"> ppp </td>
+<td style="text-align: left;"> a value between 0 and 1 specifying the proportion of samples
+  that must have non-missing values for a biomolecule to be retained. Defaults to
+  0.5 if unspecified. </td>
+</tr>
+<tr>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> rip </td>
+<td style="text-align: left;"> a value between 0 and 1
+  specifying the p-value threshold for determining rank invariance. Defaults
+  to 0.2 if unspecified. </td>
+</tr>
+<tr>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> ppp_rip </td>
+<td style="text-align: left;"> two values corresponding
+  to the RIP and PPP parameters above. Defaults to 0.5 and 0.2, respectively.
+  </td>
+</tr>
+<tr>
+<td style="text-align: left;"> </td>
+</tr>
+</table>
+<h3>Backtransform</h3>
+
+<p>The purpose of back transforming data is to ensure
+values are on a scale similar to their raw values before normaliztion. The
+following values are calculated and/or applied for backtransformation
+purposes: </p>
+
+<table>
+<tr>
+<td style="text-align: left;"> <code>median</code> </td>
+<td style="text-align: left;"> scale is NULL and location
+  parameter is a global median across all samples </td>
+</tr>
+<tr>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> <code>mean</code>
+  </td>
+<td style="text-align: left;"> scale is NULL and location parameter is a global median across all
+  samples </td>
+</tr>
+<tr>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> <code>zscore</code> </td>
+<td style="text-align: left;"> scale is pooled standard deviation
+  and location is global mean across all samples </td>
+</tr>
+<tr>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;"> <code>mad</code> </td>
+<td style="text-align: left;">
+  scale is pooled median absolute deviation and location is global median
+  across all samples </td>
+</tr>
+<tr>
+<td style="text-align: left;"> </td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Lisa Bramer
+</p>
+
+
+<h3>References</h3>
+
+<p>Webb-Robertson BJ, Matzke MM, Jacobs JM, Pounds JG, Waters KM. A
+statistical selection strategy for normalization procedures in LC-MS
+proteomics experiments through dataset-dependent ranking of normalization
+scaling factors. Proteomics. 2011;11(24):4736-41.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(pmartRdata)
+
+mymetab &lt;- edata_transform(
+  omicsData = metab_object,
+  data_scale = "log2"
+)
+mymetab &lt;- group_designation(
+  omicsData = mymetab,
+  main_effects = "Phenotype"
+)
+norm_object &lt;- normalize_global(
+  omicsData = mymetab,
+  subset_fn = "all",
+  norm_fn = "median"
+)
+norm_data &lt;- normalize_global(
+  omicsData = mymetab,
+  subset_fn = "all",
+  norm_fn = "median",
+  apply_norm = TRUE,
+  backtransform = TRUE
+)
+
+</code></pre>
+
+
+</div>

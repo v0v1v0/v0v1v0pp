@@ -1,0 +1,314 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>optimal.thresholds</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2> Calculate Optimal Thresholds </h2>
+
+<h3>Description</h3>
+
+<p><code>optimal.thresholds</code> calculates optimal thresholds for Presence/Absence data by any of several methods.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">optimal.thresholds(DATA = NULL, threshold = 101, which.model = 1:(ncol(DATA)-2), 
+model.names = NULL, na.rm = FALSE, opt.methods = NULL, req.sens, req.spec, 
+obs.prev = NULL, smoothing = 1, FPC, FNC)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>DATA</code></td>
+<td>
+<p>a matrix or dataframe of observed and predicted values where each row represents one plot and where columns are:
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+	  </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> <code>DATA[,1]</code> </td>
+<td style="text-align: left;"> plot ID </td>
+<td style="text-align: left;"> text</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+	  </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> <code>DATA[,2]</code> </td>
+<td style="text-align: left;"> observed values </td>
+<td style="text-align: left;"> zero-one values</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+	  </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> <code>DATA[,3]</code> </td>
+<td style="text-align: left;"> predicted probabilities from first model </td>
+<td style="text-align: left;"> numeric (between 0 and 1)</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+	  </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> <code>DATA[,4]</code> </td>
+<td style="text-align: left;"> predicted probabilities from second model, etc... </td>
+<td style="text-align: left;">  </td>
+</tr>
+</table>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>cutoff values between zero and one used for translating predicted probabilities into 0 /1 values, defaults to 0.5. It can be a single value between zero and one, a vector of values between zero and one, or a positive integer representing the number of evenly spaced thresholds to calculate. To get reasonably good optimizations, there should be a large number of thresholds.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>which.model</code></td>
+<td>
+<p>a number or vector indicating which models from <code>DATA</code> should be used</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model.names</code></td>
+<td>
+<p> a vector of the names of each model included in <code>DATA</code> to be used as column names</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.rm</code></td>
+<td>
+<p>a logical indicating whether missing values should be removed</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt.methods</code></td>
+<td>
+<p> what methods should be used to optimize thresholds. Given either as a vector of method names or method numbers. Possible values are:
+</p>
+
+<table>
+<tr>
+<td style="text-align: right;">
+  1  </td>
+<td style="text-align: left;"> <code>Default</code>   </td>
+<td style="text-align: left;"> threshold=0.5 </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+  2  </td>
+<td style="text-align: left;"> <code>Sens=Spec</code> </td>
+<td style="text-align: left;"> sensitivity=specificity </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+  3  </td>
+<td style="text-align: left;"> <code>MaxSens+Spec</code> </td>
+<td style="text-align: left;"> maximizes (sensitivity+specificity)/2 </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+  4  </td>
+<td style="text-align: left;"> <code>MaxKappa</code>  </td>
+<td style="text-align: left;"> maximizes Kappa </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+  5  </td>
+<td style="text-align: left;"> <code>MaxPCC</code>    </td>
+<td style="text-align: left;"> maximizes PCC (percent correctly classified) </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+  6  </td>
+<td style="text-align: left;"> <code>PredPrev=Obs</code> </td>
+<td style="text-align: left;"> predicted prevalence=observed prevalence </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+  7  </td>
+<td style="text-align: left;"> <code>ObsPrev</code>   </td>
+<td style="text-align: left;"> threshold=observed prevalence </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+  8  </td>
+<td style="text-align: left;"> <code>MeanProb</code> </td>
+<td style="text-align: left;"> mean predicted probability </td>
+</tr>
+<tr>
+<td style="text-align: right;"> 
+  9  </td>
+<td style="text-align: left;"> <code>MinROCdist</code>
+</td>
+<td style="text-align: left;"> minimizes distance between ROC plot and (0,1)</td>
+</tr>
+<tr>
+<td style="text-align: right;">
+  10 </td>
+<td style="text-align: left;"> <code>ReqSens</code> </td>
+<td style="text-align: left;"> user defined required sensitivity </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+  11 </td>
+<td style="text-align: left;"> <code>ReqSpec</code> </td>
+<td style="text-align: left;"> user defined required specificity </td>
+</tr>
+<tr>
+<td style="text-align: right;">
+  12 </td>
+<td style="text-align: left;"> <code>Cost</code> </td>
+<td style="text-align: left;"> user defined relative costs ratio </td>
+</tr>
+</table>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>req.sens</code></td>
+<td>
+<p> a value between zero and one giving the user defined required sensitivity. Only used if <code>opt.thresholds</code> = <code>TRUE</code>. Note that <code>req.sens</code> = (1-maximum allowable errors for points with positive observations).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>req.spec</code></td>
+<td>
+<p> a value between zero and one giving the user defined required sspecificity. Only used if <code>opt.thresholds</code> = <code>TRUE</code>. Note that <code>req.sens</code> = (1- maximum allowable errors for points with negative observations).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obs.prev</code></td>
+<td>
+<p>observed prevalence for <code>opt.method</code> = <code>"PredPrev=Obs"</code> and <code>"ObsPrev"</code>. Defaults to observed prevalence from <code>DATA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>smoothing</code></td>
+<td>
+<p> smoothing factor for maximizing/minimizing. Only used if <code>opt.thresholds</code> = <code>TRUE</code>. Instead of find the threshold that gives the max/min value, function will average the thresholds of the given number of max/min values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FPC</code></td>
+<td>
+<p> False Positive Costs, or for C/B ratio C = 'net costs of treating nondiseased individuals'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FNC</code></td>
+<td>
+<p> False Negative Costs, or for C/B ratio B = 'net benefits of treating diseased individuals'.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The 'opt.methods' argument is allows the user to choose optimization
+methods.  The methods can be specified by number (<code>opt.methods</code> = <code>1:12</code> or <code>opt.methods</code> = <code>c(1,2,4)</code>) or by name (<code>opt.methods</code> = <code>c("Default","Sens=Spec","MaxKappa")</code>).
+</p>
+<p>There are currently twelve optimization criteria available:
+</p>
+<p><code>"Default"</code> First, the default criteria of setting 'threshold = 0.5'
+</p>
+<p><code>"Sens=Spec"</code> The second criteria for optimizing threshold choice is by finding the threshold where sensitivity equals specificity. In other words, find the threshold where positive observations are just as likely to be wrong as negative observations. 
+</p>
+<p>Note: when threshold is optimized by criteria <code>"Sens=Spec"</code> it is correlated to prevalence, so that rare species are given much lower thresholds than widespread species. As a result, rare species may give the appearance of inflated distribution, if maps are made with thresholds that have been optimized by this method (Manel, 2001).
+</p>
+<p><code>"MaxSens+Spec"</code> The third criteria chooses the threshold that maximizes the sum of sensitivity and specificity. In other words, it is minimizing the mean of the error rate for positive observations and the error rate for negative observations. This is equivalent to maximizing (sensitivity + specificity - 1), otherwise know as the Youden's index, or the True Skill Statistic. Note that while Youden's Index is independent of prevalence, using Youden's index to select a threshold does have an effect on the predicted prevalence, causing the distribution of rare species to be over predicted.
+</p>
+<p><code>"MaxKappa"</code> The forth criteria for optimizing the threshold choice is to find the threshold that gives the maximum value of Kappa. Kappa makes full use of the information in the confusion matrix to asses the improvement over chance prediction.
+</p>
+<p><code>"MaxPCC"</code> The fifth criteria is to maximize the total accuracy (PCC - Percent Correctly Classified).
+</p>
+<p>Note: It may seem like maximizing total accuracy would be the obvious goal, however, there are many problems with using PCC to assess model accuracy. For example, with species with very low prevalence, it is possible to maximize PCC simply by declaring the species a absent at all locations – not a very useful prediction!
+</p>
+<p><code>"PredPrev=Obs"</code> The sixth criteria is to find the threshold where the Predicted prevalence is equal to the Observed prevalence. This is a useful method when preserving prevalence is of prime importance.
+</p>
+<p><code>"ObsPrev"</code> The seventh criteria is an even simpler variation, where you simply set the threshold to the Observed prevalence. It is nearly as good as method six at preserving prevalence and requires no computation.
+</p>
+<p><code>"MeanProb"</code> The eighth criteria also requires no threshold computation. Method eight sets the threshold to the mean probability of occurrence from the model results.
+</p>
+<p><code>"MinROCdist"</code> The ninth criteria is to find the threshold that minimizes the distance between the ROC plot and the upper left corner of the unit square.
+</p>
+<p><code>"ReqSens"</code> The tenth criteria allows the user to set a required sensitivity, and then finds the highest threshold that will meet this requirement. In other words, the user can decide that the model must miss no more than, for example 15 percent of the plots where the species is observed to be present. Therefore they require a sensitivity of at least 0.85. This may be useful if, for example, the goal is to define a management area for a rare species, and they want to be certain that the management area doesn't leave unprotected too many populations.
+</p>
+<p><code>"ReqSpec"</code> The eleventh criteria allows the user to set a required specificity, and then finds the lowest threshold that will meet this requirement. In other words, the user can decide that the model must miss no more than, for example 15 percent of the plots where the species is observed to be absent. Therefore they require a specificity of at least 0.85. This may be useful if, for example, the goal is to determine if a species is threatened, and they want to be certain not to over inflate the population by over declaring true absences as predicted presences.
+</p>
+<p>Note: for <code>"ReqSens"</code> and <code>"ReqSpec"</code>, if your model is poor, and your requirement is too strict, it is possible that the only way to meet it will be by declaring every single plot to be Present (for ReqSens) or Absent (for ReqSpec) – not a very useful method of prediction! Conversely, if the model is good, and the requirement too lax, the resulting thresholds will result in unnecessary levels on inaccuracy. If a threshold exists where sensitivity equals specificity at a value greater than the required accuracy, then the user can raise their required specificity (or sensitivity) without sacrificing sensitivity (or specificity).
+</p>
+<p><code>"Cost"</code> The twelth criteria balances the relative costs of false positive predictions and false negative predictions. A slope is calculated as (FPC/FNC)((1 - prevalence)/prevalence). To determine the threshold, a line of this slope is moved from the top left of the ROC plot, till it first touches the ROC curve.
+</p>
+<p>Note: the criteria <code>"Cost"</code> can also be used for C/B ratio analysis of diagnostic tests. In this case <code>FPC</code> = <code>C</code> (the net costs of treating nondiseased individuals) and <code>FNC</code> = <code>B</code> (the net benafits of treating diseased individuals). For further information on <code>"Cost"</code> see Wilson et. al. (2005) and Cantor et. al. (1999).
+</p>
+<p>For all the criteria that depend on observed prevalence (<code>"PredPrev=Obs"</code>, <code>"ObsPrev"</code> and <code>cost</code>) , the default is to use the observed prevalence from <code>DATA</code>. However, the argument <code>obs.prev</code> can be used to substiture a predetermined value for observed prevalence, for example, the prevalence from a larger dataset.
+</p>
+<p><code>error.threshold.plot</code> is a rough and ready function. It optimizes thresholds simply by calculating a large number of evenly spaced thresholds and looking for the best ones. This is good enough for graphs, but to find the theoretically 'best' thresholds, would require calculating every possible unique threshold (not necessarily evenly spaced!).
+</p>
+<p>Details on <code>smoothing</code> argument: when the statistic being maximized (e.g. Kappa) is relatively flat but erratic, just picking the threshold that gives single maximum value is somewhat arbitrary. <code>smoothing</code> compensates for this by taking an average of the thresholds that give a set number of the highest values (e.g. the 10 highest Kappa's, or the 20 highest Kappa's).
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>DATA</code> is not provided function will return a vector of the possible optimization methods. 
+</p>
+<p>Otherwise, returns a dataframe where:
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+  <code>[,1]</code> </td>
+<td style="text-align: left;"> <code>Method</code> - names of optimization methods </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  <code>[,2]</code> </td>
+<td style="text-align: left;"> optimal thresholds for the first model</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+  <code>[,3]</code> </td>
+<td style="text-align: left;"> optimal thresholds for the second model, etc...</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p> Elizabeth Freeman <a href="mailto:eafreeman@fs.fed.us">eafreeman@fs.fed.us</a> </p>
+
+
+<h3>References</h3>
+
+ 
+<p>S.B. Cantor, C.C. Sun, G. Tortolero-Luna, R. Richards-Kortum, and M. Follen. A comparison of C/B ratios from studies using receiver operating characteristic curve analysis. Journal of Clinical Epidemiology, 52(9):885-892, 1999.
+</p>
+<p>S. Manel, H.C. Williams, and S.J. Ormerod. Evaluating presence-absence models in ecology: the need to account for prevalence. Journal of Applied Ecology, 38:921-931, 2001.
+K.A. Wilson, M.I. Westphal, H.P. Possingham. and J. Elith. Sensitivity of conservation planning to different approaches to using predicted species distribution data. Biological Conservation, 22(1):99-112, 2004.
+</p>
+
+
+<h3>See Also</h3>
+
+ <p>error.threshold.plot, presence.absence.accuracy, roc.plot.calculate, presence.absence.summary </p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(SIM3DATA)
+optimal.thresholds(SIM3DATA)
+</code></pre>
+
+
+</div>

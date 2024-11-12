@@ -1,0 +1,216 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>correct_lip_for_abundance</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Protein abundance correction for LiP-data</h2>
+
+<h3>Description</h3>
+
+<p>Performs the correction of LiP-peptides for changes in protein abundance and
+calculates their significance using a t-test. This function was implemented based
+on the <a href="https://www.bioconductor.org/packages/release/bioc/html/MSstatsLiP.html">MSstatsLiP</a>
+package developed by the Vitek lab.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">correct_lip_for_abundance(
+  lip_data,
+  trp_data,
+  protein_id,
+  grouping,
+  comparison = comparison,
+  diff = diff,
+  n_obs = n_obs,
+  std_error = std_error,
+  p_adj_method = "BH",
+  retain_columns = NULL,
+  method = c("satterthwaite", "no_df_approximation")
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>lip_data</code></td>
+<td>
+<p>a data frame containing at least the input variables. Ideally,
+the result from the <code>calculate_diff_abundance</code> function is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trp_data</code></td>
+<td>
+<p>a data frame containing at least the input variables minus the grouping column. Ideally,
+the result from the <code>calculate_diff_abundance</code> function is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>protein_id</code></td>
+<td>
+<p>a character column in the <code>lip_data</code> and <code>trp_data</code> data frames
+that contains protein identifiers.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grouping</code></td>
+<td>
+<p>a character column in the <code>lip_data</code> data frame that contains precursor or
+peptide identifiers.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>comparison</code></td>
+<td>
+<p>a character column in the <code>lip_data</code> and <code>trp_data</code> data frames
+that contains the comparisons between conditions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>diff</code></td>
+<td>
+<p>a numeric column in the <code>lip_data</code> and <code>trp_data</code> data frames
+that contains log2-fold changes for peptide or protein quantities.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_obs</code></td>
+<td>
+<p>a numeric column in the <code>lip_data</code> and <code>trp_data</code> data frames
+containing the number of observations used to calculate fold changes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>std_error</code></td>
+<td>
+<p>a numeric column in the <code>lip_data</code> and <code>trp_data</code> data frames
+containing the standard error of fold changes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p_adj_method</code></td>
+<td>
+<p>a character value, specifies the p-value correction method. Possible
+methods are c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"). Default
+method is <code>"BH"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>retain_columns</code></td>
+<td>
+<p>a vector indicating if certain columns should be retained from the input
+data frame. Default is not retaining additional columns <code>retain_columns = NULL</code>. Specific
+columns can be retained by providing their names (not in quotations marks, just like other
+column names, but in a vector). Please note that if you retain columns that have multiple
+rows per grouped variable there will be duplicated rows in the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>a character value, specifies the method used to estimate the degrees of freedom.
+Possible methods are c("satterthwaite", "no_df_approximation"). <code>satterthwaite</code> uses the Welch-Satterthwaite
+equation to estimate the pooled degrees of freedom, as described in https://doi.org/10.1016/j.mcpro.2022.100477 and
+implemented in the MSstatsLiP package. This approach respects the number of protein measurements for the degrees of freedom.
+<code>no_df_approximation</code> just takes the number of peptides into account when calculating the degrees of freedom.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a data frame containing corrected differential abundances (<code>adj_diff</code>, adjusted
+standard errors (<code>adj_std_error</code>), degrees of freedom (<code>df</code>), pvalues (<code>pval</code>) and
+adjusted p-values (<code>adj_pval</code>)
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Aaron Fehr
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Load libraries
+
+library(dplyr)
+
+# Load example data and simulate tryptic data by summing up precursors
+
+data &lt;- rapamycin_10uM
+
+data_trp &lt;- data %&gt;%
+  dplyr::group_by(pg_protein_accessions, r_file_name) %&gt;%
+  dplyr::mutate(pg_quantity = sum(fg_quantity)) %&gt;%
+  dplyr::distinct(
+    r_condition,
+    r_file_name,
+    pg_protein_accessions,
+    pg_quantity
+  )
+
+
+# Calculate differential abundances for LiP and Trp data
+
+diff_lip &lt;- data %&gt;%
+  dplyr::mutate(fg_intensity_log2 = log2(fg_quantity)) %&gt;%
+  assign_missingness(
+    sample = r_file_name,
+    condition = r_condition,
+    intensity = fg_intensity_log2,
+    grouping = eg_precursor_id,
+    ref_condition = "control",
+    retain_columns = "pg_protein_accessions"
+  ) %&gt;%
+  calculate_diff_abundance(
+    sample = r_file_name,
+    condition = r_condition,
+    grouping = eg_precursor_id,
+    intensity_log2 = fg_intensity_log2,
+    comparison = comparison,
+    method = "t-test",
+    retain_columns = "pg_protein_accessions"
+  )
+
+
+diff_trp &lt;- data_trp %&gt;%
+  dplyr::mutate(pg_intensity_log2 = log2(pg_quantity)) %&gt;%
+  assign_missingness(
+    sample = r_file_name,
+    condition = r_condition,
+    intensity = pg_intensity_log2,
+    grouping = pg_protein_accessions,
+    ref_condition = "control"
+  ) %&gt;%
+  calculate_diff_abundance(
+    sample = r_file_name,
+    condition = r_condition,
+    grouping = pg_protein_accessions,
+    intensity_log2 = pg_intensity_log2,
+    comparison = comparison,
+    method = "t-test"
+  )
+
+# Correct for abundance changes
+
+corrected &lt;- correct_lip_for_abundance(
+  lip_data = diff_lip,
+  trp_data = diff_trp,
+  protein_id = pg_protein_accessions,
+  grouping = eg_precursor_id,
+  retain_columns = c("missingness"),
+  method = "satterthwaite"
+)
+
+head(corrected, n = 10)
+</code></pre>
+
+
+</div>

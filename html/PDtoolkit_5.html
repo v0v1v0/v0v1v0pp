@@ -1,0 +1,92 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cat.slice</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Slice categorical variable</h2>
+
+<h3>Description</h3>
+
+<p><code>cat.slice</code> implements manual re-coding of character vector values for a given mapping scheme.
+This procedure is one of the helper functions which are handy for the model monitoring phase
+(i.e. after model implementation).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cat.slice(x, mapping, sc = NA, sc.r = "SC")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Character vector to be re-coded.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mapping</code></td>
+<td>
+<p>Data frame with compulsory columns: <code>x.orig</code> and <code>x.mapp</code> which represent the mapping
+scheme. Column <code>x.orig</code> should contain unique values of original vector <code>x</code>, while <code>x.mapp</code>
+should contain corresponding mapping values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sc</code></td>
+<td>
+<p>Character vector with special case elements. Default value is <code>NA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sc.r</code></td>
+<td>
+<p>Character vector used for replacement of special cases. If supplied as one
+element vector, it will be recycled to the length of <code>sc</code>. Default value is <code>"SC"</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The command <code>cat.slice</code> returns vector of re-coded values and special cases.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">suppressMessages(library(PDtoolkit))
+data(gcd)
+x &lt;- gcd$maturity
+#artificially add some special values
+x[1:5] &lt;- Inf
+x[6:7] &lt;- NA
+mbin &lt;- cum.bin(x = x, y = gcd$qual, sc.method = "together")
+mbin[[1]]
+gcd$x &lt;- mbin[[2]]
+cb &lt;- cat.bin(x = gcd$x, 
+	  y = gcd$qual, 
+	  sc = "SC",
+	  sc.merge = "none",
+	  min.pct.obs = 0.05, 
+	  min.avg.rate = 0.05)
+x &lt;- gcd$x
+mapping &lt;- data.frame(x.orig = x, x.mapp = cb[[2]])%&gt;%
+       group_by(x.orig, x.mapp) %&gt;%
+       summarise(n = n(), .groups = "drop")
+mapping &lt;- data.frame(mapping[, -3])
+sc &lt;- cat.slice(x = x, 
+	     mapping = mapping, 
+	     sc = NA, 
+	     sc.r = "SC")
+#compare automatic and manual re-coding
+table(cb[[2]], useNA = "always")
+table(sc, useNA = "always")
+</code></pre>
+
+
+</div>

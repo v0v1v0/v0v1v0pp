@@ -1,0 +1,172 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>honigs</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Honigs algorithm for calibration sampling</h2>
+
+<h3>Description</h3>
+
+<p>Select calibration samples from a data matrix using the Honings et al. (1985)
+method
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">honigs(X, k, type)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>a numeric matrix with absorbance or continuum-removed reflectance
+values (optionally a data frame that can be coerced to a numerical matrix).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>the number of samples to select for calibration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>type of data: 'A' for absorbance (default), 'R' for reflectance,
+'CR' for continuum-removed reflectance</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The Honigs algorithm is a simple method to select calibration samples based
+on their absorption features. Absorbance, reflectance and continuum-removed
+reflectance values (see <code>continuumRemoval</code>) can be used (<code>type</code>
+argument).
+The algorithm can be described as follows: let <code class="reqn">A</code> be a matrix of
+<code class="reqn">(i \times j)</code> absorbance values:
+</p>
+
+<ol>
+<li>
+<p> the observation (row) with the maximum absolute absorbance
+(<code class="reqn">max(|A|)</code>) is selected and assigned to the calibration set.
+</p>
+</li>
+<li>
+<p> a vector of weights <code class="reqn">W</code> is computed as <code class="reqn">A_j/max_A</code> where
+<code class="reqn">A_j</code> is the column of <code class="reqn">A</code> having the maximum absolute absorbance
+and <code class="reqn">max_A</code> is the absorbance value corresponding to the maximum
+absolute absorbance of <code class="reqn">A</code>
+</p>
+</li>
+<li>
+<p> each row <code class="reqn">A_i</code> is multiplied by the corresponding weight <code class="reqn">W_i</code>
+and the resulting vector is subtracted from the original row <code class="reqn">A_i</code>.
+</p>
+</li>
+<li>
+<p> the row of the selected observation and the column with the maximum
+absolute absorbance is removed from the matrix
+</p>
+</li>
+<li>
+<p> go back to step 1 and repeat the procedure until the desired number
+of selected samples is reached
+</p>
+</li>
+</ol>
+<p>The observation with the maximum absorbance is considered to have
+an unusual composition. The algorithm selects therefore this observation and
+remove from other samples the selected absorption feature by subtraction.
+Samples with low concentration related to this absorption will then have
+large negative absorption after the subtraction step
+and hence will be likely to be selected rapidly by the selection procedure
+as well.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a <code>list</code> with components:
+</p>
+
+<ul>
+<li>
+<p>'<code>model</code>': numeric vector giving the row indices of the input data
+selected for calibration
+</p>
+</li>
+<li>
+<p>'<code>test</code>': numeric vector giving the row indices of the remaining
+observations
+</p>
+</li>
+<li>
+<p>'<code>bands</code>': indices of the columns used during the selection procedure
+</p>
+</li>
+</ul>
+<h3>Note</h3>
+
+<p>The selection procedure is sensitive to noisy features in the signal.
+The number of samples selected <code>k</code> selected by the algorithm cannot be
+greater than the number of wavelengths.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Antoine Stevens
+</p>
+
+
+<h3>References</h3>
+
+<p>Honigs D.E., Hieftje, G.M., Mark, H.L. and Hirschfeld, T.B. 1985.
+Unique-sample selection via Near-Infrared spectral substraction.
+Analytical Chemistry, 57, 2299-2303
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>kenStone</code>, <code>naes</code>, <code>duplex</code>,
+<code>shenkWest</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(NIRsoil)
+sel &lt;- honigs(NIRsoil$spc, k = 10, type = "A")
+wav &lt;- as.numeric(colnames(NIRsoil$spc))
+# spectral library
+matplot(wav,
+  t(NIRsoil$spc),
+  type = "l",
+  xlab = "wavelength /nm",
+  ylab = "Abs",
+  col = "grey50"
+)
+# plot calibration spectra
+matlines(wav,
+  t(NIRsoil$spc[sel$model, ]),
+  type = "l",
+  xlab = "wavelength /nm",
+  ylab = "Abs",
+  lwd = 2,
+  lty = 1
+)
+# add bands used during the selection process
+abline(v = wav[sel$bands])
+</code></pre>
+
+
+</div>

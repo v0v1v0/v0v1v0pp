@@ -1,0 +1,280 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>evaluate.pm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Evaluate the periodogram maximum of a time series
+</h2>
+
+<h3>Description</h3>
+
+<p>Calculate the Lomb-Scargle periodogram of a time series and estimate the statistical significance of the  periodogram maximum based on the null hypothesis of an Ornstein-Uhlenbeck state space (OUSS) process.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">evaluate.pm(times, signal, minPeakFreq = 0, minFitFreq = 0, 
+            iterations = 100, accuracy = 0.005, startRadius = 5, 
+            verbose = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>times</code></td>
+<td>
+
+<p>Numerical vector. Time points of the time series.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>signal</code></td>
+<td>
+
+<p>Numerical vector of same size as <code>times</code>. Values of the time series.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minPeakFreq</code></td>
+<td>
+
+<p>Non-negative number. Minimum considered frequency when determining periodogram peak. Use this if you want to ignore low-frequency components in the spectrum when searching for the periodogram maximum.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minFitFreq</code></td>
+<td>
+
+<p>Non-negative number. Minimum considered frequency when fitting the OUSS model to the periodogram. Use this to ignore low-frequency components in the spectrum when estimating the OUSS parameters, e.g. if you suspect your time series to be trended. <code>minFitFreq</code> might differ from <code>minPeakFreq</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iterations</code></td>
+<td>
+
+<p>Number of iterations for the maximum-likelihood fitter. Increasing this will result in greater estimation accuracy but also reduced performance.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>startRadius</code></td>
+<td>
+
+<p>Single integer. The number of initial guesses for each OUSS parameter during optimization of the likelihood function, per direction (up and down). Increasing this will improve estimation accuracy. However, execution time scales with <code>startRadius^2</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>accuracy</code></td>
+<td>
+
+<p>An upper bound for the standard deviation of the P-value estimator using repeated Bernoulli trials. The number of trials scales as <code>1/accuracy^2</code>. If you are using <code>0.05</code> as a nominal significance threshold, then <code>accuracy=0.005</code> is probably good enough.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+
+<p>Single logical. If <code>TRUE</code>, the function prints out occasional progress reports.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The OUSS model describes the measurement of an Ornstein-Uhlenbeck (OU) stochastic process at discrete times with additional uncorrelated Gaussian measurement errors of fixed variance. The OU process itself is a continuous-time random walk with linear stabilizing forces, described by the stochastic differential equation
+</p>
+<p style="text-align: center;"><code class="reqn">
+  dX = \lambda(\mu-X) dt + s dW,
+</code>
+</p>
+
+<p>where <code class="reqn">W</code> is the standard Wiener process. The OUSS process is a parsimonious model for describing stochastically fluctuating variables subject to linear stabilizing forces and uncorrelated measurement errors.
+</p>
+<p>Due to temporal correlations, the OUSS power spectrum increases gradually towards lower frequencies, as opposed to the white noise spectrum, which is flat. Using white noise as a null hypothesis for the evaluation of cyclicity in time series, particularly for systems with long correlation times, may result in increased false cycle detection rates because of the increased low-frequency power. The OUSS model is an attempt to account for these correlations.
+</p>
+<p>The OUSS model parameters are estimated using maximum-likelihood fitting to the periodogram. The likelihood function, and therefore the OUSS parameter estimates, are only approximations that become exact for long regular time series. The statistical significance of the periodogram peak (power <code class="reqn">S</code> at frequency <code class="reqn">F</code>) under the null-hypothesis of an OUSS process is defined as the probability that the same OUSS process would generate a periodogram whose maximum (power <code class="reqn">s</code> at frequency <code class="reqn">f</code>) satisfies 
+</p>
+<p style="text-align: center;"><code class="reqn">
+    s^2/e\ge S^2/E,
+</code>
+</p>
+
+<p>where <code class="reqn">e</code> and <code class="reqn">E</code> are the expected periodogram powers at the frequencies <code class="reqn">f</code> and <code class="reqn">F</code>, respectively.
+The P-value is estimated via repeated Bernoulli trials in which random OUSS periodograms are emulated by exponentially distributed numbers.
+</p>
+<p>If you want to evaluate secondary peaks (i.e. non-global periodogram maxima), you will need to either (a) adjust the parameters <code>minPeakFreq</code> and <code>minFitFreq</code> to omit low-frequency modes or (b) use <code>significanceOfLocalPeak</code> after using <code>evaluate.pm</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with the following entries:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>error</code></td>
+<td>
+<p>Will be <code>TRUE</code> if an error occured, <code>FALSE</code> otherwise.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>errorMessage</code></td>
+<td>
+<p>A short error message if <code>error==TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<p>If <code>error==FALSE</code>, the returned list also includes:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>frequencies</code></td>
+<td>
+<p>Available periodogram frequencies as a numerical vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>periodogram</code></td>
+<td>
+<p>Periodogram powers corresponding to the returned frequencies, as a numerical vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fittedPS</code></td>
+<td>
+<p>Maximum-likelihood fitted OUSS power spectrum corresponding to <code>frequencies</code>, as a numerical vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>power_o</code></td>
+<td>
+<p>Estimated power spectrum at zero-frequency generated by the underlying OU process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>Estimated resilience of the OU process (in inverse time units).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>power_e</code></td>
+<td>
+<p>Estimated power spectrum at large frequencies due to the random measurement errors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma</code></td>
+<td>
+<p>Estimated stationary standard deviation of the underlying OU process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epsilon</code></td>
+<td>
+<p>Estimated standard deviation of measurement errors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time_step</code></td>
+<td>
+<p>The average time step of the time series, as used to fit the OUSS power spectrum.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>peakMode</code></td>
+<td>
+<p>An integer indicating the position of the periodogram maximum in the vector <code>frequencies</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minPeakMode</code></td>
+<td>
+<p>The minimum periodogram mode considered for determining the periodogram maximum. This will be <code>1</code> if <code>minPeakFreq==0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minFitMode</code></td>
+<td>
+<p>The minimum periodogram mode considered for estimating the white noise power. This will be <code>1</code> if <code>minFitFreq==0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>MLL</code></td>
+<td>
+<p>Log-likelihood value at calculated maximum.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>P</code></td>
+<td>
+<p>Statistical significance of the periodogram peak against the null hypothesis of the estimated OUSS process. This is the probability that the estimated OUSS process would generate a periodogram with global maximum at least as “extreme” as the observed peak (among the considered frequencies). See details above.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Plocal</code></td>
+<td>
+<p>Statistical significance of the relative power of the periodogram peak. Mainly used for comparison to the statistical significance of secondary peaks. See <code>significanceOfLocalPeak</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Stilianos Louca
+</p>
+
+
+<h3>References</h3>
+
+<p>Louca, S., Doebeli, M. (2015) Detecting cyclicity in ecological time series, Ecology 96: 1724–1732
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>evaluate.pm.wn</code>, <code>significanceOfLocalPeak</code>, <code>ps_ouss</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># In this example we generate a cyclic time series
+# and analyse its periodogram using evaluate.pm
+
+# Parameters
+lambda         = 1;    # inverse correlation time of OU process
+cyclePeriod    = 1;    # Cycle period
+cycleAmplitude = 0.6;
+times          = seq(0,20,0.25);
+
+# generate cyclic time series by adding a periodic signal to an OUSS process
+signal = cycleAmplitude * cos(2*pi*times/cyclePeriod) +
+         generate_ouss(times, mu=0, sigma=1, lambda=lambda, epsilon=0.5);
+
+# Find periodogram peak and estimate statistical significance
+# Ignore frequencies lower than a pre-defined threshold
+# to avoid masking by low-frequency maximum
+report = evaluate.pm(times=times, signal=signal, 
+                     minPeakFreq=lambda/3, 
+                     minFitFreq=lambda/3,
+                     startRadius=2);
+
+# plot overview of periodogram peak analysis
+plotReport(sprintf("Cyclic at frequency %.2g",1/cyclePeriod), 
+           times=times, signal=signal, report=report);     
+      
+</code></pre>
+
+
+</div>

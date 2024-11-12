@@ -1,0 +1,200 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fragmentIon</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compute the b and y Fragment Ions of a Peptide Sequence</h2>
+
+<h3>Description</h3>
+
+<p>The function computes the fragment ions of a peptide sequence,
+according to the rules of fragmentation in a collision cell.
+It can be either CID fragmentation (collision-induced dissociation)
+or ETD (electron transfer dissociation) which are common in proteomics
+experiments. All are in a positive mode.
+</p>
+<p>If multiple peptide sequences are given it returns a list of fragment ion table.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">
+    fragmentIon(sequence, FUN, modified, modification, N_term, C_term)
+
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>sequence</code></td>
+<td>
+<p>peptide sequence encoded as character sequence using the 20 amino acid letters or a double vector of amino acid weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FUN</code></td>
+<td>
+<p>the function to be applied to compute further ions. 
+If no function is assigned <code>fragmentIon</code> will use <code>defaultIon</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>modified</code></td>
+<td>
+<p>a vector of interger containing the varmod id of the peptide position.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>modification</code></td>
+<td>
+<p>a double vector of defining the varmod mass in Dalton.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N_term</code></td>
+<td>
+<p>N-Term mass in Dalton. Default is set to 1.007825.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C_term</code></td>
+<td>
+<p>C-Term mass in Dalton. Default is set to 17.002740.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The fragment ions of a peptide can be computed following the rules proposed in PMID:6525415.
+Beside the <code>b</code> and <code>y</code> ions the <code>FUN</code> argument of <code>fragmentIon</code> defines
+which ions are computed.
+the default ions beeing computed are defined in the function <code>defaultIon</code>.
+The are no limits for defining other forms of fragment ions for ETD (c and z ions) CID (b and y ions).
+</p>
+<p>NOTE:
+for simplicity, we have set a Carbamidomethyl (C) fixed modification with 
+160.030649 (Cysteine mono mass is 103.00919).
+The fixed modifications setting are not enabled in the package yet.
+</p>
+<p>If only a vector of amino acids weights is given <code>fragmentIon</code> computes the ions series according to weights.
+If this case applies, the function returns only a list having one data frame.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Christian Panse, Bertran Gerrits 2006. 
+</p>
+
+
+<h3>References</h3>
+
+<p><a href="https://doi.org/10.1002/bms.1200111109">doi:10.1002/bms.1200111109</a>
+</p>
+<p>Protein Sequencing and Identification Using Tandem Mass Spectrometry, 
+Michael Kinter and Nicholas E. Sherman, 
+Wiley-Interscience; 1st edition (September 18, 2000)
+</p>
+
+
+<h3>See Also</h3>
+
+<p>first used in <code>peakplot</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Example 1
+peptide.AA&lt;-"KINHSFLR";
+
+peptide.AA.weights &lt;- c(128.09496,113.08406,114.04293,
+    137.05891,87.03203,147.06841,113.08406,156.10111);
+
+fragmentIon(peptide.AA);
+
+fragmentIon(peptide.AA.weights);
+
+HCD_Ion &lt;- function(b, y){
+    return(cbind(b = b, y = y))
+}
+
+
+ETD_Ion &lt;- function(b, y){
+    Hydrogen &lt;- 1.007825
+    Oxygen &lt;- 15.994915
+    Nitrogen &lt;- 14.003074
+
+    y_0 &lt;- y - Oxygen - Hydrogen - Hydrogen
+    c &lt;- b + (Nitrogen + (3 * Hydrogen))
+    z &lt;- y - (Nitrogen + (3 * Hydrogen))
+
+    return(cbind(y_0, c, z))
+}
+
+fragmentIon(peptide.AA, FUN = ETD_Ion)
+        
+peptides&lt;-c('HTLNQIDSVK', 'ALGGEDVR', 'TPIVGQPSIPGGPVR')
+
+pim &lt;- parentIonMass(peptides)
+fi &lt;- fragmentIon(peptides)
+(df &lt;- as.data.frame(fi))
+
+op &lt;- par(mfrow=c(3,1)); 
+for (i in 1:length(peptides)){
+    plot(0, 0,
+    xlab='m/Z',
+    ylab='',
+    xlim=range(c(fi[[i]]$b,fi[[i]]$y)),
+    ylim=c(0,1),
+    type='n',
+    axes=FALSE,
+    sub=paste(peptides[i], "/", pim[i], "Da"));
+    box()
+    axis(1, fi[[i]]$b, round(fi[[i]]$b,1), las=2)
+    axis(1, fi[[i]]$y, round(fi[[i]]$y,1), las=2)
+
+    pepSeq&lt;-strsplit(peptides[i], "")
+    axis(3,fi[[i]]$b, paste("b", row.names(fi[[i]]),sep=''),las=2)
+    axis(3,fi[[i]]$y, paste("y", row.names(fi[[i]]),sep=''),las=2)
+
+    text(fi[[i]]$b, rep(0.3, nchar(peptides[i])), 
+    pepSeq[[1]],pos=3,cex=4, lwd=4, col="#aaaaaaaa")
+
+    abline(v=fi[[i]]$b, col='red') 
+    abline(v=fi[[i]]$y, col='blue',lwd=2)
+}
+par(op)
+
+
+fi &lt;- fragmentIon(c("ATSFYK","XGXFNAGVGK"))[[2]]
+fi$b[1] + fi$y[9]
+fi$b[2] + fi$y[8]
+
+
+ION2C &lt;- function(b, y){
+    Hydrogen &lt;- 1.007825
+    Oxygen &lt;- 15.994915
+    Nitrogen &lt;- 14.003074
+
+    # yo &lt;- fi$y - Oxygen - Hydrogen - Hydrogen
+    c &lt;- b + (Nitrogen + (3 * Hydrogen))
+    z &lt;- y - (Nitrogen + (3 * Hydrogen))
+    
+    # compute doubly charged fragment ions
+    b2 &lt;- (b + Hydrogen) / 2
+    y2 &lt;- (y + Hydrogen) / 2
+
+    return(cbind(b, y, b2 ,y2))
+}
+
+
+</code></pre>
+
+
+</div>

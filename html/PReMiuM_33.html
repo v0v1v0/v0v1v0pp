@@ -1,0 +1,580 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>profRegr</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Profile Regression</h2>
+
+<h3>Description</h3>
+
+<p>Fit a profile regression model.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">profRegr(covNames, fixedEffectsNames, outcome="outcome", 
+  outcomeT=NA, data, output="output", hyper, predict, 
+	predictType="RaoBlackwell",
+  nSweeps=1000, nBurn=1000, nProgress=500, nFilter=1, 
+  nClusInit, seed, yModel="Bernoulli", xModel="Discrete", 
+  sampler="SliceDependent", alpha=-2, dPitmanYor = 0, excludeY=FALSE, 
+  extraYVar=FALSE, varSelectType="None", entropy,reportBurnIn=FALSE,
+  run=TRUE, discreteCovs, continuousCovs, whichLabelSwitch="123",
+  includeCAR=FALSE, neighboursFile="Neighbours.txt", uCARinit=FALSE,
+  PoissonCARadaptive=FALSE,weibullFixedShape=TRUE, 
+  useNormInvWishPrior=FALSE, useHyperpriorR1=TRUE, 
+  useIndependentNormal=FALSE, useSeparationPrior=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>covNames</code></td>
+<td>
+<p>A vector of strings of the covariate names as by the column names in the data argument. The names of the covariates cannot include space characters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixedEffectsNames</code></td>
+<td>
+<p>A vector of strings of the fixed effect names as by the column names in the data argument. Each fixed effect must be of class 'numeric'. If a fixed effect is of class 'character', an error message will appear and the fixed effect will need to be recoded as numeric. The names of the fixed effects cannot include space characters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outcome</code></td>
+<td>
+<p>A string of column of the data argument that contains the outcome. The outcome cannot have missing values - you could consider predicting the value of the outcome for those subjects for which it has not been observed. The name cannot include space characters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outcomeT</code></td>
+<td>
+<p>A string of column of the data argument that contains the offset (for Poisson outcome) or the number of trials (for Binomial outcome) or censoring for Survival reponse (coded as 0 or 1). The name cannot include space characters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame which has as columns the outcome, the covariates, the fixed effects if any and the offset (for Poisson outcome) or the number of trials (for Binomial outcome) or censoring (for Survival outcome). The outcome cannot have missing values - you could consider predicting the value of the outcome for those subjects for which it has not been observed. For Survival response censoring must be coded as 0 if the event has not occurred (ie, there has been censoring) and 1 if the event has occurred (no censoring has taken place). The names of the columns cannot include space characters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>output</code></td>
+<td>
+<p>Path to folder to save all output files. The covariates can have missing values, which must be coded as 'NA'. There cannot be missing values in the fixed effects - if there are, use an imputation method before using profile regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hyper</code></td>
+<td>
+<p>Object of type setHyperparams with hyperparameters specifications. This is optional, default values are provided for all hyperparameters. See ?setHyperparams for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predict</code></td>
+<td>
+<p>Data frame containing the predictive scenarios. This is only required if predictions are requested. 
+</p>
+<p>At each iteration the predictive subjects are assigned to one of the current
+clusters according to their covariate profiles (but ignoring missing values), or
+their Rao Blackwellised estimate of theta is recorded (a weighted average of all
+theta, weighted by the probability of allocation into each cluster. For Normal and Quantile response they can also be randomly allocated. See also the option predictType below.
+</p>
+<p>The predictive subjects have no impact on the likelihood and so do not determine
+the clustering or parameters at each iteration. The predictive allocations are
+then recorded as extra entries in each row of the output_z.txt file. This can
+then be processed in the post processing to create a dissimilarity matrix with
+the fitting subjects. The post procesing function calcPredictions will create
+predicted response values for these subjects.
+</p>
+<p>See ?calcPredictions for more details and examples. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predictType</code></td>
+<td>
+<p>This can be set equal to "RaoBlackwell" and "random". The default is RaoBlackwell. The random option can only be used for Normal and Quantile response, where the estimated variance of the clusters is considered and the predictive subjects are randomly assigned to a mixture component and then are also randomly sampled within that component.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nSweeps</code></td>
+<td>
+<p>Number of iterations of the MCMC after the burn-in period. By default this is 1000.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nBurn</code></td>
+<td>
+<p>Number of initial iterations of the MCMC to be discarded. By default this is 1000.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reportBurnIn</code></td>
+<td>
+<p>If TRUE then the burn in iterations are reported in the output files, if set to FALSE they are not. It is set to FALSE by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nProgress</code></td>
+<td>
+<p>The number of sweeps at which to print a progress update. By default this is 500.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nFilter</code></td>
+<td>
+<p>The frequency (in sweeps) with which to write the output to file. The default value is 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nClusInit</code></td>
+<td>
+<p>The number of clusters individuals should be initially randomly assigned to (Unif[50,60]).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>The value for the seed for the random number generator. The default value is the current time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yModel</code></td>
+<td>
+<p>The model type for the outcome variable. The options currently available are "Bernoulli", "Poisson", "Binomial", "Categorical", "Normal", "Quantile" and "Survival". The default value is Bernoulli.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xModel</code></td>
+<td>
+<p>The model type for the covariates. The options currently available are "Discrete", "Normal" and "Mixed". The default value is "Discrete".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sampler</code></td>
+<td>
+<p>The sampler type to be used. Options are "SliceDependent", "SliceIndependent" and "Truncated".  The default value is "SliceDependent".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>The value to be used if alpha is fixed. If a value smaller than or equal to -1 is used then alpha is random, if dPitmanYor is equal to zero (the random alpha option is available for Dirichlet process prior only). The default value is -2 (random alpha). For fixed alpha, if dPitmanYor is in the interval (0,1) then a Pitman-Yor process prior is used instead of a Dirichlet process prior.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dPitmanYor</code></td>
+<td>
+<p>The discount parameter for the Pitman-Yor process prior. The default value is 0, which is equivalent to a Dirichlet process prior. This parameter must belong to the interval [0,1) and it must be provided together with a non-negative value for alpha. The Pitman-Yor process prior is only available for non-random parameters. Note that the third label switching move is only available for Dirichlet process priors, so it will not be run if dPitmanYor&gt;0. Therefore setting dPitmanYor to a value greater than zero will forse whichLabelSwitch=12.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>excludeY</code></td>
+<td>
+<p>If TRUE only the covariate data X is modelled. By default this is set to FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extraYVar</code></td>
+<td>
+<p>If set equal to TRUE extra Gaussian variance is included in the response model. This option is available only for Bernoulli, Binomial and Poisson response. By default the extra Gaussian variance is not included, so extraYVar=FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varSelectType</code></td>
+<td>
+<p>The type of variable selection to be used "None", "BinaryCluster" or "Continuous".  The "Continuous" variable selection is the implementation of the novel variable selection formulation proposed by Papathomas, Molitor, Hoggart, Hastie, Richardson (2012) "Exploring data from genetic association studies using Bayesian variable selection and the Dirichlet process: application to searching for gene x gene patterns" in Genetic Epidemiology. The "BinaryCluster" variable selection is based on the method proposed by Chung and Dunson (2009) "Nonparametric Bayes conditional distribution modelling with variable selection" in the Journal of the American Statistical Association. Both types of variable selection can be used with discrete, continuous or mixed covariates. The default value is "None".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>entropy</code></td>
+<td>
+<p>If included then we compute allocation entropy. By default the allocation entropy is not included.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>run</code></td>
+<td>
+<p>Logical. If TRUE then the MCMC is run. Set run=FALSE if the MCMC has been run already and it is only required to collect information about the run.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>discreteCovs</code></td>
+<td>
+<p>The names of the discrete covariates among the covariate names, if xModel="Mixed". This and continuousCovs must be defined if xModel="Mixed", while covNames is ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>continuousCovs</code></td>
+<td>
+<p>The names of the discrete covariates among the covariate names, if xModel="Mixed". This and continuousCovs must be defined if xModel="Mixed", while covNames is ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>whichLabelSwitch</code></td>
+<td>
+<p>The label switching moves to run. The options available are moves 1, 2 and 3 ("123"), moves 1 and 2 ("12") and move 3 only ("3"). The moves are described in Hastie et al. (2013). Note that the third label switching move is only available for Dirichlet process priors, so it will not be run if dPitmanYor&gt;0. Therefore setting dPitmanYor to a value greater than zero will forse whichLabelSwitch=12.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>includeCAR</code></td>
+<td>
+<p>A boolean specifying wether a conditional autoregressive term should be introduced within the model, to take into account possible spatial correlation within residuals. Only for Poisson and Normal response models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>neighboursFile</code></td>
+<td>
+<p>The file name of the file specifying neighbourhood graph. It should have the same structure than neighbourhood graph files used in the "INLA" package, and can be produced from a nb object of package "spdep", by the function "nb2INLA" of package "spdep". See ?nb2INLA for details. Each file must have at least one neighbour.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>uCARinit</code></td>
+<td>
+<p>This parameter gives the possibility of giving initialisation values for the spatial residuals u of the spatial CAR. It is set to FALSE by default (meaning that the spatial residuals are initialised randomly). It can be set alternatively to a vector of values, one for each of the observations available.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>PoissonCARadaptive</code></td>
+<td>
+<p>This parameter controls which sampler is used for the parameters of the spatial random effect when the outcome is Poisson. When it is set to TRUE, the adaptive rejection sampler is used. When it is set to FALSE (default) a random walk Metropolis is used. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weibullFixedShape</code></td>
+<td>
+<p>This parameter controls whether the shape parameter of the Weibull distribution (for yModel=Survival only) is a global parameter (fixed) or cluster specific. It is equal to TRUE by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useNormInvWishPrior</code></td>
+<td>
+<p>By default this variable equals FALSE. When this variable equals TRUE, the conjugate Normal-inverse-Wishart prior is used rather
+than the independant normal and inverse Wishart priors. If this prior is used, variable selection cannot be used as it has not been implemented.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useHyperpriorR1</code></td>
+<td>
+<p>Adds hyperpriors for the hyperparameter R1, kappa1, mu0 and Sigma0 for xModel=Normal or Mixed. The default for this option is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useIndependentNormal</code></td>
+<td>
+<p>If the data contains continuous variables (xModel=Normal or Mixed) and the variables are assumed to be independent for each cluster, the multivariate normal likelihood should be replaced by the independent normal likelihood. Therefore, this option should set to TRUE. The default for this option is FALSE. When useIndependentNormal=TRUE, useHyperpriorR1 must be TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useSeparationPrior</code></td>
+<td>
+<p> A separation prior is used to model the within-cluster covariance matrix for each cluster when the data contains continuous variables (xModel=Normal or Mixed). The default for this option is FALSE. When useSeparationPrior=TRUE, useHyperpriorR1 must be TRUE.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Once the C++ has completed the output from fitting the regression is stored in a number of text files in the directory specified. Files are produced
+containing the MCMC traces for all of the values of interest, along with a log file and files for monitoring the acceptance rates of the adaptive Metropolis Hastings moves.
+</p>
+<p>It returns a number of files in the output directory as well as a list with the following elements. This an object of type runInfoObj. The files that are produced in the output directory are described below. 
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>directoryPath</code></td>
+<td>
+<p>String. Directory path of the output files.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fileStem</code></td>
+<td>
+<p>String. The </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inputFileName</code></td>
+<td>
+<p>String. Location and file name of input dataset as created by this function for the C++ routines</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nSweeps</code></td>
+<td>
+<p>Integer. The number of sweeps of the MCMC after the burn-in.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nBurn</code></td>
+<td>
+<p>Integer. The number of iterations in the burn-in period of the MCMC.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reportBurnIn</code></td>
+<td>
+<p>Logical. Whether the output of the burn-in report should be included.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nFilter</code></td>
+<td>
+<p>Integer. The frequency (in sweeps) with which to write the output to file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nProgress</code></td>
+<td>
+<p>The number of sweeps at which to print a progress update.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nSubjects</code></td>
+<td>
+<p>Integer. The number of subjects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nPredictSubjects</code></td>
+<td>
+<p>Integer. The number of subjects for which to run predictions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fullPredictFile</code></td>
+<td>
+<p>Logical. It is FALSE by default. It is equal to TRUE if the outcome or the outcome and the fixed effects were included in the dataframe provided in the input predict. If TRUE, the function will have a produced a file ending in "_predictFull.txt" which contains the values of the outcome and fixed effects for the computation of measures of fit in the function calcPredictions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covNames</code></td>
+<td>
+<p>A vector of strings with the names of the covariates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xModel</code></td>
+<td>
+<p>String. The model type for the covariates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>includeResponse</code></td>
+<td>
+<p>Logical. If FALSE only the covariate data X is modelled.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yModel</code></td>
+<td>
+<p>String. The model type for the outcome.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varSelect</code></td>
+<td>
+<p>Logical. If FALSE no variable selection is performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varSelectType</code></td>
+<td>
+<p>String. It specifies what type of variable selection has been performed, if any.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nCovariates</code></td>
+<td>
+<p>Integer. The number of covariates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nFixedEffects</code></td>
+<td>
+<p>Integer. The number of fixed effects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nCategoriesY</code></td>
+<td>
+<p>Integer. The number of categories of the outcome, if yModel = "Categorical". It is 1 otherwise.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nCategories</code></td>
+<td>
+<p>Vector of integers. The number of categories of each covariate, if xModel = "Discrete". It is 1 otherwise.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extraYVar</code></td>
+<td>
+<p>TRUE if extra Gaussian variance is included in the response model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xMat</code></td>
+<td>
+<p>A matrix of the covariate data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yMat</code></td>
+<td>
+<p>A matrix of the outcome data, including the offset if the outcome is Poisson, the number of trials if the outcome is Binomial and 0 or 1 for Survival outcome (1 for censored individuals, 0 otherwise).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wMat</code></td>
+<td>
+<p>A matrix of the fixed effect data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>whichLabelSwitch</code></td>
+<td>
+<p>The label switching moves that have been run. The options available are moves 1, 2 and 3 ("123"), moves 1 and 2 ("12") and move 3 only ("3"). The moves are described in Hastie et al. (2013).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>includeCAR</code></td>
+<td>
+<p>Logical. Whether a spatial CAR term is included.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predictType</code></td>
+<td>
+<p>String. Whether a RaoBlackwell or random predictions have been computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weibullFixedShape</code></td>
+<td>
+<p>Logical. Whether the shape parameter of the Weibull distribution for the survival response is fixed or cluster specific.</p>
+</td>
+</tr>
+</table>
+<p>These are the files produced in the output directory. We refer to Liverani et al. (2015) 
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>_alpha.txt</code></td>
+<td>
+<p>If alpha is random, each row is a draw from a posterior distribution of alpha (including burn in if reportBurnIn=TRUE).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>_beta.txt</code></td>
+<td>
+<p>If fixed effects are included, this file provides the draws from the posterior distribution of the beta parameters at each sweep. Each row represents the vector of beta's at each sweep (including burn in if reportBurnIn=TRUE).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>_hyper.txt</code></td>
+<td>
+<p>Internal file to communicate between R and C++ the values of the hyperparamters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>_input_txt</code></td>
+<td>
+<p>Internal file to communicate the data between R and C++.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>_log.txt</code></td>
+<td>
+<p>This file logs some information about the run, such as what variables were included, which hyperparameters were used, the seed of the random numbers, the acceptance rates of the MCMC moves that were included in the run.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>_logPost.txt</code></td>
+<td>
+<p>This file report the logPosterior, the logLikelihood and logPrior for the model fit at each sweep (including burn in if reportBurnIn=TRUE).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>_nClusters.txt</code></td>
+<td>
+<p>This file includes the number of clusters at each sweep. Each row represents a sweep (including burn in if reportBurnIn=TRUE) and each element in the rows is the number of clusters per sweep. This includes the number of empty clusters, if any.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>_nMembers.txt</code></td>
+<td>
+<p>This file includes the number of observations in each cluster at each sweep. Each row represents a sweep (including burn in if reportBurnIn=TRUE) and each element in the rows is the number of observations in each cluster per sweep. The last number in each row is the total number of observations, computed as the sum of the elements in the row as a check that all observations have been assigned to a cluster.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>_theta.xt</code></td>
+<td>
+<p>This file includes the value of theta (cluster specific parameter for the response variable) for each cluster at each sweep. Each row represents a sweep (including burn in if reportBurnIn=TRUE) and each element in the rows is the value of theta for each cluster at that sweep. The thetas provided her are in the same order as the clusters in _nMembers.txt and they are drawn from the prior when they correspond to empty clusters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>_z.txt</code></td>
+<td>
+<p>This file includes the cluster membership for each observation at each sweep. Each row represents a sweep (including burn in if reportBurnIn=TRUE) and each element in the rows is the cluster membership for each of the observations, ordered as they are provided to profRegr in the dataframe.</p>
+</td>
+</tr>
+</table>
+<p>There are more files that can be in the output, depending on which options are used in profRegr. The file _mu.txt for example reports the mean for xModel=Normal, _phi.txt reports the multinomial probabilities for xModel=Discrete, _rho.txt reports the paramters for variable selection, etc. The files usually report one line for each sweep (including burn in if reportBurnIn=TRUE). See Liverani et al. (2015) for more details of the parameters. 
+</p>
+<p>Note that for the _gamma.txt for variable selection the results are reported per sweep (each line is a sweep) and within each line by cluster (so for each covariate the switches per cluster are reported in order, before the second covariate is reported for each cluster, etc).
+</p>
+
+
+<h3>Authors</h3>
+
+<p>David Hastie, Department of Epidemiology and Biostatistics, Imperial College London, UK
+</p>
+<p>Silvia Liverani, Department of Epidemiology and Biostatistics, Imperial College London and MRC Biostatistics Unit, Cambridge, UK
+</p>
+<p>Aurore J. Lavigne, Department of Epidemiology and Biostatistics, Imperial College London, UK
+</p>
+<p>Lamiae Azizi, MRC Biostatistics Unit, Cambridge, UK
+</p>
+<p>Maintainer: Silvia Liverani &lt;liveranis@gmail.com&gt;
+</p>
+<p>The R package PReMiuM is supported through research grants. One key requirement of such funding applications is the ability to demonstrate the impact of the work we seek funding for can. Whatever you are using PReMiuM for, it would be very helpful for us to learn about our users, to tailor our future methodological developments to your needs. Please email us at liveranis@gmail.com or visit http://www.silvialiverani.com/support-premium/. 
+</p>
+
+
+<h3>References</h3>
+
+<p>Silvia Liverani, David I. Hastie, Lamiae Azizi, Michail Papathomas, Sylvia Richardson (2015). PReMiuM: An R Package for Profile Regression Mixture Models Using Dirichlet Processes. Journal of Statistical Software, 64(7), 1-30. <a href="https://doi.org/10.18637/jss.v064.i07">doi:10.18637/jss.v064.i07</a>.
+</p>
+<p>Hastie, D. I., Liverani, S. and Richardson, S. (2014) Sampling from Dirichlet process mixture models with unknown concentration parameter: Mixing issues in large data implementations. <em>Statistics and Computing</em>. Available at http://link.springer.com/article/10.1007
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# example for Poisson outcome and Discrete covariates
+inputs &lt;- generateSampleDataFile(clusSummaryPoissonDiscrete())
+runInfoObj&lt;-profRegr(yModel=inputs$yModel, 
+    xModel=inputs$xModel, nSweeps=10, nClusInit=20,
+    nBurn=20, data=inputs$inputData, output="output", 
+    covNames = inputs$covNames, outcomeT = inputs$outcomeT,
+    fixedEffectsNames = inputs$fixedEffectNames)
+
+
+# example with Bernoulli outcome and Mixed covariates
+inputs &lt;- generateSampleDataFile(clusSummaryBernoulliMixed())
+runInfoObj&lt;-profRegr(yModel=inputs$yModel, 
+    xModel=inputs$xModel, nSweeps=10, nClusInit=15,
+    nBurn=20, data=inputs$inputData, output="output", 
+    discreteCovs = inputs$discreteCovs,
+    continuousCovs = inputs$continuousCovs)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

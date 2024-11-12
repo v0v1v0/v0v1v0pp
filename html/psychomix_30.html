@@ -1,0 +1,217 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>simRaschmix</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulate Data from Rasch Mixture Models</h2>
+
+<h3>Description</h3>
+
+<p>Generate simulated data from mixtures of Rasch models. The latent
+classes of the mixture can differ regarding size as well as item and
+person parameters of the corresponding Rasch model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">  simRaschmix(design, extremes = FALSE, attributes = TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>design</code></td>
+<td>
+<p>Type of data generating process. Can be provided as a
+character or a named list. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extremes</code></td>
+<td>
+<p>Logical. Should observations with none or all items
+solved be included in the data?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>attributes</code></td>
+<td>
+<p>Logical. Should the true group membership as well as
+true item and person parameters be attached to the data as attributes
+<code>"cluster"</code>, <code>"difficulty"</code>, and <code>"ability"</code>?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Currently not used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>design</code> of the data generating process (DGP) can be provided
+in essentially three different ways.
+</p>
+<p>If the <code>design</code> argument is one of <code>"rost1"</code>, <code>"rost2"</code>
+or <code>"rost3"</code>, responses from the three DGPs introduced in Rost
+(1990) will be drawn.
+</p>
+<p>Alternatively, the <code>design</code> can be provided as a named list with
+elements <code>nobs</code>, <code>weights</code>, <code>ability</code>, and
+<code>difficulty</code>.
+The <code>weights</code> can be provided in three formats: If provided as a
+vector of probabilities (summing to 1), class membership will be drawn
+with these probabilities. If <code>weights</code> is a vector of integer weights
+(summing to <code>nobs</code>, or an integer division thereof), Class sizes
+will be either the weights directly or a multiple thereof. As a third
+alternative, the <code>weights</code> can be provided as a
+function of the number of observations (<code>nobs</code>).
+The <code>ability</code> specification can also be provided in three
+formats: If provided as a matrix of dimension 2xk with mean and
+standard deviation for each of the k clusters, the ability parameters
+are drawn from a normal distribution with the corresponding parameters.
+Second, <code>ability</code> can be an array of dimension (., 2, k) with abilities
+and corresponding weights/probabilities per cluster. Third, it can
+also be provided as a list of k functions which take the number of
+observations as an argument.
+The specification of the item <code>difficulty</code> can be
+provided either as a matrix with k columns with the item
+difficulties per cluster or as a matrix with <code>nobs</code> rows with the item
+difficulties per subject.
+</p>
+<p>As a third option, <code>design</code> may also be a named list containing a
+vector of <code>ability</code> parameters and a matrix
+<code>difficulty</code> of dimension (number of observation x number of items).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A matrix of item responses with dimension (number of observations x
+number of items).
+If <code>attributes = TRUE</code>, the matrix has attributes <code>cluster</code>,
+<code>ability</code>, and <code>difficulty</code>. The class memberships
+<code>cluster</code> are only returned when not provided implicitly through
+and a vector of abilties and a difficulty matrix with entries for each
+subject.
+</p>
+
+
+<h3>References</h3>
+
+<p>Frick, H., Strobl, C., Leisch, F., and Zeileis, A. (2012).
+Flexible Rasch Mixture Models with Package psychomix.
+<em>Journal of Statistical Software</em>, <b>48</b>(7), 1–25.
+<a href="https://doi.org/10.18637/jss.v048.i07">doi:10.18637/jss.v048.i07</a>.
+</p>
+<p>Rost, J. (1990). Rasch Models in Latent Classes: An Integration of Two
+Approaches to Item Analysis.
+<em>Applied Psychological Measurement</em>, <b>14</b>(3), 271–282.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>raschmix</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#################
+## Rost's DGPs ##
+#################
+
+suppressWarnings(RNGversion("3.5.0"))
+set.seed(1990)
+
+## DGP 1 with just one latent class 
+r1 &lt;- simRaschmix(design = "rost1")
+## less than 1800 observations because the extreme scorers have been removed
+table(attr(r1, "ability"))
+table(rowSums(r1))
+
+## DGP 2 with 2 equally large latent classes
+r2 &lt;- simRaschmix(design = "rost2", extreme = TRUE)
+## exactly 1800 observations including the extreme scorers
+table(attr(r2, "ability"))
+table(rowSums(r2))
+
+## DGP 3 with 3 latent classes
+r3 &lt;- simRaschmix(design = "rost3")
+## item parameters in the three latent classes
+attr(r3, "difficulty")
+
+
+####################################
+## flexible specification of DGPs ##
+####################################
+
+suppressWarnings(RNGversion("3.5.0"))
+set.seed(482)
+
+## number of observations
+nobs &lt;- 8
+
+## relative weights
+weights &lt;- c(1/4, 3/4)
+## exact weights: either summing to nobs or an integer division thereof
+weights &lt;- c(2, 6)
+weights &lt;- c(1, 3)
+## weights as function
+## here the result is the same as when specifying relative weights
+weights &lt;- function(n) sample(size = n, 1:2, prob = c(1/4, 3/4), replace
+= TRUE)
+
+## class 1: only ability level 0
+## class 2: normally distributed abilities with mean = 2 and sd = 1
+ability &lt;- cbind(c(0, 0), c(2, 1))
+## class 1: 3 ability levels (-1, 0, 1); class 2: 2 ability levels (-0.5, 0.5)
+## with equal probabilities and frequencies, repectively
+ability &lt;- array(c(cbind(-1:1, rep(1/3, 3)), cbind(-1:1/2, c(0.5, 0, 0.5))), 
+  dim = c(3, 2, 2))
+ability &lt;- array(c(cbind(-1:1, rep(1, 3)), cbind(-1:1/2, c(1, 0, 1))),
+  dim = c(3, 2, 2))
+## ability as function
+ability &lt;- list(
+  function(n) rnorm(n, mean = 0, sd = 0.5),
+  function(n) sample(c(-0.5, 0.5), size = n, replace = TRUE)
+)
+
+## difficulty per latent class
+difficulty &lt;- cbind(c(-1,1,rep(0,8)), c(rep(0,8),1,-1))
+
+## simulate data
+dat &lt;- simRaschmix(design = list(nobs = nobs, weights = weights,
+  ability = ability, difficulty = difficulty))
+
+## inspect attributes and raw scores
+table(attr(dat, "cluster"))
+hist(attr(dat, "ability"))
+barplot(table(rowSums(dat)))
+attr(dat, "difficulty")
+
+
+## specification of DGP only via ability and difficulty
+## one vector of abilities of all subjects
+ability &lt;- c(rnorm(4, mean = 0, sd = 0.5), sample(c(-0.5, 0.5), size = 4, 
+  replace = TRUE))
+## difficulty per subject
+difficulty &lt;- matrix(c(rep(c(-1,1,rep(0,8)), 4), rep(c(rep(0,8),1,-1), 4)),
+  nrow = 8, byrow = TRUE)
+## simulate data
+dat &lt;- simRaschmix(design = list(ability = ability, difficulty = difficulty))
+
+## inspect attributes and raw scores
+hist(attr(dat, "ability"))
+barplot(table(rowSums(dat)))
+attr(dat, "difficulty")
+</code></pre>
+
+
+</div>

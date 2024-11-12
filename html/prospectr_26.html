@@ -1,0 +1,214 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>kenStone</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Kennard-Stone algorithm for calibration sampling</h2>
+
+<h3>Description</h3>
+
+<script id="MathJax-script" async src="../../mathjaxr/doc/mathjax/es5/tex-chtml-full.js"></script><p>Select calibration samples from a large multivariate data using the
+Kennard-Stone algorithm
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">kenStone(X, k, metric = "mahal", pc, group,
+         .center = TRUE, .scale = FALSE, init = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>a numeric matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>number of calibration samples to be selected.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>metric</code></td>
+<td>
+<p>distance metric to be used: 'euclid' (Euclidean distance) or
+'mahal' (Mahalanobis distance, default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pc</code></td>
+<td>
+<p>optional. If not specified, distance are computed in the Euclidean
+space. Alternatively, distance are computed
+in the principal component score space and  <code>pc</code> is the number of principal
+components retained.
+If <code>pc &lt; 1</code>, the number of principal components kept corresponds to the
+number of components explaining at least (<code>pc * 100</code>) percent of the total
+variance.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group</code></td>
+<td>
+<p>An optional <code>factor</code> (or vector that can be coerced to a factor
+by <code>as.factor</code>) of length equal to <code>nrow(X)</code>, giving the identifier
+of related observations (e.g. samples of the same batch of measurements,
+samples of the same origin, or of the same soil profile). Note that by using
+this option in some cases, the number of samples retrieved is not exactly the
+one specified in <code>k</code> as it will depend on the groups. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.center</code></td>
+<td>
+<p>logical value indicating whether the input matrix should be
+centered before Principal Component Analysis. Default set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.scale</code></td>
+<td>
+<p>logical value indicating whether the input matrix should be
+scaled before Principal Component
+Analysis. Default set to <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+<p>(optional) a vector of integers indicating the indices of the
+observations/rows that are to be used as observations that must be included
+at the first iteration of the search process. Default is <code>NULL</code>, i.e. no
+fixed initialization. The function will take by default the two most distant
+observations. If the <code>group</code> argument is used, then all the observations
+in the groups covered by the <code>init</code> observations will be also included
+in the <code>init</code> subset.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The Kennard–Stone algorithm allows to select samples with a uniform
+distribution over the predictor space (Kennard and Stone, 1969).
+It starts by selecting the pair of points that are the farthest apart.
+They are assigned to the calibration set and removed from the list of points.
+Then, the procedure assigns remaining points to the calibration set
+by computing the distance between each unassigned points
+\(i_0\) and selected points \(i\)
+and finding the point for which:
+</p>
+\[d_{selected} = \max\limits_{i_0}(\min\limits_{i}(d_{i,i_{0}}))\]
+<p>This essentially selects point \(i_0\) which is the farthest apart from its
+closest neighbors \(i\) in the calibration set.
+The algorithm uses the Euclidean distance to select the points. However,
+the Mahalanobis distance can also be used. This can be achieved by performing
+a PCA on the input data and computing the Euclidean distance on the truncated
+score matrix according to the following definition of the Mahalanobis \(H\)
+distance:
+</p>
+\[H_{ij}^2 = \sum_{a=1}^A (\hat t_{ia} - \hat t_{ja})^{2} / \hat \lambda_a\]
+<p>where \(\hat t_{ia}\) is the \(a^{th}\) principal component
+score of point \(i\), \(\hat t_{ja}\) is the
+corresponding value for point \(j\),
+\(\hat \lambda_a\) is the eigenvalue of principal
+component \(a\) and \(A\) is the number of principal components
+included in the computation.
+</p>
+<p>When the <code>group</code> argument is used, the sampling is conducted in such a
+way that at each iteration, when a single sample is selected, this sample
+along with all the samples that belong to its group, are assigned to the
+final calibration set. In this respect, at each iteration, the algorithm
+will select one sample (in case that sample is the only one in that group)
+or more to the calibration set. This also implies that the argument <code>k</code>
+passed to the function will not necessary reflect the exact number of samples
+selected. For example, if <code>k = 2</code> and if the first sample identified
+belongs to with group of 5 samples and the second one belongs to a group with
+10 samples, then, the total amount of samples retrieved by the
+function will be 15.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a list with the following components:
+</p>
+
+<ul>
+<li>
+<p><code>model</code>: numeric vector giving the row indices of the input data
+selected for calibration
+</p>
+</li>
+<li>
+<p><code>test</code>: numeric vector giving the row indices of the remaining
+observations
+</p>
+</li>
+<li>
+<p><code>pc</code>: if the <code>pc</code> argument is specified, a numeric matrix of the
+scaled pc scores
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Antoine Stevens &amp;
+<a href="https://orcid.org/0000-0002-5369-5120">Leonardo Ramirez-Lopez</a> with
+contributions from Thorsten Behrens and Philipp Baumann
+</p>
+
+
+<h3>References</h3>
+
+<p>Kennard, R.W., and Stone, L.A., 1969. Computer aided design of experiments.
+Technometrics 11, 137-148.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>duplex</code>, <code>shenkWest</code>, <code>naes</code>,
+<code>honigs</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(NIRsoil)
+sel &lt;- kenStone(NIRsoil$spc, k = 30, pc = .99)
+plot(sel$pc[, 1:2], xlab = "PC1", ylab = "PC2")
+# points selected for calibration
+points(sel$pc[sel$model, 1:2], pch = 19, col = 2)
+# Test on artificial data
+X &lt;- expand.grid(1:20, 1:20) + rnorm(1e5, 0, .1)
+plot(X, xlab = "VAR1", ylab = "VAR2")
+sel &lt;- kenStone(X, k = 25, metric = "euclid")
+points(X[sel$model, ], pch = 19, col = 2)
+
+# Using the group argument
+library(prospectr)
+
+# create groups
+set.seed(1)
+my_groups &lt;- sample(1:275, nrow(NIRsoil$spc), replace = TRUE) |&gt; as.factor()
+
+# check the group size 
+table(my_groups)
+
+results_group &lt;- kenStone(X = NIRsoil$spc, k = 2, pc = 3, group = my_groups)
+
+# as the first two samples selected belong to groups
+# which have in total more than 2 samples (k).
+my_groups[results_group$model] |&gt;  factor() |&gt; table()
+
+</code></pre>
+
+
+</div>

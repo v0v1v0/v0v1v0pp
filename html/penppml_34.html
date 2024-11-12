@@ -1,0 +1,239 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>xvalidate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Implementing Cross Validation</h2>
+
+<h3>Description</h3>
+
+<p>This is the internal function called by <code>mlfitppml_int</code> to perform cross-validation, if the
+option is enabled. It is available also on a stand-alone basis in case it is needed, but generally
+users will be better served by using the wrapper <code>mlfitppml</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">xvalidate(
+  y,
+  x,
+  fes,
+  IDs,
+  testID = NULL,
+  tol = 1e-08,
+  hdfetol = 1e-04,
+  colcheck_x = TRUE,
+  colcheck_x_fes = TRUE,
+  init_mu = NULL,
+  init_x = NULL,
+  init_z = NULL,
+  verbose = FALSE,
+  cluster = NULL,
+  penalty = "lasso",
+  method = "placeholder",
+  standardize = TRUE,
+  penweights = rep(1, ncol(x_reg)),
+  lambda = 0
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Dependent variable (a vector)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Regressor matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fes</code></td>
+<td>
+<p>List of fixed effects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>IDs</code></td>
+<td>
+<p>A vector of fold IDs for k-fold cross validation. If left unspecified, each observation
+is assigned to a different fold (warning: this is likely to be very resource-intensive).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>testID</code></td>
+<td>
+<p>Optional. A number indicating which ID to hold out during cross-validation. If left
+unspecified, the function cycles through all IDs and reports the average RMSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>Tolerance parameter for convergence of the IRLS algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hdfetol</code></td>
+<td>
+<p>Tolerance parameter for the within-transformation step,
+passed on to <code>collapse::fhdwithin</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colcheck_x</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, this checks collinearity between the independent variables and drops the
+collinear variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colcheck_x_fes</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, this checks whether the independent variables are perfectly explained
+by the fixed effects drops those that are perfectly explained.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init_mu</code></td>
+<td>
+<p>Optional: initial values of the conditional mean <code class="reqn">\mu</code>, to be used as weights in the
+first iteration of the algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init_x</code></td>
+<td>
+<p>Optional: initial values of the independent variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init_z</code></td>
+<td>
+<p>Optional: initial values of the transformed dependent variable, to be used in the
+first iteration of the algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, it prints information to the screen while evaluating.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cluster</code></td>
+<td>
+<p>Optional: a vector classifying observations into clusters (to use when calculating SEs).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalty</code></td>
+<td>
+<p>A string indicating the penalty type. Currently supported: "lasso" and "ridge".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>The user can set this equal to "plugin" to perform the plugin algorithm with
+coefficient-specific penalty weights (see details). Otherwise, a single global penalty is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardize</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, x variables are standardized before estimation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penweights</code></td>
+<td>
+<p>Optional: a vector of coefficient-specific penalties to use in plugin lasso when
+<code>method == "plugin"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>Penalty parameter, to be passed on to penhdfeppml_int or penhdfeppml_cluster_int.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>xvalidate</code> carries out cross-validation with the user-provided IDs by holding out each one of
+them, sequentially, as in the k-fold procedure (unless <code>testID</code> is specified, in which case
+it just uses this ID for validation). After filtering out the holdout sample, the function simply
+calls penhdfeppml_int and penhdfeppml_cluster_int to estimate the coefficients, it
+predicts the conditional means for the held-out observations and finally it calculates the root mean
+squared error (RMSE).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with two elements:
+</p>
+
+<ul>
+<li> <p><code>rmse</code>: root mean squared error (RMSE).
+</p>
+</li>
+<li> <p><code>mu</code>: conditional means.
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Breinlich, H., Corradi, V., Rocha, N., Ruta, M., Santos Silva, J.M.C. and T. Zylkin (2021).
+"Machine Learning in International Trade Research: Evaluating the Impact of Trade Agreements",
+Policy Research Working Paper; No. 9629. World Bank, Washington, DC.
+</p>
+<p>Correia, S., P. Guimaraes and T. Zylkin (2020). "Fast Poisson estimation with high dimensional
+fixed effects", <em>STATA Journal</em>, 20, 90-115.
+</p>
+<p>Gaure, S (2013). "OLS with multiple high dimensional category variables",
+<em>Computational Statistics &amp; Data Analysis</em>, 66, 8-18.
+</p>
+<p>Friedman, J., T. Hastie, and R. Tibshirani (2010). "Regularization paths for generalized linear
+models via coordinate descent", <em>Journal of Statistical Software</em>, 33, 1-22.
+</p>
+<p>Belloni, A., V. Chernozhukov, C. Hansen and D. Kozbur (2016). "Inference in high dimensional panel
+models with an application to gun control", <em>Journal of Business &amp; Economic Statistics</em>, 34, 590-605.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># First, we need to transform the data. Start by filtering the data set to keep only countries in
+# the Americas:
+americas &lt;- countries$iso[countries$region == "Americas"]
+trade &lt;- trade[(trade$imp %in% americas) &amp; (trade$exp %in% americas), ]
+# Now generate the needed x, y and fes objects:
+y &lt;- trade$export
+x &lt;- data.matrix(trade[, -1:-6])
+fes &lt;- list(exp_time = interaction(trade$exp, trade$time),
+            imp_time = interaction(trade$imp, trade$time),
+            pair     = interaction(trade$exp, trade$imp))
+# We also need to create the IDs. We split the data set by agreement, not observation:
+id &lt;- unique(trade[, 5])
+nfolds &lt;- 10
+unique_ids &lt;- data.frame(id = id, fold = sample(1:nfolds, size = length(id), replace = TRUE))
+cross_ids &lt;- merge(trade[, 5, drop = FALSE], unique_ids, by = "id", all.x = TRUE)
+# Finally, we try xvalidate with a lasso penalty (the default) and two lambda values:
+## Not run: reg &lt;- xvalidate(y = y, x = x, fes = fes, lambda = 0.001,
+                         IDs = cross_ids$fold, verbose = TRUE)
+## End(Not run)
+
+</code></pre>
+
+
+</div>

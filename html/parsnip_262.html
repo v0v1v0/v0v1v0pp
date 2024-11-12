@@ -1,0 +1,250 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predict.model_fit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Model predictions</h2>
+
+<h3>Description</h3>
+
+<p>Apply a model to create different types of predictions.
+<code>predict()</code> can be used for all types of models and uses the
+"type" argument for more specificity.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'model_fit'
+predict(object, new_data, type = NULL, opts = list(), ...)
+
+## S3 method for class 'model_fit'
+predict_raw(object, new_data, opts = list(), ...)
+
+predict_raw(object, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>An object of class <code>model_fit</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>new_data</code></td>
+<td>
+<p>A rectangular data object, such as a data frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>A single character value or <code>NULL</code>. Possible values
+are <code>"numeric"</code>, <code>"class"</code>, <code>"prob"</code>, <code>"conf_int"</code>, <code>"pred_int"</code>,
+<code>"quantile"</code>, <code>"time"</code>, <code>"hazard"</code>, <code>"survival"</code>, or <code>"raw"</code>. When <code>NULL</code>,
+<code>predict()</code> will choose an appropriate value based on the model's mode.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opts</code></td>
+<td>
+<p>A list of optional arguments to the underlying
+predict function that will be used when <code>type = "raw"</code>. The
+list should not include options for the model object or the
+new data being predicted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional <code>parsnip</code>-related options, depending on the
+value of <code>type</code>. Arguments to the underlying model's prediction
+function cannot be passed here (use the <code>opts</code> argument instead).
+Possible arguments are:
+</p>
+
+<ul>
+<li> <p><code>interval</code>: for <code>type</code> equal to <code>"survival"</code> or <code>"quantile"</code>, should
+interval estimates be added, if available? Options are <code>"none"</code>
+and <code>"confidence"</code>.
+</p>
+</li>
+<li> <p><code>level</code>: for <code>type</code> equal to <code>"conf_int"</code>, <code>"pred_int"</code>, or <code>"survival"</code>,
+this is the parameter for the tail area of the intervals
+(e.g. confidence level for confidence intervals).
+Default value is <code>0.95</code>.
+</p>
+</li>
+<li> <p><code>std_error</code>: for <code>type</code> equal to <code>"conf_int"</code> or <code>"pred_int"</code>, add
+the standard error of fit or prediction (on the scale of the
+linear predictors). Default value is <code>FALSE</code>.
+</p>
+</li>
+<li> <p><code>quantile</code>: for <code>type</code> equal to <code>quantile</code>, the quantiles of the
+distribution. Default is <code>(1:9)/10</code>.
+</p>
+</li>
+<li> <p><code>eval_time</code>: for <code>type</code> equal to <code>"survival"</code> or <code>"hazard"</code>, the
+time points at which the survival probability or hazard is estimated.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For <code>type = NULL</code>, <code>predict()</code> uses
+</p>
+
+<ul>
+<li> <p><code>type = "numeric"</code> for regression models,
+</p>
+</li>
+<li> <p><code>type = "class"</code> for classification, and
+</p>
+</li>
+<li> <p><code>type = "time"</code> for censored regression.
+</p>
+</li>
+</ul>
+<h4>Interval predictions</h4>
+
+<p>When using <code>type = "conf_int"</code> and <code>type = "pred_int"</code>, the options
+<code>level</code> and <code>std_error</code> can be used. The latter is a logical for an
+extra column of standard error values (if available).
+</p>
+
+
+
+<h4>Censored regression predictions</h4>
+
+<p>For censored regression, a numeric vector for <code>eval_time</code> is required when
+survival or hazard probabilities are requested. The time values are required
+to be unique, finite, non-missing, and non-negative. The <code>predict()</code>
+functions will adjust the values to fit this specification by removing
+offending points (with a warning).
+</p>
+<p><code>predict.model_fit()</code> does not require the outcome to be present. For
+performance metrics on the predicted survival probability, inverse probability
+of censoring weights (IPCW) are required (see the <code>tidymodels.org</code> reference
+below). Those require the outcome and are thus not returned by <code>predict()</code>.
+They can be added via <code>augment.model_fit()</code> if <code>new_data</code> contains a column
+with the outcome as a <code>Surv</code> object.
+</p>
+<p>Also, when <code>type = "linear_pred"</code>, censored regression models will by default
+be formatted such that the linear predictor <em>increases</em> with time. This may
+have the opposite sign as what the underlying model's <code>predict()</code> method
+produces. Set <code>increasing = FALSE</code> to suppress this behavior.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>With the exception of <code>type = "raw"</code>, the result of
+<code>predict.model_fit()</code>
+</p>
+
+<ul>
+<li>
+<p> is a tibble
+</p>
+</li>
+<li>
+<p> has as many rows as there are rows in <code>new_data</code>
+</p>
+</li>
+<li>
+<p> has standardized column names, see below:
+</p>
+</li>
+</ul>
+<p>For <code>type = "numeric"</code>, the tibble has a <code>.pred</code> column for a single
+outcome and <code>.pred_Yname</code> columns for a multivariate outcome.
+</p>
+<p>For <code>type = "class"</code>, the tibble has a <code>.pred_class</code> column.
+</p>
+<p>For <code>type = "prob"</code>, the tibble has <code>.pred_classlevel</code> columns.
+</p>
+<p>For <code>type = "conf_int"</code> and <code>type = "pred_int"</code>, the tibble has
+<code>.pred_lower</code> and <code>.pred_upper</code> columns with an attribute for
+the confidence level. In the case where intervals can be
+produces for class probabilities (or other non-scalar outputs),
+the columns are named <code>.pred_lower_classlevel</code> and so on.
+</p>
+<p>For <code>type = "quantile"</code>, the tibble has a <code>.pred</code> column, which is
+a list-column. Each list element contains a tibble with columns
+<code>.pred</code> and <code>.quantile</code> (and perhaps other columns).
+</p>
+<p>For <code>type = "time"</code>, the tibble has a <code>.pred_time</code> column.
+</p>
+<p>For <code>type = "survival"</code>, the tibble has a <code>.pred</code> column, which is
+a list-column. Each list element contains a tibble with columns
+<code>.eval_time</code> and <code>.pred_survival</code> (and perhaps other columns).
+</p>
+<p>For <code>type = "hazard"</code>, the tibble has a <code>.pred</code> column, which is
+a list-column. Each list element contains a tibble with columns
+<code>.eval_time</code> and <code>.pred_hazard</code> (and perhaps other columns).
+</p>
+<p>Using <code>type = "raw"</code> with <code>predict.model_fit()</code> will return
+the unadulterated results of the prediction function.
+</p>
+<p>In the case of Spark-based models, since table columns cannot
+contain dots, the same convention is used except 1) no dots
+appear in names and 2) vectors are never returned but
+type-specific prediction functions.
+</p>
+<p>When the model fit failed and the error was captured, the
+<code>predict()</code> function will return the same structure as above but
+filled with missing values. This does not currently work for
+multivariate models.
+</p>
+
+
+<h3>References</h3>
+
+<p><a href="https://www.tidymodels.org/learn/statistics/survival-metrics/">https://www.tidymodels.org/learn/statistics/survival-metrics/</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(dplyr)
+
+lm_model &lt;-
+  linear_reg() %&gt;%
+  set_engine("lm") %&gt;%
+  fit(mpg ~ ., data = mtcars %&gt;% dplyr::slice(11:32))
+
+pred_cars &lt;-
+  mtcars %&gt;%
+  dplyr::slice(1:10) %&gt;%
+  dplyr::select(-mpg)
+
+predict(lm_model, pred_cars)
+
+predict(
+  lm_model,
+  pred_cars,
+  type = "conf_int",
+  level = 0.90
+)
+
+predict(
+  lm_model,
+  pred_cars,
+  type = "raw",
+  opts = list(type = "terms")
+)
+
+</code></pre>
+
+
+</div>

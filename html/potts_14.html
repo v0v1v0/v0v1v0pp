@@ -1,0 +1,153 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>composite.ll</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Composite Log Likelihood for Potts Models</h2>
+
+<h3>Description</h3>
+
+<p>Calculate Composite Log Likelihood (CLL) and the gradient of the CLL
+for Potts models.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">composite.ll(theta, t_stat, t_cache=NULL, fapply=lapply)
+gr.composite.ll(theta, t_stat, t_cache=NULL, fapply=lapply) 
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>theta</code></td>
+<td>
+<p>numeric canonical parameter vector.  The CLL will be
+evaluated at this point.  It is assumed that the
+component corresponding to the first color has been
+dropped.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t_stat</code></td>
+<td>
+<p>numeric, canonical statistic vector.  The value of the
+canonical statistic for the full image.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t_cache</code></td>
+<td>
+<p>list of arrays.  <code>t_cache[[i]][j,]</code> = the value of
+<code class="reqn">t</code> with window <code class="reqn">A_i</code> replaced by the
+<code class="reqn">j^{th}</code> element of <code class="reqn">C^A</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fapply</code></td>
+<td>
+<p>function.  Expected to function as <code>lapply</code> does.  Useful
+for enabling parallel processing.  E.g. use the <code>mclapply</code> function
+from the <span class="pkg">multicore</span> package.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For the given value of <code>theta</code> <code>composite.ll</code> and
+<code>gr.composite.ll</code> calculate the CLL and the gradient of the CLL
+respectively for a realized Potts model represented by <code>t_stat</code>
+and <code>t_cache</code>.
+</p>
+<p><code class="reqn">\mathcal{A}</code> is the set of all <em>windows</em> to be used in
+calculating the Composite Log Likelihood (CLL) for a Potts model.  A
+<dfn>window</dfn> is a collection of adjacent pixels on the lattice of the
+Potts model.  <code class="reqn">A</code> is used to represent a generic window in
+<code class="reqn">\mathcal{A}</code>, the code in this package
+expects that all the windows in <code class="reqn">\mathcal{A}</code> have the same
+size and shape.  <code class="reqn">|A|</code> is used to denote the size, or number
+of pixels in a window.  Each pixel in a Potts takes on a value in
+<code class="reqn">C</code>, the set of possible colors.  For simplicity, this
+implementation takes <code class="reqn">C = \{1,\dots,\texttt{ncolor}\}</code>.  Elements of <code class="reqn">C</code> will be referenced
+using <code class="reqn">c_j</code> with <code class="reqn">j \in \{1,\dots,\texttt{ncolor}\}</code>.  <code class="reqn">C^A</code> is used to denote all
+the permutations of <code class="reqn">C</code> across the window <code class="reqn">A</code>, and
+<code class="reqn">|C|^{|A|}</code> is used to denote the size of <code class="reqn">C^A</code>.
+In an abuse of notation, we use <code class="reqn">A_a</code> to refer to the
+<code class="reqn">a^{th}</code> element of <code class="reqn">\mathcal{A}</code>.  No ordinal or
+numerical properties of <code class="reqn">\mathcal{A}</code>, <code class="reqn">C</code> or
+<code class="reqn">C^A</code> are used, only that each element in the sets are
+referenced by one and only one indexing value.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>composite.ll</code> returns CLL evaluated at <code>theta</code>.
+</p>
+<p><code>gr.composite.ll</code> returns a numeric vector of length
+<code>length(theta)</code> containing the gradient of the CLL at <code>theta</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>generate_t_cache</code>, <code>calc_t</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+ncolor &lt;- 4
+beta   &lt;- log(1+sqrt(ncolor))
+theta  &lt;- c(rep(0,ncolor), beta)
+
+nrow &lt;- 32
+ncol &lt;- 32
+
+x &lt;- matrix(sample(ncolor, nrow*ncol, replace=TRUE), nrow=nrow, ncol=ncol)
+foo &lt;- packPotts(x, ncolor)
+out &lt;- potts(foo, theta, nbatch=10)
+x &lt;- unpackPotts(out$final)
+
+t_stat &lt;- calc_t(x, ncolor)
+t_cache_mple &lt;- generate_t_cache(x, ncolor, t_stat, nrow*ncol, 1,
+                                 singleton)
+t_cache_two &lt;- generate_t_cache(x, ncolor, t_stat, nrow*ncol/2, 2,
+                                twopixel.nonoverlap)
+
+composite.ll(theta[-1], t_stat, t_cache_mple)
+gr.composite.ll(theta[-1], t_stat, t_cache_mple)
+
+## Not run: 
+optim.mple &lt;- optim(theta.initial, composite.ll, gr=gr.composite.ll,
+                    t_stat, t_cache_mple, method="BFGS",
+                    control=list(fnscale=-1))
+optim.mple$par
+
+optim.two &lt;- optim(theta.initial, composite.ll, gr=gr.composite.ll,
+                   t_stat, t_cache_two, method="BFGS",
+                   control=list(fnscale=-1))
+optim.two$par
+
+## End(Not run)
+
+## Not run: 
+# or use mclapply to speed things up.
+library(multicore)
+optim.two &lt;- optim(theta.initial, composite.ll, gr=gr.composite.ll,
+                   t_stat, t_cache_two, mclapply, method="BFGS",
+                   control=list(fnscale=-1))
+optim.two$par
+
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

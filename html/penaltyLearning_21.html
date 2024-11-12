@@ -1,0 +1,102 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>modelSelectionC</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Exact model selection function</h2>
+
+<h3>Description</h3>
+
+<p>Given <code>loss.vec</code> L_i, <code>model.complexity</code> K_i, the model selection
+function i*(lambda) = argmin_i L_i + lambda*K_i, compute all of
+the solutions (i, min.lambda, max.lambda) with i being the
+solution for every lambda in (min.lambda, max.lambda). This
+function uses the linear time algorithm implemented in C code.
+This function is mostly meant for internal use – it is instead
+recommended to use <code>modelSelection</code>.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">modelSelectionC(loss.vec, 
+    model.complexity, 
+    model.id)</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>loss.vec</code></td>
+<td>
+<p>numeric vector: loss L_i</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model.complexity</code></td>
+<td>
+<p>numeric vector: model complexity K_i</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model.id</code></td>
+<td>
+<p>vector: indices i</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>data.frame with a row for each model that can be selected for at
+least one lambda value, and the following columns. (min.lambda,
+max.lambda) and (min.log.lambda, max.log.lambda) are intervals of
+optimal penalty constants, on the original and log scale;
+<code>model.complexity</code> are the K_i values; <code>model.id</code> are the model
+identifiers (also used for row names); and model.loss are the C_i
+values.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Toby Dylan Hocking &lt;toby.hocking@r-project.org&gt; [aut, cre]</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+loss.vec &lt;- c(
+  -9.9, -12.8, -19.2, -22.1, -24.5, -26.1, -28.5, -30.1, -32.2, 
+  -33.7, -35.2, -36.8, -38.2, -39.5, -40.7, -41.8, -42.8, -43.9, 
+  -44.9, -45.8)
+seg.vec &lt;- seq_along(loss.vec)
+exact.df &lt;- penaltyLearning::modelSelectionC(loss.vec, seg.vec, seg.vec)
+## Solve the optimization using grid search.
+L.grid &lt;- with(exact.df,{
+  seq(min(max.log.lambda)-1,
+      max(min.log.lambda)+1,
+      l=100)
+})
+lambda.grid &lt;- exp(L.grid)
+kstar.grid &lt;- sapply(lambda.grid, function(lambda){
+  crit &lt;- with(exact.df, model.complexity * lambda + model.loss)
+  picked &lt;- which.min(crit)
+  exact.df$model.id[picked]
+})
+grid.df &lt;- data.frame(log.lambda=L.grid, segments=kstar.grid)
+library(ggplot2)
+## Compare the results.
+ggplot()+
+  ggtitle("grid search (red) agrees with exact path computation (black)")+
+  geom_segment(aes(min.log.lambda, model.id,
+                   xend=max.log.lambda, yend=model.id),
+               data=exact.df)+
+  geom_point(aes(log.lambda, segments),
+             data=grid.df, color="red", pch=1)+
+  ylab("optimal model complexity (segments)")+
+  xlab("log(lambda)")
+
+</code></pre>
+
+
+</div>

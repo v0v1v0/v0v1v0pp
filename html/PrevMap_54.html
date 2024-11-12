@@ -1,0 +1,138 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>variog.diagnostic.glgm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Variogram-based validation for generalized linear geostatistical model fits (Binomial and Poisson)</h2>
+
+<h3>Description</h3>
+
+<p>This function performs model validation for generalized linear geostatistical models (Binomial and Poisson)
+using Monte Carlo methods based on the variogram.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">variog.diagnostic.glgm(
+  object,
+  n.sim = 200,
+  uvec = NULL,
+  plot.results = TRUE,
+  which.test = "both"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>an object of class "PrevMap" obtained as an output from <code>binomial.logistic.MCML</code> and <code>poisson.log.MCML</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.sim</code></td>
+<td>
+<p>integer indicating the number of simulations used for the variogram-based diagnostics.
+Defeault is <code>n.sim=1000</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>uvec</code></td>
+<td>
+<p>a vector with values used to define the variogram binning. If <code>uvec=NULL</code>, then <code>uvec</code> is then set to <code>seq(MIN_DIST,(MAX_DIST-MIN_DIST)/2,length=15)</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.results</code></td>
+<td>
+<p>if <code>plot.results=TRUE</code>, a plot is returned showing the results for the selected test(s) for spatial correlation. By default <code>plot.results=TRUE</code>.
+defined as the distance at which the fitted spatial correlation is no less than 0.05. Default is <code>range.fact=1</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>which.test</code></td>
+<td>
+<p>a character specifying which test for residual spatial correlation is to be performed: "variogram", "test statistic" or "both". The default is <code>which.test="both"</code>. See 'Details.'</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function takes as an input through the argument <code>object</code> a fitted
+generalized linear geostaistical model for an outcome <code class="reqn">Y_i</code>, with linear predictor
+</p>
+<p style="text-align: center;"><code class="reqn">\eta_i=d_i'\beta+S(x_i)+Z_i</code>
+</p>
+
+<p>where <code class="reqn">d_i</code> is a vector of covariates which are specified through <code>formula</code>, <code class="reqn">S(x_i)</code> is a spatial Gaussian process and the <code class="reqn">Z_i</code> are assumed to be zero-mean Gaussian.
+The model validation is performed on the adopted satationary and isotropic Matern covariance function used for <code class="reqn">S(x_i)</code>.
+More specifically, the function allows the users to select either of the following validation procedures.
+</p>
+<p><b>Variogram-based graphical validation</b>
+</p>
+<p>This graphical diagnostic is performed by setting <code>which.test="both"</code> or <code>which.test="variogram"</code>. The output are 95
+(see below <code>lower.lim</code> and <code>upper.lim</code>) that are generated under the assumption that the fitted model did generate the analysed data-set.
+This validation procedure proceed through the following steps.
+</p>
+<p>1. Obtain the mean, say <code class="reqn">\hat{Z}_i</code>, of the <code class="reqn">Z_i</code> conditioned on the data <code class="reqn">Y_i</code> and by setting <code class="reqn">S(x_i)=0</code> in the equation above.
+</p>
+<p>2. Compute the empirical variogram using <code class="reqn">\hat{Z}_i</code>
+</p>
+<p>3. Simulate <code>n.sim</code> data-sets under the fitted geostatistical model.
+</p>
+<p>4. For each of the simulated data-sets and obtain <code class="reqn">\hat{Z}_i</code> as in Step 1.
+Finally, compute the empirical variogram based on the resulting <code class="reqn">\hat{Z}_i</code>.
+</p>
+<p>5. From the <code>n.sim</code> variograms obtained in the previous step, compute the 95
+</p>
+<p>If the observed variogram (<code>obs.variogram</code> below), based on the <code class="reqn">\hat{Z}_i</code> from Step 2, falls within the 95
+evidence against the fitted spatial correlation model; if, instead, that partly falls outside the 95
+correlation in the data.
+</p>
+<p><b>Test for suitability of the adopted correlation function</b>
+</p>
+<p>This diagnostic test is performed if <code>which.test="both"</code> or <code>which.test="test statistic"</code>. Let <code class="reqn">v_{E}(B)</code> and <code class="reqn">v_{T}(B)</code> denote the empirical and theoretical variograms based on <code class="reqn">\hat{Z}_i</code> for the distance bin <code class="reqn">B</code>.
+The test statistic used for testing residual spatial correlation is
+</p>
+<p style="text-align: center;"><code class="reqn">T = \sum_{B} N(B) \{v_{E}(B)-v_{T}(B)\}</code>
+</p>
+
+<p>where <code class="reqn">N(B)</code> is the number of pairs of data-points falling within the distance bin <code class="reqn">B</code> (<code>n.bins</code> below).
+</p>
+<p>To obtain the distribution of the test statistic <code class="reqn">T</code> under the null hypothesis that the fitted model did generate the analysed data-set, we use the simulated empirical variograms as obtained in step 5 of the iterative procedure described in "Variogram-based graphical validation."
+The p-value for the test of suitability of the fitted spatial correlation function is then computed by taking the proportion of simulated values for <code class="reqn">T</code> that are larger than the value of <code class="reqn">T</code> based on the original <code class="reqn">\hat{Z}_i</code> in Step 1.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class "PrevMap.diagnostic" which is a list containing the following components:
+</p>
+<p><code>obs.variogram</code>: a vector of length <code>length(uvec)-1</code> containing the values of the variogram for each of
+the distance bins defined through <code>uvec</code>.
+</p>
+<p><code>distance.bins</code>: a vector of length <code>length(uvec)-1</code> containing the average distance within each of the distance bins
+defined through <code>uvec</code>.
+</p>
+<p><code>n.bins</code>: a vector of length <code>length(uvec)-1</code> containing the number of pairs of data-points falling within each distance bin.
+</p>
+<p><code>lower.lim</code>: (available only if <code>which.test="both"</code> or <code>which.test="variogram"</code>) a vector of length <code>length(uvec)-1</code> containing the lower limits of the 95
+generated under the assumption of absence of suitability of the fitted model  at each fo the distance bins  defined through <code>uvec</code>.
+</p>
+<p><code>upper.lim</code>: (available only if <code>which.test="both"</code> or <code>which.test="variogram"</code>) a vector of length <code>length(uvec)-1</code> containing the upper limits of the 95
+generated under the assumption of absence of suitability of the fitted model at each fo the distance bins  defined through <code>uvec</code>.
+</p>
+<p><code>mode.rand.effects</code>: the predictive mode of the random effects from the fitted non-spatial generalized linear mixed model.
+</p>
+<p><code>p.value</code>: (available only if <code>which.test="both"</code> or <code>which.test="test statistic"</code>) p-value of the test for residual spatial correlation.
+</p>
+<p><code>lse.variogram</code>: (available only if <code>lse.variogram=TRUE</code>) a vector of length <code>length(uvec)-1</code> containing the values of the estimated Matern variogram via a weighted least square fit.
+</p>
+
+
+</div>

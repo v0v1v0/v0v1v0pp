@@ -1,0 +1,378 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>DiversityCurves</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Diversity Curves</h2>
+
+<h3>Description</h3>
+
+<p>Functions to plot diversity curves based on taxic range data, in both
+discrete and continuous time, and for phylogenies.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">taxicDivCont(
+  timeData,
+  int.length = 1,
+  int.times = NULL,
+  plot = TRUE,
+  plotLogRich = FALSE,
+  timelims = NULL,
+  drop.cryptic = FALSE
+)
+
+taxicDivDisc(
+  timeList,
+  int.times = NULL,
+  drop.singletons = FALSE,
+  plot = TRUE,
+  plotLogRich = FALSE,
+  timelims = NULL,
+  extant.adjust = 0.001,
+  split.int = TRUE
+)
+
+phyloDiv(
+  tree,
+  int.length = 0.1,
+  int.times = NULL,
+  plot = TRUE,
+  plotLogRich = FALSE,
+  drop.ZLB = TRUE,
+  timelims = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>timeData</code></td>
+<td>
+<p>Two-column matrix giving the per-taxon first and last
+appearances in absolute time. The simulated data tables output by <code>fossilRecord2fossilTaxa</code>
+following simulation with <code>simFossilRecord</code> can also be supplied to <code>taxicDivCont</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>int.length</code></td>
+<td>
+<p>The length of intervals used to make the diversity curve.
+Ignored if <code>int.times</code> is given.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>int.times</code></td>
+<td>
+<p>An optional two-column matrix of the interval start and end
+times for calculating the diversity curve. If <code>NULL</code>, calculated internally.
+If given, the argument <code>split.int</code> and <code>int.length</code> are ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>If <code>TRUE</code>, a diversity curve generated from the data is plotted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plotLogRich</code></td>
+<td>
+<p>If <code>TRUE</code>, taxic diversity is plotted on log scale.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timelims</code></td>
+<td>
+<p>Limits for the x (time) axis for diversity curve plots. Only
+affects plotting. Given as either <code>NULL</code> (the default) or as a vector of
+length two as for <code>xlim</code> in the basic R function <code>plot</code>. Time axes 
+will be plotted <em>exactly</em> to these values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop.cryptic</code></td>
+<td>
+<p>If <code>TRUE</code>, cryptic taxa are merged to form one taxon for
+estimating taxon curves. Only works for objects from <code>simFossilRecord</code>
+via <code>fossilRecord2fossilTaxa</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timeList</code></td>
+<td>
+<p>A list composed of two matrices, giving interval start and end 
+dates and taxon first and last occurrences within those intervals. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop.singletons</code></td>
+<td>
+<p>If <code>TRUE</code>, taxa confined to a single interval will be
+dropped prior to the diversity curve calculation. This is sometimes done if
+single intervals have overly high diversities due to the 'monograph' effect
+where more named taxa are known in certain intervals largely due to
+taxonomic expert effort and not real changes in historical biotic diversity.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extant.adjust</code></td>
+<td>
+<p>Amount of time to be added to extend start time for
+(0,0) bins for extant taxa, so that the that 'time interval' does not appear 
+to have an infinitely small width.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>split.int</code></td>
+<td>
+<p>For discrete time data, should calculated/input intervals
+be split at discrete time interval boundaries? If <code>FALSE</code>, can create apparent
+artifacts in calculating the diversity curve. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tree</code></td>
+<td>
+<p>A time-scaled phylogeny of class <code>phylo</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop.ZLB</code></td>
+<td>
+<p>If <code>TRUE</code>, zero-length terminal branches are dropped from the
+input tree for phylogenetic datasets, before calculating standing diversity.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>First, some background. 
+Diversity curves are plots of species/taxon/lineage richness
+over time for a particular group of organisms. For paleontological studies,
+these are generally based on per-taxon range data while more recently in
+evolutionary biology, molecular phylogenies have been used to calculate
+lineage-through-time plots (LTTs). Neither of these approaches are without
+their particular weaknesses; reconstructing the true history of biodiversity
+is a difficult task no matter what data is available.
+</p>
+<p>The diversity curves produced by these functions will always measure
+diversity within binned time intervals (and plot them as rectangular bins).
+For continuous-time data or phylogenies, one could decrease the int.length
+used to get what is essentially an 'instantaneous' estimate of diversity.
+This is warned against, however, as most historical diversity data will have
+some time-averaging or uncertain temporal resolution and thus is probably
+not finely-resolved enough to calculate instantaneous estimates of
+diversity.
+</p>
+<p>As with many functions in the <code>paleotree</code> library, absolute time is always
+decreasing, i.e. the present day is zero.
+</p>
+<p>As diversity is counted within binned intervals, the true standing diversity
+may be somewhat lower than the measured (observed) quantity, particularly if
+intervals are longer than the mean duration of taxa is used. This will be an
+issue with all diversity curve functions, but particularly the discrete-time
+variant. For diversity data in particularly large discrete time intervals,
+plotting this data in smaller bins which do not line up completely with the
+original intervals will create a 'spiky' diversity curve, as these smaller
+intersecting bins will have a large number of taxa which may have been
+present in either of the neighboring intervals. This will give these small
+bins an apparently high estimated standing diversity. This artifact is
+avoided with the default setting <code>split.int = TRUE</code>, which will split any input
+or calculated intervals so that they start and end at the boundaries of the
+discrete-time range bins.
+</p>
+<p>The <code>timeList</code> object should be a list composed of two matrices, the first
+matrix giving by-interval start and end times (in absolute time), the second
+matrix giving the by-taxon first and last appearances in the intervals
+defined in the first matrix, numbered as the rows. Absolute time should be
+decreasing, while the intervals should be numbered so that the number
+increases with time. Taxa alive in the modern should be listed as last
+occurring in a time interval that  begins at time 0 and ends at time 0.
+See the documentation for the time-scaling  function 
+<code>bin_timePaleoPhy</code> and the simulation function 
+<code>binTimeData</code> for more information on formatting.
+</p>
+<p>Unlike some <code>paleotree</code> functions,
+such as <code>perCapitaRates</code>, the intervals
+can be overlapping or of unequal length. The diversity curve functions
+deal with such issues by assuming taxa occur from the base of the interval
+they are first found in until the end of the last interval they are occur
+in. Taxa in wide-ranging intervals that contain many others will be treated
+as occurring in all nested intervals. 
+</p>
+<p><code>phyloDiv</code> will resolve polytomies to be dichotomous nodes separated by
+zero-length branches prior to calculating the diversity curve. There is no
+option to alter this behavior, but it should not affect the use of the
+function because the addition of the zero-length branches should produce an
+identical diversity history as a polytomy. <code>phyloDiv</code> will also drop
+zero-length terminal branches, as with the function <code>dropZLB</code>. This the
+default behavior for the function but can be turned off by setting the
+argument <code>drop.zlb</code> to FALSE.
+</p>
+
+
+<h3>Value</h3>
+
+<p>These functions will invisibly return a three-column matrix, where
+the first two columns are interval start and end times and the third column
+is the number of taxa (or lineages) counted in that interval.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David W. Bapst
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>multiDiv</code>, <code>timeSliceTree</code>,
+<code>binTimeData</code>
+</p>
+<p>There are several different functions for traditional LTT plots
+(phylogenetic diversity curves), such as the function
+,<code>ltt.plot</code> in the package <code>ape</code>, the function <code>ltt</code> in the
+package <code>phytools</code>, the function <code>plotLtt</code> in the package <code>laser</code> and the
+function <code>LTT.average.root</code> in the package <code>TreeSim</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# taxicDivDisc example with the retiolinae dataset
+data(retiolitinae)
+taxicDivDisc(retioRanges)
+
+##################################################
+
+# simulation examples
+
+# 07-15-19
+# note that the examples below are weird and rather old
+    # the incomplete sampling can now be done
+    # with the same function that simulates diversification
+
+set.seed(444)
+
+record &lt;- simFossilRecord(
+       p = 0.1, 
+       q = 0.1, 
+       nruns = 1,
+       nTotalTaxa = c(30,40), 
+       nExtant = 0)
+taxa &lt;- fossilRecord2fossilTaxa(record)
+
+# let's see what the 'true' diversity curve looks like in this case
+#plot the FADs and LADs with taxicDivCont
+taxicDivCont(taxa)
+
+# simulate a fossil record with imperfect sampling via sampleRanges
+rangesCont &lt;- sampleRanges(taxa, r = 0.5)
+
+# plot the diversity curve based on the sampled ranges
+layout(1:2)
+taxicDivCont(rangesCont)
+# Now let's use binTimeData to bin in intervals of 1 time unit
+rangesDisc &lt;- binTimeData(rangesCont,
+       int.length = 1)
+# plot with taxicDivDisc
+taxicDivDisc(rangesDisc)
+# compare to the continuous time diversity curve
+
+layout(1)
+# Now let's make a tree using taxa2phylo
+tree &lt;- taxa2phylo(taxa,obs_time = rangesCont[,2])
+phyloDiv(tree)
+
+# a simple example with phyloDiv
+  # using a tree from rtree in ape
+set.seed(444)
+tree &lt;- rtree(100)
+phyloDiv(tree)
+
+###########################################################
+
+#a neat example of using phyDiv with timeSliceTree 
+ #to simulate doing molecular-phylogeny studies 
+ #of diversification...in the past
+
+set.seed(444)
+record &lt;- simFossilRecord(
+       p = 0.1, 
+       q = 0.1, 
+       nruns = 1,
+       nTotalTaxa = c(30,40), 
+       nExtant = 0)
+taxa &lt;- fossilRecord2fossilTaxa(record)
+taxicDivCont(taxa)
+
+#that's the whole diversity curve
+
+#with timeSliceTree we could look at the lineage accumulation curve 
+ #we'd get of species sampled at a point in time
+
+tree &lt;- taxa2phylo(taxa)
+#use timeSliceTree to make tree of relationships up until time = 950 
+tree950 &lt;- timeSliceTree(tree,
+       sliceTime = 950,
+       plot = TRUE,
+       drop.extinct = FALSE)
+
+#use drop.extinct = TRUE to only get the tree of lineages extant at time = 950
+tree950 &lt;- timeSliceTree(tree,
+       sliceTime = 950,
+       plot = TRUE,
+       drop.extinct = TRUE)
+
+#now its an ultrametric tree with many fewer tips...
+#lets plot the lineage accumulation plot on a log scale
+phyloDiv(tree950, 
+       plotLogRich = TRUE)
+
+##################################################
+#an example of a 'spiky' diversity curve 
+       # and why split.int is a good thing
+set.seed(444)
+record &lt;- simFossilRecord(
+       p = 0.1, 
+       q = 0.1, 
+       nruns = 1,
+       nTotalTaxa = c(30,40), 
+       nExtant = 0)
+taxa &lt;- fossilRecord2fossilTaxa(record)
+
+taxaDiv &lt;- taxicDivCont(taxa)
+
+#simulate a fossil record with imperfect sampling with sampleRanges
+rangesCont &lt;- sampleRanges(taxa, r = 0.5)
+rangesDisc &lt;- binTimeData(rangesCont,
+       int.length = 10)
+
+#now let's plot with taxicDivDisc
+ # but with the intervals from taxaDiv
+ # by default, split.int = TRUE
+
+taxicDivDisc(rangesDisc,
+       int.times = taxaDiv[,1:2],
+       split.int = TRUE)
+
+#look pretty!
+
+#now let's turn off split.int
+taxicDivDisc(rangesDisc,
+       int.times = taxaDiv[,1:2],
+       split.int = FALSE)
+#looks 'spiky'!
+
+</code></pre>
+
+
+</div>

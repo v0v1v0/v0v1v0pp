@@ -1,0 +1,130 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ebp_compute_cv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Coefficient of Variation (CV) estimations for Unit EBP Model Headcount
+Estimates</h2>
+
+<h3>Description</h3>
+
+<p>Function <code>ebp_compute_cv</code> estimates CVs for the headcount of the unit
+model EBP functions using three different methods. CV, by definition, is the
+ratio of mean square error of the head count to the  head count estimates.
+Therefore, the CV types are distinguished by the method of estimating the
+mean square.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ebp_compute_cv(
+  model,
+  calibvar = NULL,
+  boot_type = "calibrate",
+  designvar = NULL,
+  threshold = NULL,
+  B = model$call$B
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>an object returned by the ebp function of type "emdi ebp",
+representing point and MSE estimates</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>calibvar</code></td>
+<td>
+<p>the calibration variable to be used in method 1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>boot_type</code></td>
+<td>
+<p>the bootstrap type "calibrated" or "naive" to be used in
+method 1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>designvar</code></td>
+<td>
+<p>the survey design variable to be used in estimating the
+design effect for method 3.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>a number defining a threshold. The  argument defaults to
+<code>NULL</code>. In this case, the threshold is set to 60% of the median of the
+variable that is selected as dependent variable similary to the
+at-risk-of-poverty rate used in the EU (see also
+<cite>Social Protection  Committee 2001</cite>). However, any desired threshold can
+be chosen.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>number of bootstrap iterations for variance estimation. Defaults
+to number of bootstrap iteration in ebp obeject (specified in <code>model</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Method 1 uses the calibrated/naive bootstrapping of the MSE which allows to
+calibrate each bootstrap sample on auxiliary information using the
+<code>direct</code> function.' Calibrated bootstrap improves on the bias of the
+naive bootstrap when used in the complex survey context
+(see <cite>Rao and Wu (1988)</cite>) for more details.
+</p>
+<p>Method 2 employs the Horowitz Thompson variance estimation technique to
+compute MSE i.e. each household is assigned the probability selection within
+the sample under a given sampling scheme. The computation employs
+<code>sae::direct</code> function.
+</p>
+<p>Method 3 finally uses the design effect adjusted naive calibrated MSE. The
+design effect is estimated using the <code>survey::svydesign</code> function.
+</p>
+
+
+<h3>Value</h3>
+
+<p>dataframe containing different types of CV values for the headcount
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data("eusilcA_pop")
+data("eusilcA_smp")
+
+# estimate a unit model
+ebp_model &lt;- ebp(fixed = eqIncome ~ gender + eqsize + cash +
+                    self_empl + unempl_ben + age_ben + surv_ben + sick_ben +
+                    dis_ben + rent + fam_allow + house_allow + cap_inv +
+                    tax_adj,
+                 pop_data = eusilcA_pop, pop_domains = "district",
+                 smp_data = eusilcA_smp, smp_domains = "district",
+                 na.rm = TRUE, weights = "weight",
+                 pop_weights = "hhsize", MSE = TRUE, weights_type = "nlme",
+                 B = 2, L = 2)
+
+# compute CV table
+ebp_compute_cv(model = ebp_model, calibvar = "gender")
+
+
+</code></pre>
+
+
+</div>

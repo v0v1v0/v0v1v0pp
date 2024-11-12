@@ -1,0 +1,205 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>add_manual_bounded_constraints</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add manually specified bound constraints</h2>
+
+<h3>Description</h3>
+
+<p>Add constraints to a conservation planning problem to ensure
+that the planning unit values (e.g., proportion, binary) in a solution
+range between specific lower and upper bounds. This function offers more
+fine-grained control than the <code>add_manual_locked_constraints()</code>
+function and is is most useful for problems involving proportion-type
+or semi-continuous decisions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">add_manual_bounded_constraints(x, data)
+
+## S4 method for signature 'ConservationProblem,data.frame'
+add_manual_bounded_constraints(x, data)
+
+## S4 method for signature 'ConservationProblem,tbl_df'
+add_manual_bounded_constraints(x, data)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>problem()</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p><code>data.frame</code> or <code>tibble::tibble()</code> object.
+See the Data format section for more information.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An updated <code>problem()</code> object with the constraints added to it.
+</p>
+
+
+<h3>Data format</h3>
+
+<p>The argument to <code>data</code> should be a <code>data.frame</code> with the following columns:
+</p>
+
+<dl>
+<dt>pu</dt>
+<dd>
+<p><code>integer</code> planning unit identifier.</p>
+</dd>
+<dt>zone</dt>
+<dd>
+<p><code>character</code> names of zones. Note that this
+argument is optional for arguments to <code>x</code> that contain a single
+zone.</p>
+</dd>
+<dt>lower</dt>
+<dd>
+<p><code>numeric</code> values indicating the minimum
+value that each planning unit can be allocated to in each zone
+in the solution.</p>
+</dd>
+<dt>upper</dt>
+<dd>
+<p><code>numeric</code> values indicating the maximum
+value that each planning unit can be allocated to in each zone
+in the solution.</p>
+</dd>
+</dl>
+<h3>See Also</h3>
+
+<p>See constraints for an overview of all functions for adding constraints.
+</p>
+<p>Other constraints: 
+<code>add_contiguity_constraints()</code>,
+<code>add_feature_contiguity_constraints()</code>,
+<code>add_linear_constraints()</code>,
+<code>add_locked_in_constraints()</code>,
+<code>add_locked_out_constraints()</code>,
+<code>add_mandatory_allocation_constraints()</code>,
+<code>add_manual_locked_constraints()</code>,
+<code>add_neighbor_constraints()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# set seed for reproducibility
+set.seed(500)
+
+# load data
+sim_pu_polygons &lt;- get_sim_pu_polygons()
+sim_features &lt;- get_sim_features()
+sim_zones_pu_polygons &lt;- get_sim_zones_pu_polygons()
+sim_zones_features &lt;- get_sim_zones_features()
+
+# create minimal problem
+p1 &lt;-
+  problem(sim_pu_polygons, sim_features, "cost") %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(0.2) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# create problem with locked in constraints using add_locked_constraints
+p2 &lt;- p1 %&gt;% add_locked_in_constraints("locked_in")
+
+# create identical problem using add_manual_bounded_constraints
+bounds_data &lt;- data.frame(
+  pu = which(sim_pu_polygons$locked_in),
+  lower = 1,
+  upper = 1
+)
+
+p3 &lt;- p1 %&gt;% add_manual_bounded_constraints(bounds_data)
+
+# solve problems
+s1 &lt;- solve(p1)
+s2 &lt;- solve(p2)
+s3 &lt;- solve(p3)
+
+# create object with all solutions
+s4 &lt;- sf::st_sf(
+  tibble::tibble(
+    s1 = s1$solution_1,
+    s2 = s2$solution_1,
+    s3 = s3$solution_1
+  ),
+  geometry = sf::st_geometry(s1)
+)
+
+# plot solutions
+## s1 = none locked in
+## s2 = locked in constraints
+## s3 = manual bounds constraints
+plot(s4)
+
+# create minimal problem with multiple zones
+p5 &lt;-
+  problem(
+    sim_zones_pu_polygons, sim_zones_features,
+    c("cost_1", "cost_2", "cost_3")
+  ) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(matrix(runif(15, 0.1, 0.2), nrow = 5, ncol = 3)) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# create data.frame with the following constraints:
+# planning units 1, 2, and 3 must be allocated to zone 1 in the solution
+# planning units 4, and 5 must be allocated to zone 2 in the solution
+# planning units 8 and 9 must not be allocated to zone 3 in the solution
+bounds_data2 &lt;- data.frame(
+  pu = c(1, 2, 3, 4, 5, 8, 9),
+  zone = c(rep("zone_1", 3), rep("zone_2", 2), rep("zone_3", 2)),
+  lower = c(rep(1, 5), rep(0, 2)),
+  upper = c(rep(1, 5), rep(0, 2))
+)
+
+# print bounds data
+print(bounds_data2)
+
+# create problem with added constraints
+p6 &lt;- p5 %&gt;% add_manual_bounded_constraints(bounds_data2)
+
+# solve problem
+s5 &lt;- solve(p5)
+s6 &lt;- solve(p6)
+
+# create two new columns representing the zone id that each planning unit
+# was allocated to in the two solutions
+s5$solution &lt;- category_vector(sf::st_drop_geometry(
+  s5[, c("solution_1_zone_1","solution_1_zone_2", "solution_1_zone_3")]
+))
+s5$solution &lt;- factor(s5$solution)
+
+s5$solution_bounded &lt;- category_vector(sf::st_drop_geometry(
+  s6[, c("solution_1_zone_1", "solution_1_zone_2", "solution_1_zone_3")]
+))
+s5$solution_bounded &lt;- factor(s5$solution_bounded)
+
+# plot solutions
+plot(s5[, c("solution", "solution_bounded")], axes = FALSE)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

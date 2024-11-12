@@ -1,0 +1,181 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>GaussL0penIntScore-class</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Class <code>"GaussL0penIntScore"</code>
+</h2>
+
+<h3>Description</h3>
+
+<p>This class represents a score for causal inference from jointly interventional
+and observational Gaussian data; it is used in the causal inference functions 
+<code>gies</code> and <code>simy</code>. 
+</p>
+
+
+<h3>Details</h3>
+
+<p>The class implements an <code class="reqn">\ell_0</code>-penalized Gaussian maximum 
+likelihood estimator.  The penalization is a constant (specified by
+the argument <code>lambda</code> in the constructor) times the number of 
+parameters of the DAG model.  By default, the constant <code class="reqn">\lambda</code> is 
+chosen as <code class="reqn">\log(n)/2</code>, which corresponds to the BIC score.
+</p>
+
+
+<h3>Extends</h3>
+
+<p>Class <code>"Score"</code>, directly.
+</p>
+<p>All reference classes extend and inherit methods from <code>"envRefClass"</code>.
+</p>
+
+
+<h3>Fields</h3>
+
+<p>The class <code>GaussL0penIntScore</code> has the same fields as <code>Score</code>.   
+They need not be accessed by the user.
+</p>
+
+
+<h3>Constructor</h3>
+
+<pre>
+new("GaussL0penIntScore",
+  data = matrix(1, 1, 1),
+  targets = list(integer(0)), 
+  target.index = rep(as.integer(1), nrow(data)), 
+  lambda = 0.5*log(nrow(data)), 
+  intercept = FALSE, 
+  use.cpp = TRUE, 
+  ...)
+</pre>
+
+<dl>
+<dt><code>data</code></dt>
+<dd>
+<p>Data matrix with <code class="reqn">n</code> rows and <code class="reqn">p</code> columns.  Each 
+row corresponds to one realization, either interventional or 
+observational.</p>
+</dd>
+<dt><code>targets</code></dt>
+<dd>
+<p>List of mutually exclusive intervention targets
+that have been used for data generation.</p>
+</dd>
+<dt><code>target.index</code></dt>
+<dd>
+<p>Vector of length <code class="reqn">n</code>; the <code class="reqn">i</code>-th entry 
+specifies the index of the intervention
+target in <code>targets</code> under which the <code class="reqn">i</code>-th row of <code>data</code>
+was measured.</p>
+</dd>
+<dt><code>lambda</code></dt>
+<dd>
+<p>Penalization constant (cf. details)</p>
+</dd>
+<dt><code>intercept</code></dt>
+<dd>
+<p>Indicates whether an intercept is allowed in the linear
+structural equations, or, equivalently, if a mean different from zero is
+allowed for the observational distribution.</p>
+</dd>
+<dt><code>use.cpp</code></dt>
+<dd>
+<p>Indicates whether the calculation of the score should be done
+by the C++ library of the package, which speeds up calculation.  This
+parameter should only be set to <code>FALSE</code> in the case of problems.</p>
+</dd>
+</dl>
+<h3>Methods</h3>
+
+
+<dl>
+<dt><code>local.score(vertex, parents, ...)</code></dt>
+<dd>
+<p>Calculates the local score 
+of a vertex and its parents.  Since this score has no obvious 
+interpretation, it is rather for internal use.</p>
+</dd>
+<dt><code>global.score.int(edges, ...)</code></dt>
+<dd>
+<p>Calculates the global score of
+a DAG, represented as a list of in-edges: for each vertex in the DAG,
+this list contains a vector of parents.</p>
+</dd>
+<dt><code>global.score(dag, ...)</code></dt>
+<dd>
+<p>Calculates the global score of a DAG,
+represented as an object of a class derived from
+<code>ParDAG</code>.</p>
+</dd> 
+<dt><code>local.mle(vertex, parents, ...)</code></dt>
+<dd>
+<p>Calculates the local MLE of 
+a vertex and its parents.  The result is a vector of parameters encoded
+as follows:
+</p>
+
+<ul>
+<li>
+<p> First element: variance of the Gaussian error term
+</p>
+</li>
+<li>
+<p> Second element: intercept
+</p>
+</li>
+<li>
+<p> Following elements: regression coefficients; one per parent vertex
+</p>
+</li>
+</ul>
+</dd>
+<dt><code>global.mle(dag, ...)</code></dt>
+<dd>
+<p>Calculates the global MLE of a DAG,
+represented by an object of a class derived from
+<code>ParDAG</code>. 
+The result is a list of vectors, one per vertex, each in the same format
+as the result vector of <code>local.mle</code>.</p>
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p>Alain Hauser (<a href="mailto:alain.hauser@bfh.ch">alain.hauser@bfh.ch</a>)
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>gies</code>, <code>simy</code>, 
+<code>GaussL0penObsScore</code>, 
+<code>Score</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">##################################################
+## Using Gaussian Data
+##################################################
+## Load predefined data
+data(gmInt)
+
+## Define the score object
+score &lt;- new("GaussL0penIntScore", gmInt$x, gmInt$targets, gmInt$target.index) 
+
+## Score of the true underlying DAG
+score$global.score(as(gmInt$g, "GaussParDAG"))
+
+## Score of the DAG that has only one edge from 1 to 2
+A &lt;- matrix(0, ncol(gmInt$x), ncol(gmInt$x))
+A[1, 2] &lt;- 1
+score$global.score(as(A, "GaussParDAG"))
+## (Note: this is lower than the score of the true DAG.)
+</code></pre>
+
+
+</div>

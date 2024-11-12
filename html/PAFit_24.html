@@ -1,0 +1,304 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>get_statistics</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Getting summarized statistics from input data  
+</h2>
+
+<h3>Description</h3>
+
+<p>The function summarizes input data into sufficient statistics for estimating the attachment function and node fitness, together with additional information about the data, such as total number of nodes, number of time-steps, maximum degree, and the final degree of the network, etc. .  It also provides mechanisms to automatically deal with very large datasets by binning the degree, setting a degree threshold, or grouping time-steps. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">get_statistics(net_object, only_PA  = FALSE , 
+               only_true_deg_matrix = FALSE ,
+               binning              = TRUE  , g              = 50    , 
+               deg_threshold        = 0     , 
+               compress_mode        = 0     , compress_ratio = 0.5   , 
+               custom_time          = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<p>The parameters can be divided into four groups. The first group specifies input data and how the data will be summarized:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>net_object</code></td>
+<td>
+
+<p>An object of class <code>PAFit_net</code>. You can use the function <code>as.PAFit_net</code> to convert from an edgelist matrix, function <code>from_igraph</code> to convert from an <code>igraph</code> object, function <code>from_networkDynamic</code> to convert from a <code>networkDynamic</code> object, and function <code>graph_from_file</code> to read from a file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>only_PA</code></td>
+<td>
+
+<p>Logical. Indicates whether only the statistics for estimating <code class="reqn">A_k</code> are summarized. if <code>TRUE</code>, the statistics for estimating <code class="reqn">\eta_i</code> are NOT collected. This will save memory at the cost of unable to estimate node fitness). Default value is <code>FALSE</code>. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>only_true_deg_matrix</code></td>
+<td>
+
+<p>Logical. Return only the true degree matrix (without binning), and no other statistics is returned. The result cannot be used in <code>PAFit</code> function to estimate PA or fitness. The motivation for this option is that sometimes we only want to get a degree matrix that summarizes the growth process of a very big network for plotting etc. Default value is <code>FALSE</code>.
+</p>
+</td>
+</tr>
+</table>
+<p>Second group of parameters specifies how to bin the degrees:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>binning</code></td>
+<td>
+
+<p>Logical. Indicates whether the degree should be binned together. Default value is <code>TRUE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g</code></td>
+<td>
+
+<p>Positive integer. Number of bins. Should be at least <code>3</code>. Default value is <code>50</code>.
+</p>
+</td>
+</tr>
+</table>
+<p>Third group contains a single parameter specifying how to reduce the number of node fitnesses:
+</p>
+<table><tr style="vertical-align: top;">
+<td><code>deg_threshold</code></td>
+<td>
+
+<p>Integer. We only estimate the fitnesses of nodes whose number of new edges acquired is at least <code>deg_threshold</code>. The fitnesses of all other nodes are fixed at <code>1</code>. Default value is <code>0</code>.
+</p>
+</td>
+</tr></table>
+<p>Last group of parameters specifies how to group the time-stamps: 
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>compress_mode</code></td>
+<td>
+
+<p>Integer. Indicates whether the timeline should be compressed. The value of CompressMode:
+</p>
+<p><code>0</code>: No compression
+</p>
+<p><code>1</code>: Compressed by using a subset of time-steps. The time stamps in this subset are equally spaced. The size of this subset is <code>CompressRatio</code> times the size of the set of all time stamps.
+</p>
+<p><code>2</code>: Compressed by only starting from the first time-step when <code class="reqn">CompressRatio*100</code> percentages of the total number of edges (in the final state of the network) had already been added to the network.
+</p>
+<p><code>3</code>: This mode offers the most flexibility, but requires user to supply the time stamps in <code>CustomTime</code>. Only time stamps in this <code>CustomTime</code> will be used. This mode can be used, for example, when investigating the change of the attachment function or node fitness in different time intervals.
+</p>
+<p>Default value is <code>0</code>, i.e. no compression.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compress_ratio</code></td>
+<td>
+
+<p>Numeric. Indicates how much we should compress if CompressMode is <code>1</code> or <code>2</code>. Default value is <code>0.5</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>custom_time</code></td>
+<td>
+
+<p>Vector. Custom time stamps. This vector is a subset of the vector that contains all time-stamps. Only effective if <code>CompressMode == 3</code>. In that case, only these time stamps are used.
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An object of class <code>PAFit_data</code>, which is a list. Some important fields are:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>offset_tk</code></td>
+<td>
+<p>A matrix where the <code>(t,k+1)</code> element is the number of nodes with degree <code class="reqn">k</code> at time <code class="reqn">t</code>, counting among all the nodes whose number of new edges acquired is less than <code>deg_thresh</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_tk</code></td>
+<td>
+<p>A matrix where the <code>(t,k+1)</code> element is the number of nodes with degree <code class="reqn">k</code> at time <code class="reqn">t</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m_tk</code></td>
+<td>
+<p>A matrix where the <code>(t,k+1)</code> element is the number of new edges connect to a degree-<code class="reqn">k</code> node at time <code class="reqn">t</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sum_m_k</code></td>
+<td>
+<p>A vector where the <code>(k+1)</code>-th element is the total number of edges that linked to a degree <code class="reqn">k</code> node, counting over all time steps</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>node_degree</code></td>
+<td>
+<p>A matrix recording the degree of all nodes (that satisfy <code>degree_threshold</code> condition) at each time step</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m_t</code></td>
+<td>
+<p>A vector where the <code>t</code>-th element is the number of new edges at time <code class="reqn">t</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>z_j</code></td>
+<td>
+<p>A vector where the <code>j</code>-th element is the total number of edges that linked to node <code class="reqn">j</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N</code></td>
+<td>
+<p>Numeric. The number of nodes in the network</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>T</code></td>
+<td>
+<p>Numeric. The number of time steps</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deg_max</code></td>
+<td>
+<p>Numeric. The maximum degree in the final network</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>node_id</code></td>
+<td>
+<p>A vector contains the id of all nodes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>final_deg</code></td>
+<td>
+<p>A vector contains the final degree of all nodes (including those that do not satisfy the <code>degree_threshold</code> condition)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deg_thresh</code></td>
+<td>
+<p>Integer. The specified degree threshold.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>f_position</code></td>
+<td>
+<p>Numeric vector. The index in the <code>node_id</code> vector of the nodes we want to estimate (i.e. nodes whose number of new edges acquired is at least <code>deg_thresh</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start_deg</code></td>
+<td>
+<p>Integer. The specified degree at which we start binning.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>begin_deg</code></td>
+<td>
+<p>Numeric vector contains the beginning degree of each bin</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>end_deg</code></td>
+<td>
+<p>Numeric vector contains the ending degree of each bin</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interval_length</code></td>
+<td>
+<p>Numeric vector contains the length of each bin.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>binning</code></td>
+<td>
+<p>Logical. Indicates whether binning was applied or not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g</code></td>
+<td>
+<p>Integer. Number of bins</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time_compress_mode</code></td>
+<td>
+<p>Integer. The mode of time compression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t_compressed</code></td>
+<td>
+<p>Integer. The number of time stamps actually used</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compressed_unique_time</code></td>
+<td>
+<p>The time stamps that are actually used</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compress_ratio</code></td>
+<td>
+<p>Numeric.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>custom_time</code></td>
+<td>
+<p>Vector. The time stamps specified by user.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Thong Pham <a href="mailto:thongphamthe@gmail.com">thongphamthe@gmail.com</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>For creating the needed input for this function (a <code>PAFit_net</code> object), see <code>as.PAFit_net</code>, <code>from_igraph</code>, <code>from_networkDynamic</code>, and <code>graph_from_file</code>. 
+</p>
+<p>For the next step, see <code>Newman</code>, <code>Jeong</code> or <code>only_A_estimate</code> for estimating the attachment function in isolation, <code>only_F_estimate</code> for estimating node fitnesses in isolation, and <code>joint_estimate</code> for joint estimation of the attachment function and node fitnesses.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library("PAFit")
+net        &lt;- generate_BA(N = 100 , m = 1)
+net_stats  &lt;- get_statistics(net)
+summary(net_stats)
+</code></pre>
+
+
+</div>

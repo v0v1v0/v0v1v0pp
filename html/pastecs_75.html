@@ -1,0 +1,134 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>regul.screen</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2> Test various regulation parameters </h2>
+
+<h3>Description</h3>
+
+<p>Seek for the best combination of the number of observation, the interval between two successive observation and the position of the first observation in the regulated time series to match as much observations of the initial series as possible
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">regul.screen(x, weight=NULL, xmin=min(x), frequency=NULL,
+    deltat=(max(x, na.rm = TRUE) - min(x, na.rm = TRUE))/(length(x) - 1),
+    tol=deltat/5, tol.type="both")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p> a vector with times corresponding to the observations in the irregular initial time series </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weight</code></td>
+<td>
+<p> a vector of the same length as <code>x</code>, with the weight to give to each observation. A value of 0 indicates to ignore an observation. A value of 1 gives a normal weight to an observation. A higher value gives more importance to the corresponding observation. You can increase weight of observations around major peaks and pits, to make sure they are not lost in the regulated time series. If <code>weight=NULL</code> (by default), then a weight of 1 is used for all observations </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xmin</code></td>
+<td>
+<p> a vector with all time values for the first observation in the regulated time series to be tested </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>frequency</code></td>
+<td>
+<p> a vector with all the frequencies to be screened </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deltat</code></td>
+<td>
+<p> a vector with all time intervals to screen. <code>deltat</code> is the inverse of <code>frequency</code>. Only one of these two arguments is required. If both are provided, <code>frequency</code> supersedes <code>deltat</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p> it is possible to tolerate some differences in the time between two matching observations (in the original irregular series and in the regulated series). If <code>tol=0</code> both values must be strictly identical; a higher value allows some fuzzy matching. <code>tol</code> must be a round fraction of <code>deltat</code> and cannot be higher than it, otherwise, it is adjusted to the closest acceptable value. By default, <code>tol=deltat/5</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol.type</code></td>
+<td>
+<p> the type of window to use for the time-tolerance: <code>"left"</code>, <code>"right"</code>, <code>"both"</code> (by default) or <code>"none"</code>. If <code>tol.type="left"</code>, corresponding <code>x</code> values are seeked in a window ]xregul-tol, xregul]. If <code>tol.type="right"</code>, they are seeked in the window [xregul, xregul+tol[. If <code>tol.type="both"</code>, then they are seeked in the window ]xregul-tol, xregul+tol]. If several observations are in this window, the closest one is used. Finally, if <code>tol.type="none"</code>, then <em>all</em> observations in the regulated time series are interpolated (even if exactly matching observations exist!) </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Whatever the efficiency of the interpolation procedure used to regulate an irregular time series, a matching, non-interpolated observation is always better than an interpolated one! With very irregular time series, it is often difficult to decide which is the better regular time-scale in order to interpolate as less observations as possible. <code>regul.screen()</code> tests various combinations of number of observation, interval between two observations and position of the first observation and allows to choose the combination that best matches the original irregular time series. To choose also an optimal value for <code>tol</code>, use <code>regul.adj()</code> concurrently.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p> a vector with the adjusted values of <code>tol</code> for the various values of <code>deltat</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p> a table indicating the maximum value of <code>n</code> for all combinations of <code>deltat</code> and <code>xmin</code> to avoid any extrapolation </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nbr.match</code></td>
+<td>
+<p> a table indicating the number of matching observations (in the tolerance window) for all combinations of <code>deltat</code> and <code>xmin</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nbr.exact.match</code></td>
+<td>
+<p> a table indicating the number of exactly matching observations (with a tolerance window equal to zero) for all combinations of <code>deltat</code> and <code>xmin</code> </p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p> Philippe Grosjean (<a href="mailto:phgrosjean@sciviews.org">phgrosjean@sciviews.org</a>), Frédéric Ibanez (<a href="mailto:ibanez@obs-vlfr.fr">ibanez@obs-vlfr.fr</a>) </p>
+
+
+<h3>See Also</h3>
+
+ <p><code>regul.adj</code>, <code>regul</code> </p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(releve)
+# This series is very irregular, and it is difficult
+# to choose the best regular time-scale
+releve$Day
+length(releve$Day)
+intervals &lt;- releve$Day[2:61]-releve$Day[1:60]
+intervals
+range(intervals)
+mean(intervals)
+# A combination of xmin=1, deltat=22 and n=61 seems correct
+# But is it the best one?
+regul.screen(releve$Day, xmin=0:11, deltat=16:27, tol=1.05)
+# Now we can tell that xmin=9, deltat=21, n=63, with tol=1.05
+# is a much better choice! 
+</code></pre>
+
+
+</div>

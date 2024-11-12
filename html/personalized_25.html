@@ -1,0 +1,324 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>validate.subgroup</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Validating fitted subgroup identification models</h2>
+
+<h3>Description</h3>
+
+<p>Validates subgroup treatment effects for fitted
+subgroup identification model class of Chen, et al (2017)
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">validate.subgroup(
+  model,
+  B = 50L,
+  method = c("training_test_replication", "boot_bias_correction"),
+  train.fraction = 0.75,
+  benefit.score.quantiles = c(0.1666667, 0.3333333, 0.5, 0.6666667, 0.8333333),
+  parallel = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>fitted model object returned by <code>fit.subgroup()</code> function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>integer. number of bootstrap replications or refitting replications.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>validation method. <code>"boot_bias_correction"</code> for the bootstrap
+bias correction method of Harrell, et al (1996) or <code>"training_test_replication"</code>
+for repeated training and test splitting of the data (<code>train.fraction</code> should be specified
+for this option)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>train.fraction</code></td>
+<td>
+<p>fraction (between 0 and 1) of samples to be used for training in
+training/test replication. Only used for <code>method = "training_test_replication"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>benefit.score.quantiles</code></td>
+<td>
+<p>a vector of quantiles (between 0 and 1) of the benefit score values
+for which to return bootstrapped information about the subgroups. ie if one of the quantile values is 0.5, the
+median value of the benefit scores will be used as a cutoff to determine subgroups and summary statistics
+will be returned about these subgroups</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>Should the loop over replications be parallelized? If <code>FALSE</code>, then no, if <code>TRUE</code>, then yes.
+If user sets <code>parallel = TRUE</code> and the fitted <code>fit.subgroup()</code> object uses the parallel version of
+an internal model, say for <code>cv.glmnet()</code>, then the internal parallelization will be overridden so as
+not to create a conflict of parallelism.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Estimates of various quantities conditional on subgroups and treatment statuses are provided and displayed
+via the <code>print.subgroup_validated</code> function:
+</p>
+
+<ol>
+<li>
+<p>"Conditional expected outcomes" The first results shown when printing
+a <code>subgroup_validated</code> object are estimates of the expected outcomes conditional on
+the estimated subgroups (i.e. which subgroup is 'recommended' by the model) and conditional
+on treatment/intervention status. If there are two total treatment options, this results in a 2x2 table
+of expected conditional outcomes. 
+</p>
+</li>
+<li>
+<p>"Treatment effects conditional on subgroups" The second results shown when printing
+a <code>subgroup_validated</code> object are estimates of the expected outcomes conditional on
+the estimated subgroups. If the treatment takes levels <code class="reqn">j \in \{1, \dots, K\}</code>, a total of <code class="reqn">K</code>
+conditional treatment effects will be shown. For example, of the outcome is continuous, the
+<code class="reqn">j</code>th conditional treatment effect is defined as <code class="reqn">E(Y|Trt = j, Subgroup=j) - E(Y|Trt = j, Subgroup =/= j)</code>,
+where <code class="reqn">Subgroup=j</code> if treatment <code class="reqn">j</code> is recommended, i.e. treatment <code class="reqn">j</code> results in the largest/best
+expected potential outcomes given the fitted model.
+</p>
+</li>
+<li>
+<p>"Overall treatment effect conditional on subgroups " The third quantity displayed shows the overall improvement
+in outcomes resulting from all treatment recommendations. This is essentially an average over all of the
+conditional treatment effects weighted by the proportion of the population recommended each respective
+treatment level.
+</p>
+</li>
+</ol>
+<h3>Value</h3>
+
+<p>An object of class <code>"subgroup_validated"</code>
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>avg.results</code></td>
+<td>
+<p>Estimates of average conditional treatment effects when
+subgroups are determined based on the provided cutoff value for the benefit score. For example,
+if <code>cutoff = 0</code> and there is a treatment and control only, then the treatment is
+recommended if the benefit score is greater than 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se.results</code></td>
+<td>
+<p>Standard errors of the estimates from <code>avg.estimates</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>boot.results</code></td>
+<td>
+<p>Contains the individual results for each replication. <code>avg.results</code> is comprised
+of averages of the values from <code>boot.results</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>avg.quantile.results</code></td>
+<td>
+<p>Estimates of average conditional treatment effects when
+subgroups are determined based on different quntile cutoff values for the benefit score. For example,
+if <code>benefit.score.quantiles = 0.75</code> and there is a treatment and control only, then the treatment is
+recommended if the benefit score is greater than the 75th upper quantile of all benefit scores. If multiple quantile
+values are provided, e.g. <code>benefit.score.quantiles = c(0.15, 0.5, 0.85)</code>, then results will be provided
+for all quantile levels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>se.quantile.results</code></td>
+<td>
+<p>Standard errors corresponding to <code>avg.quantile.results</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>boot.results.quantiles</code></td>
+<td>
+<p>Contains the individual results for each replication. <code>avg.quantile.results</code> is comprised
+of averages of the values from <code>boot.results.quantiles</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>Family of the outcome. For example, <code>"gaussian"</code> for continuous outcomes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Method used for subgroup identification model. Weighting or A-learning</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.trts</code></td>
+<td>
+<p>The number of treatment levels</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>comparison.trts</code></td>
+<td>
+<p>All treatment levels other than the reference level</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reference.trt</code></td>
+<td>
+<p>The reference level for the treatment. This should usually be the control group/level</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>larger.outcome.better</code></td>
+<td>
+<p>If larger outcomes are preferred for this model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cutpoint</code></td>
+<td>
+<p>Benefit score cutoff value used for determining subgroups</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>val.method</code></td>
+<td>
+<p>Method used for validation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iterations</code></td>
+<td>
+<p>Number of replications used in the validation process</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nobs</code></td>
+<td>
+<p>Number of observations in <code>x</code> provided to <code>fit.subgroup</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nvars</code></td>
+<td>
+<p>Number of variables in <code>x</code> provided to <code>fit.subgroup</code></p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Chen, S., Tian, L., Cai, T. and Yu, M. (2017), A general statistical framework for subgroup identification
+and comparative treatment scoring. Biometrics. doi:10.1111/biom.12676
+</p>
+<p>Harrell, F. E., Lee, K. L., and Mark, D. B. (1996). Tutorial in biostatistics multivariable prognostic models: issues in developing models,
+evaluating assumptions and adequacy, and measuring and reducing errors. Statistics in medicine, 15, 361-387.
+doi:10.1002/(SICI)1097-0258(19960229)15:4&lt;361::AID-SIM168&gt;3.0.CO;2-4
+</p>
+<p>Huling. J.D. and Yu, M. (2021), Subgroup Identification Using the personalized Package.
+Journal of Statistical Software 98(5), 1-60. doi:10.18637/jss.v098.i05
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>fit.subgroup</code> for function which fits subgroup identification models,
+<code>plot.subgroup_validated</code> for plotting of validation results, and
+<code>print.subgroup_validated</code> for arguments for printing options for <code>validate.subgroup()</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(personalized)
+
+set.seed(123)
+n.obs  &lt;- 500
+n.vars &lt;- 20
+x &lt;- matrix(rnorm(n.obs * n.vars, sd = 3), n.obs, n.vars)
+
+
+# simulate non-randomized treatment
+xbetat   &lt;- 0.5 + 0.5 * x[,11] - 0.5 * x[,13]
+trt.prob &lt;- exp(xbetat) / (1 + exp(xbetat))
+trt01    &lt;- rbinom(n.obs, 1, prob = trt.prob)
+
+trt      &lt;- 2 * trt01 - 1
+
+# simulate response
+delta &lt;- 2 * (0.5 + x[,2] - x[,3] - x[,11] + x[,1] * x[,12])
+xbeta &lt;- x[,1] + x[,11] - 2 * x[,12]^2 + x[,13]
+xbeta &lt;- xbeta + delta * trt
+
+# continuous outcomes
+y &lt;- drop(xbeta) + rnorm(n.obs, sd = 2)
+
+# create function for fitting propensity score model
+prop.func &lt;- function(x, trt)
+{
+    # fit propensity score model
+    propens.model &lt;- cv.glmnet(y = trt,
+                               x = x, family = "binomial")
+    pi.x &lt;- predict(propens.model, s = "lambda.min",
+                    newx = x, type = "response")[,1]
+    pi.x
+}
+
+subgrp.model &lt;- fit.subgroup(x = x, y = y,
+                             trt = trt01,
+                             propensity.func = prop.func,
+                             loss   = "sq_loss_lasso",
+                             # option for cv.glmnet,
+                             # better to use 'nfolds=10'
+                             nfolds = 3)
+
+
+x.test &lt;- matrix(rnorm(10 * n.obs * n.vars, sd = 3), 10 * n.obs, n.vars)
+
+
+# simulate non-randomized treatment
+xbetat.test   &lt;- 0.5 + 0.5 * x.test[,11] - 0.5 * x.test[,13]
+trt.prob.test &lt;- exp(xbetat.test) / (1 + exp(xbetat.test))
+trt01.test    &lt;- rbinom(10 * n.obs, 1, prob = trt.prob.test)
+
+trt.test      &lt;- 2 * trt01.test - 1
+
+# simulate response
+delta.test &lt;- 2 * (0.5 + x.test[,2] - x.test[,3] - x.test[,11] + x.test[,1] * x.test[,12])
+xbeta.test &lt;- x.test[,1] + x.test[,11] - 2 * x.test[,12]^2 + x.test[,13]
+xbeta.test &lt;- xbeta.test + delta.test * trt.test
+
+y.test &lt;- drop(xbeta.test) + rnorm(10 * n.obs, sd = 2)
+
+valmod &lt;- validate.subgroup(subgrp.model, B = 2,
+                            method = "training_test",
+                            train.fraction = 0.75)
+valmod
+
+print(valmod, which.quant = c(4, 5))
+
+</code></pre>
+
+
+</div>

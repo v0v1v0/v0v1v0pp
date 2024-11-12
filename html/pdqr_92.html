@@ -1,0 +1,147 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>summ_separation</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Summarize distributions with separation threshold</h2>
+
+<h3>Description</h3>
+
+<p>Compute for pair of pdqr-functions the optimal threshold that separates
+distributions they represent. In other words, <code>summ_separation()</code> solves a
+binary classification problem with one-dimensional linear classifier: values
+not more than some threshold are classified as one class, and more than
+threshold - as another. Order of input functions doesn't matter.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">summ_separation(f, g, method = "KS", n_grid = 10001)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>A pdqr-function of any type and
+class. Represents "true" distribution of "negative" values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g</code></td>
+<td>
+<p>A pdqr-function of any type and class. Represents "true"
+distribution of "positive" values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Separation method. Should be one of "KS" (Kolmogorov-Smirnov),
+"GM", "OP", "F1", "MCC" (all four are methods for computing classification
+metric in <code>summ_classmetric()</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_grid</code></td>
+<td>
+<p>Number of grid points to be used during optimization.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>All methods:
+</p>
+
+<ul>
+<li>
+<p> Return middle point of nearest support edges in case of non-overlapping or
+"touching" supports of <code>f</code> and <code>g</code>.
+</p>
+</li>
+<li>
+<p> Return the smallest optimal solution in case of several candidates.
+</p>
+</li>
+</ul>
+<p>Method "KS" computes "x" value at which corresponding p-functions of <code>f</code> and
+<code>g</code> achieve supremum of their absolute difference (so input order of <code>f</code> and
+<code>g</code> doesn't matter). If input pdqr-functions have the same
+type, then result is a point of maximum absolute difference.
+If inputs have different types, then absolute difference of p-functions at
+the result point can be not the biggest. In that case output represents a
+left limit of points at which target supremum is reached (see Examples).
+</p>
+<p>Methods "GM", "OP", "F1", "MCC" compute threshold which maximizes
+corresponding classification metric for best suited
+classification setup. They evaluate metrics at equidistant grid (with
+<code>n_grid</code> elements) for both directions (<code style="white-space: pre;">⁠summ_classmetric(f, g, *)⁠</code> and
+<code style="white-space: pre;">⁠summ_classmetric(g, f, *)⁠</code>) and return threshold which results into maximum
+of both setups. <strong>Note</strong> that other <code>summ_classmetric()</code> methods are either
+useless here (always return one of the edges) or are equivalent to ones
+already present.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A single number representing optimal separation threshold.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>summ_roc()</code> for computing ROC curve related summaries.
+</p>
+<p><code>summ_classmetric()</code> for computing of classification metric for ordered
+classification setup.
+</p>
+<p>Other summary functions: 
+<code>summ_center()</code>,
+<code>summ_classmetric()</code>,
+<code>summ_distance()</code>,
+<code>summ_entropy()</code>,
+<code>summ_hdr()</code>,
+<code>summ_interval()</code>,
+<code>summ_moment()</code>,
+<code>summ_order()</code>,
+<code>summ_prob_true()</code>,
+<code>summ_pval()</code>,
+<code>summ_quantile()</code>,
+<code>summ_roc()</code>,
+<code>summ_spread()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">d_norm_1 &lt;- as_d(dnorm)
+d_unif &lt;- as_d(dunif)
+summ_separation(d_norm_1, d_unif, method = "KS")
+summ_separation(d_norm_1, d_unif, method = "OP")
+
+# Mixed types for "KS" method
+p_dis &lt;- new_p(1, "discrete")
+p_unif &lt;- as_p(punif)
+thres &lt;- summ_separation(p_dis, p_unif)
+abs(p_dis(thres) - p_unif(thres))
+## Actual difference at `thres` is 0. However, supremum (equal to 1) as
+## limit value is # reached there.
+x_grid &lt;- seq(0, 1, by = 1e-3)
+plot(x_grid, abs(p_dis(x_grid) - p_unif(x_grid)), type = "b")
+
+# Handling of non-overlapping supports
+summ_separation(new_d(2, "discrete"), new_d(3, "discrete"))
+
+# The smallest "x" value is returned in case of several optimal thresholds
+summ_separation(d_norm_1, d_norm_1) == meta_support(d_norm_1)[1]
+</code></pre>
+
+
+</div>

@@ -1,0 +1,166 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>vpin</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimation of Volume-Synchronized PIN model</h2>
+
+<h3>Description</h3>
+
+<p>Estimates the Volume-Synchronized Probability of Informed
+Trading as developed in Easley et al. (2011)
+and Easley et al. (2012).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">vpin(data, timebarsize = 60, buckets = 50, samplength = 50,
+            tradinghours = 24, verbose = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A dataframe with 3 variables:
+<code>{timestamp, price, volume}</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timebarsize</code></td>
+<td>
+<p>An integer referring to  the size of timebars
+in seconds. The default value is <code>60</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>buckets</code></td>
+<td>
+<p>An integer referring to the number of buckets in a
+daily average volume. The default value is <code>50</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>samplength</code></td>
+<td>
+<p>An integer referring to the sample length
+or the window size used to calculate the <code>VPIN</code> vector.
+The default value is <code>50</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tradinghours</code></td>
+<td>
+<p>An integer referring to the length of daily
+trading sessions in hours. The default value is <code>24</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A binary variable that determines whether detailed
+information about the steps of the estimation of the VPIN model is displayed.
+No output is produced when <code>verbose</code> is set to <code>FALSE</code>. The default
+value is <code>TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The dataframe data should contain at least three variables. Only the
+first three variables will be considered and in the following order
+<code>{timestamp, price, volume}</code>.
+</p>
+<p>The property <code>@bucketdata</code> is created as in
+Abad and Yague (2012).
+</p>
+<p>The argument <code>timebarsize</code> is in seconds enabling the user to implement
+shorter than <code>1</code> minute intervals. The default value is set to <code>1</code> minute
+(<code>60</code> seconds) following Easley et al. (2011, 2012).
+</p>
+<p>The parameter <code>tradinghours</code> is used to eventually correct the duration per
+bucket. The duration of a given bucket is the difference between the
+timestamp of the last trade <code>endtime</code> and the timestamp of the first trade
+<code>stime</code> in the bucket. If the first trade and the last trade in a
+bucket occur in two different days, and the market trading session does not
+cover a full day <code>(24 hours)</code>; then the duration of the bucket will be
+inflated. Assume that the daily trading session is 8 hours
+<code>(tradinghours=8)</code>, the start time of a bucket is <code>2018-10-12 17:06:40</code>
+and its end time is <code>2018-10-13 09:36:00</code>. A straightforward calculation
+gives that the duration of this bucket is <code>59,360 secs</code>. However, this
+duration includes the time during which the market is closed <code style="white-space: pre;">⁠(16 hours)⁠</code>.
+The corrected duration takes into consideration only the time of market
+activity: <code style="white-space: pre;">⁠duration=59,360-16*3600= 1760 secs⁠</code>, i.e., about <code style="white-space: pre;">⁠30 minutes⁠</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns an object of class <code>estimate.vpin</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Abad D, Yague J (2012).
+“From PIN to VPIN: An introduction to order flow toxicity.”
+<em>The Spanish Review of Financial Economics</em>, <b>10</b>(2), 74–83.<br><br> Easley D, De Prado MML, Ohara M (2011).
+“The microstructure of the \"flash crash\": flow toxicity, liquidity crashes, and the probability of informed trading.”
+<em>The Journal of Portfolio Management</em>, <b>37</b>(2), 118–128.<br><br> Easley D, Lopez De Prado MM, OHara M (2012).
+“Flow toxicity and liquidity in a high-frequency world.”
+<em>Review of Financial Studies</em>, <b>25</b>(5), 1457–1493.
+ISSN 08939454.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># There is a preloaded dataset called 'hfdata' contained in the package.
+# It is an artificially created high-frequency trading data. The dataset
+# contains 100 000 trades and five variables 'timestamp', 'price',
+# 'volume', 'bid' and 'ask'. For more information, type ?hfdata.
+
+xdata &lt;- hfdata
+
+# Estimate VPIN model, using the following parameter set where the time
+# bar size is 5 minutes, i.e., 300 seconds (timebarsize = 300), 50
+# buckets per average daily volume (buckets = 50), and a window size of
+# 250 for the VPIN calculation (samplength = 250).
+
+estimate &lt;- vpin(xdata, timebarsize = 300, buckets = 50, samplength = 250)
+
+# Display a description of the estimate
+
+show(estimate)
+
+# Plot the estimated VPIN vector
+
+plot(estimate@vpin, type = "l", xlab = "time", ylab = "VPIN", col = "blue")
+
+# Display the parameters of VPIN estimates
+
+show(estimate@parameters)
+
+# Store the computed data of the different buckets in a dataframe 'buckets'.
+# Display the first 10 rows of the dataframe 'buckets'.
+
+buckets &lt;- estimate@bucketdata
+show(head(buckets, 10))
+
+# Store the daily VPIN values (weighted and unweighted) in a dataframe
+# 'dayvpin'.
+
+# Display the first 10 rows of the dataframe 'dayvpin'.
+
+dayvpin &lt;- estimate@dailyvpin
+show(head(dayvpin, 10))
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,213 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PSAboot</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Bootstrapping for propensity score analysis</h2>
+
+<h3>Description</h3>
+
+<p>Bootstrapping has become a popular resampling method for estimating sampling
+distributions. And propensity score analysis (PSA) has become popular for estimating
+causal effects in observational studies. This function implements bootstrapping
+specifically for PSA. Like typical bootstrapping methods, this function estimates
+treatment effects for M random samples. However, unlike typical bootstrap methods,
+this function allows for separate sample sizes for treatment and control units.
+That is, under certain circumstances (e.g. when the ratio of treatment-to-control
+units is large) bootstrapping only the control units may be desirable. Additionally,
+this function provides a framework to use multiple PSA methods for each bootstrap
+sample.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PSAboot(
+  Tr,
+  Y,
+  X,
+  M = 100,
+  formu = as.formula(paste0("treat ~ ", paste0(names(X), collapse = " + "))),
+  control.ratio = 5,
+  control.sample.size = min(control.ratio * min(table(Tr)), max(table(Tr))),
+  control.replace = TRUE,
+  treated.sample.size = min(table(Tr)),
+  treated.replace = TRUE,
+  methods = getPSAbootMethods(),
+  parallel = TRUE,
+  seed = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Tr</code></td>
+<td>
+<p>numeric (0 or 1) or logical vector of treatment indicators.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>vector of outcome variable</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>matrix or data frame of covariates used to estimate the propensity scores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M</code></td>
+<td>
+<p>number of bootstrap samples to generate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formu</code></td>
+<td>
+<p>formula used for estimating propensity scores. The default is to use
+all covariates in <code>X</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control.ratio</code></td>
+<td>
+<p>the ratio of control units to sample relative to the treatment units.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control.sample.size</code></td>
+<td>
+<p>the size of each bootstrap sample of control units.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control.replace</code></td>
+<td>
+<p>whether to use replacement when sampling from control units.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>treated.sample.size</code></td>
+<td>
+<p>the size of each bootstrap sample of treatment units. The
+default uses all treatment units for each bootstrap sample.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>treated.replace</code></td>
+<td>
+<p>whether to use replacement when sampling from treated units.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>methods</code></td>
+<td>
+<p>a named vector of functions for each PSA method to use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>whether to run the bootstrap samples in parallel.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>random seed. Each iteration, i, will use a seed of <code>seed + i</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>other parameters passed to <code>Match</code> and <code>psa.strata</code></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a list with following elements:
+</p>
+
+<dl>
+<dt>overall.summary</dt>
+<dd>
+<p>Data frame with the results using the complete
+dataset (i.e. unbootstrapped results).</p>
+</dd>
+<dt>overall.details</dt>
+<dd>
+<p>Objects returned from each method for complete dataset.</p>
+</dd>
+<dt>pooled.summary</dt>
+<dd>
+<p>Data frame with results of each bootstrap sample.</p>
+</dd>
+<dt>pooled.details</dt>
+<dd>
+<p>List of objects returned from each method for each 
+bootstrap sample.</p>
+</dd>
+<dt>control.sample.size</dt>
+<dd>
+<p>sample size used for control units.</p>
+</dd>
+<dt>treated.sample.size</dt>
+<dd>
+<p>sample size used for treated units.</p>
+</dd>
+<dt>control.replace</dt>
+<dd>
+<p>whether control units were sampled with replacement.</p>
+</dd>
+<dt>treated.replace</dt>
+<dd>
+<p>whether treated units were sampled with replacement.</p>
+</dd>
+<dt>Tr</dt>
+<dd>
+<p>vector of treatment assignment.</p>
+</dd>
+<dt>Y</dt>
+<dd>
+<p>vector out outcome.</p>
+</dd>
+<dt>X</dt>
+<dd>
+<p>matrix or data frame of covariates.</p>
+</dd>
+<dt>M</dt>
+<dd>
+<p>number of bootstrap samples.</p>
+</dd>
+</dl>
+<h3>See Also</h3>
+
+<p>getPSAbootMethods
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(PSAboot)
+data(pisa.psa.cols)
+data(pisausa)
+bm.usa &lt;- PSAboot(Tr = as.integer(pisausa$PUBPRIV) - 1,
+    Y = pisausa$Math,
+    X = pisausa[,pisa.psa.cols],
+    control.ratio = 5, M = 100, seed = 2112)
+
+
+</code></pre>
+
+
+</div>

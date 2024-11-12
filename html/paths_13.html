@@ -1,0 +1,164 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sens</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Sensitivity Analysis for Unobserved Confounding on Path-Specific Causal Effects</h2>
+
+<h3>Description</h3>
+
+<p><code>sens</code> implements a set of bias formulas detailed in Zhou and Yamamoto (2020) for assessing
+the sensitivity of estimated path-specific effects to an unobserved confounder <code class="reqn">U</code> of a mediator-outcome
+relationship. The user provides a fitted <code>paths</code> object, the mediator whose relationship
+with the outcome is potentially confounded, the estimand whose sensitivity to unobserved
+confounding is being investigated, type of estimator, type of decomposition, and possible values of
+the <code class="reqn">\gamma</code> and <code class="reqn">\eta</code> parameters.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sens(
+  object,
+  confounded = "M1",
+  estimand = "via M1",
+  estimator = c("pure", "hybrid"),
+  decomp = c("Type I", "Type II"),
+  gamma_values = NULL,
+  eta_values = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>a fitted model object returned by the <code>paths</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>confounded</code></td>
+<td>
+<p>a character string indicating the mediator whose relationship with the outcome
+is potentially confounded. One of {<code>"M1", "M2", ...</code>}.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimand</code></td>
+<td>
+<p>a character string indicating the estimand whose sensitivity to unobserved
+confounding is being investigated. One of {<code>"M1", "M2", ...</code>} or <code>"direct"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estimator</code></td>
+<td>
+<p>type of estimator, the pure imputation estimator (<code>"pure"</code>) or the imputation-based
+weighting estimator (<code>"hybrid"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>decomp</code></td>
+<td>
+<p>type of decomposition, <code>"Type I"</code> or <code>"Type II"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma_values</code></td>
+<td>
+<p>potential values of the <code class="reqn">\gamma</code> parameter, which denotes the average effect of
+the unobserved confounder <code class="reqn">U</code> on the outcome given pretreatment covariates <code class="reqn">X</code>, treatment <code class="reqn">A</code>,
+and mediators <code class="reqn">M_1,\ldots, M_k</code>. If not provided, it is defaulted to a range of 20 values from
+-<code class="reqn">\textup{sd}(Y)</code> to <code class="reqn">\textup{sd}(Y)</code>, where <code class="reqn">sd</code> denotes standard deviation and <code class="reqn">Y</code>
+denotes the outcome variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eta_values</code></td>
+<td>
+<p>potential values of the <code class="reqn">\eta</code> parameter, which denotes the difference in the
+prevalence of the unobserved confounder <code class="reqn">U</code> between treated and untreated units given pretreatment
+covariates <code class="reqn">X</code> and mediators <code class="reqn">M_1,\ldots, M_k</code>. If not provided, it is defaulted to a range of
+20 values from -<code class="reqn">sd(A)</code> to <code class="reqn">sd(A)</code>, where <code class="reqn">sd</code> denotes standard deviation and <code class="reqn">A</code> denotes
+the treatment variable.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing the following elements </p>
+
+<dl>
+<dt>original</dt>
+<dd>
+<p>original estimate of the corresponding path-specific effect.</p>
+</dd>
+<dt>adjusted</dt>
+<dd>
+<p>a data frame where each row represents a potential combination of <code class="reqn">\gamma</code> and <code class="reqn">\eta</code>,
+the corresponding bias, bias-adjusted estimate, and an indicator for whether the bias-adjusted estimate is
+of the opposite sign to the original estimate.</p>
+</dd>
+</dl>
+<h3>References</h3>
+
+<p>Zhou, Xiang and Teppei Yamamoto. 2020. "<a href="https://osf.io/2rx6p">Tracing Causal Paths from Experimental and Observational Data</a>".
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>paths</code>, <code>plot.sens</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(tatar)
+
+m1 &lt;- c("trust_g1", "victim_g1", "fear_g1")
+m2 &lt;- c("trust_g2", "victim_g2", "fear_g2")
+m3 &lt;- c("trust_g3", "victim_g3", "fear_g3")
+mediators &lt;- list(m1, m2, m3)
+
+formula_m0 &lt;- annex ~ kulak + prosoviet_pre + religiosity_pre + land_pre +
+  orchard_pre + animals_pre + carriage_pre + otherprop_pre + violence
+formula_m1 &lt;- update(formula_m0,    ~ . + trust_g1 + victim_g1 + fear_g1)
+formula_m2 &lt;- update(formula_m1,    ~ . + trust_g2 + victim_g2 + fear_g2)
+formula_m3 &lt;- update(formula_m2,    ~ . + trust_g3 + victim_g3 + fear_g3)
+formula_ps &lt;- violence ~ kulak + prosoviet_pre + religiosity_pre +
+  land_pre + orchard_pre + animals_pre + carriage_pre + otherprop_pre
+
+####################################################
+# Causal Paths Analysis using GLM
+####################################################
+
+# outcome models
+glm_m0 &lt;- glm(formula_m0, family = binomial("logit"), data = tatar)
+glm_m1 &lt;- glm(formula_m1, family = binomial("logit"), data = tatar)
+glm_m2 &lt;- glm(formula_m2, family = binomial("logit"), data = tatar)
+glm_m3 &lt;- glm(formula_m3, family = binomial("logit"), data = tatar)
+glm_ymodels &lt;- list(glm_m0, glm_m1, glm_m2, glm_m3)
+
+# propensity score model
+glm_ps &lt;- glm(formula_ps, family = binomial("logit"), data = tatar)
+
+# causal paths analysis using glm
+# note: For illustration purposes only a small number of bootstrap replicates are used
+paths_glm &lt;- paths(a = "violence", y = "annex", m = mediators,
+  glm_ymodels, ps_model = glm_ps, data = tatar, nboot = 3)
+
+# sensitivity analysis for the path-specific effect via M1
+sens_glm &lt;- sens(paths_glm, confounded = "M1", estimand = "via M1",
+  gamma_values = - seq(0, 0.5, 0.005), eta_values = seq(-0.5, 0.5, 0.005))
+
+plot(sens_glm)
+
+</code></pre>
+
+
+</div>

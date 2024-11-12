@@ -1,0 +1,689 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>perIndividualQC</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Quality control for all individuals in plink-dataset</h2>
+
+<h3>Description</h3>
+
+<p>perIndividualQC checks the samples in the plink dataset for their total
+missingness and heterozygosity rates, the concordance of their assigned sex
+to their SNP sex, their relatedness to other study individuals and their
+genetic ancestry.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">perIndividualQC(
+  indir,
+  name,
+  qcdir = indir,
+  dont.check_sex = FALSE,
+  do.run_check_sex = TRUE,
+  do.evaluate_check_sex = TRUE,
+  maleTh = 0.8,
+  femaleTh = 0.2,
+  externalSex = NULL,
+  externalMale = "M",
+  externalSexSex = "Sex",
+  externalSexID = "IID",
+  externalFemale = "F",
+  fixMixup = FALSE,
+  dont.check_het_and_miss = FALSE,
+  do.run_check_het_and_miss = TRUE,
+  do.evaluate_check_het_and_miss = TRUE,
+  imissTh = 0.03,
+  hetTh = 3,
+  dont.check_relatedness = FALSE,
+  do.run_check_relatedness = TRUE,
+  do.evaluate_check_relatedness = TRUE,
+  highIBDTh = 0.1875,
+  mafThRelatedness = 0.1,
+  filter_high_ldregion = TRUE,
+  high_ldregion_file = NULL,
+  genomebuild = "hg19",
+  dont.check_ancestry = FALSE,
+  do.run_check_ancestry = TRUE,
+  do.evaluate_check_ancestry = TRUE,
+  prefixMergedDataset,
+  europeanTh = 1.5,
+  defaultRefSamples = c("HapMap", "1000Genomes"),
+  refSamples = NULL,
+  refColors = NULL,
+  refSamplesFile = NULL,
+  refColorsFile = NULL,
+  refSamplesIID = "IID",
+  refSamplesPop = "Pop",
+  refColorsColor = "Color",
+  refColorsPop = "Pop",
+  studyColor = "#2c7bb6",
+  label_fail = TRUE,
+  highlight_samples = NULL,
+  highlight_type = c("text", "label", "color", "shape"),
+  highlight_text_size = 3,
+  highlight_color = "#c51b8a",
+  highlight_shape = 17,
+  highlight_legend = FALSE,
+  interactive = FALSE,
+  verbose = TRUE,
+  keep_individuals = NULL,
+  remove_individuals = NULL,
+  exclude_markers = NULL,
+  extract_markers = NULL,
+  legend_text_size = 5,
+  legend_title_size = 7,
+  axis_text_size = 5,
+  axis_title_size = 7,
+  subplot_label_size = 9,
+  title_size = 9,
+  path2plink = NULL,
+  showPlinkOutput = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>indir</code></td>
+<td>
+<p>[character] /path/to/directory containing the basic PLINK data
+files name.bim, name.bed, name.fam files.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>[character] Prefix of PLINK files, i.e. name.bed, name.bim,
+name.fam.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>qcdir</code></td>
+<td>
+<p>[character] /path/to/directory where results will be saved.
+Per default, qcdir=indir. If do.evaluate_[analysis] is set to TRUE and
+do.run_[analysis] is FALSE, <code>perIndividualQC</code> expects the
+analysis-specific plink output files in qcdir i.e. do.check_sex expects
+name.sexcheck, do.evaluate_check_het_and_miss expects name.het and name.imiss,
+do.evaluate_check_relatedness expects name.genome and name.imiss and
+do.evaluate_check_ancestry expects prefixMergeData.eigenvec. If these files
+are not present <code>perIndividualQC</code> will fail with missing file error.
+Setting do.run_[analysis] TRUE will execute the checks and create the
+required files. User needs writing permission to qcdir.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dont.check_sex</code></td>
+<td>
+<p>[logical] If TRUE, no sex check will be conducted;
+short for do.run_check_sex=FALSE and do.evaluate_check_sex=FALSE.
+Takes precedence over do.run_check_sex and do.evaluate_check_sex.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>do.run_check_sex</code></td>
+<td>
+<p>[logical] If TRUE, run <code>run_check_sex</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>do.evaluate_check_sex</code></td>
+<td>
+<p>[logical] If TRUE, run
+<code>evaluate_check_sex</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maleTh</code></td>
+<td>
+<p>[double] Threshold of X-chromosomal heterozygosity rate for
+males.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>femaleTh</code></td>
+<td>
+<p>[double] Threshold of X-chromosomal heterozygosity rate for
+females.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>externalSex</code></td>
+<td>
+<p>[data.frame, optional] Dataframe with sample IDs
+[externalSexID] and sex [externalSexSex] to double check if external and
+PEDSEX data (often processed at different centers) match.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>externalMale</code></td>
+<td>
+<p>[integer/character] Identifier for 'male' in externalSex.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>externalSexSex</code></td>
+<td>
+<p>[character] Column identifier for column containing sex
+information in externalSex.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>externalSexID</code></td>
+<td>
+<p>[character] Column identifier for column containing ID
+information in externalSex.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>externalFemale</code></td>
+<td>
+<p>[integer/character] Identifier for 'female' in
+externalSex.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixMixup</code></td>
+<td>
+<p>[logical] Should PEDSEX of individuals with mismatch between
+PEDSEX and Sex while Sex==SNPSEX automatically corrected: this will directly
+change the name.bim/.bed/.fam files!</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dont.check_het_and_miss</code></td>
+<td>
+<p>[logical] If TRUE, no heterozygosity and
+missingness check will be conducted; short for
+do.run_check_heterozygosity=FALSE, do.run_check_missingness=FALSE and
+do.evaluate_check_het_and_miss=FALSE. Takes precedence over
+do.run_check_heterozygosity, do.run_check_missingness and
+do.evaluate_check_het_and_miss.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>do.run_check_het_and_miss</code></td>
+<td>
+<p>[logical] If TRUE, run
+<code>run_check_heterozygosity</code> and
+<code>run_check_missingness</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>do.evaluate_check_het_and_miss</code></td>
+<td>
+<p>[logical] If TRUE, run
+<code>evaluate_check_het_and_miss</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>imissTh</code></td>
+<td>
+<p>[double] Threshold for acceptable missing genotype rate in any
+individual; has to be proportion between (0,1)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hetTh</code></td>
+<td>
+<p>[double] Threshold for acceptable deviation from mean
+heterozygosity per individual. Expressed as multiples of standard
+deviation of heterozygosity (het), i.e. individuals outside mean(het) +/-
+hetTh*sd(het) will be returned as failing heterozygosity check; has to be
+larger than 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dont.check_relatedness</code></td>
+<td>
+<p>[logical] If TRUE, no relatedness check will be
+conducted; short for do.run_check_relatedness=FALSE and
+do.evaluate_check_relatedness=FALSE. Takes precedence over
+do.run_check_relatedness and do.evaluate_check_relatedness.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>do.run_check_relatedness</code></td>
+<td>
+<p>[logical] If TRUE, run
+<code>run_check_relatedness</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>do.evaluate_check_relatedness</code></td>
+<td>
+<p>[logical] If TRUE, run
+<code>evaluate_check_relatedness</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>highIBDTh</code></td>
+<td>
+<p>[double] Threshold for acceptable proportion of IBD between
+pair of individuals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mafThRelatedness</code></td>
+<td>
+<p>[double] Threshold of minor allele frequency filter
+for selecting variants for IBD estimation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filter_high_ldregion</code></td>
+<td>
+<p>[logical] Should high LD regions be filtered
+before IBD estimation; carried out per default with high LD regions for
+hg19 provided as default via <code>genomebuild</code>. For alternative genome
+builds not provided or non-human data, high LD regions files can be
+provided via <code>high_ldregion_file</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>high_ldregion_file</code></td>
+<td>
+<p>[character] Path to file with high LD regions used
+for filtering before IBD estimation if <code>filter_high_ldregion</code> == TRUE,
+otherwise ignored; for human genome data, high LD region files are provided
+and can simply be chosen via <code>genomebuild</code>. Files have to be
+space-delimited, no column names with the following columns: chromosome,
+region-start, region-end, region number. Chromosomes are specified without
+'chr' prefix. For instance:
+1 48000000 52000000 1
+2 86000000 100500000 2</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>genomebuild</code></td>
+<td>
+<p>[character] Name of the genome build of the PLINK file
+annotations, ie mappings in the name.bim file. Will be used to remove
+high-LD regions based on the coordinates of the respective build. Options
+are hg18, hg19 and hg38. See @details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dont.check_ancestry</code></td>
+<td>
+<p>[logical] If TRUE, no ancestry check will be
+conducted; short for do.run_check_ancestry=FALSE and
+do.evaluate_check_ancestry=FALSE. Takes precedence over
+do.run_check_ancestry and do.evaluate_check_ancestry.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>do.run_check_ancestry</code></td>
+<td>
+<p>[logical] If TRUE, run
+<code>run_check_ancestry</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>do.evaluate_check_ancestry</code></td>
+<td>
+<p>[logical] If TRUE, run
+<code>evaluate_check_ancestry</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prefixMergedDataset</code></td>
+<td>
+<p>[character] Prefix of merged dataset (study and
+reference samples) used in plink –pca, resulting in
+prefixMergedDataset.eigenvec.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>europeanTh</code></td>
+<td>
+<p>[double] Scaling factor of radius to be drawn around center
+of European reference samples, with study samples inside this radius
+considered to be of European descent and samples outside this radius of
+non-European descent. The radius is computed as the maximum Euclidean
+distance of European reference samples to the centre of European reference
+samples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>defaultRefSamples</code></td>
+<td>
+<p>[character] Option to use pre-downloaded individual
+and population identifiers from either the 1000Genomes or HapMap project.
+If refSamples and refSamplesFile are not provided, the HapMap identifiers (or
+1000Genomes is specified) will be used as default and the function will fail
+if the reference samples in the prefixMergedDataset do not match these
+reference samples. If refColors and refColorsFile are not provided, this also
+sets default colors for the reference populations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refSamples</code></td>
+<td>
+<p>[data.frame] Dataframe with sample identifiers
+[refSamplesIID] corresponding to IIDs in prefixMergedDataset.eigenvec and
+population identifier [refSamplesPop] corresponding to population IDs
+[refColorsPop] in refColorsfile/refColors. Either refSamples or
+refSamplesFile have to be specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refColors</code></td>
+<td>
+<p>[data.frame, optional] Dataframe with population IDs in
+column [refColorsPop] and corresponding colour-code for PCA plot in column
+[refColorsColor]. If not provided and is.null(refColorsFile) default colors
+are used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refSamplesFile</code></td>
+<td>
+<p>[character] /path/to/File/with/reference samples. Needs
+columns with sample identifiers [refSamplesIID] corresponding to IIDs in
+prefixMergedDataset.eigenvec and population identifier [refSamplesPop]
+corresponding to population IDs [refColorsPop] in refColorsfile/refColors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refColorsFile</code></td>
+<td>
+<p>[character, optional]
+/path/to/File/with/Population/Colors containing population IDs in column
+[refColorsPop] and corresponding colour-code for PCA plot in column
+[refColorsColor].If not provided and is.null(refColors) default colors for
+are used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refSamplesIID</code></td>
+<td>
+<p>[character] Column name of reference sample IDs in
+refSamples/refSamplesFile.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refSamplesPop</code></td>
+<td>
+<p>[character] Column name of reference sample population
+IDs in refSamples/refSamplesFile.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refColorsColor</code></td>
+<td>
+<p>[character] Column name of population colors in
+refColors/refColorsFile</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refColorsPop</code></td>
+<td>
+<p>[character] Column name of reference sample population
+IDs in refColors/refColorsFile.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>studyColor</code></td>
+<td>
+<p>[character] Colour to be used for study population.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>label_fail</code></td>
+<td>
+<p>[logical] Set TRUE, to add fail IDs as text labels in
+scatter plot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>highlight_samples</code></td>
+<td>
+<p>[character vector] Vector of sample IIDs to
+highlight in the plot (p_sexcheck); all highlight_samples IIDs have to
+be present in the IIDs of the name.fam file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>highlight_type</code></td>
+<td>
+<p>[character]  Type of sample highlight, labeling
+by IID ("text"/"label") and/or highlighting data points in different "color"
+and/or "shape". "text" and "label" use ggrepel for minimal
+overlap of text labels ("text) or label boxes ("label").  Only one of "text"
+and "label" can be specified. Text/Label size can be specified with
+highlight_text_size, highlight color with highlight_color,
+or highlight shape with highlight_shape.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>highlight_text_size</code></td>
+<td>
+<p>[integer] Text/Label size for samples specified to
+be highlighted (highlight_samples) by "text" or "label" (highlight_type).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>highlight_color</code></td>
+<td>
+<p>[character] Color for samples specified to
+be highlighted (highlight_samples) by "color" (highlight_type).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>highlight_shape</code></td>
+<td>
+<p>[integer] Shape for samples specified to
+be highlighted (highlight_samples) by "shape" (highlight_type). Possible
+shapes and their encoding can be found at:
+<a href="https://ggplot2.tidyverse.org/articles/ggplot2-specs.html#sec:shape-spec">https://ggplot2.tidyverse.org/articles/ggplot2-specs.html#sec:shape-spec</a></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>highlight_legend</code></td>
+<td>
+<p>[logical] Should a separate legend for the
+highlighted samples be provided; only relevant for highlight_type == "color"
+or highlight_type == "shape".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interactive</code></td>
+<td>
+<p>[logical] Should plots be shown interactively? When
+choosing this option, make sure you have X-forwarding/graphical interface
+available for interactive plotting. Alternatively, set interactive=FALSE and
+save the returned plot object (p_sampleQC) via ggplot2::ggsave(p=p_sampleQC,
+other_arguments) or pdf(outfile) print(p_sampleQC) dev.off().
+If TRUE, i) depicts the X-chromosomal heterozygosity (SNPSEX) of the samples
+split by their PEDSEX (if do.evaluate_check_sex is TRUE), ii) creates a
+scatter plot
+with samples' missingness rates on x-axis and their heterozygosity rates on
+the y-axis (if do.evaluate_check_het_and_miss is TRUE), iii) depicts
+all pair-wise IBD-estimates as histogram (if do.evaluate_check_relatedness is
+TRUE)
+and iv) creates a scatter plot of PC1 versus PC2 color-coded for samples of
+reference populations and study population (if do.check_ancestry is set to
+TRUE).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>[logical] If TRUE, progress info is printed to standard out.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_individuals</code></td>
+<td>
+<p>[character] Path to file with individuals to be
+retained in the analysis. The file has to be a space/tab-delimited text file
+with family IDs in the first column and within-family IDs in the second
+column. All samples not listed in this file will be removed from the current
+analysis. See <a href="https://www.cog-genomics.org/plink/1.9/filter#indiv">https://www.cog-genomics.org/plink/1.9/filter#indiv</a>.
+Default: NULL, i.e. no filtering on individuals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>remove_individuals</code></td>
+<td>
+<p>[character] Path to file with individuals to be
+removed from the analysis. The file has to be a space/tab-delimited text file
+with family IDs in the first column and within-family IDs in the second
+column. All samples listed in this file will be removed from the current
+analysis. See <a href="https://www.cog-genomics.org/plink/1.9/filter#indiv">https://www.cog-genomics.org/plink/1.9/filter#indiv</a>.
+Default: NULL, i.e. no filtering on individuals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exclude_markers</code></td>
+<td>
+<p>[character] Path to file with makers to be
+removed from the analysis. The file has to be a text file with a list of
+variant IDs (usually one per line, but it's okay for them to just be
+separated by spaces). All listed variants will be removed from the current
+analysis. See <a href="https://www.cog-genomics.org/plink/1.9/filter#snp">https://www.cog-genomics.org/plink/1.9/filter#snp</a>.
+Default: NULL, i.e. no filtering on markers.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extract_markers</code></td>
+<td>
+<p>[character] Path to file with makers to be
+included in the analysis. The file has to be a text file with a list of
+variant IDs (usually one per line, but it's okay for them to just be
+separated by spaces). All unlisted variants will be removed from the current
+analysis. See <a href="https://www.cog-genomics.org/plink/1.9/filter#snp">https://www.cog-genomics.org/plink/1.9/filter#snp</a>.
+Default: NULL, i.e. no filtering on markers.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>legend_text_size</code></td>
+<td>
+<p>[integer] Size for legend text.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>legend_title_size</code></td>
+<td>
+<p>[integer] Size for legend title.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>axis_text_size</code></td>
+<td>
+<p>[integer] Size for axis text.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>axis_title_size</code></td>
+<td>
+<p>[integer] Size for axis title.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subplot_label_size</code></td>
+<td>
+<p>[integer] Size of the subplot labeling.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>title_size</code></td>
+<td>
+<p>[integer] Size for plot title.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path2plink</code></td>
+<td>
+<p>[character] Absolute path to PLINK executable
+(<a href="https://www.cog-genomics.org/plink/1.9/">https://www.cog-genomics.org/plink/1.9/</a>) i.e.
+plink should be accessible as path2plink -h. The full name of the executable
+should be specified: for windows OS, this means path/plink.exe, for unix
+platforms this is path/plink. If not provided, assumed that PATH set-up works
+and PLINK will be found by <code>exec</code>('plink').</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>showPlinkOutput</code></td>
+<td>
+<p>[logical] If TRUE, plink log and error messages are
+printed to standard out.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>perIndividualQC wraps around the individual QC functions
+<code>check_sex</code>, <code>check_het_and_miss</code>,
+<code>check_relatedness</code> and <code>check_ancestry</code>. For details
+on the parameters and outputs, check these function documentations. For
+detailed output for fail IIDs (instead of simple IID lists), run each
+function individually.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Named [list] with i) fail_list, a named [list] with 1.
+sample_missingness containing a [vector] with sample IIDs failing the
+missingness threshold imissTh, 2. highIBD containing a [vector] with sample
+IIDs failing the relatedness threshold highIBDTh, 3. outlying_heterozygosity
+containing a [vector] with sample IIDs failing the heterozygosity threshold
+hetTh, 4. mismatched_sex containing a [vector] with the sample IIDs failing
+the sexcheck based on SNPSEX and femaleTh/maleTh and 5. ancestry containing
+a vector with sample IIDs failing the ancestry check based on europeanTh and
+ii) p_sampleQC, a ggplot2-object 'containing' a sub-paneled plot with the
+QC-plots of <code>check_sex</code>,
+<code>check_het_and_miss</code>,
+<code>check_relatedness</code> and <code>check_ancestry</code>, which can
+be shown by print(p_sampleQC).
+List entries contain NULL if that specific check was not chosen.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">indir &lt;- system.file("extdata", package="plinkQC")
+qcdir &lt;- tempdir()
+name &lt;- "data"
+# All quality control checks
+## Not run: 
+# whole dataset
+fail_individuals &lt;- perIndividualQC(indir=indir, qcdir=qcdir, name=name,
+refSamplesFile=paste(qcdir, "/HapMap_ID2Pop.txt",sep=""),
+refColorsFile=paste(qcdir, "/HapMap_PopColors.txt", sep=""),
+prefixMergedDataset="data.HapMapIII", interactive=FALSE, verbose=FALSE,
+do.run_check_het_and_miss=FALSE, do.run_check_relatedness=FALSE,
+do.run_check_sex=FALSE, do.run_check_ancestry=FALSE)
+
+# Only check sex and missingness/heterozygosity
+fail_sex_het_miss &lt;- perIndividualQC(indir=indir, qcdir=qcdir, name=name,
+dont.check_ancestry=TRUE, dont.check_relatedness=TRUE,
+interactive=FALSE, verbose=FALSE)
+
+# subset of dataset with sample highlighting
+highlight_samples &lt;- read.table(system.file("extdata", "keep_individuals",
+package="plinkQC"))
+remove_individuals_file &lt;- system.file("extdata", "remove_individuals",
+package="plinkQC")
+individual_qc &lt;- perIndividualQC(indir=indir, qcdir=qcdir, name=name,
+refSamplesFile=paste(qcdir, "/HapMap_ID2Pop.txt",sep=""),
+refColorsFile=paste(qcdir, "/HapMap_PopColors.txt", sep=""),
+prefixMergedDataset="data.HapMapIII", interactive=FALSE, verbose=FALSE,
+do.run_check_ancestry=FALSE, do.evaluate_check_ancestry=TRUE,
+path2plink=path2plink,
+remove_individuals=remove_individuals_file,
+highlight_samples=highlight_samples[,2],
+highlight_type = c("text", "color"), highlight_color="goldenrod")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,113 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>marks</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Mark Distributions</h2>
+
+<h3>Description</h3>
+
+<p>Contains densities and random number generators for some example mark distributions. The mark distributions can be multi-dimensional. Users can write their own functions, and general rules are given under “Details”.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">dexp_mark(x, data, params)
+rexp_mark(ti, data, params)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ti</code></td>
+<td>
+<p>scalar, time of an event.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a <code>data.frame</code> of mark values at given times, often a subset of the history.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a <code>data.frame</code> containing the history of the process, denoted below as <code class="reqn"> {\cal H}_t</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params</code></td>
+<td>
+<p>numeric vector of parameters.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The example functions listed under “Usage” calculate the <em>logarithm</em> of the (mark) density and simulate earthquake magnitudes assuming an exponential distribution that is independent of the history of the process. This corresponds to the Gutenberg-Richter law. They assume that the history contains a variable named <code>"magnitude"</code>.
+</p>
+<p>All mark densities and random number generators must have the three arguments as shown in the examples above. Multi-parameter distributions have their parameters specified as a vector in the <code>params</code> argument. Other ancillary data or information can be passed into the function non formally, though one needs to be careful about possible conflict with names of other objects.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Mark density functions must return a vector with length being equal to the number of rows in <code>x</code>. Each element contains the <em>logarithm</em> of the joint density of the marks corresponding to each time (row) in <code>x</code>.
+</p>
+<p>The random number generator simulates each mark for a <em>single value</em> of <code>ti</code>. It must return a <code>list</code> of simulated marks corresponding to the specified time <code>ti</code>. Further, the list must have its elements named the same as those in the history. Note that each component in the list will be of length one. A list is used (rather than a vector) because it allows marks to be character as well as numeric.
+</p>
+
+
+<h3>Example 1</h3>
+
+<p>This is an example where the density of the magnitude distribution is dependent on the value of the ground intensity function (assumed to be <code>etas_gif</code>), and in this case, the history of the process. The history is assumed to contain a variable named <code>"magnitude"</code>. In this mark distribution, it is assumed that after large events, there is a deficit of smaller magnitude events with more larger magnitude events. It has seven parameters with parameters <code class="reqn">p_1, \cdots, p_5</code> relating to <code>etas_gif</code>. It assumes that the magnitude distribution is gamma (<code>GammaDist</code>), with a shape parameter given by
+</p>
+<p style="text-align: center;"><code class="reqn">
+\mbox{shape} = 1 + \sqrt{\lambda_g(t|{\cal H}_t)} \ p_7 \,,
+</code>
+</p>
+
+<p>where <code class="reqn">p_7</code> (<code class="reqn">p_7 &gt; 0</code>) is a free estimable parameter, and parameter <code class="reqn">p_6</code> is the scale parameter. Hence when <code class="reqn">\lambda_g(t|{\cal H}_t)</code> is small, the magnitude distribution returns to an approximate exponential distribution with an approximate rate of <code class="reqn">p_6</code> (i.e. Gutenberg Richter law).
+</p>
+<pre>
+    dexample1_mark &lt;- function(x, data, params){
+        lambda &lt;- etas_gif(data, x[,"time"], params=params[1:5])
+        y &lt;- dgamma(x[,"magnitude"], rate=params[6], 
+                    shape=1+sqrt(lambda)*params[7], log=TRUE)
+        return(y)
+    }
+
+    rexample1_mark &lt;- function(ti, data, params){
+        #  Gamma distribution
+        #  exponential density when params[7]=0
+        lambda &lt;- etas_gif(data, ti, params=params[1:5])
+        y &lt;- rgamma(1, shape=1+sqrt(lambda)*params[7],
+                    rate=params[6])
+        return(list(magnitude=y))
+    }
+</pre>
+
+
+<h3>Example 2</h3>
+
+<p>This an example of a 3-D mark distribution. Each component is independent of each other and the history, hence the arguments <code>ti</code> and <code>data</code> are not utilised in the functions. The history is assumed to contain the three variables <code>"magnitude"</code>,  <code>"longitude"</code> and <code>"latitude"</code>. The event magnitudes are assumed to have an exponential distribution with rate <code>params[1]</code>, and the longitudes and latitudes to have normal distributions with means <code>params[2]</code> and <code>params[3]</code>, respectively.
+</p>
+<pre>
+    dexample2_mark &lt;- function(x, data, params)
+        return(dexp(x[,"magnitude"], rate=params[1], log=TRUE) +
+               dnorm(x[,"longitude"], mean=params[2], log=TRUE) +
+               dnorm(x[,"latitude"], mean=params[3], log=TRUE))
+
+    rexample2_mark &lt;- function(ti, data, params)
+        return(list(magnitude=rexp(1, rate=params[1]),
+                    longitude=rnorm(1, mean=params[2]),
+                    latitude=rnorm(1, mean=params[3])))
+</pre>
+
+
+</div>

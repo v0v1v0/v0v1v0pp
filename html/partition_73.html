@@ -1,0 +1,157 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>partition</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Agglomerative partitioning</h2>
+
+<h3>Description</h3>
+
+<p><code>partition()</code> reduces data while minimizing information loss
+using an agglomerative partitioning algorithm. The partition algorithm is
+fast and flexible: at every iteration, <code>partition()</code> uses an approach
+called Direct-Measure-Reduce (see Details) to create new variables that
+maintain the user-specified minimum level of information. Each reduced
+variable is also interpretable: the original variables map to one and only
+one variable in the reduced data set.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">partition(
+  .data,
+  threshold,
+  partitioner = part_icc(),
+  tolerance = 1e-04,
+  niter = NULL,
+  x = "reduced_var",
+  .sep = "_"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>.data</code></td>
+<td>
+<p>a data.frame to partition</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>the minimum proportion of information explained by a reduced
+variable; <code>threshold</code> sets a boundary for information loss because each
+reduced variable must explain at least as much as <code>threshold</code> as measured
+by the metric.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>partitioner</code></td>
+<td>
+<p>a <code>partitioner</code>. See the <code style="white-space: pre;">⁠part_*()⁠</code> functions and
+<code>as_partitioner()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tolerance</code></td>
+<td>
+<p>a small tolerance within the threshold; if a reduction is
+within the threshold plus/minus the tolerance, it will reduce.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>niter</code></td>
+<td>
+<p>the number of iterations. By default, it is calculated as 20% of
+the number of variables or 10, whichever is larger.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>the prefix of the new variable names</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.sep</code></td>
+<td>
+<p>a character vector that separates <code>x</code> from the number (e.g.
+"reduced_var_1").</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>partition()</code> uses an approach called Direct-Measure-Reduce.
+Directors tell the partition algorithm what to reduce, metrics tell it
+whether or not there will be enough information left after the reduction,
+and reducers tell it how to reduce the data. Together these are called a
+partitioner. The default partitioner for <code>partition()</code> is <code>part_icc()</code>:
+it finds pairs of variables to reduce by finding the pair with the minimum
+distance between them, it measures information loss through ICC, and it
+reduces data using scaled row means. There are several other partitioners
+available (<code style="white-space: pre;">⁠part_*()⁠</code> functions), and you can create custom partitioners
+with <code>as_partitioner()</code> and <code>replace_partitioner()</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a <code>partition</code> object
+</p>
+
+
+<h3>References</h3>
+
+<p>Millstein, Joshua, Francesca Battaglin, Malcolm Barrett, Shu Cao,
+Wu Zhang, Sebastian Stintzing, Volker Heinemann, and Heinz-Josef Lenz.
+2020. “Partition: A Surjective Mapping Approach for Dimensionality
+Reduction.” <em>Bioinformatics</em> 36 (3):
+https://doi.org/676–81.10.1093/bioinformatics/btz661.
+</p>
+<p>Barrett, Malcolm and Joshua Millstein (2020). partition: A fast
+and flexible framework for data reduction in R. Journal of Open Source
+Software, 5(47), 1991, https://doi.org/10.21105/joss.01991
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>part_icc()</code>, <code>part_kmeans()</code>, <code>part_minr2()</code>, <code>part_pc1()</code>,
+<code>part_stdmi()</code>, <code>as_partitioner()</code>, <code>replace_partitioner()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+set.seed(123)
+df &lt;- simulate_block_data(c(3, 4, 5), lower_corr = .4, upper_corr = .6, n = 100)
+
+#  don't accept reductions where information &lt; .6
+prt &lt;- partition(df, threshold = .6)
+prt
+
+# return reduced data
+partition_scores(prt)
+
+# access mapping keys
+mapping_key(prt)
+unnest_mappings(prt)
+
+# use a lower threshold of information loss
+partition(df, threshold = .5, partitioner = part_kmeans())
+
+# use a custom partitioner
+part_icc_rowmeans &lt;- replace_partitioner(part_icc, reduce = as_reducer(rowMeans))
+partition(df, threshold = .6, partitioner = part_icc_rowmeans)
+
+</code></pre>
+
+
+</div>

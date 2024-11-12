@@ -1,0 +1,251 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>simulate_POMDP</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulate Trajectories in a POMDP</h2>
+
+<h3>Description</h3>
+
+<p>Simulate trajectories through a POMDP. The start state for each
+trajectory is randomly chosen using the specified belief. The belief is used to choose actions
+from the the epsilon-greedy policy and then updated using observations.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">simulate_POMDP(
+  model,
+  n = 1000,
+  belief = NULL,
+  horizon = NULL,
+  epsilon = NULL,
+  delta_horizon = 0.001,
+  digits = 7L,
+  return_beliefs = FALSE,
+  return_trajectories = FALSE,
+  engine = "cpp",
+  verbose = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a POMDP model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>number of trajectories.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>belief</code></td>
+<td>
+<p>probability distribution over the states for choosing the
+starting states for the trajectories.
+Defaults to the start belief state specified in the model or "uniform".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>horizon</code></td>
+<td>
+<p>number of epochs for the simulation. If <code>NULL</code> then the
+horizon for finite-horizon model is used. For infinite-horizon problems, a horizon is
+calculated using the discount factor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epsilon</code></td>
+<td>
+<p>the probability of random actions for using an epsilon-greedy policy.
+Default for solved models is 0 and for unsolved model 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>delta_horizon</code></td>
+<td>
+<p>precision used to determine the horizon for infinite-horizon problems.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>digits</code></td>
+<td>
+<p>round probabilities for belief points.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_beliefs</code></td>
+<td>
+<p>logical; Return all visited belief states? This requires n x horizon memory.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_trajectories</code></td>
+<td>
+<p>logical; Return the simulated trajectories as a data.frame?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>engine</code></td>
+<td>
+<p><code>'cpp'</code>, <code>'r'</code> to perform simulation using a faster C++ or a
+native R implementation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>report used parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments are ignored.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Simulates <code>n</code> trajectories.
+If no simulation horizon is specified, the horizon of finite-horizon problems
+is used. For infinite-horizon problems with <code class="reqn">\gamma &lt; 1</code>, the simulation
+horizon <code class="reqn">T</code> is chosen such that
+the worst-case error is no more than <code class="reqn">\delta_\text{horizon}</code>. That is
+</p>
+<p style="text-align: center;"><code class="reqn">\gamma^T \frac{R_\text{max}}{\gamma} \le \delta_\text{horizon},</code>
+</p>
+
+<p>where <code class="reqn">R_\text{max}</code> is the largest possible absolute reward value used as a
+perpetuity starting after <code class="reqn">T</code>.
+</p>
+<p>A native R implementation (<code>engine = 'r'</code>) and a faster C++ implementation
+(<code>engine = 'cpp'</code>) are available. Currently, only the R implementation supports
+multi-episode problems.
+</p>
+<p>Both implementations support the simulation of trajectories in parallel using the package
+<span class="pkg">foreach</span>. To enable parallel execution, a parallel backend like
+<span class="pkg">doparallel</span> needs to be registered (see
+<code>doParallel::registerDoParallel()</code>).
+Note that small simulations are slower using parallelization. C++ simulations
+with <code>n * horizon</code> less than 100,000 are always executed using a single worker.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with elements:
+</p>
+
+<ul>
+<li> <p><code>avg_reward</code>: The average discounted reward.
+</p>
+</li>
+<li> <p><code>action_cnt</code>: Action counts.
+</p>
+</li>
+<li> <p><code>state_cnt</code>: State counts.
+</p>
+</li>
+<li> <p><code>reward</code>: Reward for each trajectory.
+</p>
+</li>
+<li> <p><code>belief_states</code>: A matrix with belief states as rows.
+</p>
+</li>
+<li> <p><code>trajectories</code>: A data.frame with the <code>episode</code> id, <code>time</code>, the state of the
+simulation (<code>simulation_state</code>), the id of the used alpha vector given the current belief
+(see <code>belief_states</code> above), the action <code>a</code> and the reward <code>r</code>.
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Michael Hahsler
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other POMDP: 
+<code>MDP2POMDP</code>,
+<code>POMDP()</code>,
+<code>accessors</code>,
+<code>actions()</code>,
+<code>add_policy()</code>,
+<code>plot_belief_space()</code>,
+<code>projection()</code>,
+<code>reachable_and_absorbing</code>,
+<code>regret()</code>,
+<code>sample_belief_space()</code>,
+<code>solve_POMDP()</code>,
+<code>solve_SARSOP()</code>,
+<code>transition_graph()</code>,
+<code>update_belief()</code>,
+<code>value_function()</code>,
+<code>write_POMDP()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(Tiger)
+
+# solve the POMDP for 5 epochs and no discounting
+sol &lt;- solve_POMDP(Tiger, horizon = 5, discount = 1, method = "enum")
+sol
+policy(sol)
+
+# uncomment the following line to register a parallel backend for simulation 
+# (needs package doparallel installed)
+
+# doParallel::registerDoParallel()
+# foreach::getDoParWorkers()
+
+## Example 1: simulate 100 trajectories
+sim &lt;- simulate_POMDP(sol, n = 100, verbose = TRUE)
+sim
+
+# calculate the percentage that each action is used in the simulation
+round_stochastic(sim$action_cnt / sum(sim$action_cnt), 2)
+
+# reward distribution
+hist(sim$reward)
+
+
+## Example 2: look at the belief states and the trajectories starting with 
+#             an initial start belief.
+sim &lt;- simulate_POMDP(sol, n = 100, belief = c(.5, .5), 
+  return_beliefs = TRUE, return_trajectories = TRUE)
+head(sim$belief_states)
+head(sim$trajectories)
+
+# plot with added density (the x-axis is the probability of the second belief state)
+plot_belief_space(sol, sample = sim$belief_states, jitter = 2, ylim = c(0, 6))
+lines(density(sim$belief_states[, 2], bw = .02)); axis(2); title(ylab = "Density")
+
+
+## Example 3: simulate trajectories for an unsolved POMDP which uses an epsilon of 1
+#             (i.e., all actions are randomized). The simulation horizon for the 
+#             infinite-horizon Tiger problem is calculated using delta_horizon. 
+sim &lt;- simulate_POMDP(Tiger, return_beliefs = TRUE, verbose = TRUE)
+sim$avg_reward
+
+hist(sim$reward, breaks = 20)
+
+plot_belief_space(sol, sample = sim$belief_states, jitter = 2, ylim = c(0, 6))
+lines(density(sim$belief_states[, 1], bw = .05)); axis(2); title(ylab = "Density")
+</code></pre>
+
+
+</div>

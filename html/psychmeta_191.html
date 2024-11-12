@@ -1,0 +1,128 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>reshape_wide2long</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Reshape database from wide format to long format</h2>
+
+<h3>Description</h3>
+
+<p>This function automates the process of converting a wide-format database (i.e., a database in which intercorrelations between construct pairs define the columns, such that there are multiple columns of correlations) to a long-format database (i.e., a database with just one column of correlations).
+The meta-analysis functions in <span class="pkg">psychmeta</span> work best with long-format databases, so this function can be a helpful addition to one's workflow when data are organized in a wide format.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">reshape_wide2long(
+  data,
+  common_vars = NULL,
+  es_design = NULL,
+  n_design = NULL,
+  other_design = NULL,
+  es_name = "rxyi",
+  missing_col_action = c("warn", "ignore", "stop")
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>Database of data for use in a meta-analysis in "wide" format.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>common_vars</code></td>
+<td>
+<p>String vector of column names relevant to all variables in data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>es_design</code></td>
+<td>
+<p>p x p matrix containing the names of columns of intercorrelations among variables in the lower triangle of the matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_design</code></td>
+<td>
+<p>Scalar sample-size column name or a p x p matrix containing the names of columns of sample sizes the lower triangle of the matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>other_design</code></td>
+<td>
+<p>A matrix with variable names on the rows and names of long-format variables to create on the columns. Elements of this
+matrix must be column names of <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>es_name</code></td>
+<td>
+<p>Name of the effect size represented in <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>missing_col_action</code></td>
+<td>
+<p>Character scalar indicating how missing columns should be handled. Options are: "warn", "ignore", and "stop"</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A long-format database
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">n_params = c(mean = 150, sd = 20)
+rho_params &lt;- list(c(.1, .3, .5),
+                   c(mean = .3, sd = .05),
+                   rbind(value = c(.1, .3, .5), weight = c(1, 2, 1)))
+rel_params = list(c(.7, .8, .9),
+                  c(mean = .8, sd = .05),
+                  rbind(value = c(.7, .8, .9), weight = c(1, 2, 1)))
+sr_params = c(list(1, 1, c(.5, .7)))
+sr_composite_params = list(1, c(.5, .6, .7))
+wt_params = list(list(c(1, 2, 3),
+                      c(mean = 2, sd = .25),
+                      rbind(value = c(1, 2, 3), weight = c(1, 2, 1))),
+                 list(c(1, 2, 3),
+                      c(mean = 2, sd = .25),
+                      rbind(value = c(1, 2, 3), weight = c(1, 2, 1))))
+
+## Simulate with wide format
+## Not run: 
+data &lt;- simulate_r_database(k = 10, n_params = n_params, rho_params = rho_params,
+                          rel_params = rel_params, sr_params = sr_params,
+                          sr_composite_params = sr_composite_params, wt_params = wt_params,
+                          var_names = c("X", "Y", "Z"), format = "wide")$statistics
+
+## End(Not run)
+
+## Define values to abstract from the data object
+common_vars &lt;- "sample_id"
+es_design &lt;- matrix(NA, 3, 3)
+var_names &lt;- c("X", "Y", "Z")
+es_design[lower.tri(es_design)] &lt;- c("rxyi_X_Y", "rxyi_X_Z", "rxyi_Y_Z")
+rownames(es_design) &lt;- colnames(es_design) &lt;- var_names
+n_design &lt;- "ni"
+other_design &lt;- cbind(rxxi = paste0("parallel_rxxi_", var_names),
+                      ux_local = paste0("ux_local_", var_names),
+                      ux_external = paste0("ux_external_", var_names))
+rownames(other_design) &lt;- var_names
+
+## Reshape the data to "long" format
+reshape_wide2long(data = data, common_vars = common_vars, es_design = es_design,
+                           n_design = n_design, other_design = other_design)
+</code></pre>
+
+
+</div>

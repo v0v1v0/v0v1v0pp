@@ -1,0 +1,175 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>post</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Phylogeney-Guided OTU-Specific Association Test for Microbiome Data</h2>
+
+<h3>Description</h3>
+
+<p>The POST implements a
+phylogeny-guided OTU-specific association test for microbiome data. This
+method boosts the 
+testing power by adaptively borrowing information from phylogenetically 
+close OTUs of the target OTU. Whether or not borrowing information or the 
+amount of information from the neighboring OTUs is data adaptive and 
+supervised by phylogenetic distance and the outcome variable. POST is 
+built on a kernel machine regression framework and inherited the 
+advantages including flexibly model complex microbiome effects (e.g., 
+effects from opposite direction), easily adjust for covariates, and 
+accommodate both continuous and binary outcomes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">post(
+  y,
+  OTU,
+  tree = NULL,
+  X = NULL,
+  cValues = seq(from = 0, to = 0.05, by = 0.01)
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>A numerical vector. The outcome of interest. 
+Data can be binary or continuous.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>OTU</code></td>
+<td>
+<p>A matrix object. The operational taxonomic units (OTU).
+Data can be provided as counts or as proportions.
+Each row indicates a single sample; each column a single OTU.
+NA/0 values are allowed, but their presence will trigger a shift of all
+data by a small internally defined value. 
+The matrix must include column headers providing unique
+identification for each OTU; these identifiers are expected to be included
+in the tip labels of the input tree object. Any identifiers that are not
+included as tip labels are removed from the analysis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tree</code></td>
+<td>
+<p>An object of class "phylo", "hclust", "phylog", a matrix object
+or NULL. If NULL, only the single OTU test will be estimated.
+Objects of class "phylo", "hclust", and "phylog" are phylogenetic trees,
+the tip labels of which must include all of the
+identifiers used as column headers of OTU. If a matrix, a
+square symmetric matrix containing the pairwise distances between OTUs
+as defined by the branch lengths. Note that the full tree should be
+provided/used and should not be subset or truncated, even if OTU does
+not contain all tips.
+See details for further information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>A data.frame object, matrix object or NULL. The covariates data.
+If NULL, an intercept only model is assumed. Factor covariates are allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cValues</code></td>
+<td>
+<p>A numeric vector. The c values at which p-values are to be
+estimated. The default is a vector of evenly spaced values between
+zero and the recommended maximum value for OTUs defined at
+97% sequence similiary, 
+c_max = 0.05.
+If no tree is provided, cValues will be set to 0.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>It is assumed that the OTU table is defined by a 97% sequence similarity. 
+Though this
+threshold is not (cannot be) enforced in the implementation, the
+recommended maximum c-value may not be appropriate for other thresholds.
+</p>
+<p>There are numerous packages available for generating phylogenetic trees.
+The sole purpose of the tree input is to enable the calculation of 
+pairwise distances between the pairs of tips using branch lengths.
+Because it is not feasible to support this functionality for all 
+packages that generate such trees, the package allows for the specification
+of the distance matrix as an alternative to providing a specifically
+formatted tree object. For objects of class "phylo", "hclust", and "phylog", 
+the ape package provides tools to obtain the distance matrix, and these
+tools are used in this implementation. For all others, the distance
+matrix (defined by branch lengths) must be provided by the user through 
+input tree.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a POST object. Analysis results are provided as
+a matrix, the contents of which will depend
+on the inputs selected for the analysis. Possible columns include
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>POST_pvalue</code></td>
+<td>
+<p>A numeric object. The POST p-value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SO_pvalue</code></td>
+<td>
+<p>A numeric object. The single OTU test p-value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>BEST_C</code></td>
+<td>
+<p>A numeric object. The c value corresponding to the minimum
+POST p-value.</p>
+</td>
+</tr>
+</table>
+<p>Row names indicate the OTU to which the results pertain.
+Results are ordered according to the POST (if tree provided) or SO (if tree
+not provided) p-values.
+</p>
+
+
+<h3>References</h3>
+
+<p>Huang, C., Callahan, B., Wu, M. C., Holloway, S. T., 
+Brochu, H., Lu, W., Peng, X., and Tzeng, J-Y. (2021). 
+Phylogeny-guided microbiome OTU-specific association test (POST). 
+Bioinformatics, under revision.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data("POSTmData")
+
+y &lt;- as.integer(x = metadata[,"GC"] == "BV")
+X &lt;- metadata[,"mRace"]
+
+result &lt;- post(y = y, 
+               X = X, 
+               OTU = otu[,1:20], 
+               tree = otutree,
+               cValues = seq(0,0.05,by=0.01))
+
+</code></pre>
+
+
+</div>

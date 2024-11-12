@@ -1,0 +1,253 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mvndst</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Multivariate Normal Distribution CDF and Its Derivative</h2>
+
+<h3>Description</h3>
+
+<p>Provides an approximation of the multivariate normal distribution CDF
+over a hyperrectangle and the derivative with respect to the mean vector
+and the covariance matrix.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mvndst(
+  lower,
+  upper,
+  mu,
+  sigma,
+  maxvls = 25000L,
+  abs_eps = 0.001,
+  rel_eps = 0L,
+  minvls = -1L,
+  do_reorder = TRUE,
+  use_aprx = FALSE,
+  method = 0L,
+  n_sequences = 8L,
+  use_tilting = FALSE
+)
+
+mvndst_grad(
+  lower,
+  upper,
+  mu,
+  sigma,
+  maxvls = 25000L,
+  abs_eps = 0.001,
+  rel_eps = 0L,
+  minvls = -1L,
+  do_reorder = TRUE,
+  use_aprx = FALSE,
+  method = 0L,
+  n_sequences = 8L,
+  use_tilting = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>lower</code></td>
+<td>
+<p>numeric vector with lower bounds.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper</code></td>
+<td>
+<p>numeric vector with upper bounds.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>numeric vector with means.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma</code></td>
+<td>
+<p>covariance matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxvls</code></td>
+<td>
+<p>maximum number of samples in the approximation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>abs_eps</code></td>
+<td>
+<p>absolute convergence threshold.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rel_eps</code></td>
+<td>
+<p>relative convergence threshold.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minvls</code></td>
+<td>
+<p>minimum number of samples. Negative values provides a
+default which depends on the dimension of the integration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>do_reorder</code></td>
+<td>
+<p><code>TRUE</code> if a heuristic variable reordering should
+be used. <code>TRUE</code> is likely the best value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_aprx</code></td>
+<td>
+<p><code>TRUE</code> if a less precise approximation of
+<code>pnorm</code> and <code>qnorm</code> should be used. This may
+reduce the computation time while not affecting the result much.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>integer with the method to use. Zero yields randomized Korobov
+lattice rules while one yields scrambled Sobol sequences.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_sequences</code></td>
+<td>
+<p>number of randomized quasi-Monte Carlo sequences to use.
+More samples yields a better estimate of the error but a worse
+approximation. Eight is used in the original Fortran code. If one is
+used then the error will be set to zero because it cannot be estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_tilting</code></td>
+<td>
+<p><code>TRUE</code> if the minimax tilting method suggested
+by Botev (2017) should be used. See <a href="https://doi.org/10.1111/rssb.12162">doi:10.1111/rssb.12162</a>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>mvndst:</code>
+An approximation of the CDF. The <code>"n_it"</code> attribute shows the number of
+integrand evaluations, the <code>"inform"</code> attribute is zero if the
+requested precision is achieved, and the <code>"abserr"</code> attribute
+shows 3.5 times the estimated standard error.
+</p>
+<p><code>mvndst_grad:</code>
+A list with
+</p>
+
+<ul>
+<li> <p><code>likelihood</code>: the likelihood approximation.
+</p>
+</li>
+<li> <p><code>d_mu</code>: the derivative with respect to the the mean vector.
+</p>
+</li>
+<li> <p><code>d_sigma</code>: the derivative with respect to the covariance matrix
+ignoring the symmetry (i.e. working the <code class="reqn">n^2</code> parameters with
+<code class="reqn">n</code> being the dimension rather than the <code class="reqn">n(n + 1) / 2</code>
+free parameters).
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># simulate covariance matrix and the upper bound
+set.seed(1)
+n &lt;- 10L
+S &lt;- drop(rWishart(1L, 2 * n, diag(n) / 2 / n))
+u &lt;- rnorm(n)
+
+system.time(pedmod_res &lt;- mvndst(
+    lower = rep(-Inf, n), upper = u, sigma = S, mu = numeric(n),
+    maxvls = 1e6, abs_eps = 0, rel_eps = 1e-4, use_aprx = TRUE))
+pedmod_res
+
+# compare with mvtnorm
+if(require(mvtnorm)){
+    mvtnorm_time &lt;- system.time(mvtnorm_res &lt;- mvtnorm::pmvnorm(
+        upper = u, sigma = S, algorithm = GenzBretz(
+            maxpts = 1e6, abseps = 0, releps = 1e-4)))
+    cat("mvtnorm_res:\n")
+    print(mvtnorm_res)
+
+    cat("mvtnorm_time:\n")
+    print(mvtnorm_time)
+}
+
+# with titling
+system.time(pedmod_res &lt;- mvndst(
+    lower = rep(-Inf, n), upper = u, sigma = S, mu = numeric(n),
+    maxvls = 1e6, abs_eps = 0, rel_eps = 1e-4, use_tilting = TRUE))
+pedmod_res
+
+# compare with TruncatedNormal
+if(require(TruncatedNormal)){
+    TruncatedNormal_time &lt;- system.time(
+        TruncatedNormal_res &lt;- TruncatedNormal::pmvnorm(
+            lb = rep(-Inf, n), ub = u, sigma = S,
+            B = attr(pedmod_res, "n_it"), type = "qmc"))
+    cat("TruncatedNormal_res:\n")
+    print(TruncatedNormal_res)
+
+    cat("TruncatedNormal_time:\n")
+    print(TruncatedNormal_time)
+}
+
+# check the gradient
+system.time(pedmod_res &lt;- mvndst_grad(
+  lower = rep(-Inf, n), upper = u, sigma = S, mu = numeric(n),
+  maxvls = 1e5, minvls = 1e5, abs_eps = 0, rel_eps = 1e-4, use_aprx = TRUE))
+pedmod_res
+
+# compare with numerical differentiation. Should give the same up to Monte
+# Carlo and finite difference error
+if(require(numDeriv)){
+  num_res &lt;- grad(
+    function(par){
+      set.seed(1)
+      mu &lt;- head(par, n)
+      S[upper.tri(S, TRUE)] &lt;- tail(par, -n)
+      S[lower.tri(S)] &lt;- t(S)[lower.tri(S)]
+      mvndst(
+        lower = rep(-Inf, n), upper = u, sigma = S, mu = mu,
+        maxvls = 1e4, minvls = 1e4, abs_eps = 0, rel_eps = 1e-4,
+        use_aprx = TRUE)
+    }, c(numeric(n), S[upper.tri(S, TRUE)]),
+    method.args = list(d = .01, r = 2))
+
+  d_mu &lt;- head(num_res, n)
+  d_sigma &lt;- matrix(0, n, n)
+  d_sigma[upper.tri(d_sigma, TRUE)] &lt;- tail(num_res, -n)
+  d_sigma[upper.tri(d_sigma)] &lt;- d_sigma[upper.tri(d_sigma)] / 2
+  d_sigma[lower.tri(d_sigma)] &lt;- t(d_sigma)[lower.tri(d_sigma)]
+
+  cat("numerical derivatives\n")
+  print(rbind(numDeriv = d_mu,
+              pedmod = pedmod_res$d_mu))
+  print(d_sigma)
+  cat("\nd_sigma from pedmod\n")
+  print(pedmod_res$d_sigma) # for comparison
+}
+
+</code></pre>
+
+
+</div>

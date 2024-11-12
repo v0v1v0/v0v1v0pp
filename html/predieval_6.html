@@ -1,0 +1,165 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predieval</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculating measures for calibration for benefit for a prediction model</h2>
+
+<h3>Description</h3>
+
+<p>This function calculates a series of measures to assess decision accuracy, discrimination for benefit, and calibration for benefit of a prediction model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">predieval(
+  repeats = 50,
+  Ngroups = 10,
+  X,
+  treat,
+  Y,
+  predicted.treat.1,
+  predicted.treat.0,
+  type = "continuous",
+  bootstraps = 500
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>repeats</code></td>
+<td>
+<p>The number of repetitions for the algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Ngroups</code></td>
+<td>
+<p>The number of groups to split the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>A dataframe with patient covariates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>treat</code></td>
+<td>
+<p>A vector with the treatment assignment. This must be 0 (for control treatment)
+or 1 (for active treatment).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>The observed outcome. For binary outcomes this should be 0 or 1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predicted.treat.1</code></td>
+<td>
+<p>A vector with the model predictions for each patient, under the active treatment.
+For the case of a binary outcome this should be probabilities of an event.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predicted.treat.0</code></td>
+<td>
+<p>A vector with the model predictions for each patient, under the control treatment.
+For the case of a binary outcome this should be probabilities of an event.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>The type of the outcome, "binary" or "continuous".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootstraps</code></td>
+<td>
+<p>The number of bootstrap samples to be used for calculating confidence intervals.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A table with all estimated measures of performance.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"> # continuous outcome
+ dat0=simcont(500)$dat
+ head(dat0)
+ # Randomly shuffle the data
+ dat&lt;-dat0[sample(nrow(dat0)),]
+ # Create random folds
+ dat$folds &lt;- cut(seq(1,nrow(dat)),breaks=10,labels=FALSE)
+
+ # Obtain out-of-sample predictions
+ dat.out.CV&lt;-list()
+ for (i in 1:10){
+   dat.in.CV=dat[dat$folds!=i,]
+   dat.out.CV[[i]]=dat[dat$folds==i,]
+   dat1&lt;-dat.out.CV[[i]]; dat1$t=1
+   dat0&lt;-dat.out.CV[[i]]; dat0$t=0
+   m1=lm(data=dat.in.CV, y.observed~x1*t+x2*t)
+   dat.out.CV[[i]]$predict.treat.1=predict(newdata=dat1, m1)# predictions in treatment
+   dat.out.CV[[i]]$predict.treat.0=predict(newdata=dat0, m1)# predicions in control
+ }
+
+ dat.CV=dat.out.CV[[1]]
+ for (i in 2:10){  dat.CV=rbind(dat.CV,dat.out.CV[[i]])}
+
+ # assess model performance
+ predieval(repeats=20, Ngroups=c(5:10),
+             X=dat.CV[,c("x1", "x2","x3")],
+             Y=dat.CV$y.observed,
+             predicted.treat.1 = dat.CV$predict.treat.1,
+             predicted.treat.0 = dat.CV$predict.treat.0,
+             treat=dat.CV$t, type="continuous")
+
+
+ # binary outcome
+ dat0=simbinary(500)$dat
+ head(dat0)
+
+ # Randomly shuffle the data
+ dat&lt;-dat0[sample(nrow(dat0)),]
+ # Create random folds
+ dat$folds &lt;- cut(seq(1,nrow(dat)),breaks=10,labels=FALSE)
+
+ dat.out.CV&lt;-list()
+ for (i in 1:10){
+   dat.in.CV=dat[dat$folds!=i,]
+   dat.out.CV[[i]]=dat[dat$folds==i,]
+   dat1&lt;-dat.out.CV[[i]]; dat1$t=1
+   dat0&lt;-dat.out.CV[[i]]; dat0$t=0
+   glm1=glm(y.observed~(x1+x2+x3)*t, data=dat.in.CV, family = binomial(link = "logit"))
+   dat.out.CV[[i]]$predict.treat.1=predict(newdata=dat1, glm1)# predictions in treatment
+   dat.out.CV[[i]]$predict.treat.0=predict(newdata=dat0, glm1)# predicions in control
+ }
+
+ dat.CV=dat.out.CV[[1]]
+ for (i in 2:10){  dat.CV=rbind(dat.CV,dat.out.CV[[i]])}
+
+
+ predieval(repeats=20, Ngroups=c(5:10), X=dat.CV[,c("x1", "x2","x3")],
+             Y=dat.CV$y.observed,
+             predicted.treat.1 = expit(dat.CV$predict.treat.1),
+             predicted.treat.0 = expit(dat.CV$predict.treat.0),
+             treat=dat.CV$t, type="binary",bootstraps = 50)
+
+</code></pre>
+
+
+</div>

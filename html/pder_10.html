@@ -1,0 +1,224 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ForeignTrade</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Foreign Trade of Developing Countries</h2>
+
+<h3>Description</h3>
+
+<p>yearly observations of 31 countries from 1963 to 1986
+</p>
+<p><em>number of observations</em> : 744
+</p>
+<p><em>number of  time-series </em> :  24 
+</p>
+<p><em>country</em> :  developing countries 
+</p>
+<p><em>package</em> : panelivreg
+</p>
+<p><em>JEL codes: </em>O19, C51, F17
+</p>
+<p><em>Chapter</em> : 02, 06
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">data(ForeignTrade)</code></pre>
+
+
+<h3>Format</h3>
+
+<p>A dataframe containing:
+</p>
+
+<dl>
+<dt>country</dt>
+<dd>
+<p>country name</p>
+</dd>
+<dt>year</dt>
+<dd>
+<p>year</p>
+</dd>
+<dt>exports</dt>
+<dd>
+<p>nominal exports deflated by the unit value of exports per capita</p>
+</dd>
+<dt>imports</dt>
+<dd>
+<p>nominal imports deflated by the unit value of exports per capita</p>
+</dd>
+<dt>resimp</dt>
+<dd>
+<p>official foreing reserves (in US dollars) divided by nominal imports (in US dollars)</p>
+</dd>
+<dt>gnp</dt>
+<dd>
+<p>real GNP per capita</p>
+</dd>
+<dt>pgnp</dt>
+<dd>
+<p>trend real GNP per capita calculated by fitting linear trend yit*=y0iexp(gi t), where y0i is the initial value of real gnp per capita for country i and gi is the ith country's average growth rate over 1964-1986</p>
+</dd>
+<dt>gnpw</dt>
+<dd>
+<p>real genp for USA per capita</p>
+</dd>
+<dt>pm</dt>
+<dd>
+<p>unit value of imports (in US dollars), 1980 = 100</p>
+</dd>
+<dt>px</dt>
+<dd>
+<p>unit value of exports (in US dollars), 1980 = 100</p>
+</dd>
+<dt>cpi</dt>
+<dd>
+<p>domestic CPI, 1980 = 100</p>
+</dd>
+<dt>pw</dt>
+<dd>
+<p>US producer's price index, 1980 = 100</p>
+</dd>
+<dt>exrate</dt>
+<dd>
+<p>exchange rate (price of US dollars in local currency), 1980 = 1</p>
+</dd>
+<dt>consump</dt>
+<dd>
+<p>domestic consumption per capita,</p>
+</dd>
+<dt>invest</dt>
+<dd>
+<p>domestic fixed gross investment per capita</p>
+</dd>
+<dt>income</dt>
+<dd>
+<p>domestic disposable income per capita</p>
+</dd>
+<dt>pop</dt>
+<dd>
+<p>population</p>
+</dd>
+<dt>reserves</dt>
+<dd>
+<p>official foreing reserves (in US dollars)</p>
+</dd>
+<dt>money</dt>
+<dd>
+<p>domestic money supply per capita</p>
+</dd>
+<dt>trend</dt>
+<dd>
+<p>trend dummy, 1964 = 1</p>
+</dd>
+<dt>pwcpi</dt>
+<dd>
+<p>log of us producer price index divided by domestic cpi</p>
+</dd>
+<dt>importspmpx</dt>
+<dd>
+<p>log of nominal imports divided by export prices</p>
+</dd>
+<dt>pmcpi</dt>
+<dd>
+<p>log of imports price divided by domestic cpi</p>
+</dd>
+<dt>pxpw</dt>
+<dd>
+<p>log of exports price divided by domestic cpi</p>
+</dd>
+</dl>
+<h3>Source</h3>
+
+<p>Journal of Applied Econometrics Data Archive : <a href="http://qed.econ.queensu.ca/jae/">http://qed.econ.queensu.ca/jae/</a></p>
+
+
+<h3>References</h3>
+
+<p>Kinal, T. and K. Lahiri (1993) “On the Estimation of Simultaneous-equations Error-components Models with An Application to a Model of Developing Country Foreign Trade”, <em>Journal of Applied Economics</em>, <b>8</b>, 81-92, doi: <a href="https://doi.org/10.1002/jae.3950080107">10.1002/jae.3950080107</a>
+.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#### Example 2-4
+
+## ------------------------------------------------------------------------
+library("plm")
+data("ForeignTrade", package = "pder")
+FT &lt;- pdata.frame(ForeignTrade)
+summary(FT$gnp)
+ercomp(imports ~ gnp, FT)
+models &lt;- c("within", "random", "pooling", "between")
+sapply(models, function(x) coef(plm(imports ~ gnp, FT, model = x))["gnp"])
+
+
+#### Example 6-2
+
+## ------------------------------------------------------------------------
+data("ForeignTrade", package = "pder")
+w1 &lt;- plm(imports~pmcpi + gnp + lag(imports) + lag(resimp)  |
+          lag(consump) + lag(cpi) + lag(income) + lag(gnp) + pm +
+          lag(invest) + lag(money) + gnpw + pw + lag(reserves) +
+          lag(exports) + trend + pgnp + lag(px),
+          ForeignTrade, model = "within")
+r1 &lt;- update(w1, model = "random", random.method = "nerlove", 
+             random.dfcor = c(1, 1), inst.method = "baltagi")
+
+## ------------------------------------------------------------------------
+phtest(r1, w1)
+
+## ------------------------------------------------------------------------
+r1b &lt;- plm(imports ~ pmcpi + gnp + lag(imports) + lag(resimp) |
+            lag(consump) + lag(cpi) + lag(income) + lag(px) + 
+            lag(reserves) + lag(exports) | lag(gnp) + pm + 
+            lag(invest) + lag(money) + gnpw + pw  + trend + pgnp,
+            ForeignTrade, model = "random", inst.method = "baltagi", 
+            random.method = "nerlove", random.dfcor = c(1, 1))
+
+phtest(w1, r1b)
+
+## ------------------------------------------------------------------------
+rbind(within = coef(w1), ec2sls = coef(r1b)[-1])
+
+## ------------------------------------------------------------------------
+elast &lt;- sapply(list(w1, r1, r1b), 
+                function(x) c(coef(x)["pmcpi"], 
+                              coef(x)["pmcpi"] / (1 - coef(x)["lag(imports)"])))
+dimnames(elast) &lt;- list(c("ST", "LT"), c("w1", "r1", "r1b"))
+elast
+
+## ------------------------------------------------------------------------
+rbind(within = coef(summary(w1))[, 2], 
+      ec2sls = coef(summary(r1b))[-1, 2])
+
+#### Example 6-4
+
+## ------------------------------------------------------------------------
+eqimp &lt;- imports ~ pmcpi + gnp + lag(imports) + 
+                lag(resimp) | lag(consump) + lag(cpi) + lag(income) + 
+                lag(px) + lag(reserves) + lag(exports) | lag(gnp) + pm + 
+                lag(invest) + lag(money) + gnpw + pw  + trend + pgnp
+eqexp &lt;- exports ~ pxpw + gnpw + lag(exports) |
+                lag(gnp) + pw + lag(consump) + pm + lag(px) + lag(cpi) | 
+                lag(money) + gnpw +  pgnp + pop + lag(invest) + 
+                lag(income) + lag(reserves) + exrate
+r12 &lt;- plm(list(import.demand = eqimp,
+                export.demand = eqexp),
+           data = ForeignTrade, index = 31, model = "random", 
+           inst.method = "baltagi", random.method = "nerlove",
+           random.dfcor = c(1, 1))
+summary(r12)
+
+## ------------------------------------------------------------------------
+rbind(ec2sls = coef(summary(r1b))[-1, 2],
+      ec3sls = coef(summary(r12), "import.demand")[-1, 2])
+</code></pre>
+
+
+</div>

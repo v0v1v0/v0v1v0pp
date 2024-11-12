@@ -1,0 +1,206 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>csv_to_parquet</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Convert a csv or a txt file to parquet format</h2>
+
+<h3>Description</h3>
+
+<p>This function allows to convert a csv or a txt file to parquet format. <br></p>
+<p>Two conversions possibilities are offered :
+</p>
+
+<ul>
+<li>
+<p>Convert to a single parquet file. Argument 'path_to_parquet' must then be used;
+</p>
+</li>
+<li>
+<p>Convert to a partitioned parquet file. Additionnal arguments 'partition' and 'partitioning' must then be used;
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">csv_to_parquet(
+  path_to_file,
+  url_to_csv = lifecycle::deprecated(),
+  csv_as_a_zip = lifecycle::deprecated(),
+  filename_in_zip,
+  path_to_parquet,
+  columns = "all",
+  compression = "snappy",
+  compression_level = NULL,
+  partition = "no",
+  encoding = "UTF-8",
+  read_delim_args = list(),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>path_to_file</code></td>
+<td>
+<p>String that indicates the path to the input file (don't forget the extension).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>url_to_csv</code></td>
+<td>
+<p>DEPRECATED use path_to_file instead</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>csv_as_a_zip</code></td>
+<td>
+<p>DEPRECATED</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filename_in_zip</code></td>
+<td>
+<p>name of the csv/txt file in the zip. Required if several csv/txt are included in the zip.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path_to_parquet</code></td>
+<td>
+<p>String that indicates the path to the directory where the parquet files will be stored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>columns</code></td>
+<td>
+<p>Character vector of columns to select from the input file (by default, all columns are selected).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compression</code></td>
+<td>
+<p>compression algorithm. Default "snappy".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compression_level</code></td>
+<td>
+<p>compression level. Meaning depends on compression algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>partition</code></td>
+<td>
+<p>String ("yes" or "no" - by default) that indicates whether you want to create a partitioned parquet file.
+If "yes", '"partitioning"' argument must be filled in. In this case, a folder will be created for each modality of the variable filled in '"partitioning"'.
+Be careful, this argument can not be "yes" if 'max_memory' or 'max_rows' argument are not NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>encoding</code></td>
+<td>
+<p>String that indicates the character encoding for the input file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>read_delim_args</code></td>
+<td>
+<p>list of arguments for 'read_delim'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional format-specific arguments, see <a href="https://arrow.apache.org/docs/r/reference/write_parquet.html">arrow::write_parquet()</a>
+and <a href="https://arrow.apache.org/docs/r/reference/write_dataset.html">arrow::write_dataset()</a> for more informations.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A parquet file, invisibly
+</p>
+
+
+<h3>Note</h3>
+
+<p>Be careful, if the zip size exceeds 4 GB, the function may truncate
+the data (because unzip() won't work reliably in this case -
+see <a href="https://rdrr.io/r/utils/unzip.html">here</a>).
+In this case, it's advised to unzip your csv/txt file by hand
+(for example with <a href="https://www.7-zip.org/">7-Zip</a>)
+then use the function with the argument 'path_to_file'.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Conversion from a local csv file to a single parquet file :
+
+csv_to_parquet(
+  path_to_file = parquetize_example("region_2022.csv"),
+  path_to_parquet = tempfile(fileext=".parquet")
+)
+
+# Conversion from a local txt file to a single parquet file :
+
+csv_to_parquet(
+  path_to_file = parquetize_example("region_2022.txt"),
+  path_to_parquet = tempfile(fileext=".parquet")
+)
+
+# Conversion from a local csv file to a single parquet file and select only
+# few columns :
+
+csv_to_parquet(
+  path_to_file = parquetize_example("region_2022.csv"),
+  path_to_parquet = tempfile(fileext = ".parquet"),
+  columns = c("REG","LIBELLE")
+)
+
+# Conversion from a local csv file to a partitioned parquet file  :
+
+csv_to_parquet(
+  path_to_file = parquetize_example("region_2022.csv"),
+  path_to_parquet = tempfile(fileext = ".parquet"),
+  partition = "yes",
+  partitioning =  c("REG")
+)
+
+# Conversion from a URL and a zipped file (csv) :
+
+csv_to_parquet(
+  path_to_file = "https://www.nomisweb.co.uk/output/census/2021/census2021-ts007.zip",
+  filename_in_zip = "census2021-ts007-ctry.csv",
+  path_to_parquet = tempfile(fileext = ".parquet")
+)
+
+# Conversion from a URL and a zipped file (txt) :
+
+csv_to_parquet(
+  path_to_file = "https://sourceforge.net/projects/irisdss/files/latest/download",
+  filename_in_zip = "IRIS TEST data.txt",
+  path_to_parquet = tempfile(fileext=".parquet")
+)
+
+## Not run: 
+# Conversion from a URL and a csv file with "gzip" compression :
+
+csv_to_parquet(
+  path_to_file =
+  "https://github.com/sidsriv/Introduction-to-Data-Science-in-python/raw/master/census.csv",
+  path_to_parquet = tempfile(fileext = ".parquet"),
+  compression = "gzip",
+  compression_level = 5
+)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,148 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>add_shuffle_portfolio</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add a shuffle portfolio</h2>
+
+<h3>Description</h3>
+
+<p>Generate a portfolio of solutions for a conservation planning
+problem by randomly reordering the data prior to
+solving the problem. Although this function can be useful for generating
+multiple different solutions for a given problem,
+it is recommended to use add_pool_portfolio if the <em>Gurobi</em>
+software is available.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">add_shuffle_portfolio(
+  x,
+  number_solutions = 10,
+  threads = 1,
+  remove_duplicates = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>problem()</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>number_solutions</code></td>
+<td>
+<p><code>integer</code> number of attempts to generate
+different solutions. Defaults to 10.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threads</code></td>
+<td>
+<p><code>integer</code> number of threads to use for the generating
+the solution portfolio. Defaults to 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>remove_duplicates</code></td>
+<td>
+<p><code>logical</code> should duplicate solutions
+be removed? Defaults to <code>TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This strategy for generating a portfolio of solutions often
+results in different solutions, depending on optimality gap, but may
+return duplicate solutions. In general, this strategy is most effective
+when problems are quick to solve and multiple threads are available for
+solving each problem separately.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An updated <code>problem()</code> object with the portfolio added to it.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See portfolios for an overview of all functions for adding a portfolio.
+</p>
+<p>Other portfolios: 
+<code>add_cuts_portfolio()</code>,
+<code>add_default_portfolio()</code>,
+<code>add_extra_portfolio()</code>,
+<code>add_gap_portfolio()</code>,
+<code>add_top_portfolio()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# set seed for reproducibility
+set.seed(500)
+
+# load data
+sim_pu_raster &lt;- get_sim_pu_raster()
+sim_features &lt;- get_sim_features()
+sim_zones_pu_raster &lt;- get_sim_zones_pu_raster()
+sim_zones_features &lt;- get_sim_zones_features()
+
+# create minimal problem with shuffle portfolio
+p1 &lt;-
+  problem(sim_pu_raster, sim_features) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(0.2) %&gt;%
+  add_shuffle_portfolio(10, remove_duplicates = FALSE) %&gt;%
+  add_default_solver(gap = 0.2, verbose = FALSE)
+
+# solve problem and generate 10 solutions within 20% of optimality
+s1 &lt;- solve(p1)
+
+# convert portfolio into a multi-layer raster
+s1 &lt;- terra::rast(s1)
+
+# print number of solutions found
+print(terra::nlyr(s1))
+
+# plot solutions in portfolio
+plot(s1, axes = FALSE)
+
+# build multi-zone conservation problem with shuffle portfolio
+p2 &lt;-
+  problem(sim_zones_pu_raster, sim_zones_features) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(matrix(runif(15, 0.1, 0.2), nrow = 5, ncol = 3)) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_shuffle_portfolio(10, remove_duplicates = FALSE) %&gt;%
+  add_default_solver(gap = 0.2, verbose = FALSE)
+
+# solve the problem
+s2 &lt;- solve(p2)
+
+# convert each solution in the portfolio into a single category layer
+s2 &lt;- terra::rast(lapply(s2, category_layer))
+
+# print number of solutions found
+print(terra::nlyr(s2))
+
+# plot solutions in portfolio
+plot(s2, axes = FALSE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

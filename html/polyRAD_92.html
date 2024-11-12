@@ -1,0 +1,245 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>readDArTag</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Import Data from DArT Sequencing
+</h2>
+
+<h3>Description</h3>
+
+<p><a href="https://www.diversityarrays.com/">Diversity Array Technologies (DArT)</a>
+provides a tag-based genotyping-by-sequencing service. Together with
+<a href="https://breedinginsight.org/">Breeding Insight</a>, a format was
+developed indicting haplotype sequence and read depth, and that format is
+imported by this function to make a <code>RADdata</code> object. The target
+SNP and all off-target SNPs within the amplicon are imported as haplotypes.
+Because the file format does not indicate strandedness of the tag, BLAST
+results are used so that sequence and position are accurately stored in the
+<code>RADdata</code> object.  See the “extdata” folder of the <span class="pkg">polyRAD</span>
+installation for example files.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">readDArTag(file, botloci = NULL, blastfile = NULL, excludeHaps = NULL,
+           includeHaps = NULL, n.header.rows = 0, sample.name.row = 1,
+           trim.sample.names = "_[^_]+_[ABCDEFGH][[:digit:]][012]?$",
+           sep.counts = ",", sep.blast = "\t", possiblePloidies = list(2),
+           taxaPloidy = 2L, contamRate = 0.001)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+
+<p>The file name of a spreadsheet from DArT indicating haplotype sequence and read
+depth.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>botloci</code></td>
+<td>
+
+<p>A character vector indicating the names of loci for which the sequence is on the
+bottom strand with respect to the reference genome.  All other loci are assumed
+to be on the top strand.  Only one of <code>blastfile</code> and <code>botloci</code> should
+be provided.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>blastfile</code></td>
+<td>
+
+<p>File name for BLAST results for haplotypes. The file should be in tabular format
+with <code>qseqid</code>, <code>sseqid</code>, <code>sstart</code>, <code>send</code>, and <code>pident</code>
+columns, indicated with column headers.  Only one of <code>blastfile</code> and
+<code>botloci</code> should be provided.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>excludeHaps</code></td>
+<td>
+
+<p>Optional.  Character vector with names of haplotypes (from the “AlleleID”
+column) that should not be imported.  Should not be used if <code>includeHaps</code>
+is provided.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>includeHaps</code></td>
+<td>
+
+<p>Optional.  Character vector with names of haplotypes (from the “AlleleID”
+column) that should be imported.  Should not be used if <code>excludeHaps</code> is
+provided.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.header.rows</code></td>
+<td>
+
+<p>Integer.  The number of header rows in <code>file</code>, not including the full row
+of column headers.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sample.name.row</code></td>
+<td>
+
+<p>Integer.  The row within <code>file</code> from which sample names should be derived.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trim.sample.names</code></td>
+<td>
+
+<p>A regular expression indicating text to trim off of sample names.  Use <code>""</code>
+if no trimming should be performed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sep.counts</code></td>
+<td>
+
+<p>The field separator character for <code>file</code>.  The default assumes CSV.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sep.blast</code></td>
+<td>
+
+<p>The field separator character for the BLAST results.  The default assumes
+tab-delimited.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>possiblePloidies</code></td>
+<td>
+
+<p>A list indicating possible inheritance modes.  See <code>RADdata</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>taxaPloidy</code></td>
+<td>
+
+<p>A single integer, or an integer vector with one value per taxon, indicating
+ploidy.  See <code>RADdata</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contamRate</code></td>
+<td>
+
+<p>Expected sample cross-contamination rate. See <code>RADdata</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The “CloneID” column is used for locus names, and is assumed to contain
+the chromosome (or scaffold) name and position, separated by an underscore.
+The position is assumed to refer to the target SNP, which is identified by
+comparing the “Ref_001” and “Alt_002” sequences.  The position
+is then converted to refer to the beginning of the tag (which may have been
+reverse complemented depending on BLAST results), since additional SNPs may
+be present.  This facilitates accurate export to VCF using
+<code>RADdata2VCF</code>.
+</p>
+<p>Column names for the BLAST file can be “Query”, “Subject”,
+“S_start”, “S_end”, and “%Identity”, for compatibility
+with Breeding Insight formats.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>RADdata</code> object ready for QC and genotype calling. Assuming
+the “Ref_001” and “Alt_002” alleles were not excluded, the
+<code>locTable</code> slot will include columns for chromosome, position, strand, and
+reference sequence.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>References</h3>
+
+<p><a href="https://www.diversityarrays.com/">https://www.diversityarrays.com/</a>
+</p>
+<p><a href="https://breedinginsight.org/">https://breedinginsight.org/</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>reverseComplement</code>
+</p>
+<p><code>readTagDigger</code>, <code>VCF2RADdata</code>, 
+<code>readStacks</code>, <code>readTASSELGBSv2</code>,
+<code>readHMC</code>
+</p>
+<p><code>RADdata2VCF</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Older Excellence in Breeding version
+# Example files installed with polyRAD
+dartfile &lt;- system.file("extdata", "DArTag_example.csv", package = "polyRAD")
+blastfile &lt;- system.file("extdata", "DArTag_BLAST_example.txt",
+                         package = "polyRAD")
+
+# One haplotype doesn't seem to have correct alignment (see BLAST results)
+exclude_hap &lt;- c("Chr1_30668472|RefMatch_004")
+
+# Import data
+mydata &lt;- readDArTag(dartfile, blastfile = blastfile,
+                      excludeHaps = exclude_hap,
+                      possiblePloidies = list(4),
+                      n.header.rows = 7, sample.name.row = 7)
+                      
+## Newer Excellence in Breeding version (2022)
+# Example files installed with polyRAD
+dartfile &lt;- system.file("extdata", "DArTag_example2.csv", package = "polyRAD")
+blastfile &lt;- system.file("extdata", "DArTag_BLAST_example2.txt",
+                         package = "polyRAD")
+
+# One haplotype doesn't seem to have correct alignment (see BLAST results)
+exclude_hap &lt;- c("Chr1_30668472|RefMatch_0004")
+
+# Import data
+mydata &lt;- readDArTag(dartfile, blastfile = blastfile,
+                      excludeHaps = exclude_hap,
+                      possiblePloidies = list(4),
+                      n.header.rows = 0, sample.name.row = 1)
+</code></pre>
+
+
+</div>

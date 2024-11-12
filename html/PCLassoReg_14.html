@@ -1,0 +1,142 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predict.cv.PCLasso2</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Make predictions from a cross-validated PCLasso2 model</h2>
+
+<h3>Description</h3>
+
+<p>Similar to other predict methods, this function returns predictions from a
+fitted <code>cv.PCLasso2</code> object, using the optimal value chosen for
+<code>lambda</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'cv.PCLasso2'
+predict(
+  object,
+  x = NULL,
+  type = c("link", "response", "class", "norm", "coefficients", "vars", "nvars",
+    "vars.unique", "nvars.unique", "groups", "ngroups"),
+  lambda,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>Fitted <code>cv.PCLasso2</code> model object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Matrix of values at which predictions are to be made. The features
+(genes/proteins) contained in <code>x</code> should be consistent with those
+contained in <code>x</code> in the <code>cv.PCLasso2</code> function.  Not used for
+type="coefficients" or for some of the type settings in <code>predict</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>Type of prediction: "link" returns the linear predictors;
+"response" gives the risk (i.e., exp(link)); "class" returns the binomial
+outcome with the highest probability; "vars" returns the indices for the
+nonzero coefficients; "vars.unique" returns unique features
+(genes/proteins) with nonzero coefficients (If a feature belongs to
+multiple groups and multiple groups are selected, the feature will be
+repeatedly selected. Compared with "var", "var.unique" will filter out
+repeated features.); "groups" returns the groups with at least one nonzero
+coefficient; "nvars" returns the number of nonzero coefficients;
+"nvars.unique" returns the number of unique features (genes/proteins) with
+nonzero coefficients; "ngroups" returns the number of groups with at least
+one nonzero coefficient; "norm" returns the L2 norm of the coefficients in
+each group.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>Values of the regularization parameter <code>lambda</code> at which
+predictions are requested. For values of  <code>lambda</code> not in the sequence
+of fitted models, linear interpolation is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments to be passed to <code>predict.cv.grpreg</code> in the R
+package <code>grpreg</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The object returned depends on <code>type</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>cv.PCLasso2</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load data
+data(classData)
+data(PCGroups)
+
+x = classData$Exp
+y = classData$Label
+
+PC.Human &lt;- getPCGroups(Groups = PCGroups, Organism = "Human",
+Type = "GeneSymbol")
+
+#' set.seed(20150122)
+idx.train &lt;- sample(nrow(x), round(nrow(x)*2/3))
+x.train &lt;- x[idx.train,]
+y.train &lt;- y[idx.train]
+x.test &lt;- x[-idx.train,]
+y.test &lt;- y[-idx.train]
+
+# fit model
+cv.fit1 &lt;- cv.PCLasso2(x = x.train, y = y.train, group = PC.Human,
+penalty = "grLasso", family = "binomial", nfolds = 10)
+
+# predict risk scores of samples in x.test
+s &lt;- predict(object = cv.fit1, x = x.test, type="link",
+             lambda=cv.fit1$cv.fit$lambda.min)
+
+# predict classes of samples in x.test
+s &lt;- predict(object = cv.fit1, x = x.test, type="class",
+             lambda=cv.fit1$cv.fit$lambda.min)
+
+# Nonzero coefficients
+sel.groups &lt;- predict(object = cv.fit1, type="groups",
+                      lambda = cv.fit1$cv.fit$lambda.min)
+sel.ngroups &lt;- predict(object = cv.fit1, type="ngroups",
+                       lambda = cv.fit1$cv.fit$lambda.min)
+sel.vars.unique &lt;- predict(object = cv.fit1, type="vars.unique",
+                           lambda = cv.fit1$cv.fit$lambda.min)
+sel.nvars.unique &lt;- predict(object = cv.fit1, type="nvars.unique",
+                            lambda = cv.fit1$cv.fit$lambda.min)
+sel.vars &lt;- predict(object = cv.fit1, type="vars",
+                    lambda=cv.fit1$cv.fit$lambda.min)
+sel.nvars &lt;- predict(object = cv.fit1, type="nvars",
+                     lambda=cv.fit1$cv.fit$lambda.min)
+</code></pre>
+
+
+</div>

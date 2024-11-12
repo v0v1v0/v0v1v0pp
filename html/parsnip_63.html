@@ -1,0 +1,223 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>details_boost_tree_h2o</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Boosted trees via h2o</h2>
+
+<h3>Description</h3>
+
+<p><code>h2o::h2o.xgboost()</code> creates a series of decision trees
+forming an ensemble. Each tree depends on the results of previous trees.
+All trees in the ensemble are combined to produce a final prediction.
+</p>
+
+
+<h3>Details</h3>
+
+<p>For this engine, there are multiple modes: classification and regression
+</p>
+
+
+<h4>Tuning Parameters</h4>
+
+<p>This model has 8 tuning parameters:
+</p>
+
+<ul>
+<li> <p><code>trees</code>: # Trees (type: integer, default: 50)
+</p>
+</li>
+<li> <p><code>tree_depth</code>: Tree Depth (type: integer, default: 6)
+</p>
+</li>
+<li> <p><code>min_n</code>: Minimal Node Size (type: integer, default: 1)
+</p>
+</li>
+<li> <p><code>learn_rate</code>: Learning Rate (type: double, default: 0.3)
+</p>
+</li>
+<li> <p><code>sample_size</code>: # Observations Sampled (type: integer, default: 1)
+</p>
+</li>
+<li> <p><code>mtry</code>: # Randomly Selected Predictors (type: integer, default: 1)
+</p>
+</li>
+<li> <p><code>loss_reduction</code>: Minimum Loss Reduction (type: double, default: 0)
+</p>
+</li>
+<li> <p><code>stop_iter</code>: # Iterations Before Stopping (type: integer, default: 0)
+</p>
+</li>
+</ul>
+<p><code>min_n</code> represents the fewest allowed observations in a terminal node,
+<code>h2o::h2o.xgboost()</code> allows only one row in a leaf
+by default.
+</p>
+<p><code>stop_iter</code> controls early stopping rounds based on the convergence of
+the engine parameter <code>stopping_metric</code>. By default,
+<code>h2o::h2o.xgboost()</code> does not use early stopping.
+When <code>stop_iter</code> is not 0, <code>h2o::h2o.xgboost()</code>
+uses logloss for classification, deviance for regression and anonomaly
+score for Isolation Forest. This is mostly useful when used alongside
+the engine parameter <code>validation</code>, which is the <strong>proportion</strong> of
+train-validation split, parsnip will split and pass the two data frames
+to h2o. Then <code>h2o::h2o.xgboost()</code> will evaluate
+the metric and early stopping criteria on the validation set.
+</p>
+
+
+
+<h4>Translation from parsnip to the original package (regression)</h4>
+
+<p><code>agua::h2o_train_xgboost()</code> is a wrapper
+around <code>h2o::h2o.xgboost()</code>.
+</p>
+<p>The <strong>agua</strong> extension package is required to fit this model.
+</p>
+<div class="sourceCode r"><pre>boost_tree(
+  mtry = integer(), trees = integer(), tree_depth = integer(), 
+  learn_rate = numeric(), min_n = integer(), loss_reduction = numeric(), stop_iter = integer()
+) %&gt;%
+  set_engine("h2o") %&gt;%
+  set_mode("regression") %&gt;%
+  translate()
+</pre></div>
+<div class="sourceCode"><pre>## Boosted Tree Model Specification (regression)
+## 
+## Main Arguments:
+##   mtry = integer()
+##   trees = integer()
+##   min_n = integer()
+##   tree_depth = integer()
+##   learn_rate = numeric()
+##   loss_reduction = numeric()
+##   stop_iter = integer()
+## 
+## Computational engine: h2o 
+## 
+## Model fit template:
+## agua::h2o_train_xgboost(x = missing_arg(), y = missing_arg(), 
+##     weights = missing_arg(), validation_frame = missing_arg(), 
+##     col_sample_rate = integer(), ntrees = integer(), min_rows = integer(), 
+##     max_depth = integer(), learn_rate = numeric(), min_split_improvement = numeric(), 
+##     stopping_rounds = integer())
+</pre></div>
+
+
+
+<h4>Translation from parsnip to the original package (classification)</h4>
+
+<p>The <strong>agua</strong> extension package is required to fit this model.
+</p>
+<div class="sourceCode r"><pre>boost_tree(
+  mtry = integer(), trees = integer(), tree_depth = integer(), 
+  learn_rate = numeric(), min_n = integer(), loss_reduction = numeric(), stop_iter = integer()
+) %&gt;% 
+  set_engine("h2o") %&gt;% 
+  set_mode("classification") %&gt;% 
+  translate()
+</pre></div>
+<div class="sourceCode"><pre>## Boosted Tree Model Specification (classification)
+## 
+## Main Arguments:
+##   mtry = integer()
+##   trees = integer()
+##   min_n = integer()
+##   tree_depth = integer()
+##   learn_rate = numeric()
+##   loss_reduction = numeric()
+##   stop_iter = integer()
+## 
+## Computational engine: h2o 
+## 
+## Model fit template:
+## agua::h2o_train_xgboost(x = missing_arg(), y = missing_arg(), 
+##     weights = missing_arg(), validation_frame = missing_arg(), 
+##     col_sample_rate = integer(), ntrees = integer(), min_rows = integer(), 
+##     max_depth = integer(), learn_rate = numeric(), min_split_improvement = numeric(), 
+##     stopping_rounds = integer())
+</pre></div>
+
+
+
+<h4>Preprocessing</h4>
+
+<p>This engine does not require any special encoding of the predictors.
+Categorical predictors can be partitioned into groups of factor levels
+(e.g. <code style="white-space: pre;">⁠{a, c}⁠</code> vs <code style="white-space: pre;">⁠{b, d}⁠</code>) when splitting at a node. Dummy variables
+are not required for this model.
+</p>
+<p>Non-numeric predictors (i.e., factors) are internally converted to
+numeric. In the classification context, non-numeric outcomes (i.e.,
+factors) are also internally converted to numeric.
+</p>
+
+
+
+<h4>Interpreting <code>mtry</code>
+</h4>
+
+<p>The <code>mtry</code> argument denotes the number of predictors that will be
+randomly sampled at each split when creating tree models.
+</p>
+<p>Some engines, such as <code>"xgboost"</code>, <code>"xrf"</code>, and <code>"lightgbm"</code>, interpret
+their analogue to the <code>mtry</code> argument as the <em>proportion</em> of predictors
+that will be randomly sampled at each split rather than the <em>count</em>. In
+some settings, such as when tuning over preprocessors that influence the
+number of predictors, this parameterization is quite
+helpful—interpreting <code>mtry</code> as a proportion means that <code style="white-space: pre;">⁠[0, 1]⁠</code> is
+always a valid range for that parameter, regardless of input data.
+</p>
+<p>parsnip and its extensions accommodate this parameterization using the
+<code>counts</code> argument: a logical indicating whether <code>mtry</code> should be
+interpreted as the number of predictors that will be randomly sampled at
+each split. <code>TRUE</code> indicates that <code>mtry</code> will be interpreted in its
+sense as a count, <code>FALSE</code> indicates that the argument will be
+interpreted in its sense as a proportion.
+</p>
+<p><code>mtry</code> is a main model argument for
+<code>boost_tree()</code> and
+<code>rand_forest()</code>, and thus should not have an
+engine-specific interface. So, regardless of engine, <code>counts</code> defaults
+to <code>TRUE</code>. For engines that support the proportion interpretation
+(currently <code>"xgboost"</code> and <code>"xrf"</code>, via the rules package, and
+<code>"lightgbm"</code> via the bonsai package) the user can pass the
+<code>counts = FALSE</code> argument to <code>set_engine()</code> to supply <code>mtry</code> values
+within <code style="white-space: pre;">⁠[0, 1]⁠</code>.
+</p>
+
+
+
+<h4>Initializing h2o</h4>
+
+<p>To use the h2o engine with tidymodels, please run <code>h2o::h2o.init()</code>
+first. By default, This connects R to the local h2o server. This needs
+to be done in every new R session. You can also connect to a remote h2o
+server with an IP address, for more details see
+<code>h2o::h2o.init()</code>.
+</p>
+<p>You can control the number of threads in the thread pool used by h2o
+with the <code>nthreads</code> argument. By default, it uses all CPUs on the host.
+This is different from the usual parallel processing mechanism in
+tidymodels for tuning, while tidymodels parallelizes over resamples, h2o
+parallelizes over hyperparameter combinations for a given resample.
+</p>
+<p>h2o will automatically shut down the local h2o instance started by R
+when R is terminated. To manually stop the h2o server, run
+<code>h2o::h2o.shutdown()</code>.
+</p>
+
+
+
+<h4>Saving fitted model objects</h4>
+
+<p>Models fitted with this engine may require native serialization methods
+to be properly saved and/or passed between R sessions. To learn more
+about preparing fitted models for serialization, see the bundle package.
+</p>
+
+
+
+</div>

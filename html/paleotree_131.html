@@ -1,0 +1,375 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>multiDiv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculating Diversity Curves Across Multiple Datasets</h2>
+
+<h3>Description</h3>
+
+<p>Calculates multiple diversity curves from a list of datasets of taxic ranges
+and/or phylogenetic trees, for the same intervals, for all the individual
+datasets. A median curve with 95 percent quantile bounds is also calculated
+and plotted for each interval.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">multiDiv(
+  data,
+  int.length = 1,
+  plot = TRUE,
+  split.int = TRUE,
+  drop.ZLB = TRUE,
+  drop.cryptic = FALSE,
+  extant.adjust = 0.01,
+  plotLogRich = FALSE,
+  yAxisLims = NULL,
+  timelims = NULL,
+  int.times = NULL,
+  plotMultCurves = FALSE,
+  multRainbow = TRUE,
+  divPalette = NULL,
+  divLineType = 1,
+  main = NULL
+)
+
+plotMultiDiv(
+  results,
+  plotLogRich = FALSE,
+  timelims = NULL,
+  yAxisLims = NULL,
+  plotMultCurves = FALSE,
+  multRainbow = TRUE,
+  divPalette = NULL,
+  divLineType = 1,
+  main = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A list where each element is a dataset, formatted to be input in
+one of the diversity curve functions listed in <code>DiversityCurves</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>int.length</code></td>
+<td>
+<p>The length of intervals used to make the diversity curve.
+Ignored if <code>int.times</code> is given.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>If <code>TRUE</code>, the median diversity curve is plotted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>split.int</code></td>
+<td>
+<p>For discrete time data, should calculated/input intervals
+be split at discrete time interval boundaries? If <code>FALSE</code>, can create apparent
+artifacts in calculating the diversity curve. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop.ZLB</code></td>
+<td>
+<p>If <code>TRUE</code>, zero-length terminal branches are dropped from the
+input tree for phylogenetic datasets, before calculating standing diversity.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop.cryptic</code></td>
+<td>
+<p>If <code>TRUE</code>, cryptic taxa are merged to form one taxon for
+estimating taxon curves. Only works for objects from <code>simFossilRecord</code>
+via <code>fossilRecord2fossilTaxa</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extant.adjust</code></td>
+<td>
+<p>Amount of time to be added to extend start time for
+(0,0) bins for extant taxa, so that the that 'time interval' does not appear 
+to have an infinitely small width.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plotLogRich</code></td>
+<td>
+<p>If <code>TRUE</code>, taxic diversity is plotted on log scale.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yAxisLims</code></td>
+<td>
+<p>Limits for the y (i.e. richness) axis on the plotted diversity curves. 
+Only affects plotting. Given as either <code>NULL</code> (the default) or as a vector of
+length two as for <code>xlim</code> in the basic R function <code>plot</code>. 
+Time axes will be plotted <em>exactly</em> to these values. 
+The minimum value must be more than 1 if <code>plotLogRich = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timelims</code></td>
+<td>
+<p>Limits for the x (time) axis for diversity curve plots. Only
+affects plotting. Given as either <code>NULL</code> (the default) or as a vector of
+length two as for <code>xlim</code> in the basic R function <code>plot</code>. Time axes 
+will be plotted <em>exactly</em> to these values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>int.times</code></td>
+<td>
+<p>An optional two-column matrix of the interval start and end
+times for calculating the diversity curve. If <code>NULL</code>, calculated internally.
+If given, the argument <code>split.int</code> and <code>int.length</code> are ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plotMultCurves</code></td>
+<td>
+<p>If <code>TRUE</code>, each individual diversity curve is plotted
+rather than the median diversity curve and 95 percent quantiles. 
+<code>plotMultCurves = FALSE</code> by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multRainbow</code></td>
+<td>
+<p>If <code>TRUE</code> and <code>plotMultCurves = TRUE</code>, each line is
+plotted as a different, randomized color using the function <code>rainbow</code>. If
+<code>FALSE</code>, each line is plotted as a black line. This argument is ignored if
+<code>divPalette</code> is supplied.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>divPalette</code></td>
+<td>
+<p>Can be used so users can pass a vector of chosen color
+identifiers for each diversity curve in <code>data</code> which will take precedence
+over <code>multRainbow</code>. Must be the same length as the number of diversity curves
+supplied.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>divLineType</code></td>
+<td>
+<p>Used to determine line type (<code>lty</code>) of the
+diversity curves plotted when <code>plotMultCurves  = </code> <code>TRUE</code>. Default
+is <code>lty = 1</code> for all curves. Must be either length of 1 or 
+exact length as number of diversity curves.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>main</code></td>
+<td>
+<p>The main label for the figure.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>results</code></td>
+<td>
+<p>The output of a previous run of <code>multiDiv</code> for replotting.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is essentially a wrapper for the individual diversity curve
+functions included in paleotree. <code>multiDiv</code> will intuitively decide whether
+input datasets are continuous-time taxic ranges, discrete-time (binned
+interval) taxic ranges or phylogenetic trees, as long as they are formatted
+as required by the respective diversity curve functions. A list that
+contains a mix of data types is entirely acceptable.
+A list of matrices output from <code>fossilRecord2fossilTaxa</code>,
+via simulation with <code>simFossilRecord</code> is allowable,
+and treated as input for <code>taxicDivCont</code>.
+Data of an unknown type gives back an error.
+</p>
+<p>The argument <code>split.int</code> splits intervals, if and <em>only</em> if discrete interval
+time data is included among the datasets. See the help file for <code>taxicDivDisc</code>
+to see an explanation of why <code>split.int = TRUE</code> by default is probably a good
+thing.
+</p>
+<p>As with many functions in the <code>paleotree</code> library, absolute time is always
+decreasing, i.e. the present day is zero.
+</p>
+<p>The 'averaged' curve is actually the median rather than the mean as
+diversity counts are often highly skewed (in this author's experience).
+</p>
+<p>The shaded certainty region around the median curve is the two-tailed 95
+percent lower and upper quantiles, calculated from the observed data. It is
+not a true probabilisitic confidence interval, as it has no relationship to
+the standard error.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list composed of three elements will be invisibly returned:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>int.times</code></td>
+<td>
+<p>A two column matrix giving interval start and end times</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>div</code></td>
+<td>
+<p>A matrix of measured diversities in particular intervals by rows,
+with each column representing a different dataset included in the input</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>median.curve</code></td>
+<td>
+<p>A three column matrix, where the first column is the
+calculated median curve and the second and third columns are the 95 percent
+quantile upper and lower bounds</p>
+</td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+<p>The diversity curve functions used include: <code>phyloDiv</code>,
+<code>taxicDivCont</code> and <code>taxicDivDisc</code>.
+</p>
+<p>Also see the function <code>LTT.average.root</code> in the package <code>TreeSim</code>, which
+calculates an average LTT curve for multiple phylogenies, the functions
+<code>mltt.plot</code> in ape and <code>ltt</code> in <code>phytools</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># let's look at this function
+    # with some birth-death simulations
+
+set.seed(444)
+
+# multiDiv can take output from simFossilRecord
+    # via fossilRecord2fossilTaxa
+
+# what do many simulations run under some set of
+    # conditions 'look' like on average?
+set.seed(444)
+records &lt;- simFossilRecord(
+    p = 0.1, 
+    q = 0.1, 
+    nruns = 10,
+    totalTime = 30, 
+    plot = TRUE
+    )
+
+taxa &lt;- lapply(records, fossilRecord2fossilTaxa)
+
+multiDiv(taxa)
+# increasing cone of diversity! 
+
+# Its even better on a log scale:
+multiDiv(taxa, plotLogRich = TRUE)
+
+#######################################
+# pure-birth example with simFossilRecord
+# note that conditioning is tricky
+
+set.seed(444)
+recordsPB &lt;- simFossilRecord(
+    p = 0.1, 
+    q = 0, 
+    nruns = 10,
+    totalTime = 30,
+    plot = TRUE
+    )
+    
+taxaPB &lt;- lapply(recordsPB, fossilRecord2fossilTaxa)
+multiDiv(taxaPB, plotLogRich = TRUE)
+
+#compare many discrete diversity curves
+discreteRanges &lt;- lapply(taxaPB, function(x)
+    binTimeData(
+        sampleRanges(x, 
+            r = 0.5,
+            min.taxa = 1
+            ),
+        int.length = 7)
+    )
+
+multiDiv(discreteRanges)
+
+#########################################
+# plotting a multi-diversity curve for
+   # a sample of stochastic dated trees
+
+record &lt;- simFossilRecord(
+    p = 0.1, q = 0.1, 
+    nruns = 1,
+    nTotalTaxa = c(30,40), 
+    nExtant = 0)
+    
+taxa &lt;- fossilRecord2fossilTaxa(record)
+rangesCont &lt;- sampleRanges(taxa, r = 0.5)
+rangesDisc &lt;- binTimeData(rangesCont,
+    int.length = 1)
+# get the cladogram
+cladogram &lt;- taxa2cladogram(taxa, plot = TRUE)
+
+#using multiDiv with samples of trees
+ttrees &lt;- timePaleoPhy(
+    cladogram, 
+    rangesCont, 
+    type = "basic",
+    randres = TRUE, 
+    ntrees = 10, 
+    add.term = TRUE
+    )
+    
+multiDiv(ttrees)
+
+# uncertainty in diversity history is solely due to 
+    # the random resolution of polytomies
+
+######################################################### 
+
+#using multiDiv to compare very different data types:
+   # continuous ranges, discrete ranges, dated tree
+
+# get a single dated tree
+ttree &lt;- timePaleoPhy(
+    cladogram, 
+    rangesCont, 
+    type = "basic", 
+    add.term = TRUE, 
+    plot = FALSE
+    )
+    
+# put them altogether in a list
+input &lt;- list(rangesCont, rangesDisc, ttree)
+
+multiDiv(input, plot = TRUE)
+
+# what happens if we use fixed interval times?
+multiDiv(input, 
+    int.times = rangesDisc[[1]], 
+    plot = TRUE)
+
+layout(1)
+
+</code></pre>
+
+
+</div>

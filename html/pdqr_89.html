@@ -1,0 +1,190 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>summ_roc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Summarize distributions with ROC curve</h2>
+
+<h3>Description</h3>
+
+<p>These functions help you perform a ROC ("Receiver Operating Characteristic")
+analysis for one-dimensional linear classifier: values not more than some
+threshold are classified as "negative", and more than threshold -
+as "positive". Here input pair of pdqr-functions represent "true"
+distributions of values with "negative" (<code>f</code>) and "positive" (<code>g</code>) labels.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">summ_roc(f, g, n_grid = 1001)
+
+summ_rocauc(f, g, method = "expected")
+
+roc_plot(roc, ..., add_bisector = TRUE)
+
+roc_lines(roc, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>A pdqr-function of any type and
+class. Represents "true" distribution of "negative" values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>g</code></td>
+<td>
+<p>A pdqr-function of any type and class. Represents "true"
+distribution of "positive" values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_grid</code></td>
+<td>
+<p>Number of points of ROC curve to be computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Method of computing ROC AUC. Should be one of "expected",
+"pessimistic", "optimistic" (see Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>roc</code></td>
+<td>
+<p>A data frame representing ROC curve. Typically an output of
+<code>summ_roc()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other arguments to be passed to <code>plot()</code> or <code>lines()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add_bisector</code></td>
+<td>
+<p>If <code>TRUE</code> (default), <code>roc_plot()</code> adds bisector line as
+reference for "random guess" classifier.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>ROC curve describes how well classifier performs under different
+thresholds. For all possible thresholds two classification metrics are
+computed which later form x and y coordinates of a curve:
+</p>
+
+<ul>
+<li> <p><strong>False positive rate (FPR)</strong>: proportion of "negative" distribution which
+was (incorrectly) classified as "positive". This is the same as one minus
+"specificity" (proportion of "negative" values classified as "negative").
+</p>
+</li>
+<li> <p><strong>True positive rate (TPR)</strong>: proportion of "positive" distribution which
+was (correctly) classified as "positive". This is also called "sensitivity".
+</p>
+</li>
+</ul>
+<p><code>summ_roc()</code> creates a uniform grid of decreasing <code>n_grid</code> values (so that
+output points of ROC curve are ordered from left to right) covering range of
+all meaningful thresholds. This range is computed as slightly extended range
+of <code>f</code> and <code>g</code> supports (extension is needed to achieve extreme values of
+"fpr" in presence of "discrete" type). Then FPR and TPR are computed for
+every threshold.
+</p>
+<p><code>summ_rocauc()</code> computes a common general (without any particular threshold
+in mind) diagnostic value of classifier, <strong>area under ROC curve</strong> ("ROC AUC"
+or "AUROC"). Numerically it is equal to a probability of random variable with
+distribution <em><code>g</code> being strictly greater than <code>f</code></em> plus <em>possible correction
+for functions being equal</em>, with multiple ways to account for it. Method
+"pessimistic" doesn't add correction, "expected" adds half of probability of
+<code>f</code> and <code>g</code> being equal (which is default), "optimistic" adds full
+probability. <strong>Note</strong> that this means that correction might be done only if
+both input pdqr-functions have "discrete" type. See pdqr methods for "Ops" group generic family for more details on comparing
+functions.
+</p>
+<p><code>roc_plot()</code> and <code>roc_lines()</code> perform plotting (with
+plot()) and adding (with lines())
+ROC curves respectively.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>summ_roc()</code> returns a data frame with <code>n_grid</code> rows and columns
+"threshold" (grid of classification thresholds, ordered decreasingly), "fpr",
+and "tpr" (corresponding false and true positive rates, ordered
+non-decreasingly by "fpr").
+</p>
+<p><code>summ_rocauc()</code> returns single number representing area under the ROC curve.
+</p>
+<p><code>roc_plot()</code> and <code>roc_lines()</code> create plotting side effects.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>summ_separation()</code> for computing optimal separation threshold.
+</p>
+<p>Other summary functions: 
+<code>summ_center()</code>,
+<code>summ_classmetric()</code>,
+<code>summ_distance()</code>,
+<code>summ_entropy()</code>,
+<code>summ_hdr()</code>,
+<code>summ_interval()</code>,
+<code>summ_moment()</code>,
+<code>summ_order()</code>,
+<code>summ_prob_true()</code>,
+<code>summ_pval()</code>,
+<code>summ_quantile()</code>,
+<code>summ_separation()</code>,
+<code>summ_spread()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">d_norm_1 &lt;- as_d(dnorm)
+d_norm_2 &lt;- as_d(dnorm, mean = 1)
+roc &lt;- summ_roc(d_norm_1, d_norm_2)
+head(roc)
+
+# `summ_rocauc()` is equivalent to probability of `g &gt; f`
+summ_rocauc(d_norm_1, d_norm_2)
+summ_prob_true(d_norm_2 &gt; d_norm_1)
+
+# Plotting
+roc_plot(roc)
+roc_lines(summ_roc(d_norm_2, d_norm_1), col = "blue")
+
+# For "discrete" functions `summ_rocauc()` can produce different outputs
+d_dis_1 &lt;- new_d(1:2, "discrete")
+d_dis_2 &lt;- new_d(2:3, "discrete")
+summ_rocauc(d_dis_1, d_dis_2)
+summ_rocauc(d_dis_1, d_dis_2, method = "pessimistic")
+summ_rocauc(d_dis_1, d_dis_2, method = "optimistic")
+## These methods correspond to different ways of plotting ROC curves
+roc &lt;- summ_roc(d_dis_1, d_dis_2)
+## Default line plot for "expected" method
+roc_plot(roc, main = "Different type of plotting ROC curve")
+## Method "pessimistic"
+roc_lines(roc, type = "s", col = "blue")
+## Method "optimistic"
+roc_lines(roc, type = "S", col = "green")
+</code></pre>
+
+
+</div>

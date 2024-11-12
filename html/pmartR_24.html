@@ -1,0 +1,120 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>as.trelliData</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate an object from omicsData and/or statRes objects to pass to
+trelliscope building functions</h2>
+
+<h3>Description</h3>
+
+<p>Either an omicData and/or a statRes object are accepted.
+omicData must be transformed and normalized, unless the data is isobaric
+protein or NMR data. If group_designation() has been run on the omicData
+object to add "main_effects", the resulting plots will include groups. The
+main effects group_designation and e_meta columns are merged to the e_data
+in long format to create the trelliData.omics dataframe, and e_meta is
+merged to statRes in long format to create trelliData.stat dataframe.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">as.trelliData(omicsData = NULL, statRes = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>omicsData</code></td>
+<td>
+<p>an object of the class 'pepData', 'isobaricpepData',
+proData', 'metabData', 'lipidData', or 'nmrData', created by
+<code>as.pepData</code>, <code>as.isobaricpepData</code>,
+<code>as.proData</code>, <code>as.metabData</code>,
+<code>as.lipidData</code>, or <code>as.nmrData</code>, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>statRes</code></td>
+<td>
+<p>statRes an object of the class 'statRes', created by
+<code>imd_anova</code></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An object of class 'trelliData' containing the raw data and optionally, statRes.  
+To be passed to trelliscope building functions.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David Degnan, Lisa Bramer
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+library(pmartRdata)
+
+###########################
+## MS/NMR OMICS EXAMPLES ##
+###########################
+
+# Transform the data
+omicsData &lt;- edata_transform(omicsData = pep_object, data_scale = "log2")
+
+# Group the data by condition
+omicsData &lt;- group_designation(omicsData = omicsData, main_effects = c("Phenotype"))
+
+# Apply the IMD ANOVA filter
+imdanova_Filt &lt;- imdanova_filter(omicsData = omicsData)
+omicsData &lt;- applyFilt(filter_object = imdanova_Filt, omicsData = omicsData,
+                       min_nonmiss_anova = 2)
+
+# Normalize my pepData
+omicsData &lt;- normalize_global(omicsData, "subset_fn" = "all", "norm_fn" = "median",
+                             "apply_norm" = TRUE, "backtransform" = TRUE)
+
+# Implement the IMD ANOVA method and compute all pairwise comparisons 
+# (i.e. leave the `comparisons` argument NULL)
+statRes &lt;- imd_anova(omicsData = omicsData, test_method = 'combined')
+
+# Generate the trelliData object
+trelliData2 &lt;- as.trelliData(omicsData = omicsData)
+trelliData3 &lt;- as.trelliData(statRes = statRes)
+trelliData4 &lt;- as.trelliData(omicsData = omicsData, statRes = statRes)
+
+######################
+## RNA-SEQ EXAMPLES ##  
+######################
+
+# Group data by condition
+omicsData_seq &lt;- group_designation(omicsData = rnaseq_object, main_effects = c("Virus"))
+
+# Filter low transcript counts
+omicsData_seq &lt;- applyFilt(filter_object = total_count_filter(omicsData = omicsData_seq), 
+ omicsData = omicsData_seq, min_count = 15)
+
+# Select a normalization and statistics method (options are 'edgeR', 'DESeq2', and 'voom').
+# See ?difexp_seq for more details
+statRes_seq &lt;- diffexp_seq(omicsData = omicsData_seq, method = "voom")
+
+# Generate the trelliData object
+trelliData_seq2 &lt;- as.trelliData(omicsData = omicsData_seq)
+trelliData_seq3 &lt;- as.trelliData(statRes = statRes_seq)
+trelliData_seq4 &lt;- as.trelliData(omicsData = omicsData_seq, statRes = statRes_seq)
+
+
+</code></pre>
+
+
+</div>

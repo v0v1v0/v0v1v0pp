@@ -1,0 +1,259 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Return.portfolio</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate weighted returns for a portfolio of assets</h2>
+
+<h3>Description</h3>
+
+<p>Using a time series of returns and any regular or irregular time series of weights
+for each asset, this function calculates the returns of a portfolio with the same 
+periodicity of the returns data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">Return.portfolio(
+  R,
+  weights = NULL,
+  wealth.index = FALSE,
+  contribution = FALSE,
+  geometric = TRUE,
+  rebalance_on = c(NA, "years", "quarters", "months", "weeks", "days"),
+  value = 1,
+  verbose = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+<p>An xts, vector, matrix, data frame, timeSeries or zoo object of
+asset returns</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>A time series or single-row matrix/vector containing asset
+weights, as decimal percentages, treated as beginning of period weights.  
+See Details below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wealth.index</code></td>
+<td>
+<p>TRUE/FALSE whether to return a wealth index. Default FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contribution</code></td>
+<td>
+<p>if contribution is TRUE, add the weighted return 
+contributed by the asset in a given period. Default FALSE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>geometric</code></td>
+<td>
+<p>utilize geometric chaining (TRUE) or simple/arithmetic (FALSE)
+to aggregate returns. Default TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rebalance_on</code></td>
+<td>
+<p>Default "none"; alternatively "daily" "weekly" "monthly" 
+"annual"  to specify calendar-period rebalancing supported by 
+<code>endpoints</code>. Ignored if <code>weights</code> is an xts object
+that specifies the rebalancing dates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>value</code></td>
+<td>
+<p>The beginning of period total portfolio value. This is used for calculating position value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If verbose is TRUE, return a list of intermediary calculations. 
+See Details below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>any other passthru parameters. Not currently used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>By default, this function calculates the time series of portfolio returns given asset
+returns and weights. In verbose mode, the function returns a list of intermediary 
+calculations that users may find helpful, including both asset contribution and  
+asset value through time.
+</p>
+<p>When asset return and weights are matched by period, contribution is simply the 
+weighted return of the asset.  c_i = w_i * R_i Contributions are summable across the 
+portfolio to calculate the total portfolio return.
+</p>
+<p>Contribution cannot be aggregated through time.  For example, say we have an equal 
+weighted portfolio of five assets with monthly returns.  The geometric return of the 
+portfolio over several months won't match any aggregation of the individual 
+contributions of the assets, particularly if any rebalancing was done during the 
+period.
+</p>
+<p>To aggregate contributions through time such that they are summable to the geometric 
+returns of the portfolio, the calculation must track changes in the notional value of 
+the assets and portfolio.  For example, contribution during a quarter will be 
+calculated as the change in value of the position through those three months, divided 
+by the original value of the portfolio.  Approaching it this way makes the 
+calculation robust to weight changes as well. c_pi = V_(t-p)i - V_t)/V_ti  
+</p>
+<p>If the user does not specify weights, an equal weight portfolio is assumed.  
+Alternatively, a vector or single-row matrix of weights that matches the length 
+of the asset columns may be specified.  In either case, if no rebalancing period is
+specified, the weights will be applied at the beginning of the asset time series
+and no further rebalancing will take place. If a rebalancing period is specified, 
+the portfolio will be rebalanced to the starting weights at the interval specified.
+</p>
+<p>Note that if <code>weights</code> is an xts object, then any value passed to 
+<code>rebalance_on</code> is ignored. The <code>weights</code> object specifies the 
+rebalancing dates, therefore a regular rebalancing frequency provided via
+<code>rebalance_on</code> is not needed and ignored.
+</p>
+<p><code>Return.portfolio</code> will work only on daily or lower frequencies. If you are 
+rebalancing intraday, you should be using a trades/prices framework like 
+the <code>blotter</code> package, not a weights/returns framework.
+</p>
+<p>Irregular rebalancing can be done by specifying a time series of weights.  The 
+function uses the date index of the weights for xts-style subsetting of rebalancing 
+periods.
+</p>
+<p>Weights specified for rebalancing should be thought of as "end-of-period" weights. 
+Rebalancing periods can be thought of as taking effect immediately after the close 
+of the bar. So, a March 31 rebalancing date will actually be in effect for April 1. 
+A December 31 rebalancing date will be in effect on Jan 1, and so forth. This 
+convention was chosen because it fits with common usage, and because it simplifies 
+xts Date subsetting via endpoints.
+</p>
+<p>In verbose mode, the function returns a list of data and intermediary calculations.
+</p>
+
+<ul>
+<li>
+<p><code>returns</code>: The portfolio returns.
+</p>
+</li>
+<li>
+<p><code>contribution</code>: The per period contribution to portfolio 
+return of each asset. Contribution is calculated as BOP weight times the 
+period's return divided by BOP value. Period contributions are summed 
+across the individual assets to calculate portfolio return
+</p>
+</li>
+<li>
+<p><code>BOP.Weight</code>: Beginning of Period (BOP) Weight for each 
+asset. An asset's BOP weight is calculated using the input weights 
+(or assumed weights, see below) and rebalancing parameters given. The next 
+period's BOP weight is either the EOP weights from the prior period or 
+input weights given on a rebalance period.
+</p>
+</li>
+<li>
+<p><code>EOP.Weight:</code> End of Period (BOP) Weight for each asset. 
+An asset's EOP weight is the sum of the asset's BOP weight and 
+contribution for the period divided by the sum of the contributions and 
+initial weights for the portfolio.
+</p>
+</li>
+<li>
+<p><code>BOP.Value:</code> BOP Value for each asset. The BOP value for each 
+asset is the asset's EOP value from the prior period, unless there is a 
+rebalance event.  If there is a rebalance event, the BOP value of the 
+asset is the rebalance weight times the EOP value of the portfolio. That 
+effectively provides a zero-transaction cost change to the position values 
+as of that date to reflect the rebalance.  Note that the sum of the BOP 
+values of the assets is the same as the prior period's EOP portfolio value.
+</p>
+</li>
+<li>
+<p><code>EOP.Value:</code> EOP Value for each asset. The EOP value is for 
+each asset is calculated as (1 + asset return) times the asset's BOP value. 
+The EOP portfolio value is the sum of EOP value across assets.
+</p>
+</li>
+</ul>
+<p>To calculate BOP and EOP position value, we create an index for each position.  The 
+sum of that value across assets represents an indexed value of the total portfolio.  
+Note that BOP and EOP position values are only computed when <code>geometric = TRUE</code>.
+</p>
+<p>From the value calculations, we can calculate different aggregations through time 
+for the asset contributions.  Those are calculated as the EOP asset value less the 
+BOP asset value; that quantity is divided by the BOP portfolio value.  
+Across assets, those will sum to equal the geometric chained returns of the 
+portfolio for that same time period.  The function does not do this directly, however.
+</p>
+
+
+<h3>Value</h3>
+
+<p>returns a time series of returns weighted by the <code>weights</code>
+parameter, or a list that includes intermediate calculations
+</p>
+
+
+<h3>Note</h3>
+
+<p>This function was previously two functions: <code>Return.portfolio</code> and 
+<code>Return.rebalancing</code>.  Both function names are still exported,
+but the code is now common, and <code>Return.portfolio</code> is probably to be preferred.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Peter Carl, Ross Bennett, Brian Peterson
+</p>
+
+
+<h3>References</h3>
+
+<p>Bacon, C. <em>Practical Portfolio Performance Measurement and
+Attribution</em>. Wiley. 2004. Chapter 2<br></p>
+
+
+<h3>See Also</h3>
+
+<p><code>Return.calculate</code> <code>endpoints</code> <br></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(edhec)
+Return.portfolio(edhec["1997",1:5], rebalance_on="quarters") # returns time series
+Return.portfolio(edhec["1997",1:5], rebalance_on="quarters", verbose=TRUE) # returns list
+# with a weights object
+data(weights) # rebalance at the beginning of the year to various weights through time
+chart.StackedBar(weights)
+x &lt;- Return.portfolio(edhec["2000::",1:11], weights=weights,verbose=TRUE)
+chart.CumReturns(x$returns)
+chart.StackedBar(x$BOP.Weight)
+chart.StackedBar(x$BOP.Value)
+
+</code></pre>
+
+
+</div>

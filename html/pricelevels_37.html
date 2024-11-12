@@ -1,0 +1,236 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rdata</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulate random price and quantity data</h2>
+
+<h3>Description</h3>
+
+<p>Simulate random price and quantity data for a specified number of regions <code class="reqn">(r=1,\ldots,R)</code>, product groups <code class="reqn">(b=1,\ldots,B)</code>, and individual products <code class="reqn">(n=1,\ldots,N_{b})</code> using function <code>rdata()</code>.
+</p>
+<p>The sampling of prices relies on the NLCPD model (see <code>nlcpd()</code>), while expenditure weights for product groups are sampled using function <code>rweights()</code>. Purchased quantities are assigned to individual products. Moreover, random sales and gaps (using function <code>rgaps()</code>) can be introduced in the sampled data.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rgaps(r, n, amount=0, prob=NULL, pairs=FALSE, exclude=NULL)
+
+rweights(r, b, type=~1)
+
+rdata(R, B, N, gaps=0, weights=~b+r, sales=0, settings=list())
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>r, n, b</code></td>
+<td>
+<p>A character vector or factor of regional entities <code>r</code>, individual products <code>n</code>, and product groups (or basic headings) <code>b</code>, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R, B, N</code></td>
+<td>
+<p>A single integer specifying the number of regions <code>R</code> and product groups <code>B</code>, respectively, and a vector of length <code>B</code> specifying the number of individual products <code>N</code> in each product group.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights, type</code></td>
+<td>
+<p>A formula specifying the sampling of expenditure weights for product groups. If <code>type=~1</code>, product groups receive identical weights, while weights are product group specific for <code>type=~b</code>. If weights should vary among product groups and regions, use <code>type=~b+r</code>. As long as there are no data gaps, the weights add up to 1 for each region.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gaps, sales, amount</code></td>
+<td>
+<p>Percentage amount of gaps and sales (between 0 and 1), respectively, to be introduced in the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prob</code></td>
+<td>
+<p>A vector of probability weights, see also <code>sample()</code>. Either <code>NULL</code> or the same length as <code>r</code> and <code>n</code>. Larger values make gaps occur more likely at this position.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pairs</code></td>
+<td>
+<p>A logical indicating if gaps should be introduced such that there are always at least two observations per product available (<code>pairs=TRUE</code>). Only in this case, all products provide valuable information for a spatial price comparison. Otherwise, if <code>pairs=FALSE</code>, there can be products with only one observation. See also the Details section.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exclude</code></td>
+<td>
+<p>Data.frame of two (character) variables <code>r</code> and <code>n</code>, specifying regions and products to be excluded from introducing gaps. Default is <code>NULL</code>, meaning that gaps are allowed to occur in all regions and products present in the data. Missing values (<code>NA</code>) are translated into no gaps for the corresponding product or region, e.g. <code>data.frame(r="r1", n=NA)</code> means that there will be no gaps in region <code>r1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>settings</code></td>
+<td>
+<p>A list of control settings to be used. The following settings are supported:
+</p>
+
+<ul>
+<li> <p><code>gaps.prob</code> : See argument <code>prob</code>.
+</p>
+</li>
+<li> <p><code>gaps.pairs</code> : See argument <code>pairs</code>.
+</p>
+</li>
+<li> <p><code>gaps.exclude</code> : See argument <code>exclude</code>.
+</p>
+</li>
+<li> <p><code>sales.max.rebate</code> : Maximum allowed percentage price rebate for a sale (between 0 and 1). Default is <code>1/4</code>.
+</p>
+</li>
+<li> <p><code>sales.max.qi</code> : Maximum allowed percentage quantity decrease for a sale (between 0 and 1). Default is <code>2</code>.
+</p>
+</li>
+<li> <p><code>par.sd</code> : named vector specifying the standard deviations used for sampling true parameters and errors. Default is <code>c(lnP=0.1, pi=exp(1), delta=0.5, error=0.01)</code>.
+</p>
+</li>
+<li> <p><code>par.add</code> : logical, specifying if the parameters underlying the data generating process should be added the function output. This is particularly useful if <code>rdata()</code> is applied in simulations. Default is <code>FALSE</code>.
+</p>
+</li>
+<li> <p><code>round</code> : logical, specifying if prices should be rounded to two decimals or not. While prices usually have two decimal places in reality, this rounding can cause small differences between estimated and true parameter values. For simulation purposes, it is therefore recommended to use unrounded prices by setting <code>round=FALSE</code>.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Function <code>rgaps()</code> ensures that gaps do not lead to non-connected price data (see <code>is.connected()</code>). Therefore, it could happen that the amount of gaps specified in <code>rgaps()</code> is only approximate, in particular, in cases where certain regions and/or products should additionally be excluded from exhibiting gaps by <code>exclude</code>.
+</p>
+<p>If <code>rgaps(pairs=FALSE)</code>, the minimum number of observations for a connected data set is <code class="reqn">R+N-1</code>. Otherwise, for <code>rgaps(pairs=TRUE)</code>, this number is defined by <code class="reqn">2N+\text{max}(0, R-N-1)</code>.
+</p>
+<p>Note that setting <code>sales&gt;0</code> in function <code>rdata()</code> distorts the initial price generating process. Consequently, parameter estimates may deviate stronger from their true values. Note also that the sampled expenditure weights <code>weight</code> represent the relevance of product groups as (often) derived from national accounts and other data sources. Therefore, they cannot be derived from the sampled prices and quantities in the data, which would represent the expenditure shares of available products.</p>
+
+
+<h3>Value</h3>
+
+<p>Function <code>rgaps()</code> returns a logical vector of the same length as <code>r</code> where <code>TRUE</code>s indicate gaps and <code>FALSE</code>s no gaps.
+</p>
+<p>Function <code>rweights()</code> returns a numeric vector of (non-negative) expenditure share weights of the same length as <code>r</code>.
+</p>
+<p>Function <code>rdata()</code> returns a data.table with the following variables:
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+   <code>group</code> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> product group identifier (factor)</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>weight</code> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> expenditure weight of product groups (numeric)</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>region</code> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> region identifier (factor)</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>product</code> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> product identifier (factor)</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>sale</code> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> are prices and quantities affected by sales (logical)</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>price</code> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> sampled price (numeric)</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>quantity</code> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> consumed quantity (numeric)</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+   <code>share</code> </td>
+<td style="text-align: left;"> </td>
+<td style="text-align: left;"> expenditure share weights (numeric)</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<p>or a list with the sampled data and its underlying parameter values, if <code>settings=list(par.add=TRUE)</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Sebastian Weinand</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># sample price data for ten regions and five product groups
+# containing three individual products each:
+set.seed(1)
+dt &lt;- rdata(R=10, B=5, N=3)
+boxplot(price~paste(group, product, sep=":"), data=dt)
+
+# sample price data for ten regions and five product groups
+# containing one to five individual products:
+set.seed(1)
+dt &lt;- rdata(R=10, B=5, N=c(1,2,3,4,5))
+boxplot(price~paste(group, product, sep=":"), data=dt)
+
+# sample price data for three product groups (with one product each) in four regions:
+dt &lt;- rdata(R=4, B=3, N=1)
+
+# add expenditure share weights:
+dt[, "w1" := rweights(r=region, b=group, type=~1)] # constant
+dt[, "w2" := rweights(r=region, b=group, type=~b)] # product-specific
+dt[, "w3" := rweights(r=region, b=group, type=~b+r)] # product-region-specific
+
+# weights add up to 1:
+dt[, list("w1"=sum(w1),"w2"=sum(w2),"w3"=sum(w3)), by="region"]
+
+# introduce 25% random gaps:
+dt.gaps &lt;- dt[!rgaps(r=region, n=product, amount=0.25), ]
+
+# weights no longer add up to 1 in each region:
+dt.gaps[, list("w1"=sum(w1),"w2"=sum(w2),"w3"=sum(w3)), by="region"]
+
+# approx. 25% random gaps, but keep observation for product "n2"
+# in region "r1" and all observations in region "r2":
+no_gaps &lt;- data.frame(r=c("r1","r2"), n=c("n2",NA))
+
+# apply to data:
+dt[!rgaps(r=region, n=product, amount=0.25, exclude=no_gaps), ]
+
+# or, directly, in one step:
+dt &lt;- rdata(R=4, B=3, N=1, gaps=0.25, settings=list("gaps.exclude"=no_gaps))
+
+# introduce systematic gaps:
+dt &lt;- rdata(R=15, B=1, N=10)
+dt[, "prob" := data.table::rleidv(product)] # probability for gaps increases per product
+dt.gaps &lt;- dt[!rgaps(r=region, n=product, amount=0.25, prob=prob), ]
+plot(table(dt.gaps$product), type="l")
+</code></pre>
+
+
+</div>

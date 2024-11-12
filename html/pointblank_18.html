@@ -1,0 +1,168 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>col_schema</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate a table column schema manually or with a reference table</h2>
+
+<h3>Description</h3>
+
+<p>A table column schema object, as can be created by <code>col_schema()</code>, is
+necessary when using the <code>col_schema_match()</code> validation function (which
+checks whether the table object under study matches a known column schema).
+The <code>col_schema</code> object can be made by carefully supplying the column names
+and their types as a set of named arguments, or, we could provide a table
+object, which could be of the <code>data.frame</code>, <code>tbl_df</code>, <code>tbl_dbi</code>, or
+<code>tbl_spark</code> varieties. There's an additional option, which is just for
+validating the schema of a <code>tbl_dbi</code> or <code>tbl_spark</code> object: we can validate
+the schema based on R column types (e.g., <code>"numeric"</code>, <code>"character"</code>, etc.),
+SQL column types (e.g., <code>"double"</code>, <code>"varchar"</code>, etc.), or Spark SQL column
+types (<code>"DoubleType"</code>, <code>"StringType"</code>, etc.). This is great if we want to
+validate table column schemas both on the server side and when tabular data
+is collected and loaded into R.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">col_schema(..., .tbl = NULL, .db_col_types = c("r", "sql"))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p><em>Column-by-column schema definition</em>
+</p>
+<p><code style="white-space: pre;">⁠&lt;multiple expressions&gt;⁠</code> // <strong>required</strong> (or, use <code>.tbl</code>)
+</p>
+<p>A set of named arguments where the names refer to column names and
+the values are one or more column types.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.tbl</code></td>
+<td>
+<p><em>A data table for defining a schema</em>
+</p>
+<p><code style="white-space: pre;">⁠obj:&lt;tbl_*&gt;⁠</code> // <strong>optional</strong>
+</p>
+<p>An option to use a table object to define the schema. If this is provided
+then any values provided to <code>...</code> will be ignored. This can either be a
+table object, a table-prep formula.This can be a table object such as a
+data frame, a tibble, a <code>tbl_dbi</code> object, or a <code>tbl_spark</code> object.
+Alternatively, a table-prep formula (<code style="white-space: pre;">⁠~ &lt;tbl reading code&gt;⁠</code>) or a
+function (<code style="white-space: pre;">⁠function() &lt;tbl reading code&gt;⁠</code>) can be used to lazily read in
+the table at interrogation time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.db_col_types</code></td>
+<td>
+<p><em>Use R column types or database column types?</em>
+</p>
+<p><code style="white-space: pre;">⁠singl-kw:[r|sql]⁠</code> // <em>default:</em> <code>"r"</code>
+</p>
+<p>Determines whether the column types refer to R column types (<code>"r"</code>) or SQL
+column types (<code>"sql"</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<p>Create a simple table with two columns: one <code>integer</code> and the other
+<code>character</code>.
+</p>
+<div class="sourceCode r"><pre>tbl &lt;- 
+  dplyr::tibble(
+    a = 1:5,
+    b = letters[1:5]
+  )
+
+tbl
+#&gt; # A tibble: 5 x 2
+#&gt;       a b    
+#&gt;   &lt;int&gt; &lt;chr&gt;
+#&gt; 1     1 a    
+#&gt; 2     2 b    
+#&gt; 3     3 c    
+#&gt; 4     4 d    
+#&gt; 5     5 e
+</pre></div>
+<p>Create a column schema object that describes the columns and their types (in
+the expected order).
+</p>
+<div class="sourceCode r"><pre>schema_obj &lt;- 
+  col_schema(
+    a = "integer",
+    b = "character"
+  )
+
+schema_obj
+#&gt; $a
+#&gt; [1] "integer"
+#&gt; 
+#&gt; $b
+#&gt; [1] "character"
+#&gt; 
+#&gt; attr(,"class")
+#&gt; [1] "r_type"     "col_schema"
+</pre></div>
+<p>Validate that the schema object <code>schema_obj</code> exactly defines the column names
+and column types of the <code>tbl</code> table.
+</p>
+<div class="sourceCode r"><pre>agent &lt;-
+  create_agent(tbl = tbl) %&gt;%
+  col_schema_match(schema_obj) %&gt;%
+  interrogate()
+</pre></div>
+<p>Determine if this validation step passed by using <code>all_passed()</code>.
+</p>
+<div class="sourceCode r"><pre>all_passed(agent)
+</pre></div>
+<div class="sourceCode"><pre>## [1] TRUE
+</pre></div>
+<p>We can alternatively create a column schema object from a <code>tbl_df</code> object.
+</p>
+<div class="sourceCode r"><pre>schema_obj &lt;-
+  col_schema(
+    .tbl = dplyr::tibble(
+      a = integer(0),
+      b = character(0)
+    )
+  )
+</pre></div>
+<p>This should provide the same interrogation results as in the previous
+example.
+</p>
+<div class="sourceCode r"><pre>create_agent(tbl = tbl) %&gt;%
+  col_schema_match(schema_obj) %&gt;%
+  interrogate() %&gt;%
+  all_passed()
+</pre></div>
+<div class="sourceCode"><pre>## [1] TRUE
+</pre></div>
+
+
+<h3>Function ID</h3>
+
+<p>13-1
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Utility and Helper Functions: 
+<code>affix_date()</code>,
+<code>affix_datetime()</code>,
+<code>from_github()</code>,
+<code>has_columns()</code>,
+<code>stop_if_not()</code>
+</p>
+
+
+</div>

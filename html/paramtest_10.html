@@ -1,0 +1,154 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>run_test</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Run a function iteratively, with options for parallel processing.</h2>
+
+<h3>Description</h3>
+
+<p><code>run_test</code> runs a user-defined function iteratively. This function is
+intentionally kept general and flexible, to allow for a wide variety of
+applications. This function is the general-purpose function called by
+functions such as <code>grid_search</code> and <code>random_search</code>, which provide
+different methods for generating the parameters to be tested.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">run_test(func, params = NULL, n.iter = 1, output = c("list",
+  "data.frame"), boot = FALSE, bootParams = NULL, parallel = c("no",
+  "multicore", "snow"), ncpus = 1, cl = NULL, beep = NULL, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>func</code></td>
+<td>
+<p>A user-defined function. The first argument to this function will
+be the iteration number.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params</code></td>
+<td>
+<p>A list or data frame of parameters to be passed to <code>func</code>.
+Each set of parameters will be passed to <code>func</code> in turn.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.iter</code></td>
+<td>
+<p>Number of iterations (per set of params).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>output</code></td>
+<td>
+<p>Specifies how <code>run_test</code> provides the ultimate output from
+<code>func</code>: can return a "list" or a "data.frame". Note that if
+"data.frame" is specified, the supplied function must return a vector,
+matrix, or data frame, so it can be coerced into the data frame format. The
+"list" option will accept any type of output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>boot</code></td>
+<td>
+<p>Whether or not to use bootstrapped data to pass along to
+<code>func</code>. Using this option instead of bootstrapping within <code>func</code>
+is preferable to take advantage of parallelization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootParams</code></td>
+<td>
+<p>If <code>boot=TRUE</code>, then use <code>bootParams</code> to pass
+along a named list of arguments to the <code>boot</code> function. The
+statistic and R parameters will be filled automatically, but at minimum you
+will need to pass along data. Information about parallel processing will
+also be passed along automatically.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>The type of parallel operation to be used (if any).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncpus</code></td>
+<td>
+<p>Integer: the number of processes to be used in parallel
+operation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cl</code></td>
+<td>
+<p>An optional <code>parallel</code> or <code>snow</code> cluster for use if
+<code>parallel = 'snow'</code>. If not supplied, a cluster on the local machine
+is created for the duration of the iterations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beep</code></td>
+<td>
+<p>Include a numeric value or character vector indicating the sound
+you wish to play once the tests are done running. If set to TRUE, a random
+sound will be played. Requires the 'beepr' package, and information about
+supported values is available in the documentation for that package.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments to be passed to <code>func</code>. If you do not
+need to vary certain parameters in your model, you can pass them to
+<code>func</code> here.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Returns a list (by default) with one element per iteration. If
+<code>output</code> is specified as "data.frame", then <code>func</code> must
+return a (named) vector with the results you wish to capture.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>boot</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">lm_test &lt;- function(iter, N, b0, b1) {
+    x &lt;- rnorm(N, 0, 1)
+    y &lt;- rnorm(N, b0 + b1*x, sqrt(1 - b1^2))
+    data &lt;- data.frame(y, x)
+    model &lt;- lm(y ~ x, data)
+
+    # capture output from model summary
+    est &lt;- coef(summary(model))['x', 'Estimate']
+    se &lt;- coef(summary(model))['x', 'Std. Error']
+    p &lt;- coef(summary(model))['x', 'Pr(&gt;|t|)']
+
+    return(c(xm=mean(x), xsd=sd(x), ym=mean(y), ysd=sd(y), est=est, se=se, p=p,
+        sig=est &gt; 0 &amp; p &lt;= .05))
+}
+
+# test power for sample size N=200 and N=300, with 500 iterations for each
+power_sim &lt;- run_test(lm_test, params=data.frame(N=c(200, 300)),
+    n.iter=500, b0=0, b1=.15)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,517 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ppmlasso</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit point process models with LASSO penalties</h2>
+
+<h3>Description</h3>
+
+<p>The ppmlasso function fits point process models (either Poisson or area-interaction
+models) with a sequence of LASSO, adaptive LASSO or elastic net penalties (a "regularisation path").</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ppmlasso(formula, sp.xy, env.grid, sp.scale, coord = c("X", "Y"), 
+data = ppmdat(sp.xy = sp.xy, sp.scale = sp.scale, back.xy = env.grid, coord = c("X","Y"),
+sp.file = NA, quad.file = NA, datfilename = "PPMDat", writefile = writefile), lamb = NA,
+n.fits = 200, ob.wt = NA, criterion = "bic", alpha = 1, family = "poisson", tol = 1.e-9, 
+gamma = 0, init.coef = NA, mu.min = 1.e-16, mu.max = 1/mu.min, r = NA, interactions = NA, 
+availability = NA, max.it = 25, min.lamb = -10, standardise = TRUE, n.blocks = NA, 
+block.size = sp.scale*100, seed = 1, writefile = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>The formula of the fitted model. For a point process model, the correct form is <code>~ variables</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sp.xy</code></td>
+<td>
+<p>A matrix of species locations containing at least one column representing
+longitude and one column representing latitude. Environmental variables are
+interpolated to the locations of <code>sp.xy</code> using the <code>getEnvVar</code> function, unless the
+<code>data</code> argument is supplied.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>env.grid</code></td>
+<td>
+<p>The geo-referenced matrix of environmental grids. This matrix is used to
+generate quadrature points using the <code>sampleQuad</code> function, interpolate environmental
+data to the species locations of <code>sp.xy</code> using the <code>getEnvVar</code> function,
+and calculate observation weights using the <code>ppmdat</code> function, unless the <code>data</code>
+argument is supplied. This creates a data matrix <code>data</code> which provides the
+variables for the <code>formula</code> argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sp.scale</code></td>
+<td>
+<p>The spatial resolution at which to define the regular grid of quadrature
+points. <code>sampleQuad</code> will subsample from the rows of <code>data</code> that coincide with
+a regular grid at a resolution of <code>sp.scale</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coord</code></td>
+<td>
+<p>A vector containing the names of the longitude and latitude coordinates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>An optional data matrix generated from the <code>ppmdat</code> function. Supplying a
+matrix to <code>data</code> is an alternative way of providing the environmental variables
+used in the <code>formula</code> argument, instead of specifying <code>sp.xy</code> and <code>env.grid</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lamb</code></td>
+<td>
+<p>A vector of penalty values that will be used to create the regularisation path.
+If <code>lamb = NA</code>, the penalty values are automatically generated from the
+<code>data</code> and the <code>n.fits</code> argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.fits</code></td>
+<td>
+<p>The number of models fitted in the regularisation path. If <code>lamb = NA</code>, the
+<code>n.fits</code> penalty values will be equally spaced on a logarithmic scale from <code class="reqn">e^{-10}</code>
+to <code class="reqn">\lambda_{max}</code>, the smallest penalty that shrinks all parameter coefficients to zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ob.wt</code></td>
+<td>
+<p>Quadrature weights, usually inherited from the <code>ppmdat</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>criterion</code></td>
+<td>
+<p>The penalisation criteria to be optimised by the regularisation path. The
+options include <code>"aic"</code>, <code>"bic"</code>, <code>"blockCV"</code>, <code>"hqc"</code>, <code>"gcv"</code>, <code>"nlgcv"</code> and <code>"msi"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>The elastic net parameter. The form of the penalty is </p>
+<p style="text-align: center;"><code class="reqn">\alpha*\lambda*\sum_{j = 1}^p |\beta_j| + (1 - \alpha)*\lambda*\sum_{j = 1}^p (\beta_j)^2.</code>
+</p>
+<p> The default value <code>alpha = 1</code> corresponds to a LASSO penalty,
+while <code>alpha = 0</code> corresponds to a ridge regression penalty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>The family of models to be fitted – <code>family = "poisson"</code> for Poisson point process models
+or <code>family = "area.inter"</code> for area-interaction models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>The convergence threshold for the descent algorithm. The algorithm continues
+for a maximum of <code>max.it</code> iterations until the difference in likelihood between
+successive fits falls below <code>tol</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>The exponent of the adaptive weights for the adaptive LASSO penalty. The
+default value <code>gamma = 0</code> corresponds to a normal LASSO penalty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init.coef</code></td>
+<td>
+<p>The initial coefficients used for an adaptive LASSO penalty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu.min</code></td>
+<td>
+<p>The threshold for small fitted values. Any fitted value less than the threshold
+is set to <code>mu.min</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu.max</code></td>
+<td>
+<p>The threshold for large fitted values. Any fitted value larger than the threshold
+will be set to <code>mu.max</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>The radius of point interactions, required if <code>family = "area.inter"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interactions</code></td>
+<td>
+<p>A vector of point interactions calculated from the <code>pointInteractions</code>
+function necessary for fitting area-interaction models. If <code>interactions = NA</code>
+and <code>family = "area.inter"</code>, point interactions will be automatically calculated
+for radius <code>r</code> to the locations of <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>availability</code></td>
+<td>
+<p>An optional binary matrix used in calculating point interactions indicating
+whether locations are available (1) or not (0). See <code>pointInteractions</code> for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.it</code></td>
+<td>
+<p>The maximum number of iterations of the descent algorithm for fitting the
+model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.lamb</code></td>
+<td>
+<p>The power <code class="reqn">x</code> of smallest penalty <code class="reqn">e^x</code> among the <code>n.fits</code> models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardise</code></td>
+<td>
+<p>A logical argument indicating whether the environmental variables
+should be standardised to have mean 0 and variance 1. It is recommended that variables are
+standardised for analysis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.blocks</code></td>
+<td>
+<p>This argument controls the number of cross validation groups into which the spatial blocks
+are divided if the <code>criterion</code> argument is set to <code>"blockCV"</code>. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>block.size</code></td>
+<td>
+<p>The length of the edges for the spatial blocks created if the <code>criterion</code> argument 
+is set to <code>"blockCV"</code>. Only square spatial blocks are currently supported. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>The random seed used for controlling the allocation of spatial blocks to cross validation groups
+if the <code>criterion</code> argument is set to <code>"blockCV"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>writefile</code></td>
+<td>
+<p>A logical argument passed to the <code>ppmdat</code> function to determine whether its output should be written to a file or not, set to <code>TRUE</code> by default. See the documentation for <code>ppmdat</code> for details.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function fits a regularisation path of point process models provided a list of species locations
+and a geo-referenced grid of environmental data. It is assumed that Poisson point process models (Warton &amp; Shepherd, 2010)
+fit intensity as a log-linear model of environmental covariates, and that area-interaction models
+(Widom &amp; Rowlinson, 1970; Baddeley &amp; van Lieshout, 1995) fit conditional intensity as a log-linear model of
+environmental covariates and point interactions. Parameter coefficients are estimated by maximum likelihood for
+Poisson point process models and by maximum pseudolikelihood (Besag, 1977) for area-interaction models. The expressions
+for both the likelihood and pseudolikelihood involve an intractable integral which is approximated using a quadrature
+scheme (Berman &amp; Turner, 1992).
+</p>
+<p>Each model in the regularisation path is fitted by extending the Osborne descent algorithm (Osborne, 2000) to
+generalised linear models with penalised iteratively reweighted least squares.
+</p>
+<p>Three classes of penalty <code class="reqn">p(\beta)</code> are available for the vector of parameter coefficients <code class="reqn">\beta</code>:
+</p>
+<p>For the LASSO (Tibshirani, 1996), <code class="reqn">p(\beta) = \lambda*\sum_{j = 1}^p |\beta_j|</code>
+</p>
+<p>For the adaptive LASSO (Zou, 2006), <code class="reqn">p(\beta) = \lambda*\sum_{j = 1}^p w_j*|\beta_j|</code>, where <code class="reqn">w_j = 1/|\hat{\beta}_{init, j}|^\gamma</code>
+for some initial estimate of parameters <code class="reqn">\hat{\beta}_{init}</code>.
+</p>
+<p>For the elastic net (Zou &amp; Hastie, 2005), <code class="reqn">\alpha*\lambda*\sum_{j = 1}^p |\beta_j| + (1 - \alpha)*\lambda*\sum_{j = 1}^p (\beta_j)^2</code>.
+Note that this form of the penalty is a restricted case of the general elastic net penalty.
+</p>
+<p>There are various criteria available for managing the bias-variance tradeoff (Renner, 2013).
+The default choice is BIC, the Bayesian Information Criterion, which has been shown to have
+good performance. 
+</p>
+<p>An alternative criterion useful when data are sparse is MSI, the maximum score 
+of the intercept model (Renner, in prep). For a set of <code class="reqn">m</code> presence locations, the
+MSI penalty is <code class="reqn">\lambda_{MSI} = \lambda_{max}/\sqrt{m}</code>, where <code class="reqn">\lambda_{max}</code> is the smallest penalty
+that shrinks all environmental coefficients to zero. The MSI penalty differs from the other criteria in that does
+not require an entire regularisation path to be fitted.
+</p>
+<p>It is also possible to control the magnitude of the penalty by spatial cross validation by setting the 
+<code>criterion</code> argument to <code>"blockCV"</code>. The study region is then divided into square blocks with edge
+lengths controlled by the <code>block.size</code> argument, which are assigned to one of a number of cross validation
+groups controlled by the <code>n.groups</code> argument. The penalty which maximises the predicted log-likelihood is
+chosen.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"ppmlasso"</code>, with elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>betas</code></td>
+<td>
+<p>A matrix of fitted coefficients of the <code>n.fits</code> models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambdas</code></td>
+<td>
+<p>A vector containing the <code>n.fits</code> penalty values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>likelihoods</code></td>
+<td>
+<p>A vector containing the likelihood of <code>n.fits</code> fitted models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pen.likelihoods</code></td>
+<td>
+<p>A vector containing the penalised likelihood of <code>n.fits</code> fitted
+models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>A vector containing the coefficients of the model that optimises the specified <code>criterion</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>The penalty value of the model that optimises the specified <code>criterion</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>A vector of fitted values from the model that optimises the specified <code>criterion</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>likelihood</code></td>
+<td>
+<p>The likelihood of the model that optimises the specified <code>criterion</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>criterion</code></td>
+<td>
+<p>The specified <code>criterion</code> of the function call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>The specified <code>family</code> of the function call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>The specified <code>gamma</code> of the function call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>The specified <code>alpha</code> of the function call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init.coef</code></td>
+<td>
+<p>The specified <code>init.coef</code> of the function call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>criterion.matrix</code></td>
+<td>
+<p>A matrix with <code>n.fits</code> rows corresponding to the observed values
+of AIC, BIC, HQC, GCV, and non-linear GCV.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>The design matrix. For the point process models fitted with this function,
+<code>mu = e^{data*beta}</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pt.interactions</code></td>
+<td>
+<p>The calculated point interactions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wt</code></td>
+<td>
+<p>The vector of quadrature weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pres</code></td>
+<td>
+<p>A vector indicating presence (1) or quadrature point (0).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A vector of point longitudes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>A vector of point latitudes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>The radius of point interactions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>The function call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>The <code>formula</code> argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s.means</code></td>
+<td>
+<p>If <code>standardise = TRUE</code>, the means of each column of <code>data</code> prior to standardisation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s.sds</code></td>
+<td>
+<p>If <code>standardise = TRUE</code>, the standard deviations of each column of <code>data</code> prior to standardisation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv.group</code></td>
+<td>
+<p>The cross validation group associated with each point in the data set.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.blocks</code></td>
+<td>
+<p>The number of cross validation groups specified.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Ian W. Renner</p>
+
+
+<h3>References</h3>
+
+<p>Baddeley, A.J. &amp; van Lieshout, M.N.M. (1995). Area-interaction point processes.
+<em>Annals of the Institute of Statistical Mathematics</em> <b>47</b>, 601-619.
+</p>
+<p>Berman, M. &amp; Turner, T.R. (1992). Approximating point process likelihoods with
+GLIM. <em>Journal of the Royal Statistics Society, Series C</em> <b>41</b>, 31-38.
+</p>
+<p>Besag, J. (1977). Some methods of statistical analysis for spatial data. <em>Bulletin of
+the International Statistical Institute</em> <b>47</b>, 77-91.
+</p>
+<p>Osborne, M.R., Presnell, B., &amp; Turlach, B.A. (2000). On the lasso and its dual.
+<em>Journal of Computational and Graphical Statistics</em> <b>9</b>, 319-337.
+</p>
+<p>Renner, I.W. &amp; Warton, D.I. (2013). Equivalence of MAXENT and Poisson point process 
+models for species distribution modeling in ecology. <em>Biometrics</em> <b>69</b>, 274-281.
+</p>
+<p>Renner, I.W. (2013). Advances in presence-only methods in ecology.
+<a href="https://unsworks.unsw.edu.au/fapi/datastream/unsworks:11510/SOURCE01">https://unsworks.unsw.edu.au/fapi/datastream/unsworks:11510/SOURCE01</a>
+</p>
+<p>Tibshirani, R. (1996). Regression shrinkage and selection via the lasso. <em>Journal of
+the Royal Statistical Society, Series B</em> <b>58</b>, 267-288.
+</p>
+<p>Warton, D.I. &amp; Shepherd, L.C. (2010). Poisson point process models solve the
+"pseudo-absence problem" for presence-only data in ecology. <em>Annals of Applied
+Statistics</em> <b>4</b>, 1383-1402.
+</p>
+<p>Widom, B. &amp; Rowlinson, J.S. (1970). New model for the study of liquid-vapor
+phase transitions. <em>The Journal of Chemical Physics</em> <b>52</b>, 1670-1684.
+</p>
+<p>Zou, H. (2006). The adaptive lasso and its oracle properties. <em>Journal of the American
+Statistical Association</em> <b>101</b>, 1418-1429.
+</p>
+<p>Zou, H. &amp; Hastie, T. (2005). Regularization and variable selection via the elastic
+net. <em>Journal of the Royal Statistical Society, Series B</em> <b>67</b>, 301-320.</p>
+
+
+<h3>See Also</h3>
+
+<p><code>print.ppmlasso</code> for printing features of the fitted regularisation path.
+</p>
+<p><code>predict.ppmlasso</code> for predicting intensity for a set of new data.
+</p>
+<p><code>envelope.ppmlasso</code> for constructing a K-envelope of the model which optimises
+the given criterion from the <code>spatstat</code> package.
+</p>
+<p><code>diagnose.ppmlasso</code> for diagnostic plots from the <code>spatstat</code> package.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Fit a regularisation path of Poisson point process models
+data(BlueMountains)
+sub.env = BlueMountains$env[BlueMountains$env$Y &gt; 6270 &amp; BlueMountains$env$X &gt; 300,]
+sub.euc = BlueMountains$eucalypt[BlueMountains$eucalypt$Y &gt; 6270 &amp; BlueMountains$eucalypt$X &gt; 300,]
+ppm.form = ~ poly(FC, TMP_MIN, TMP_MAX, RAIN_ANN, degree = 2)
+ppm.fit  = ppmlasso(ppm.form, sp.xy = sub.euc, env.grid = sub.env, sp.scale = 1, n.fits = 20,
+writefile = FALSE)
+
+#Fit a regularisation path of area-interaction models
+data(BlueMountains)
+ai.form  = ~ poly(FC, TMP_MIN, TMP_MAX, RAIN_ANN, degree = 2)
+ai.fit   = ppmlasso(ai.form, sp.xy = sub.euc, env.grid = sub.env, sp.scale = 1, 
+family = "area.inter", r = 2, availability = BlueMountains$availability, n.fits = 20,
+writefile = FALSE)
+</code></pre>
+
+
+</div>

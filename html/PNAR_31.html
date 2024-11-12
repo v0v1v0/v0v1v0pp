@@ -1,0 +1,264 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>score_test_tnarpq_j</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Bootstrap test for threshold effects on PNAR(p) model
+</h2>
+
+<h3>Description</h3>
+
+<p>Computation of bootstrap p-value for the sup-type test for testing linearity of
+Poisson Network Autoregressive model of order <code class="reqn">p</code> (PNAR(<code class="reqn">p</code>)) versus the
+non-linear Threshold alternative (T-PNAR(<code class="reqn">p</code>)).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">score_test_tnarpq_j(supLM, b, y, W, p, d, Z = NULL, J = 499,
+gama_L = NULL, gama_U = NULL, tol = 1e-9, ncores = 1, seed = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>supLM</code></td>
+<td>
+
+<p>The optimized value of the test statistic. See the function
+<code>global_optimise_LM_tnarpq</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+
+<p>The estimated parameters from the linear model, in the following order:
+(intercept, network parameters, autoregressive parameters, covariates).
+The dimension of the vector should be <code class="reqn">2p + 1 + q</code>, where <code class="reqn">q</code> denotes the number of covariates.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+
+<p>A <code class="reqn">TT \times N</code> time series object or a <code class="reqn">TT \times N</code> numerical matrix with the <code class="reqn">N</code> multivariate count time series over <code class="reqn">TT</code> time periods.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>W</code></td>
+<td>
+
+<p>The <code class="reqn">N \times N</code> row-normalized non-negative adjacency matrix describing
+the network. The main diagonal entries of the matrix should be zeros,
+all the other entries should be non-negative and the maximum sum of elements
+over the rows should equal one. The function row-normalizes the matrix if a
+non-normalized adjacency matrix is provided.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+
+<p>The number of lags in the model.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+
+<p>The lag parameter of non-linear variable (should be between 1 and <code class="reqn">p</code>).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Z</code></td>
+<td>
+
+<p>An <code class="reqn">N \times q</code> matrix of covariates (one for each column), where <code class="reqn">q</code>
+is the number of covariates in the model. Note that they must be non-negative.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>J</code></td>
+<td>
+
+<p>The number of bootstrap samples to draw.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gama_L</code></td>
+<td>
+
+<p>The lower value of the nuisance parameter <code class="reqn">\gamma</code> to consider.
+Use NULL if there is not information about its value.
+See the details for default computation.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gama_U</code></td>
+<td>
+
+<p>The upper value of the nuisance parameter <code class="reqn">\gamma</code> to consider.
+Use NULL if there is not information about its value.
+See the details for default computation.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+
+<p>Tolerance level for the optimizer.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+
+<p>Number of cores to use for parallel computing. By default the number of
+cores is set to 1 (no parallel computing). <b>Note:</b> If for some reason the
+parallel does not work then load the doParallel package yourseleves.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+
+<p>To replicate the results use a seed for the generator, an integer number.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function computes a bootstrap p-value for the sup-type test for testing linearity of Poisson Network Autoregressive model of order <code class="reqn">p</code> (PNAR(<code class="reqn">p</code>)) versus the following Threshold alternative (T-PNAR(<code class="reqn">p</code>)). For each node of the network <code class="reqn">i=1,...,N</code> over the time sample <code class="reqn">t=1,...,TT</code>
+</p>
+<p style="text-align: center;"><code class="reqn">
+\lambda_{i,t}=\beta_{0}+\sum_{h=1}^{p}\left[\beta_{1h}X_{i,t-h}+\beta_{2h}Y_{i,t-h}+(\alpha_{0}+\alpha_{1h}X_{i,t-h}+\alpha_{2h}Y_{i,t-h})I(X_{i,t-d}\leq\gamma)\right]+\sum_{l=1}^{q}\delta_{l}Z_{i,l}
+</code>
+</p>
+
+<p>where <code class="reqn">X_{i,t}=\sum_{j=1}^{N}W_{ij}Y_{j,t}</code> is the network effect, i.e. the weighted average impact of node <code class="reqn">i</code> connections, with the weights of the mean being <code class="reqn">W_{ij}</code>, the single element of the network matrix <code class="reqn">W</code>. The sequence <code class="reqn">\lambda_{i,t}</code> is the expectation of <code class="reqn">Y_{i,t}</code>, conditional to its past values.
+</p>
+<p>The null hypothesis of the test is defined as <code class="reqn">H_{0}: \alpha_{0}=\alpha_{11}=...=\alpha_{2p}=0</code>, versus the alternative that at least one among <code class="reqn">\alpha_{s,h}</code> is not <code class="reqn">0</code>, for <code class="reqn">s=0,1,2</code>. The test statistic has the form
+</p>
+<p style="text-align: center;"><code class="reqn">
+LM(\gamma)=S^{'}(\hat{\theta},\gamma)\Sigma^{-1}(\hat{\theta},\gamma)S(\hat{\theta},\gamma)
+</code>
+</p>
+
+<p>where
+</p>
+<p style="text-align: center;"><code class="reqn">
+S(\hat{\theta}, \gamma)=\sum_{t=1}^{TT}\sum_{i=1}^{N}\left(\frac{Y_{i,t}}{\lambda_{i,t}(\hat{\theta}, \gamma)}-1\right)\frac{\partial\lambda_{i,t}(\hat{\theta},\gamma)}{\partial\alpha}
+</code>
+</p>
+
+<p>is the partition of the quasi score related to the vector of non-linear parameters <code class="reqn">\alpha=(\alpha_{0},...,\alpha_{2p})</code>, evaluated at the estimated parameters <code class="reqn">\hat{\theta}</code> under the null assumption <code class="reqn">H_{0}</code> (linear model), and <code class="reqn">\Sigma(\hat{\theta},\gamma)</code> is the variance of <code class="reqn">S(\hat{\theta},\gamma)</code>.
+</p>
+<p>Since the test statistic depends on an unknown nuisance parameter (<code class="reqn">\gamma</code>), the supremum of the statistic is considered in the test, <code class="reqn">\sup_{\gamma}LM(\gamma)</code>. This value can be computed for the available sample by using the function <code>global_optimise_LM_tnarpq</code> and should be supplied here as an input <code>supLM</code>.
+</p>
+<p>The function performs the bootstrap resampling of the test statistic <code class="reqn">\sup_{\gamma}LM(\gamma)</code> by employing Gaussian perturbations of the score <code class="reqn">S(\hat{\theta},\gamma)</code>. For details see Armillotta and Fokianos (2023, Sec. 5).
+</p>
+<p>The values of <code>gama_L</code> and <code>gama_U</code> are computed internally as the mean over <code class="reqn">i=1,...,N</code> of <code class="reqn">20\%</code> and <code class="reqn">80\%</code> quantiles of the empirical distribution of the network mean <code class="reqn">X_{i,t}</code> for <code class="reqn">t=1,...,TT</code>. In this way the optimization is performed for values of <code class="reqn">\gamma</code> such that the indicator function <code class="reqn">I(X_{i,t-d}\leq\gamma)</code> is not always close to 0 or 1. Alternatively, their value can be supplied by the user. For details see Armillotta and Fokianos (2023, Sec. 4-5).
+</p>
+<p><b>Note:</b> For large datasets the function may require few minutes to run. Parallel computing is suggested to speed up the computations.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list including:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>pJ</code></td>
+<td>
+
+<p>The bootstrap p-value of the sup test.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cpJ</code></td>
+<td>
+
+<p>The adjusted version of bootstrap p-value of the sup test.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamaj</code></td>
+<td>
+
+<p>The optimal values of the <code class="reqn">\gamma</code> parameter for score test boostrap
+replications.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>supLMj</code></td>
+<td>
+
+<p>The values of perturbed test statistic at the optimum point <code>gamaj</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Mirko Armillotta, Michail Tsagris and Konstantinos Fokianos.
+</p>
+
+
+<h3>References</h3>
+
+<p>Armillotta, M. and K. Fokianos (2023). Nonlinear network autoregression. <em>Annals of Statistics</em>, 51(6): 2526–2552.
+</p>
+<p>Armillotta, M. and K. Fokianos (2024). Count network autoregression. <em>Journal of Time Series Analysis</em>, 45(4): 584–612.
+</p>
+<p>Armillotta, M., Tsagris, M. and Fokianos, K. (2024). Inference for Network Count Time Series with the R Package PNAR. <em>The R Journal</em>, 15/4: 255–269.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>global_optimise_LM_tnarpq,
+global_optimise_LM_stnarpq, score_test_stnarpq_j
+</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load data
+data(crime)
+data(crime_W)
+#estimate linear PNAR model
+mod1 &lt;- lin_estimnarpq(crime, crime_W, p = 2)
+b &lt;- mod1$coefs[, 1]
+
+g &lt;- global_optimise_LM_tnarpq(b = b, y = crime, W = crime_W, p = 2, d = 1)
+supg &lt;- g$supLM
+score_test_tnarpq_j(supLM = supg, b = b, y = crime, W = crime_W, p = 2, d = 1, J = 5)
+
+</code></pre>
+
+
+</div>

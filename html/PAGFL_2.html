@@ -1,0 +1,344 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pagfl</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Pairwise Adaptive Group Fused Lasso</h2>
+
+<h3>Description</h3>
+
+<p>Estimate panel data models with a latent group structure using the pairwise adaptive group fused Lasso (<em>PAGFL</em>) by Mehrabani (2023). The <em>PAGFL</em> jointly identifies the group structure and group-specific slope parameters.
+The function supports both static and dynamic panels, with or without endogenous regressors.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pagfl(
+  formula,
+  data,
+  index = NULL,
+  n_periods = NULL,
+  lambda,
+  method = "PLS",
+  Z = NULL,
+  min_group_frac = 0.05,
+  bias_correc = FALSE,
+  kappa = 2,
+  max_iter = 5000,
+  tol_convergence = 1e-08,
+  tol_group = 0.001,
+  rho = 0.07 * log(N * n_periods)/sqrt(N * n_periods),
+  varrho = max(sqrt(5 * N * n_periods * p)/log(N * n_periods * p) - 7, 1),
+  verbose = TRUE,
+  parallel = TRUE,
+  ...
+)
+
+## S3 method for class 'pagfl'
+print(x, ...)
+
+## S3 method for class 'pagfl'
+formula(x, ...)
+
+## S3 method for class 'pagfl'
+df.residual(object, ...)
+
+## S3 method for class 'pagfl'
+summary(object, ...)
+
+## S3 method for class 'pagfl'
+coef(object, ...)
+
+## S3 method for class 'pagfl'
+residuals(object, ...)
+
+## S3 method for class 'pagfl'
+fitted(object, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a formula object describing the model to be estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a <code>data.frame</code> or <code>matrix</code> holding a panel data set. If no <code>index</code> variables are provided, the panel must be balanced and ordered in the long format <code class="reqn">\bold{Y}=(Y_1^\prime, \dots, Y_N^\prime)^\prime</code>, <code class="reqn">Y_i = (Y_{i1}, \dots, Y_{iT})^\prime</code> with <code class="reqn">Y_{it} = (y_{it}, x_{it}^\prime)^\prime</code>. Conversely, if <code>data</code> is not ordered or not balanced, <code>data</code> must include two index variables that declare the cross-sectional unit <code class="reqn">i</code> and the time period <code class="reqn">t</code> of each observation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index</code></td>
+<td>
+<p>a character vector holding two strings. The first string denotes the name of the index variable identifying the cross-sectional unit <code class="reqn">i</code>, and the second string represents the name of the variable declaring the time period <code class="reqn">t</code>. In case of a balanced panel data set that is ordered in the long format, <code>index</code> can be left empty if the the number of time periods <code>n_periods</code> is supplied.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_periods</code></td>
+<td>
+<p>the number of observed time periods <code class="reqn">T</code>. If an <code>index</code> character vector is passed, this argument can be left empty.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>the tuning parameter determining the strength of the penalty term. Either a single <code class="reqn">\lambda</code> or a vector of candidate values can be passed. If a vector is supplied, a BIC-type IC automatically selects the best fitting <code class="reqn">\lambda</code> value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>the estimation method. Options are
+</p>
+
+<dl>
+<dt><code>"PLS"</code></dt>
+<dd>
+<p>for using the penalized least squares (<em>PLS</em>) algorithm. We recommend <em>PLS</em> in case of (weakly) exogenous regressors (Mehrabani, 2023, sec. 2.2).</p>
+</dd>
+<dt><code>"PGMM"</code></dt>
+<dd>
+<p>for using the penalized Generalized Method of Moments (<em>PGMM</em>). <em>PGMM</em> is required when instrumenting endogenous regressors, in which case a matrix <code class="reqn">\bold{Z}</code> containing the necessary exogenous instruments must be supplied (Mehrabani, 2023, sec. 2.3).</p>
+</dd>
+</dl>
+<p> Default is <code>"PLS"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Z</code></td>
+<td>
+<p>a <code class="reqn">NT \times q</code> <code>matrix</code> or <code>data.frame</code> of exogenous instruments, where <code class="reqn">q \geq p</code>, <code class="reqn">\bold{Z}=(z_1, \dots, z_N)^\prime</code>, <code class="reqn">z_i = (z_{i1}, \dots, z_{iT})^\prime</code> and <code class="reqn">z_{it}</code> is a <code class="reqn">q \times 1</code> vector. <code>Z</code> is only required when <code>method = "PGMM"</code> is selected. When using <code>"PLS"</code>, either pass <code>NULL</code> or <code>Z</code> is disregarded. Default is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_group_frac</code></td>
+<td>
+<p>the minimum group cardinality as a fraction of the total number of individuals <code class="reqn">N</code>. In case a group falls short of this threshold, each of its members is allocated to one of the remaining groups according to the <em>MSE</em>. Default is 0.05.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bias_correc</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, a Split-panel Jackknife bias correction following Dhaene and Jochmans (2015) is applied to the slope parameters. We recommend using the correction when working with dynamic panels. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kappa</code></td>
+<td>
+<p>the a non-negative weight used to obtain the adaptive penalty weights. Default is 2.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_iter</code></td>
+<td>
+<p>the maximum number of iterations for the <em>ADMM</em> estimation algorithm. Default is <code class="reqn">1*10^4</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol_convergence</code></td>
+<td>
+<p>the tolerance limit for the stopping criterion of the iterative <em>ADMM</em> estimation algorithm. Default is <code class="reqn">1*10^{-8}</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol_group</code></td>
+<td>
+<p>the tolerance limit for within-group differences. Two individuals <code class="reqn">i</code>, <code class="reqn">j</code> are assigned to the same group if the Frobenius norm of their coefficient vector difference is below this threshold. Default is <code class="reqn">1*10^{-3}</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+<p>the tuning parameter balancing the fitness and penalty terms in the IC that determines the penalty parameter <code class="reqn">\lambda</code>. If left unspecified, the heuristic <code class="reqn">\rho = 0.07 \frac{\log(NT)}{\sqrt{NT}}</code> of Mehrabani (2023, sec. 6) is used. We recommend the default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varrho</code></td>
+<td>
+<p>the non-negative Lagrangian <em>ADMM</em> penalty parameter. For <em>PLS</em>, the <code class="reqn">\varrho</code> value is trivial. However, for <em>PGMM</em>, small values lead to slow convergence. If left unspecified, the default heuristic <code class="reqn">\varrho = \max(\frac{\sqrt{5NTp}}{\log(NTp)}-7, 1</code>) is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, helpful warning messages are shown. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, certain operations are parallelized across multiple cores. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>ellipsis</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>of class <code>pagfl</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>of class <code>pagfl</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Consider the grouped panel data model
+</p>
+<p style="text-align: center;"><code class="reqn">y_{it} = \gamma_i + \beta^\prime_{i} x_{it} + \epsilon_{it}, \quad i = 1, \dots, N, \; t = 1, \dots, T,</code>
+</p>
+
+<p>where <code class="reqn">y_{it}</code> is the scalar dependent variable, <code class="reqn">\gamma_i</code> is an individual fixed effect, <code class="reqn">x_{it}</code> is a <code class="reqn">p \times 1</code> vector of weakly exogenous explanatory variables, and <code class="reqn">\epsilon_{it}</code> is a zero mean error.
+The coefficient vector <code class="reqn">\beta_i</code> is subject to the latent group pattern
+</p>
+<p style="text-align: center;"><code class="reqn">\beta_i = \sum_{k = 1}^K \alpha_k \bold{1} \{i \in G_k \},</code>
+</p>
+
+<p>with <code class="reqn">\cup_{k = 1}^K G_k = \{1, \dots, N\}</code>, <code class="reqn">G_k \cap G_j = \emptyset</code> and <code class="reqn">\| \alpha_k - \alpha_j \| \neq 0</code> for any <code class="reqn">k \neq j</code>, <code class="reqn">k = 1, \dots, K</code>.
+</p>
+<p>The <em>PLS</em> method jointly estimates the latent group structure and group-specific coefficients by minimizing the criterion
+</p>
+<p style="text-align: center;"><code class="reqn">Q_{NT} (\bold{\beta}, \lambda) = \frac{1}{T} \sum^N_{i=1} \sum^{T}_{t=1}(\tilde{y}_{it} - \beta^\prime_i \tilde{x}_{it})^2 + \frac{\lambda}{N} \sum_{i = 1}^{N - 1} \sum_{j&gt;i}^N \dot{\omega}_{ij} \| \beta_i - \beta_j \|</code>
+</p>
+
+<p>with respect to <code class="reqn">\bold{\beta} = (\beta_1^\prime, \dots, \beta_N^\prime)^\prime</code>. <code class="reqn">\tilde{a}_{it} = a_{it} - T^{-1} \sum_{t = 1}^T a_{it}</code>, <code class="reqn">a = \{y,x\}</code> to concentrate out the individual fixed effects <code class="reqn">\gamma_i</code>. <code class="reqn">\lambda</code> is the penalty tuning parameter and <code class="reqn">\dot{\omega}_{ij}</code> reflects adaptive penalty weights (see Mehrabani, 2023, eq. 2.6). <code class="reqn">\| \cdot \|</code> denotes the Frobenius norm.
+The adaptive weights <code class="reqn">\dot{w}_{ij}</code> are obtained by a preliminary individual least squares estimation.
+The criterion function is minimized via an iterative alternating direction method of multipliers (<em>ADMM</em>) algorithm (see Mehrabani, 2023, sec. 5.1).
+</p>
+<p><em>PGMM</em> employs a set of instruments <code class="reqn">\bold{Z}</code> to control for endogenous regressors. Using <em>PGMM</em>, <code class="reqn">\bold{\beta}</code> is estimated by minimizing
+</p>
+<p style="text-align: center;"><code class="reqn">
+Q_{NT}(\bold{\beta}, \lambda) = \sum^N_{i = 1} \left[ \frac{1}{N} \sum_{t=1}^T z_{it} (\Delta y_{it} - \beta^\prime_i \Delta x_{it}) \right]^\prime W_i \left[\frac{1}{T} \sum_{t=1}^T z_{it}(\Delta y_{it} - \beta^\prime_i \Delta x_{it}) \right]
+</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">
+\quad + \frac{\lambda}{N} \sum_{i = 1}^{N - 1} \sum_{j &gt; i}^N \ddot{\omega}_{ij} \| \beta_i - \beta_j \|.
+</code>
+</p>
+
+<p><code class="reqn">\ddot{\omega}_{ij}</code> are obtained by an initial <em>GMM</em> estimation. <code class="reqn">\Delta</code> gives the first differences operator <code class="reqn">\Delta y_{it} = y_{it} - y_{i t-1}</code>. <code class="reqn">W_i</code> represents a data-driven <code class="reqn">q \times q</code> weight matrix. I refer to Mehrabani (2023, eq. 2.10) for more details.
+Again, the criterion function is minimized using an efficient <em>ADMM</em> algorithm (Mehrabani, 2023, sec. 5.2).
+</p>
+<p>Two individuals are assigned to the same group if <code class="reqn">\| \hat{\beta}_i - \hat{\beta}_j \| \leq \epsilon_{\text{tol}}</code>, where <code class="reqn">\epsilon_{\text{tol}}</code> is determined by <code>tol_group</code>. Subsequently, the number of groups follows as the number of distinct elements in <code class="reqn">\hat{\bold{\beta}}</code>. Given an estimated group structure, it is straightforward to obtain post-Lasso estimates using group-wise least squares or <em>GMM</em> (see <code>grouped_plm</code>).
+</p>
+<p>We recommend identifying a suitable <code class="reqn">\lambda</code> parameter by passing a logarithmically spaced grid of candidate values with a lower limit close to 0 and an upper limit that leads to a fully homogeneous panel. A BIC-type information criterion then selects the best fitting <code class="reqn">\lambda</code> value.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>pagfl</code> holding
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a <code>data.frame</code> containing the dependent and explanatory variables as well as cross-sectional and time indices,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coefficients</code></td>
+<td>
+<p>a <code class="reqn">\hat{K} \times p</code> matrix of the post-Lasso group-specific parameter estimates,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groups</code></td>
+<td>
+<p>a <code>list</code> containing (i) the total number of groups <code class="reqn">\hat{K}</code> and (ii) a vector of estimated group memberships <code class="reqn">(\hat{g}_1, \dots, \hat{g}_N)</code>, where <code class="reqn">\hat{g}_i = k</code> if <code class="reqn">i</code> is assigned to group <code class="reqn">k</code>,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>residuals</code></td>
+<td>
+<p>a vector of residuals of the demeaned model,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fitted</code></td>
+<td>
+<p>a vector of fitted values of the demeaned model,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>args</code></td>
+<td>
+<p>a <code>list</code> of additional arguments,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>IC</code></td>
+<td>
+<p>a <code>list</code> containing (i) the value of the IC, (ii) the employed tuning parameter <code class="reqn">\lambda</code>, and (iii) the <em>MSE</em>,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convergence</code></td>
+<td>
+<p>a <code>list</code> containing (i) a logical variable indicating if convergence was achieved and (ii) the number of executed <em>ADMM</em> algorithm iterations,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>the function call.</p>
+</td>
+</tr>
+</table>
+<p>A <code>pagfl</code> object has <code>print</code>, <code>summary</code>, <code>fitted</code>, <code>residuals</code>, <code>formula</code>, <code>df.residual</code>, and <code>coef</code> S3 methods.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Paul Haimerl
+</p>
+
+
+<h3>References</h3>
+
+<p>Dhaene, G., &amp; Jochmans, K. (2015). Split-panel jackknife estimation of fixed-effect models. <em>The Review of Economic Studies</em>, 82(3), 991-1030. <a href="https://doi.org/10.1093/restud/rdv007">doi:10.1093/restud/rdv007</a>.
+Mehrabani, A. (2023). Estimation and identification of latent group structures in panel data. <em>Journal of Econometrics</em>, 235(2), 1464-1482. <a href="https://doi.org/10.1016/j.jeconom.2022.12.002">doi:10.1016/j.jeconom.2022.12.002</a>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Simulate a panel with a group structure
+sim &lt;- sim_DGP(N = 20, n_periods = 80, p = 2, n_groups = 3)
+y &lt;- sim$y
+X &lt;- sim$X
+df &lt;- cbind(y = c(y), X)
+
+# Run the PAGFL procedure
+estim &lt;- pagfl(y ~ ., data = df, n_periods = 80, lambda = 0.5, method = "PLS")
+summary(estim)
+
+# Lets pass a panel data set with explicit cross-sectional and time indicators
+i_index &lt;- rep(1:20, each = 80)
+t_index &lt;- rep(1:80, 20)
+df &lt;- data.frame(y = c(y), X, i_index = i_index, t_index = t_index)
+estim &lt;- pagfl(
+  y ~ ., data = df, index = c("i_index", "t_index"), lambda = 0.5, method = "PLS"
+)
+summary(estim)
+</code></pre>
+
+
+</div>

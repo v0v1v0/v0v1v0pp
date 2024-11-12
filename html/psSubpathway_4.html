@@ -1,0 +1,171 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>DCSA</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Dynamic Changed Subpathway Analysis (DCSA)</h2>
+
+<h3>Description</h3>
+
+<p>This function will perform the Dynamic Changed Subpathway Analysis (DCSA) method to estimate the dynamic
+changed subpathways associated with the sample phenotypes (like the developmental stage of cancer).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">DCSA(
+  expr,
+  input.cls = "",
+  subpathwaylist = "Symbol",
+  kcdf = "Gaussian",
+  method = "gsva",
+  min.sz = 5,
+  max.sz = 1000,
+  nperm = 100,
+  fdr.th = 1,
+  mx.diff = TRUE,
+  parallel.sz = 0
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>expr</code></td>
+<td>
+<p>Matrix of gene expression values (rows are genes, columns are samples).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>input.cls</code></td>
+<td>
+<p>Input sample phenotype class vector file in CLS format.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subpathwaylist</code></td>
+<td>
+<p>Character string denoting the gene label of the subpathway list is 'Entrezid' (default) or 'Symbol'.
+Users can also enter their own subpathway list data. This list should be consistent with the gene label in the input gene expression profile.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kcdf</code></td>
+<td>
+<p>Character string denoting the kernel to use during the non-parametric estimation of the cumulative
+distribution function of expression levels across samples when method="gsva". By default, 'kcdf="Gaussian"' which
+is suitable when input expression values are continuous, such as microarray fluorescent units in logarithmic scale,
+RNA-seq log-CPMs, log-RPKMs or log-TPMs. When input expression values are integer counts, such as those derived from
+RNA-seq experiments, then this argument should be set to 'kcdf="Poisson"'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Method to employ in the estimation of subpathway enrichment scores per sample. By default, this is set to
+'gsva' (Hänzelmann et al, 2013) and other options are 'ssgsea' (Barbie et al, 2009).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.sz</code></td>
+<td>
+<p>Minimum size of the resulting subpathway.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.sz</code></td>
+<td>
+<p>Maximum size of the resulting subpathway.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nperm</code></td>
+<td>
+<p>Number of random permutations (default: 100).In practice, the users can set their own values as needed, and more than 1000 times may be fine in general.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fdr.th</code></td>
+<td>
+<p>Cutoff value for FDR. The only subpathway with lower FDR.th are listed (default: 1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mx.diff</code></td>
+<td>
+<p>Offers two approaches to calculate the sample enrichment score (SES) from the KS random walk statistic.
+'mx.diff=FALSE': SES is calculated as the maximum distance of the random walk from 0. 'mx.diff=TRUE' (default): SES is
+calculated as the magnitude difference between the largest positive and negative random walk deviations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel.sz</code></td>
+<td>
+<p>Number of processors to use when doing the calculations in parallel. If this argument is left with its
+default value (parallel.sz=0) then it will use all available core processors unless we set this argument with a smaller number.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>DCSA
+</p>
+<p>This function calculates the subpathway activity profile based on the gene expression profile and subpathway list by 'gsva' or 'ssgssea'.
+Next, we used the information-theoretic measure of statistical dependence,
+mutual information (MI), to estimate the dynamically changed subpathways associated with the sample phenotypes.
+Finally we used the perturbation analysis of the gene label rearrangement to estimating the statistical significance.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing the results of DCSA and subpathway activity profile.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Xudong Han,
+Junwei Han,
+Qingfei Kong
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load depend package.
+require(GSVA)
+require(parallel)
+require(mpmi)
+# get ACC disease stage gene expression profiling.
+# ACCgenematrix&lt;-get("DCgenematrix")
+# get path of the sample disease stage phenotype files.
+# Stagelabels&lt;-system.file("extdata", "DClabels.cls", package = "psSubpathway")
+# perform the DCSA method.
+# DCSA(ACCgenematrix,input.cls=Stagelabels,nperm=50,fdr.th=0.01,parallel.sz=2)
+# get the result of the SubSEA function
+# DCSAresult&lt;-get("DCspwresult")
+# str(DCSAresult)
+# head(DCSAresult$DCSA)
+
+# Simulated gene matrix.
+genematrix &lt;- matrix(rnorm(500*40), nrow=500, dimnames=list(1:500, 1:40))
+# Construct subpathway list data.
+subpathwaylist &lt;- as.list(sample(2:100, size=20, replace=TRUE))
+subpathwaylist &lt;- lapply(subpathwaylist, function(n) sample(1:500, size=n, replace=FALSE))
+names(subpathwaylist)&lt;-c(paste(rep("spw",20),c(1:20)))
+# Construct sample labels data.
+stagelabel&lt;-list(phen=c("stage1","stage2","stage3","stage4"),
+                   class.labes=c(rep("stage1",10),rep("stage2",10),
+                   rep("stage3",10),rep("stage4",10)))
+DCSAcs&lt;-DCSA(genematrix,stagelabel,subpathwaylist,nperm=0,parallel.sz=1)
+
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,196 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>get_bootstrap_sims</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimating the lower bound (xmin)</h2>
+
+<h3>Description</h3>
+
+<p>When fitting heavy tailed distributions, sometimes it
+is necessary to estimate the lower threshold, xmin. The
+lower bound is estimated by minimising the
+Kolmogorov-Smirnoff statistic
+(as described in Clauset, Shalizi, Newman (2009)).
+</p>
+
+<dl>
+<dt><code>get_KS_statistic</code></dt>
+<dd>
+<p>Calculates the KS statistic for a particular value of xmin.</p>
+</dd>
+<dt><code>estimate_xmin</code></dt>
+<dd>
+<p>Estimates the optimal lower cutoff using a
+goodness-of-fit based approach. This function may issue <code>warnings</code>
+when fitting lognormal, Poisson or Exponential distributions. The
+warnings occur for large values of <code>xmin</code>. Essentially, we are discarding
+the bulk of the distribution and cannot calculate the tails to enough
+accuracy.</p>
+</dd>
+<dt><code>bootstrap</code></dt>
+<dd>
+<p>Estimates the unncertainty in the xmin and parameter values
+via bootstrapping.</p>
+</dd>
+<dt><code>bootstrap_p</code></dt>
+<dd>
+<p>Performs a bootstrapping hypothesis test to determine
+whether a suggested
+(typically power law) distribution is plausible. This is only available for distributions that
+have <code>dist_rand</code> methods available.</p>
+</dd>
+</dl>
+<h3>Usage</h3>
+
+<pre><code class="language-R">get_bootstrap_sims(m, no_of_sims, seed, threads = 1)
+
+bootstrap(
+  m,
+  xmins = NULL,
+  pars = NULL,
+  xmax = 1e+05,
+  no_of_sims = 100,
+  threads = 1,
+  seed = NULL,
+  distance = "ks"
+)
+
+get_bootstrap_p_sims(m, no_of_sims, seed, threads = 1)
+
+bootstrap_p(
+  m,
+  xmins = NULL,
+  pars = NULL,
+  xmax = 1e+05,
+  no_of_sims = 100,
+  threads = 1,
+  seed = NULL,
+  distance = "ks"
+)
+
+get_distance_statistic(m, xmax = 1e+05, distance = "ks")
+
+estimate_xmin(m, xmins = NULL, pars = NULL, xmax = 1e+05, distance = "ks")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>m</code></td>
+<td>
+<p>A reference class object that contains the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>no_of_sims</code></td>
+<td>
+<p>number of bootstrap simulations. When <code>no_of_sims</code> is large, this can
+take a while to run.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>default <code>NULL</code>. An integer to be supplied to <code>set.seed</code>, or <code>NULL</code>
+not to set reproducible seeds. This argument is passed <code>clusterSetRNGStream</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threads</code></td>
+<td>
+<p>number of concurrent threads used during the bootstrap.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xmins</code></td>
+<td>
+<p>default <code>1e5</code>. A vector of possible values
+of xmin to explore. When a single value is passed, this represents
+the maximum value to search, i.e. by default we search from
+(1, 1e5). See details for further information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pars</code></td>
+<td>
+<p>default <code>NULL</code>. A vector or matrix (number of columns equal
+to the number of parameters) of parameters used to #' optimise over.
+Otherwise, for each value of <code>xmin</code>, the mle will be used, i.e. <code>estimate_pars(m)</code>.
+For small samples, the mle may be biased.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xmax</code></td>
+<td>
+<p>default <code>1e5</code>. The maximum x value calculated when working out the CDF.
+See details for further
+information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distance</code></td>
+<td>
+<p>A string containing the distance measure (or measures) to calculate.
+Possible values are <code>ks</code> or <code>reweight</code>. See details for further information.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>When estimating <code>xmin</code> for discrete distributions, the search space when
+comparing the data-cdf (empirical cdf)
+and the distribution_cdf runs from xmin to <code>max(x)</code>
+where <code>x</code> is the data set. This <strong>can</strong> often be
+computationally brutal. In particular, when bootstrapping
+we generate random numbers from the power law distribution,
+which has a long tail.
+</p>
+<p>To speed up computations for discrete distributions it is sensible to put an
+upper bound, i.e. <code>xmax</code> and/or explicitly give values of where to search, i.e. <code>xmin</code>.
+</p>
+<p>Occassionally bootstrapping can generate strange situations. For example,
+all values in the simulated data set are less then <code>xmin</code>. In this case,
+the estimated distance measure will be <code>Inf</code> and the parameter values, <code>NA</code>.
+</p>
+<p>There are other possible distance measures that can be calculated. The default is the
+Kolomogorov Smirnoff statistic (<code>KS</code>). This is equation 3.9 in the CSN paper. The
+other measure currently available is <code>reweight</code>, which is equation 3.11.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Adapted from Laurent Dubroca's code
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">###################################################
+# Load the data set and create distribution object#
+###################################################
+x = 1:10
+m = displ$new(x)
+
+###################################################
+# Estimate xmin and pars                          #
+###################################################
+est = estimate_xmin(m)
+m$setXmin(est)
+
+###################################################
+# Bootstrap examples                              #
+###################################################
+## Not run: 
+bootstrap(m, no_of_sims=1, threads=1)
+bootstrap_p(m, no_of_sims=1, threads=1)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

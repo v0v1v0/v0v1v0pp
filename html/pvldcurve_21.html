@@ -1,0 +1,146 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>StomatalClosure</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Point of stomatal closure</h2>
+
+<h3>Description</h3>
+
+<p>Determines the point of stomatal closure in a set of experimentally obtained leaf drying curves.
+Stomatal closure happens when the curve irreversibly settles to linear water loss.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">StomatalClosure(data, sample = "sample",
+  time.since.start = "time.since.start", conductance = "conductance",
+  RWD = "RWD.interval", threshold = FALSE, graph = TRUE,
+  show.legend = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>data frame containing columns of equal length giving the numerical
+coordinates of the curve: time since start (minutes), conductance (mmol m^-2 s^-1) and RWD (%), ordered by sample by ascending
+time since start. A column containing the sample IDs is optionally required if several samples were measured.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sample</code></td>
+<td>
+<p>optional name of the column in data containing the sample ID (if available), default: "sample"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time.since.start</code></td>
+<td>
+<p>optional name of the column in data containing numeric time since start values (min), default: "time.since.start"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conductance</code></td>
+<td>
+<p>optional name of the column in data containing numeric leaf conductance values (mmol m^-2 s^-1), default: "conductance"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>RWD</code></td>
+<td>
+<p>optional name of the column in data containing numeric relative water deficit (%) values, default: "RWD.interval" (RWD average
+of an interval as outputted by RWDInterval)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>sensitivity for the determination of stomatal closure. 60 by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>graph</code></td>
+<td>
+<p>set FALSE if no plots are to be returned</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>show.legend</code></td>
+<td>
+<p>set FALSE if no legend is to be be shown in the plots</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Before using this function, check the raw data for an initial plateau. If the exponential decline does not onset directly,
+fitting might not succeed. <br>
+The conductances by time since start curves are fitted using the Gauss-Newton algorithm of nls() to a
+combined exponential and linear model. The exponential and linear parts are extracted and time since start at stomatal closure is
+localized at the point where the slope of the exponential part of the fit is higher than a threshold value. The threshold value
+is calculated by the use of the parameter b of the exponential part of the fit
+(a * exp(b * x)): -(b^2 * sens). The sensitivity constant (sens) is 60 by default and can be specified individually by the argument
+'threshold'. <br>
+Minimum conductance (gmin) at stomatal closure is the conductance value of the overall fit at stomatal closure.
+RWD at stomatal closure is then calculated by linear regression of RWD and time since start.
+</p>
+
+
+<h3>Value</h3>
+
+<p>List splitted by sample consisting of
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>stomatal.closure</code></td>
+<td>
+<p>coordinates of the point of stomatal closure (time.since.start, RWD, conductance)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>formula of the exponential and linear part of the combined fits</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coef</code></td>
+<td>
+<p>coefficients of combined model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conf_int</code></td>
+<td>
+<p>upper (97.5 %) and lower (2.5 %) border of 95 % confidence interval of model parameters</p>
+</td>
+</tr>
+</table>
+<p>If graph = TRUE, the plotted original data is displayed with the exponential and
+linear fit of the combined model as well as the x-coordinate (time.since.start) of the point of stomatal closure.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># get example data
+df &lt;- WeatherAllocation(leaf_drying_data, weather_data)   # allocate weather to weight loss data
+df &lt;- TimeSinceStart(df) # calculate time since start
+df &lt;- df[df$fw.plateau != "yes",] # remove plateauing data
+df &lt;- FittedFW(df, graph = FALSE) # correct noises in fresh weight
+df &lt;- RWDInterval(df, fresh.weight = "fitted.fw") # calculate RWD based in the intervals
+df &lt;- Conductance(df, fresh.weight = "fitted.fw") # calculate conductance
+
+# identify stomatal closure in curve and get graphs
+sc &lt;- StomatalClosure(df)
+
+</code></pre>
+
+
+</div>

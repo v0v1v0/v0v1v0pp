@@ -1,0 +1,271 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ph_prep</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Preprocessing for phenotype classification via ensemble learning.</h2>
+
+<h3>Description</h3>
+
+<p>The <code>ph_prep</code> function splits a data frame into training, validation, and test sets, all while ensuring that
+every class is represented in each dataset. By default, it performs a Principal Component Analysis on the training
+set data and projects the validation and test data into that space. If a non-linear dimensionality reduction
+strategy is preferred instead, an autoencoder can be used to extract deep features. Note that the parameters
+<code>max_mem_size</code>, <code>activation</code>, <code>hidden</code>, <code>dropout_ratio</code>, <code>rate</code>, <code>search</code>, and
+<code>tune_length</code> are <code>NULL</code> unless an autoencoder, <code>method = "ae"</code>, is used. In this case,
+lists or vectors can be supplied to these parameters (see parameter details) to perform a grid search for the
+optimal hyperparameter combination. The autoencoder with the lowest reconstruction error is selected as
+the best model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ph_prep(
+  df,
+  ids_col,
+  class_col,
+  vali_pct = 0.15,
+  test_pct = 0.15,
+  scale = FALSE,
+  center = NULL,
+  sd = NULL,
+  split_seed = 123,
+  method = "pca",
+  pca_pct = 0.95,
+  max_mem_size = "15g",
+  port = 54321,
+  train_seed = 123,
+  hyper_params = list(),
+  search = "random",
+  tune_length = 100
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>A <code>data.frame</code> containing a column of unique ids, a column of classes, and an arbitrary number of <code>numeric</code> columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ids_col</code></td>
+<td>
+<p>A <code>character</code> value for the name of the ids column.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>class_col</code></td>
+<td>
+<p>A <code>character</code> value for the name of the class column.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vali_pct</code></td>
+<td>
+<p>A <code>numeric</code> value for the percentage of training data to use as validation data: 0.15 (default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test_pct</code></td>
+<td>
+<p>A <code>numeric</code> value for the percentage of total data to use as test data: 0.15 (default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>A <code>logical</code> value for whether to scale the data: FALSE (default). Recommended if <code>method = "ae"</code> and if user intends to train other models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>Either a <code>logical</code> value or numeric-alike vector of length equal to the number of columns of data to scale in <code>df</code>, where ‘numeric-alike’ means that as.numeric(.) will be applied successfully if is.numeric(.) is not true: NULL (default). If <code>scale = TRUE</code>, this is set to <code>TRUE</code> and is used to subtract the mean.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd</code></td>
+<td>
+<p>Either a <code>logical</code> value or a numeric-alike vector of length equal to the number of columns of data to scale in <code>df</code>: NULL (default). If <code>scale = TRUE</code>, this is set to <code>TRUE</code> and is used to divide by the standard deviation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>split_seed</code></td>
+<td>
+<p>A <code>numeric</code> value to set the seed and control the randomness of splitting the data: 123 (default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>A <code>character</code> value for the dimensionality reduction method: "pca" (default), "ae", "none".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pca_pct</code></td>
+<td>
+<p>If <code>method = "pca"</code>, a <code>numeric</code> value for the proportion of variance to subset the PCA with: 0.95 (default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_mem_size</code></td>
+<td>
+<p>If <code>method = "ae"</code>, a <code>character</code> value for the memory of an h2o session: "15g" (default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>port</code></td>
+<td>
+<p>A <code>numeric</code> value for the port number of the H2O server.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>train_seed</code></td>
+<td>
+<p>A <code>numeric</code> value to set the control the randomness of creating resamples: 123 (default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hyper_params</code></td>
+<td>
+<p>A <code>list</code> of hyperparameters to perform a grid search. the "default" list is: list(missing_values_handling = "Skip", activation = c("Rectifier", "Tanh"), hidden = list(5, 25, 50, 100, 250, 500, nrow(df_h2o)), input_dropout_ratio = c(0, 0.1, 0.2, 0.3), rate = c(0, 0.01, 0.005, 0.001)).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>search</code></td>
+<td>
+<p>If <code>method = "ae"</code>, a <code>character</code> value for the hyperparameter search strategy: "random" (default), "grid".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tune_length</code></td>
+<td>
+<p>If <code>method = "ae"</code>, a <code>numeric</code> value (integer) for either the maximum number of hyperparameter combinations ("random") or individual hyperparameter depth ("grid").</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing the following components:</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+<code>train_df</code> </td>
+<td style="text-align: left;"> The training set data frame. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>vali_df</code> </td>
+<td style="text-align: left;"> The validation set data frame. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>test_df</code> </td>
+<td style="text-align: left;"> The test set data frame. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>train_split</code> </td>
+<td style="text-align: left;"> The training set indices from the original data frame. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>vali_split</code> </td>
+<td style="text-align: left;"> The validation set indices from the original data frame. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>test_split</code> </td>
+<td style="text-align: left;"> The test set indices from the original data frame. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>vali_pct</code> </td>
+<td style="text-align: left;"> The percentage of training data used as validation data. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>test_pct</code> </td>
+<td style="text-align: left;"> The percentage of total data used as test data. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>method</code> </td>
+<td style="text-align: left;"> The dimensionality reduction method. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Import data.
+data(ph_crocs)
+
+## Remove anomalies with autoencoder.
+rm_outs &lt;- ph_anomaly(df = ph_crocs, ids_col = "Biosample",
+                      class_col = "Species", method = "ae")
+## Preprocess anomaly-free data frame into train, validation, and test sets
+## with PCs as predictors.
+pc_dfs &lt;- ph_prep(df = rm_outs$df, ids_col = "Biosample",
+                  class_col = "Species", vali_pct = 0.15,
+                  test_pct = 0.15, method = "pca")
+## Alternatively, preprocess data frame into train, validation, and test
+## sets with latent variables as predictors. Notice that port is defined,
+## because running H2O sessions one after another can cause connection
+## errors.
+ae_dfs &lt;- ph_prep(df = rm_outs$df, ids_col = "Biosample", class_col = "Species",
+                  vali_pct = 0.15, test_pct = 0.15, method = "ae", port = 50001)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,144 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>by_slice</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Apply a function to slices of a data frame</h2>
+
+<h3>Description</h3>
+
+<p><code>by_slice()</code> applies <code>..f</code> on each group of a data
+frame. Groups should be set with <code>slice_rows()</code> or
+<code>dplyr::group_by()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">by_slice(
+  .d,
+  ..f,
+  ...,
+  .collate = c("list", "rows", "cols"),
+  .to = ".out",
+  .labels = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>.d</code></td>
+<td>
+<p>A sliced data frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>..f</code></td>
+<td>
+<p>A function to apply to each slice. If <code>..f</code> does
+not return a data frame or an atomic vector, a list-column is
+created under the name <code>.out</code>. If it returns a data frame, it
+should have the same number of rows within groups and the same
+number of columns between groups.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to <code>..f</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.collate</code></td>
+<td>
+<p>If "list", the results are returned as a list-
+column. Alternatively, if the results are data frames or atomic
+vectors, you can collate on "cols" or on "rows". Column collation
+require vector of equal length or data frames with same number of
+rows.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.to</code></td>
+<td>
+<p>Name of output column.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.labels</code></td>
+<td>
+<p>If <code>TRUE</code>, the returned data frame is prepended
+with the labels of the slices (the columns in <code>.d</code> used to
+define the slices). They are recycled to match the output size in
+each slice if necessary.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>by_slice()</code> provides equivalent functionality to dplyr's
+<code>dplyr::do()</code> function. In combination with
+<code>map()</code>, <code>by_slice()</code> is equivalent to
+<code>dplyr::summarise_each()</code> and
+<code>dplyr::mutate_each()</code>. The distinction between
+mutating and summarising operations is not as important as in dplyr
+because we do not act on the columns separately. The only
+constraint is that the mapped function must return the same number
+of rows for each variable mapped on.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data frame.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>by_row()</code>, <code>slice_rows()</code>,
+<code>dmap()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Here we fit a regression model inside each slice defined by the
+# unique values of the column "cyl". The fitted models are returned
+# in a list-column.
+mtcars %&gt;%
+  slice_rows("cyl") %&gt;%
+  by_slice(purrr::partial(lm, mpg ~ disp))
+
+# by_slice() is especially useful in combination with map().
+
+# To modify the contents of a data frame, use rows collation. Note
+# that unlike dplyr, Mutating and summarising operations can be
+# used indistinctly.
+
+# Mutating operation:
+df &lt;- mtcars %&gt;% slice_rows(c("cyl", "am"))
+df %&gt;% by_slice(dmap, ~ .x / sum(.x), .collate = "rows")
+
+# Summarising operation:
+df %&gt;% by_slice(dmap, mean, .collate = "rows")
+
+# Note that mapping columns within slices is best handled by dmap():
+df %&gt;% dmap(~ .x / sum(.x))
+df %&gt;% dmap(mean)
+
+# If you don't need the slicing variables as identifiers, switch
+# .labels to FALSE:
+mtcars %&gt;%
+  slice_rows("cyl") %&gt;%
+  by_slice(purrr::partial(lm, mpg ~ disp), .labels = FALSE) %&gt;%
+  purrr::flatten() %&gt;%
+  purrr::map(coef)
+</code></pre>
+
+
+</div>

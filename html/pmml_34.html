@@ -1,0 +1,232 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pmml.svm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate the PMML representation of an svm object from the <span class="pkg">e1071</span> package.</h2>
+
+<h3>Description</h3>
+
+<p>Generate the PMML representation of an svm object from the <span class="pkg">e1071</span> package.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'svm'
+pmml(
+  model,
+  model_name = "LIBSVM_Model",
+  app_name = "SoftwareAG PMML Generator",
+  description = "Support Vector Machine Model",
+  copyright = NULL,
+  model_version = NULL,
+  transforms = NULL,
+  missing_value_replacement = NULL,
+  dataset = NULL,
+  detect_anomaly = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>An svm object from package <span class="pkg">e1071</span>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model_name</code></td>
+<td>
+<p>A name to be given to the PMML model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>app_name</code></td>
+<td>
+<p>The name of the application that generated the PMML.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>description</code></td>
+<td>
+<p>A descriptive text for the Header element of the PMML.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>copyright</code></td>
+<td>
+<p>The copyright notice for the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model_version</code></td>
+<td>
+<p>A string specifying the model version.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transforms</code></td>
+<td>
+<p>Data transformations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>missing_value_replacement</code></td>
+<td>
+<p>Value to be used as the 'missingValueReplacement' attribute for all MiningFields.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dataset</code></td>
+<td>
+<p>Required for one-classification only; data used to train the one-class SVM model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>detect_anomaly</code></td>
+<td>
+<p>Required for one-classification only; boolean indicating whether to
+detect anomalies (TRUE) or inliers (FALSE).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to or from other methods.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Classification and regression models are represented in the PMML
+SupportVectorMachineModel format. One-Classification models are represented
+in the PMML AnomalyDetectionModel format. Please see below for details on
+the differences.
+</p>
+
+
+<h3>Value</h3>
+
+<p>PMML representation of the svm object.
+</p>
+
+
+<h3>Classification and Regression Models</h3>
+
+<p>Note that the sign of the coefficient of each support vector flips between the R object
+and the exported PMML file for classification and regression models. This is due to the minor
+difference in the training/scoring formula between the LIBSVM algorithm and the DMG specification.
+Hence the output value of each support vector machine has a sign flip between the DMG definition and
+the svm prediction function.
+</p>
+<p>In a classification model, even though the output of the support vector machine has
+a sign flip, it does not affect the final predicted category. This is because in the
+DMG definition, the winning category is defined as the left side of threshold 0 while
+the LIBSVM defines the winning category as the right side of threshold 0.
+</p>
+<p>For a regression model, the exported PMML code has two OutputField elements. The OutputField
+<code>predictedValue</code> shows the support vector machine output per DMG definition. The OutputField
+<code>svm_predict_function</code> gives the value corresponding to the R predict function for the svm
+model. This output should be used when making model predictions.
+</p>
+
+
+<h3>One-Classification SVM Models</h3>
+
+<p>For a one-classification svm (OCSVM) model, the PMML has two OutputField elements:
+<code>anomalyScore</code> and one of <code>anomaly</code> or <code>outlier</code>.
+</p>
+<p>The OutputField <code>anomalyScore</code> is the signed distance to the separating boundary;
+<code>anomalyScore</code> corresponds to the <code>decision.values</code> attribute of the output of the
+svm predict function in R.
+</p>
+<p>The second OutputField depends the value of <code>detect_anomaly</code>. By default, <code>detect_anomaly</code> is TRUE,
+which results in the second OutputField being <code>anomaly</code>.
+The <code>anomaly</code> OutputField is TRUE when an anomaly is detected.
+This field conforms to the DMG definition of an anomaly detection model. This value is the
+opposite of the prediction by the e1071::svm object in R.
+</p>
+<p>Setting <code>detect_anomaly</code> to FALSE results in the second field instead being <code>inlier</code>.
+This OutputField is TRUE when an inlier is
+detected, and conforms to the e1071 definition of one-class SVMs. This field is FALSE when
+an anomaly is detected; that is, the R svm model predicts whether an observation belongs to the
+class. When comparing the predictions from R and PMML, this field should be used, since it
+will match R's output.
+</p>
+<p>For example, say that for an an observation, the R OCSVM model predicts a positive
+decision value of 0.4 and label of TRUE. According to the R object, this means that the
+observation is an inlier. By default, the PMML export of this model will give the following for the
+same input: <code>anomalyScore = 0.4, anomaly = "false"</code>. According to the PMML, the observation is not an anomaly.
+If the same R object is instead exported with <code>detect_anomaly = FALSE</code>,
+the PMML will then give: <code>anomalyScore = 0.4, inlier = "true"</code>, and this result agrees with R.
+</p>
+<p>Note that there is no sign flip for <code>anomalyScore</code> between R and PMML for OCSVM models.
+</p>
+<p>To export a OCSVM model, an additional argument, <code>dataset</code>, is required by the function.
+This argument expects a dataframe with data that was used to train the model. This is
+necessary because for one-class svm, the R svm object does not contain information about
+the data types of the features used to train the model. The exporter does not yet support
+the formula interface for one-classification models, so the default S3 method must be used
+to train the SVM. The data used to train the one-class SVM must be numeric and not of
+integer class.
+</p>
+
+
+<h3>References</h3>
+
+<p>* R project CRAN package: <em><b>e1071</b>: Misc Functions of the Department of Statistics,
+Probability Theory Group (Formerly: E1071), TU Wien</em> <a href="https://CRAN.R-project.org/package=e1071">https://CRAN.R-project.org/package=e1071</a>
+</p>
+<p>* Chang, Chih-Chung and Lin, Chih-Jen, <em>LIBSVM: a library for Support Vector Machines</em>
+<a href="https://www.csie.ntu.edu.tw/~cjlin/libsvm/">https://www.csie.ntu.edu.tw/~cjlin/libsvm/</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pmml</code>,
+<a href="http://dmg.org/pmml/v4-4-1/SupportVectorMachine.html">PMML SVM specification</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(e1071)
+data(iris)
+
+# Classification with a polynomial kernel
+fit &lt;- svm(Species ~ ., data = iris, kernel = "polynomial")
+fit_pmml &lt;- pmml(fit)
+
+# Regression
+fit &lt;- svm(Sepal.Length ~ Sepal.Width + Petal.Length + Petal.Width, data = iris)
+fit_pmml &lt;- pmml(fit)
+
+# Anomaly detection with one-classification
+fit &lt;- svm(iris[, 1:4],
+  y = NULL,
+  type = "one-classification"
+)
+fit_pmml &lt;- pmml(fit, dataset = iris[, 1:4])
+
+# Inlier detection with one-classification
+fit &lt;- svm(iris[, 1:4],
+  y = NULL,
+  type = "one-classification",
+  detect_anomaly = FALSE
+)
+fit_pmml &lt;- pmml(fit, dataset = iris[, 1:4])
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

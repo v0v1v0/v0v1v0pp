@@ -1,0 +1,150 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>CreateMarkovCLK</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Create CLKs with Markov Chain-based transition matrix
+</h2>
+
+<h3>Description</h3>
+
+<p>Builds CLKs encoding additional bigrams based on the transition probabilities as estimated by a Markov Chain.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">CreateMarkovCLK(ID, data, password, markovTable, k1 = 20, k2 = 4,
+  padding = as.integer(c(0)), qgram = as.integer(c(2)),
+  lenBloom = 1000,  includeOriginalBigram = TRUE, v = FALSE)</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ID</code></td>
+<td>
+<p>a character vector or integer vector containing the IDs of the data.frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a data.frame containing the data to be encoded. Make sure the input vectors are not factors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>password</code></td>
+<td>
+<p>a character vector with a password for each column of the input data.frame for the random hashing of the q-grams.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>markovTable</code></td>
+<td>
+<p>a numeric matrix containing the transition probabilities for all bigrams possible.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k1</code></td>
+<td>
+<p>number of bit positions set to one for each bigram.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k2</code></td>
+<td>
+<p>number of additional bigrams drawn for each original bigram.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>padding</code></td>
+<td>
+<p>integer vector (0 or 1) indicating if string padding is to be used on the columns of the input. The padding vector must have the same size as the number of columns of the input data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>qgram</code></td>
+<td>
+<p>integer vector (1 or 2) indicating whether to split the input strings into bigrams (q = 2) or unigrams (q = 1). The qgram vector must have the same size as the number of columns of the input data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lenBloom</code></td>
+<td>
+<p>desired length of the final Bloom filter in bits.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>includeOriginalBigram</code></td>
+<td>
+<p>by default, the original bigram is encoded together with the additional bigrams. Set this to <code>FALSE</code> to include only the additional bigrams to further increase the security.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p>verbose.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>A transition matrix for all possible bigrams is built using a function to fit a markov chain distribution using a Laplacian smoother. A transition matrix built for bigrams using the NC Voter Data is included in the package. For each original bigram in the data, <code>k2</code> new bigrams are drawn according to their follow-up probability as given by the transition matrix. The final bigram set is then encoded following  <code>CreateCLK</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data.frame containing IDs and the corresponding bit vector.
+</p>
+
+
+<h3>References</h3>
+
+<p>Schnell R., Borgs C. (2017): Using Markov Chains for Hardening Bloom Filter Encryptions against
+Cryptographic Attacks in Privacy Preserving Record Linkage. German Record Linkage Center Working Paper.
+</p>
+<p>Schnell, R. (2017): Recent Developments in Bloom Filter-based Methods for Privacy-preserving Record Linkage. Curtin Institute for Computation, Curtin University, Perth, 12.9.2017.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>CreateCLK</code>,
+<code>StandardizeString</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Load test data
+testFile &lt;- file.path(path.package("PPRL"), "extdata/testdata.csv")
+testData &lt;-read.csv(testFile, head = FALSE, sep = "\t",
+  colClasses = "character")
+
+## Not run: 
+# Load example Markov chain matrix (created from NC Voter Data)
+markovFile &lt;-file.path(path.package("PPRL"), "extdata/TestMatrize.csv")
+markovData &lt;-read.csv(markovFile,  sep = " ",
+  header = TRUE, check.names = FALSE)
+markovData &lt;- as.matrix(markovData)
+
+# Create Markov CLK using
+CLKMarkov &lt;- CreateMarkovCLK(ID = testData$V1,
+  data = testData[, c(2, 3, 7, 8)],
+  markovTable = markovData,
+  k1 = 20, k2 = 4, l = 1000,
+  padding = c(0, 0, 1, 1),
+  q = c(1, 2, 2, 2),
+  password = c("(H]$6Uh*-Z204q", "lkjg", "klh", "KJHklk5"),
+  includeOriginalBigram = TRUE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

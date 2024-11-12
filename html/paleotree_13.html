@@ -1,0 +1,845 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cal3TimePaleoPhy</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Three Rate Calibrated <em>a posteriori</em> Dating of Paleontological Phylogenies</h2>
+
+<h3>Description</h3>
+
+<p>Time-scales an undated cladogram of fossil taxa, using information on their
+ranges and estimates of the instantaneous rates of branching, extinction and
+sampling. The output is a sample of <em>a posteriori</em> time-scaled trees, as resulting from a
+stochastic algorithm which samples observed gaps in the fossil record with
+weights calculated based on the input rate estimates. This function also
+uses the three-rate calibrated dating algorithm to stochastically
+resolve polytomies and infer potential ancestor-descendant relationships,
+simultaneous with the time-scaling treatment.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cal3TimePaleoPhy(
+  tree,
+  timeData,
+  brRate,
+  extRate,
+  sampRate,
+  ntrees = 1,
+  anc.wt = 1,
+  node.mins = NULL,
+  dateTreatment = "firstLast",
+  FAD.only = FALSE,
+  adj.obs.wt = TRUE,
+  root.max = 200,
+  step.size = 0.1,
+  randres = FALSE,
+  noisyDrop = TRUE,
+  verboseWarnings = TRUE,
+  diagnosticMode = FALSE,
+  tolerance = 1e-04,
+  plot = FALSE
+)
+
+bin_cal3TimePaleoPhy(
+  tree,
+  timeList,
+  brRate,
+  extRate,
+  sampRate,
+  ntrees = 1,
+  anc.wt = 1,
+  node.mins = NULL,
+  dateTreatment = "firstLast",
+  FAD.only = FALSE,
+  sites = NULL,
+  point.occur = FALSE,
+  nonstoch.bin = FALSE,
+  adj.obs.wt = TRUE,
+  root.max = 200,
+  step.size = 0.1,
+  randres = FALSE,
+  noisyDrop = TRUE,
+  verboseWarnings = TRUE,
+  tolerance = 1e-04,
+  diagnosticMode = FALSE,
+  plot = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tree</code></td>
+<td>
+<p>An unscaled cladogram of fossil taxa, of class <code>phylo</code>. Tip labels
+must match the taxon labels in the respective temporal data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timeData</code></td>
+<td>
+<p>Two-column matrix of first and last occurrences in absolute
+continuous time, with row names as the taxon IDs used on the tree. This means the
+first column is very precise FADs (first appearance dates) and the second 
+column is very precise LADs (last appearance dates), reflect the precise points
+in time when taxa first and last appear. If there is stratigraphic uncertainty in
+when taxa appear in the fossil record, it is preferable to use the <code>bin_</code>
+dating functions; however, see the argument <code>dateTreatment</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>brRate</code></td>
+<td>
+<p>Either a single estimate of the instantaneous rate of branching
+(also known as the 'per-capita' origination rate, or speciation rate if
+taxonomic level of interest is species) or a vector of per-taxon estimates</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extRate</code></td>
+<td>
+<p>Either a single estimate of the instantaneous extinction rate
+(also known as the 'per-capita' extinction rate) or a vector of per-taxon
+estimates</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sampRate</code></td>
+<td>
+<p>Either a single estimate of the instantaneous sampling rate or
+a vector of per-taxon estimates</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ntrees</code></td>
+<td>
+<p>Number of dated trees to output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>anc.wt</code></td>
+<td>
+<p>Weighting against inferring ancestor-descendant relationships.
+The argument <code>anc.wt</code> allows users to alter the default consideration of
+ancestor-descendant relationships. This value is used as a multiplier applied to the
+probability of choosing any node position which would infer an
+ancestor-descendant relationship. By default, <code>anc.wt = 1</code>, and thus these
+probabilities are unaltered. if <code>anc.wt</code> is less than 1, the probabilities
+decrease and at <code>anc.wt = 0</code>, no ancestor-descendant relationships are inferred
+at all. Can be a single value or a vector of per-taxon values, such as if a
+user wants to only allow plesiomorphic taxa to be ancestors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>node.mins</code></td>
+<td>
+<p>The minimum dates of internal nodes (clades) on a phylogeny can be set
+using <code>node.mins</code>. This argument takes a vector of the same length as the number of nodes,
+with dates given in the same order as nodes are ordered in the <code>tree$edge</code> matrix.
+Note that in <code>tree$edge</code>, terminal tips are given the first set of numbers
+(<code>1:Ntip(tree)</code>), so the first element of <code>node.mins</code> is the first internal node
+(the node numbered <code>Ntip(tree)+1</code>, which is generally the root for most <code>phylo</code>
+objects read by <code>read.tree</code>). Not all nodes need be given minimum dates. Nodes without
+minimum dates can be given as NA in <code>node.mins</code>, but the vector must be the same length
+as the number of internal nodes in <code>tree</code>. These are minimum date constraints, such that
+a node will be 'frozen' by the cal3 algorithm so that constrained nodes will always be
+<em>at least as old as this date</em>, but the final date may be even older depending on the
+taxon dates used, the parameters input for the cal3 algorithm and any other minimum node dates
+given (e.g. if a clade is given a very old minimum date, this will (of course) over-ride any
+minimum dates given for clades that that node is nested within). if the constrained nodes include
+a polytomy, this polytomy will still be resolved with respect to the cal3 algorithm, but the first
+divergence will be 'frozen' so that it is at least as old as the minimum age, while any additional
+divergences will be allowed to occur after this minimum age.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dateTreatment</code></td>
+<td>
+<p>This argument controls the interpretation of <code>timeData</code>.
+The default setting <code>dateTreatment = "firstLast"</code> treats the dates
+in <code>timeData</code> as a column of precise first and last appearances.
+</p>
+<p>A second option is <code>dateTreatment = "minMax"</code>, which
+treats these dates as minimum and maximum bounds on single point dates. Under this option,
+all taxa in the analysis will be treated as being point dates, such that the first appearance
+is also the last. These dates will be pulled under a uniform distribution.
+Note that use of <code>dateTreatment = "minMax"</code> was bugged in versions paleotree &lt;3.2.5,
+as the generating time-tree used for cal3 inference was generated using the  
+input <code>timeData</code> as fixed first and last dates, such that the effect of 
+<code>dateTreatment = "minMax"</code> was nearly identical to using <code>dateTreatment = "firstLast"</code>
+regardless of the arguments chosen by a user, with tips always being placed at the
+upper date constraint as if the time of observation was a fixed LAD.
+This is now fixed as v3.2.6, such that a new basic-time-scaled tree is
+generated from a randomly selected set of point occurrence times on each
+iteration, so that the resulting tip dates are always different.
+</p>
+<p>A third option is <code>dateTreatment = "randObs"</code>, which assumes
+that the dates in the matrix are first and last appearance times,
+but that the desired time of observation is unknown.
+Thus, this is much like <code>dateTreatment = "firstLast"</code> except
+the effective time of observation (the taxon's LAD under
+<code>dateTreatment = "firstLast"</code>) is treated as an uncertain date, and
+is randomly sampled between the first and last appearance times.
+The FAD still is treated as a fixed number, used
+for dating the nodes. In previous versions of paleotree, this
+was called in <code>cal3timePaleoPhy</code> using the argument <code>rand.obs</code>, which has been removed
+for clarity. This temporal uncertainty in times of observation might be useful if
+a user is interested in applying phylogeny-based approaches to studying trait evolution, but have
+per-taxon measurements of traits that come from museum
+specimens with uncertain temporal placement.
+</p>
+<p>With both arguments <code>dateTreatment = "minMax"</code> and
+<code>dateTreatment = "randObs"</code>, the time of observation of taxa is a point-occurrence
+with a free-floating random variable as the precise age. Thus, the option
+<code>FAD.only = TRUE</code> is incoherent with these other options for <code>dateTreatment</code>,
+and thus their use together will return an error message.
+Furthermore, the sampling of dates from random distributions in these approaches should
+compel users to produce many time-scaled trees for any given analytical purpose.
+</p>
+<p>Note that  <code>dateTreatment = "minMax"</code> returns an error
+in '<code>bin_</code>' time-scaling functions; please use <code>points.occur</code> instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FAD.only</code></td>
+<td>
+<p>Should the tips represent observation times at the start of
+the taxon ranges? <code>FAD.only = TRUE</code>, the resulting output
+is similar to when terminal ranges are no
+added on with <code>timePaleoPhy</code>. If <code>FAD.only = TRUE</code>
+and <code>dateTreatment = "minMax"</code> or <code>dateTreatment = "randObs"</code>, the
+function will stop and a warning will be produced, as these combinations imply
+contradictory sets of times of observation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adj.obs.wt</code></td>
+<td>
+<p>If the time of observation of a taxon is before the last appearance of that taxon,
+should the weight of the time of observation be adjusted to account for the
+known observed history of the taxon which occurs <em>after</em> the time of observation? 
+If so, then set <code>adj.obs.wt = TRUE</code>.
+This argument should only have an effect if time of observation <em>IS NOT</em> the LAD, 
+if the times of observation for for a potential ancestor are earlier than 
+the first appearance of their potential descendants, <em>and</em> 
+if the ancestral weights for taxa are not set to zero (so there can be potential ancestors).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>root.max</code></td>
+<td>
+<p>Maximum time before the first FAD that the root can be
+pushed back to.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>step.size</code></td>
+<td>
+<p>Step size of increments used in zipper algorithm to assign
+node ages.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>randres</code></td>
+<td>
+<p>Should polytomies be randomly resolved using <code>multi2di</code> in ape
+rather than using the cal3 algorithm to weight the resolution of polytomies 
+relative to sampling in the fossil record?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>noisyDrop</code></td>
+<td>
+<p>If <code>TRUE</code> (the default), any taxa dropped from tree due to not
+having a matching entry in the time data will be listed in a system message.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verboseWarnings</code></td>
+<td>
+<p>if <code>TRUE</code> (the default), then various warnings and messages
+regarding best practices will be issued to the console about the analysis. 
+If <code>FALSE</code>,the function will run as quietly as possible.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>diagnosticMode</code></td>
+<td>
+<p>If <code>TRUE</code>, <code>cal3timePaleoPhy</code> will return to the
+console and to graphic devices an enormous number of messages, plots and
+ancillary information that may be useful or entirely useless to figuring
+out what is going wrong.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tolerance</code></td>
+<td>
+<p>Acceptable amount of shift in tip dates from dates listed
+in <code>timeData</code>. Shifts outside of the range of <code>tolerance</code> will
+cause a warning message to be issued that terminal tips appear to be
+improperly aligned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>If true, plots the input, "basic" time-scaled phylogeny (an
+intermediary step in the algorithm) and the output
+cal3 time-scaled phylogeny.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timeList</code></td>
+<td>
+<p>A list composed of two matrices giving interval times and
+taxon appearance dates. The rownames of the second matrix should be the taxon IDs,
+identical to the <code>tip.labels</code> for tree. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sites</code></td>
+<td>
+<p>Optional two column matrix, composed of site IDs for taxon FADs
+and LADs. The sites argument allows users to constrain the placement of
+dates by restricting multiple fossil taxa whose FADs or LADs are from the
+same very temporally restricted sites (such as fossil-rich Lagerstatten) to
+always have the same date, across many iterations of time-scaled trees. To
+do this, provide a <code>matrix</code> to the <code>sites</code> argument
+where the "site" of each FAD and LAD for every
+taxon is listed, as corresponding to the second matrix in <code>timeList</code>. If no
+sites matrix is given (the default), then it is assumed all fossil come from
+different "sites" and there is no shared temporal structure among the
+events.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>point.occur</code></td>
+<td>
+<p>If true, will automatically produce a 'sites' matrix
+which forces all FADs and LADs to equal each other. This should be used when
+all taxa are only known from single 'point occurrences', i.e. each is only
+recovered from a single bed/horizon, such as a Lagerstatten.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nonstoch.bin</code></td>
+<td>
+<p>If <code>nonstoch.bin = TRUE</code> (the default is <code>FALSE</code>,
+dates are <em>not</em> stochastically drawn from
+uniform distributions bounded by the upper and lower boundaries
+of the geologic intervals (the 'bins'), as typically occurs with '<code>bin_</code>'
+time-scaling methods in <code>paleotree</code> but instead first-appearance dates are
+assigned to the earliest time of the interval a taxon first appears in, while 
+last-appearance dates are placed at the youngest (the 'later-most') date in the
+interval that that taxon last appears in.  This option may be useful for plotting.
+Note that if <code>nonstoch.bin = TRUE</code>, the <code>sites</code> argument becomes arbitrary
+and has no influence on the output.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The three-rate calibrated ("cal3") algorithm time-scales trees
+<em>a posteriori</em> by stochastically picking node divergence times
+relative to a probability distribution of expected waiting times between speciation and first
+appearance in the fossil record. This algorithm is extended to apply to
+resolving polytomies and designating possible ancestor-descendant
+relationships. The full details of this method are provided in Bapst (2013, MEE).
+</p>
+<p>Briefly, cal3 time-scaling is done by examining each node separately, moving
+from the root upwards. Ages of branching nodes are constrained below by the
+ages of the nodes below them (except the root; hence the need for the
+root.max argument) and constrained above by the first appearance dates
+(FADs) of the daughter lineages. The position of the branching event within
+this constrained range implies different amounts of unobserved evolutionary
+history. cal3 considers a large number of potential positions for the
+branching node (the notation in the code uses the analogy of viewing the
+branching event as a 'zipper') and calculates the summed unobserved
+evolutionary history implied by each branching time. The probability density
+of each position is then calculated under a gamma distribution with a shape
+parameter of 2 (implying that it is roughly the sum of two normal waiting
+times under an exponential) and a rate parameter which takes into account
+both the probability of not observing a lineage of a certain duration and
+the 'twiginess' of the branch, i.e. the probability of having short-lived
+descendants which went extinct and never were sampled (similar to Friedman and
+Brazeau, 2011). These densities calculated under the gamma distribution are
+then used as weights to stochastically sample the possible positions for the
+branching node. This basic framework is extended to polytomies by allowing a
+branching event to fall across multiple potential lineages, adding each
+lineage one by one, from earliest appearing to latest appearing (the code
+notation refers to this as a 'parallel zipper').
+</p>
+<p>As with many functions in the paleotree library, absolute time is always
+decreasing, i.e. the present day is zero.
+</p>
+<p>These functions will intuitively drop taxa from the tree with NA for range
+or that are missing from <code>timeData</code>.
+</p>
+<p>The sampling rate used by cal3 methods is the instantaneous sampling rate,
+as estimated by various other function in the paleotree package. See
+<code>make_durationFreqCont</code> for more details.
+If you have the per-time unit sampling
+probability ('R' as opposed to 'r') look at the sampling parameter
+conversion functions also included in this package
+(e.g. <code>sProb2sRate</code>). Most datasets will probably use
+<code>make_durationFreqDisc</code> and <code>sProb2sRate</code>
+prior to using this function, as shown in an example below.
+</p>
+<p>The branching and extinction rate are the 'per-capita' instantaneous
+origination/extinction rates for the taxic level of the tips of the tree
+being time-scaled. Any user of the cal3 time-scaling method has multiple
+options for estimating these rates. One is to separately calculate the
+per-capita rates (following the equations in Foote, 2001) across multiple
+intervals and take the mean for each rate. A second, less preferred option,
+would be to use the extinction rate calculated from the sampling rate above
+(under ideal conditions, this should be very close to the mean 'per-capita'
+rate calculated from by-interval FADs and LADs). The branching rate in this
+case could be assumed to be very close to the extinction rate, given the
+tight relationship observed in general between these two (Stanley, 1976; see
+Foote et al., 1999, for a defense of this approach), and thus the extinction
+rate estimate could be used also for the branching rate estimate. (This is
+what is done for the examples below.) A third option for calculating all
+three rates simultaneously would be to apply likelihood methods developed by
+Foote (2002) to forward and reverse survivorship curves. Note that only one
+of these three suggested methods is implemented in <code>paleotree</code>: estimating the
+sampling and extinction rates from the distribution of taxon durations via
+<code>make_durationFreqCont</code> and <code>make_durationFreqDisc</code>.
+</p>
+<p>By default, the cal3 functions will consider that ancestor-descendant
+relationships may exist among the given taxa, under a budding cladogenetic
+or anagenetic modes. Which tips are designated as which is given by two
+additional elements added to the output tree, 
+<code>$budd.tips</code> (taxa designated as ancestors via budding cladogenesis) and 
+<code>$anag.tips</code> (taxa designated as ancestors via anagenesis). 
+This can be turned off by setting <code>anc.wt = 0</code>. As
+this function may infer anagenetic relationships during time-scaling, this
+can create zero-length terminal branches in the output. Use
+<code>dropZLB</code> to get rid of these before doing analyses of lineage
+diversification.
+</p>
+<p>Unlike <code>timePaleoPhy</code>, cal3 methods will always resolve polytomies. In
+general, this is done using the rate calibrated algorithm, although if
+argument <code>randres = TRUE</code>, polytomies will be randomly resolved with uniform
+probability, similar to <code>multi2di</code> from ape. Also, cal3 will always add the terminal
+ranges of taxa. However, because of the ability to infer potential
+ancestor-descendant relationships, the length of terminal branches may be
+shorter than taxon ranges themselves, as budding may have occurred during
+the range of a morphologically static taxon. By resolving polytomies with
+the cal3 method, this function allows for taxa to be ancestral to more than
+one descendant taxon. Thus, users who believe their dataset may contain
+indirect ancestors are encouraged by the package author to try cal3 methods
+with their consensus trees, as opposed to using the set of most parsimonious
+trees. Comparing the results of these two approaches may be very revealing.
+</p>
+<p>Like <code>timePaleoPhy</code>, <code>cal3TimePaleoPhy</code> is designed for direct application to datasets 
+where taxon first and last appearances are precisely known in continuous time, with 
+no stratigraphic uncertainty. This is an uncommon form of data to have from the fossil record, 
+although not an impossible form (micropaleontologists often have very precise 
+range charts, for example). This means that most users <em>should not</em> use <code>cal3TimePaleoPhy</code> directly, 
+unless they have written their own code to deal with stratigraphic uncertainty. For
+some groups, the more typical 'first' and 'last' dates represent the minimum
+and maximum absolute ages for the fossil collections that a taxon is known
+is known from. Presumably, the first and last appearances of that taxon in
+the fossil record is at unknown dates within these bounds. These should not
+be mistaken as the FADs and LADs desired by <code>cal3TimePaleoPhy</code>, as <code>cal3TimePaleoPhy</code> 
+will use the earliest dates provided to calibrate node ages, which is either
+an overly conservative approach to time-scaling or fairly nonsensical.
+</p>
+<p>If you have time-data in discrete intervals, consider using 
+<code>bin_cal3TimePaleoPhy</code> as an alternative to <code>cal3TimePaleoPhy</code>.
+</p>
+<p><code>bin_cal3TimePaleoPhy</code> is a wrapper of 
+<code>cal3TimePaleoPhy</code> which produces time-scaled trees for datasets which only have 
+interval data available. For each output tree, taxon first and last appearance 
+dates are placed within their listed intervals under a uniform distribution. 
+Thus, a large sample of time-scaled trees will approximate the uncertainty in 
+the actual timing of the FADs and LADs. 
+</p>
+<p>The input <code>timeList</code> object can have overlapping (i.e. non-sequential) intervals,
+and intervals of uneven size. Taxa alive in the modern should be listed as last 
+occurring in a time interval that begins at time 0 and ends at time 0. If taxa 
+occur only in single collections (i.e. their first and last appearance in the 
+fossil record is synchronous, the argument <code>point.occur</code> will force all taxa
+to have instantaneous durations in the fossil record. Otherwise, by default,
+taxa are assumed to first and last appear in the fossil record at different points
+in time, with some positive duration. The <code>sites</code> matrix can be used to force
+only a portion of taxa to have simultaneous first and last appearances.
+</p>
+<p>If <code>timeData</code> or the elements of <code>timeList</code> are actually data frames (as output
+by <code>read.csv</code> or <code>read.table</code>), these will be coerced to a matrix.
+</p>
+<p>A tutorial for applying the time-scaling functions in paleotree,
+particularly the cal3 method, along with an example using real (graptolite)
+data, can be found at the following link:
+</p>
+<p><a href="https://nemagraptus.blogspot.com/2013/06/a-tutorial-to-cal3-time-scaling-using.html">https://nemagraptus.blogspot.com/2013/06/a-tutorial-to-cal3-time-scaling-using.html</a>
+</p>
+
+
+<h3>Value</h3>
+
+<p>The output of these functions is a time-scaled tree or set of
+time-scaled trees, of either class <code>phylo</code> or <code>multiPhylo</code>, depending on the
+argument <code>ntrees</code>. All trees are output with an element <code>$root.time</code>. This is
+the time of the root on the tree and is important for comparing patterns
+across trees.
+</p>
+<p>Additional elements are <code>sampledLogLike</code> and <code>$sumLogLike</code> which respectively
+record a vector containing
+the 'log-densities' of the various node-ages selected for each tree by the 'zipper'
+algorithm, and the sum of those log-densities. Although they are very similar to
+log-likelihood values, they are not true likelihoods, as node ages are conditional on the other
+ages selected by other nodes. However, these values may give an indication about the relative
+optimality of a set of trees output by the cal3 functions.
+</p>
+<p>Trees created with <code>bin_cal3TimePaleoPhy</code> will output with some additional
+elements, in particular <code>$ranges.used</code>, a matrix which records the
+continuous-time ranges generated for time-scaling each tree (essentially a
+pseudo-<code>timeData</code> matrix.)
+</p>
+
+
+<h3>Note</h3>
+
+<p>Most importantly, please note the stochastic element of the three
+rate-calibrated time-scaling methods. These do not use traditional
+optimization methods, but instead draw divergence times from a distribution
+defined by the probability of intervals of unobserved evolutionary history.
+This means analyses MUST be done over many cal3 time-scaled trees for
+analytical rigor! No one tree is correct.
+</p>
+<p>Similarly, please account for stratigraphic uncertainty in your analysis.
+Unless you have exceptionally resolved data, use a wrapper with the cal3
+function, either the provided <code>bin_cal3TimePaleoPhy</code> or code a wrapper
+function of your own that accounts for stratigraphic uncertainty in 
+your dataset. Remember that the FADs (earliest dates) given to <code>timePaleoPhy</code>
+will *always* be used to calibrate node ages!
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David W. Bapst
+</p>
+
+
+<h3>References</h3>
+
+<p>Bapst, D. W. 2013. A stochastic rate-calibrated method for time-scaling
+phylogenies of fossil taxa. <em>Methods in Ecology and Evolution</em>.
+4(8):724-733.
+</p>
+<p>Foote, M. 2000. Origination and extinction components of taxonomic
+diversity: general problems. Pp. 74-102. In D. H. Erwin, and S. L. Wing,
+eds. <em>Deep Time: Paleobiology's Perspective.</em> The Paleontological Society,
+Lawrence, Kansas.
+</p>
+<p>Foote, M. 2001. Inferring temporal patterns of preservation, origination,
+and extinction from taxonomic survivorship analysis. <em>Paleobiology</em>
+27(4):602-630.
+</p>
+<p>Friedman, M., and M. D. Brazeau. 2011. Sequences, stratigraphy and
+scenarios: what can we say about the fossil record of the earliest
+tetrapods? <em>Proceedings of the Royal Society B: Biological Sciences</em>
+278(1704):432-439.
+</p>
+<p>Stanley, S. M. 1979. Macroevolution: Patterns and Process. W. H. Freeman,
+Co., San Francisco.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>timePaleoPhy</code>, 
+<code>make_durationFreqCont</code>,
+<code>pqr2Ps</code>,
+<code>sProb2sRate</code>,
+<code>multi2di</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Simulate some fossil ranges with simFossilRecord
+set.seed(444)
+record &lt;- simFossilRecord(p = 0.1,
+                          q = 0.1,
+                          nruns = 1,
+	                         nTotalTaxa = c(30,40),
+                          nExtant = 0)
+taxa &lt;- fossilRecord2fossilTaxa(record)
+
+# simulate a fossil record with imperfect sampling with sampleRanges
+rangesCont &lt;- sampleRanges(taxa,
+      r = 0.5)
+# let's use taxa2cladogram to get the 'ideal' cladogram of the taxa
+cladogram &lt;- taxa2cladogram(taxa,
+      plot = TRUE)
+
+# this package allows one to use
+  # rate calibrated type time-scaling methods (Bapst, 2014)
+# to use these, we need an estimate of the sampling rate 
+     # (we set it to 0.5 above)
+likFun &lt;- make_durationFreqCont(rangesCont)
+srRes &lt;- optim(
+    parInit(likFun),
+    likFun,
+    lower = parLower(likFun),
+    upper = parUpper(likFun),
+    method = "L-BFGS-B",
+    control = list(maxit = 1000000))
+sRate &lt;- srRes[[1]][2]
+
+# we also need extinction rate and branching rate
+   # we can get extRate from getSampRateCont too
+# we'll assume extRate = brRate (ala Foote et al., 1999)
+    # this may not always be a good assumption!
+divRate &lt;- srRes[[1]][1]
+
+# now let's try cal3TimePaleoPhy
+   # which time-scales using a sampling rate to calibrate
+# This can also resolve polytomies based on
+    # sampling rates, with some stochastic decisions
+ttree &lt;- cal3TimePaleoPhy(
+    cladogram,
+     rangesCont,
+    brRate = divRate,
+    extRate = divRate,
+    sampRate = sRate,
+    ntrees = 1,
+    plot = TRUE)
+    
+# notice the warning it gives!
+phyloDiv(ttree)
+
+# by default, cal3TimePaleoPhy may predict indirect ancestor-descendant relationships
+     # can turn this off by setting anc.wt = 0
+ttree &lt;- cal3TimePaleoPhy(
+    cladogram,
+     rangesCont,
+    brRate = divRate,
+    extRate = divRate,
+    sampRate = sRate,
+    ntrees = 1,
+    anc.wt = 0,
+    plot = TRUE)
+
+
+# let's look at how three trees generated
+    # with very different time of obs. look
+    
+ttreeFAD &lt;- cal3TimePaleoPhy(
+    cladogram, 
+    rangesCont,
+    brRate = divRate,
+    extRate = divRate,
+    FAD.only = TRUE,
+    dateTreatment = "firstLast",
+    sampRate = sRate,
+    ntrees = 1,
+    plot = TRUE)
+    
+ttreeRand &lt;- cal3TimePaleoPhy(
+    cladogram, 
+    rangesCont,
+    brRate = divRate,
+    extRate = divRate,
+    FAD.only = FALSE,
+    dateTreatment = "randObs",
+    sampRate = sRate,
+    ntrees = 1,plot = TRUE)
+    
+# by default the time of observations are the LADs
+ttreeLAD &lt;- cal3TimePaleoPhy(
+    cladogram, 
+    rangesCont,
+    brRate = divRate,
+    extRate = divRate,
+    FAD.only = FALSE,
+    dateTreatment = "randObs",
+    sampRate = sRate,
+    ntrees = 1,
+    plot = TRUE)
+
+# and let's plot
+layout(1:3)
+parOrig &lt;- par(no.readonly = TRUE)
+par(mar = c(0,0,0,0))
+plot(ladderize(ttreeFAD));text(5,5,
+    "time.obs = FAD",
+    cex = 1.5, pos = 4)
+plot(ladderize(ttreeRand));text(5,5,
+    "time.obs = Random",
+    cex = 1.5, pos = 4)
+plot(ladderize(ttreeLAD));text(5,5,
+    "time.obs = LAD",
+    cex = 1.5, pos = 4)
+layout(1)
+par(parOrig)
+
+# to get a fair sample of trees
+    # let's increase ntrees
+    
+ttrees &lt;- cal3TimePaleoPhy(
+    cladogram,
+    rangesCont,
+    brRate = divRate,
+    extRate = divRate,
+    sampRate = sRate,
+    ntrees = 9,
+    plot = FALSE)
+    
+# let's compare nine of them at once in a plot
+    
+layout(matrix(1:9,3,3))
+parOrig &lt;- par(no.readonly = TRUE)
+par(mar = c(0,0,0,0))
+for(i in 1:9){
+    plot(ladderize(ttrees[[i]]),
+         show.tip.label = FALSE)
+    }
+layout(1)
+par(parOrig)
+# they are all a bit different!
+
+# can plot the median diversity curve with multiDiv
+multiDiv(ttrees)
+
+# using node.mins
+# let's say we have (molecular??) evidence that
+    # node (5) is at least 1200 time-units ago
+# to use node.mins, first need to drop any unshared taxa
+droppers &lt;- cladogram$tip.label[is.na(
+    match(cladogram$tip.label,
+           names(which(!is.na(rangesCont[,1])))
+           )
+    )
+    ]
+    
+# and then drop those taxa
+cladoDrop &lt;- drop.tip(cladogram, droppers)
+    
+# now make vector same length as number of nodes
+nodeDates &lt;- rep(NA, Nnode(cladoDrop))
+nodeDates[5] &lt;- 1200
+ttree &lt;- cal3TimePaleoPhy(cladoDrop,
+    rangesCont,
+    brRate = divRate,
+    extRate = divRate,
+    sampRate = sRate,
+    ntrees = 1,
+    node.mins = nodeDates,
+    plot = TRUE)
+
+# example with time in discrete intervals
+set.seed(444)
+record &lt;- simFossilRecord(p = 0.1,
+     q = 0.1,
+     nruns = 1,
+     nTotalTaxa = c(30,40),
+     nExtant = 0)
+taxa &lt;- fossilRecord2fossilTaxa(record)
+# simulate a fossil record
+    # with imperfect sampling with sampleRanges
+rangesCont &lt;- sampleRanges(taxa,r = 0.5)
+# let's use taxa2cladogram to get the 'ideal' cladogram of the taxa
+cladogram &lt;- taxa2cladogram(taxa,plot = TRUE)
+# Now let's use binTimeData to bin in intervals of 1 time unit
+rangesDisc &lt;- binTimeData(rangesCont,int.length = 1)
+    
+# we can do something very similar for
+    # the discrete time data (can be a bit slow)
+likFun &lt;- make_durationFreqDisc(rangesDisc)
+spRes &lt;- optim(
+    parInit(likFun),
+    likFun,
+    lower = parLower(likFun),
+    upper = parUpper(likFun),
+    method = "L-BFGS-B",
+    control = list(maxit = 1000000))
+sProb &lt;- spRes[[1]][2]
+    
+# but that's the sampling PROBABILITY per bin
+    # NOT the instantaneous rate of change
+    
+# we can use sProb2sRate() to get the rate
+    # We'll need to also tell it the int.length
+sRate1 &lt;- sProb2sRate(sProb,int.length = 1)
+    
+# we also need extinction rate and branching rate (see above)
+    # need to divide by int.length...
+divRate &lt;- spRes[[1]][1]/1
+    
+# estimates that r = 0.3... 
+    # that's kind of low (simulated sampling rate is 0.5)
+# Note: for real data, you may need to use an average int.length 
+    # (i.e. if intervals aren't all the same duration)
+ttree &lt;- bin_cal3TimePaleoPhy(cladogram,
+    rangesDisc,
+    brRate = divRate,
+    extRate = divRate,
+    sampRate = sRate1,
+    ntrees = 1,
+    plot = TRUE)
+phyloDiv(ttree)
+    
+# can also force the appearance timings
+    # not to be chosen stochastically
+ttree1 &lt;- bin_cal3TimePaleoPhy(cladogram,
+    rangesDisc,
+    brRate = divRate,
+    extRate = divRate,
+    sampRate = sRate1,
+    ntrees = 1,
+    nonstoch.bin = TRUE,
+    plot = TRUE)
+phyloDiv(ttree1)
+
+# testing node.mins in bin_cal3TimePaleoPhy
+ttree &lt;- bin_cal3TimePaleoPhy(cladoDrop,
+    rangesDisc,
+    brRate = divRate,
+    extRate = divRate,
+    sampRate = sRate1,
+    ntrees = 1,
+    node.mins = nodeDates,
+    plot = TRUE)
+# with randres = TRUE
+ttree &lt;- bin_cal3TimePaleoPhy(cladoDrop,
+    rangesDisc,
+    brRate = divRate,
+    extRate = divRate,
+    sampRate = sRate1,
+    ntrees = 1,
+    randres = TRUE,
+    node.mins = nodeDates,
+    plot = TRUE)
+
+
+# example with multiple values of anc.wt
+ancWt &lt;- sample(0:1,
+    nrow(rangesDisc[[2]]),
+    replace = TRUE)
+names(ancWt) &lt;- rownames(rangesDisc[[2]])
+    
+ttree1 &lt;- bin_cal3TimePaleoPhy(cladogram,
+    rangesDisc,
+    brRate = divRate, 
+    extRate = divRate,
+    sampRate = sRate1, 
+    ntrees = 1,
+    anc.wt = ancWt, 
+    plot = TRUE)
+    
+
+
+</code></pre>
+
+
+</div>

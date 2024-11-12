@@ -1,0 +1,108 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>diagnose_expressions</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Diagnose expressions and substitute debug markers</h2>
+
+<h3>Description</h3>
+
+<p>Assertions in the <code>precondition</code> package support debug markers to provide
+user-friendly assertion failure diagnosis. The low-level diagnostic
+machinery is implemented by <code>diagnose_expressions()</code>. Advanced users can
+make use of this function in their own code or when implementing custom
+assertion helpers (see <code>diagnose_assertion_failure()</code>).
+</p>
+<p>Use single curly braces <code>{x}</code> to mark expressions of interest and make them
+appear as separate entries in the diagnostic output. Use double curly braces
+<code>{{x}}</code> to perform checks on behalf of a parent function and display
+diagnostics in the context of the parent.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">diagnose_expressions(..., .env)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>expressions to diagnose</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.env</code></td>
+<td>
+<p>(advanced) the environment where the diagnosis should be performed</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>diagnose_expressions()</code> supports two kinds of debug markers. Both rely on
+wrapping expressions in one or more curly braces <code>{}</code>.
+</p>
+
+<ul>
+<li>
+<p> wrapping an expression in curly braces (e.g. <code>{x} &gt; 0</code>) means that the this
+expression is of particular interest and should be diagnosed separately.
+The braces will be removed from the diagnostic output and the wrapped
+expression will be added as a separate entry in the diagnostic table
+(note: <code>diagnose_expressions({x} &gt; 0)</code> is equivalent to <code>debug_expressions (x &gt; 0, x)</code>).
+</p>
+</li>
+<li>
+<p> wrapping a function argument in two curly braces (e.g. 'arg &gt; 0) means
+that the argument is being been forwarded from a parent function. This
+concept of forwarding is borrowed from tidyverse's
+rlang::embrace-operator. A forwarded argument will be replaced by the
+original caller expression in the diagnostic output.
+</p>
+</li>
+</ul>
+<p><code>diagnose_expressions()</code> returns a data frame with one row per diagnosed
+expression(either supplied as an argument or marked via <code>{}</code>) and three
+columns. The column <code>expr</code> is a list of diagnosed expressions, with debug
+markers processed and substituted. The column <code>eval_result</code> is a list of
+evaluated results for each diagnosed expressions. The column <code>is_error</code> is a
+logical vector where value of <code>TRUE</code> indicates that an error occurred when
+evaluating the respective expression. In this case the corresponding value
+of <code>eval_result</code> will capture the error condition.
+</p>
+<p>Note that expressions or their parts might be evaluated more then once during
+diagnosis. Side effects in diagnosed expressions can lead to unexpected
+behavior.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a data frame with diagnostic information
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+x &lt;- 10
+diagnose_expressions({x} &gt; 0, {x} &gt; 15)
+
+helper &lt;- function(arg) {
+   cat(sprintf("`arg` is forwarded `%s`\n", forwarded_arg_label(arg)))
+   diagnose_expressions({{{arg}}} &gt; 0)
+}
+fun &lt;- function(x) {
+  helper(x)
+}
+fun(10)
+</code></pre>
+
+
+</div>

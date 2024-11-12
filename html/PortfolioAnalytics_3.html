@@ -1,0 +1,227 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>add.constraint</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>General interface for adding and/or updating optimization constraints.</h2>
+
+<h3>Description</h3>
+
+<p>This is the main function for adding and/or updating constraints to the <code>portfolio.spec</code> object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">add.constraint(
+  portfolio,
+  type,
+  enabled = TRUE,
+  message = FALSE,
+  ...,
+  indexnum = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>portfolio</code></td>
+<td>
+<p>an object of class 'portfolio' to add the constraint to, specifying the constraints for the optimization, see <code>portfolio.spec</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>character type of the constraint to add or update, currently 'weight_sum' (also 'leverage' or 'weight'), 'box', 'group', 'turnover', 'diversification', 'position_limit', 'return', 'factor_exposure', or 'leverage_exposure'</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>enabled</code></td>
+<td>
+<p>TRUE/FALSE. The default is enabled=TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>message</code></td>
+<td>
+<p>TRUE/FALSE. The default is message=FALSE. Display messages if TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>any other passthru parameters to specify constraints</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indexnum</code></td>
+<td>
+<p>if you are updating a specific constraint, the index number in the $constraints list to update</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The following constraint types may be specified:
+</p>
+
+<dl>
+<dt>
+<code>weight_sum</code>, <code>weight</code>, <code>leverage</code>
+</dt>
+<dd>
+<p> Specify constraint on the sum of the weights, see <code>weight_sum_constraint</code> </p>
+</dd>
+<dt><code>full_investment</code></dt>
+<dd>
+<p> Special case to set <code>min_sum=1</code> and <code>max_sum=1</code> of weight sum constraints </p>
+</dd>
+<dt>
+<code>dollar_neutral</code>, <code>active</code>
+</dt>
+<dd>
+<p> Special case to set <code>min_sum=0</code> and <code>max_sum=0</code> of weight sum constraints </p>
+</dd>
+<dt><code>box</code></dt>
+<dd>
+<p> box constraints for the individual asset weights, see <code>box_constraint</code> </p>
+</dd>
+<dt><code>long_only</code></dt>
+<dd>
+<p> Special case to set <code>min=0</code> and <code>max=1</code> of box constraints </p>
+</dd>
+<dt><code>group</code></dt>
+<dd>
+<p> specify the sum of weights within groups and the number of assets with non-zero weights in groups, see <code>group_constraint</code> </p>
+</dd>
+<dt><code>turnover</code></dt>
+<dd>
+<p> Specify a constraint for target turnover. Turnover is calculated from a set of initial weights, see <code>turnover_constraint</code> </p>
+</dd>
+<dt><code>diversification</code></dt>
+<dd>
+<p> target diversification of a set of weights, see <code>diversification_constraint</code> </p>
+</dd>
+<dt><code>position_limit</code></dt>
+<dd>
+<p> Specify the number of non-zero, long, and/or short positions, see <code>position_limit_constraint</code> </p>
+</dd>
+<dt><code>return</code></dt>
+<dd>
+<p> Specify the target mean return, see <code>return_constraint</code></p>
+</dd>
+<dt><code>factor_exposure</code></dt>
+<dd>
+<p> Specify risk factor exposures, see <code>factor_exposure_constraint</code></p>
+</dd>
+<dt><code>leverage_exposure</code></dt>
+<dd>
+<p> Specify a maximum leverage exposure, see <code>leverage_exposure_constraint</code></p>
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p>Ross Bennett
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>portfolio.spec</code>
+<code>weight_sum_constraint</code>, 
+<code>box_constraint</code>, 
+<code>group_constraint</code>, 
+<code>turnover_constraint</code>, 
+<code>diversification_constraint</code>, 
+<code>position_limit_constraint</code>, 
+<code>return_constraint</code>, 
+<code>factor_exposure_constraint</code>,
+<code>leverage_exposure_constraint</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(edhec)
+returns &lt;- edhec[, 1:4]
+fund.names &lt;- colnames(returns)
+pspec &lt;- portfolio.spec(assets=fund.names)
+
+# Add the full investment constraint that specifies the weights must sum to 1.
+pspec &lt;- add.constraint(portfolio=pspec, type="weight_sum", min_sum=1, max_sum=1)
+
+# The full investment constraint can also be specified with type="full_investment"
+pspec &lt;- add.constraint(portfolio=pspec, type="full_investment")
+
+# Another common constraint is that portfolio weights sum to 0.
+pspec &lt;- add.constraint(portfolio=pspec, type="weight_sum", min_sum=0, max_sum=0)
+pspec &lt;- add.constraint(portfolio=pspec, type="dollar_neutral")
+pspec &lt;- add.constraint(portfolio=pspec, type="active")
+
+# Add box constraints
+pspec &lt;- add.constraint(portfolio=pspec, type="box", min=0.05, max=0.4)
+
+# min and max can also be specified per asset
+pspec &lt;- add.constraint(portfolio=pspec, 
+                        type="box", 
+                        min=c(0.05, 0, 0.08, 0.1), 
+                        max=c(0.4, 0.3, 0.7, 0.55))
+                        
+# A special case of box constraints is long only where min=0 and max=1
+# The default action is long only if min and max are not specified
+pspec &lt;- add.constraint(portfolio=pspec, type="box")
+pspec &lt;- add.constraint(portfolio=pspec, type="long_only")
+
+# Add group constraints
+pspec &lt;- add.constraint(portfolio=pspec, 
+                        type="group", 
+                        groups=list(c(1, 2, 1), 4), 
+                        group_min=c(0.1, 0.15), 
+                        group_max=c(0.85, 0.55), 
+                        group_labels=c("GroupA", "GroupB"), 
+                        group_pos=c(2, 1))
+
+# Add position limit constraint such that we have a maximum number 
+# of three assets with non-zero weights.
+pspec &lt;- add.constraint(portfolio=pspec, type="position_limit", max_pos=3)
+
+# Add diversification constraint
+pspec &lt;- add.constraint(portfolio=pspec, type="diversification", div_target=0.7)
+
+# Add turnover constraint
+pspec &lt;- add.constraint(portfolio=pspec, type="turnover", turnover_target=0.2)
+
+# Add target mean return constraint
+pspec &lt;- add.constraint(portfolio=pspec, type="return", return_target=0.007)
+
+# Example using the indexnum argument
+portf &lt;- portfolio.spec(assets=fund.names)
+portf &lt;- add.constraint(portf, type="full_investment")
+portf &lt;- add.constraint(portf, type="long_only")
+
+# indexnum corresponds to the index number of the constraint
+# The full_investment constraint was the first constraint added and has 
+# indexnum=1
+portf$constraints[[1]]
+
+# View the constraint with indexnum=2
+portf$constraints[[2]]
+
+# Update the constraint to relax the sum of weights constraint
+portf &lt;- add.constraint(portf, type="weight_sum", 
+min_sum=0.99, max_sum=1.01, 
+indexnum=1)
+
+# Update the constraint to modify the box constraint
+portf &lt;- add.constraint(portf, type="box", 
+min=0.1, max=0.8, 
+indexnum=2)
+</code></pre>
+
+
+</div>

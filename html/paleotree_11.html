@@ -1,0 +1,950 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>timePaleoPhy</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simplistic <em>a posteriori</em> Dating Approaches For Paleontological Phylogenies</h2>
+
+<h3>Description</h3>
+
+<p>Dates an unscaled cladogram of fossil taxa using information on their
+temporal ranges, using various methods. Also can resolve polytomies randomly
+and output samples of randomly-resolved trees. As simple methods of dating ('time-scaling')
+phylogenies of fossil taxa can have biasing effects on macroevolutionary analyses
+(Bapst, 2014, Paleobiology), this function is largely retained for legacy purposes
+and plotting applications. The methods implemented
+by the functions listed here do <b>not</b> return realistic estimates of 
+divergence dates, and users are strongly encouraged to investigate other
+methods such as <code>cal3TimePaleoPhy</code> or <code>createMrBayesTipDatingNexus</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">timePaleoPhy(
+  tree,
+  timeData,
+  type = "basic",
+  vartime = NULL,
+  ntrees = 1,
+  randres = FALSE,
+  timeres = FALSE,
+  add.term = FALSE,
+  inc.term.adj = FALSE,
+  dateTreatment = "firstLast",
+  node.mins = NULL,
+  noisyDrop = TRUE,
+  plot = FALSE
+)
+
+bin_timePaleoPhy(
+  tree,
+  timeList,
+  type = "basic",
+  vartime = NULL,
+  ntrees = 1,
+  nonstoch.bin = FALSE,
+  randres = FALSE,
+  timeres = FALSE,
+  sites = NULL,
+  point.occur = FALSE,
+  add.term = FALSE,
+  inc.term.adj = FALSE,
+  dateTreatment = "firstLast",
+  node.mins = NULL,
+  noisyDrop = TRUE,
+  plot = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tree</code></td>
+<td>
+<p>An unscaled cladogram of fossil taxa, of class <code>phylo</code>. Tip labels
+must match the taxon labels in the respective temporal data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timeData</code></td>
+<td>
+<p>Two-column matrix of first and last occurrences in absolute
+continuous time, with row names as the taxon IDs used on the tree. This means the
+first column is very precise FADs (first appearance dates) and the second 
+column is very precise LADs (last appearance dates), reflect the precise points
+in time when taxa first and last appear. If there is stratigraphic uncertainty in
+when taxa appear in the fossil record, it is preferable to use the <code>bin_</code>
+dating functions; however, see the argument <code>dateTreatment</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>Type of time-scaling method used. Can be <code>"basic"</code>,
+<code>"equal"</code>, <code>"equal_paleotree_legacy"</code>, <code>"equal_date.phylo_legacy"</code>
+<code>"aba"</code>, <code>"zbla"</code> or <code>"mbl"</code>.
+<code>Type = "basic"</code> by default. See details below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vartime</code></td>
+<td>
+<p>Time variable; usage depends on the <code>type</code> argument.
+Ignored if <code>type = "basic"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ntrees</code></td>
+<td>
+<p>Number of dated trees to output. 
+Only applicable is there is some stochastic (random) element to the analysis.
+If <code>ntrees</code> is greater than one, and
+both <code>randres = FALSE</code> and <code>dateTreatment</code> is neither
+<code>'minMax'</code> or <code>'randObs'</code>, the function will fail and
+a warning is issued, as these arguments would simply produce multiple
+identical time-scaled trees.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>randres</code></td>
+<td>
+<p>Should polytomies be randomly resolved? By default,
+<code>timePaleoPhy</code> does not resolve polytomies, instead outputting a dated
+tree that is only as resolved as the input tree. If <code>randres = TRUE</code>, then
+polytomies will be randomly resolved using <code>multi2di</code> from the
+package ape. If <code>randres = TRUE</code> and <code>ntrees = 1</code>, a warning is printed that users
+should analyze multiple randomly-resolved trees, rather than a single such
+tree, although a tree is still output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timeres</code></td>
+<td>
+<p>Should polytomies be resolved relative to the order of
+appearance of lineages? By default, <code>timePaleoPhy</code> does not resolve
+polytomies, instead outputting a time-scaled tree that is only as resolved
+as the input tree. If <code>timeres = TRUE</code>, then polytomies will be resolved with
+respect to time using the paleotree function <code>timeLadderTree</code>.
+See that functions help page for more information; the result of time-order
+resolving of polytomies generally does not differ across multiple uses,
+unlike use of <code>multi2di</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add.term</code></td>
+<td>
+<p>If <code>TRUE</code>, adds terminal ranges. By default, this function will
+not add the ranges of taxa when time-scaling a tree, so that the tips
+correspond temporally to the first appearance datums of the given taxa. If
+<code>add.term = TRUE</code>, then the 'terminal ranges' of the taxa are added to the tips
+after tree is dated, such that the tips now correspond to the last
+appearance datums.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inc.term.adj</code></td>
+<td>
+<p>If <code>TRUE</code>, includes terminal ranges in branch length
+estimates for the various adjustment of branch lengths under all methods
+except <code>type = 'basic'</code> 
+(in other words, a terminal length branch will not be treated as zero
+length if <code>inc.term.adj = TRUE</code>, if the tip-taxon on this branch has a non-zero
+duration). By default, this argument is <code>FALSE</code> and this function will not
+include the ranges of taxa when adjusting branch lengths, so that
+zero-length branches before first appearance times will be extended. An
+error is returned if this <code>inc.term.adj = TRUE</code> but <code>type = "basic"</code> or
+<code>add.term = FALSE</code>, as this argument is inconsistent with those argument
+options.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dateTreatment</code></td>
+<td>
+<p>This argument controls the interpretation of <code>timeData</code>. 
+The default setting <code>dateTreatment = "firstLast"</code> treats the dates 
+in <code>timeData</code> as a column of precise first and last appearances.
+</p>
+<p>A second option is <code>dateTreatment = "minMax"</code>, which 
+treats these dates as minimum and maximum bounds on single point dates. Under this option,
+all taxa in the analysis will be treated as being point dates, such that the first appearance
+is also the last. These dates will be pulled under a uniform distribution.
+If <code>dateTreatment = "minMax"</code> is used,
+<code>add.term</code> becomes meaningless, and the use of it will return an error message.
+</p>
+<p>A third option is <code>dateTreatment = "randObs"</code>. This assumes that the dates in the
+matrix are first and last appearance times, but that the desired time of observation is unknown.
+Thus, this is much like <code>dateTreatment = "firstLast"</code> except
+the effective time of observation (the taxon's LAD under
+<code>dateTreatment = "firstLast"</code>) is treated as an uncertain date, and
+is randomly sampled between the first and last appearance times. The FAD still is treated as a fixed number, used
+for dating the nodes. In previous versions of paleotree, this
+was called in <code>timePaleoPhy</code> using the argument <code>rand.obs</code>, which has been removed
+for clarity. This temporal uncertainty in times of observation might be useful if
+a user is interested in applying phylogeny-based approaches to studying trait evolution, but have
+per-taxon measurements of traits that come from museum specimens with uncertain temporal placement.
+</p>
+<p>With both arguments <code>dateTreatment = "minMax"</code> and
+<code>dateTreatment = "randObs"</code>, the sampling of dates from random distributions should
+compel users to produce many time-scaled trees for any given analytical purpose.
+Note that <code>dateTreatment = "minMax"</code> returns an error in 'bin' time-scaling functions; please use
+<code>points.occur</code> instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>node.mins</code></td>
+<td>
+<p>The minimum dates of internal nodes (clades) on a phylogeny can be set
+using <code>node.mins</code>. This argument takes a vector of the same length as the number of nodes,
+with dates given in the same order as nodes are ordered in the <code>tree$edge</code> matrix.
+Note that in <code>tree$edge</code>, terminal tips are given the first set of numbers
+(<code>1:Ntip(tree)</code>), so the first element of <code>node.mins</code> is the first internal node
+(the node numbered <code>Ntip(tree)+1</code>, which is generally the root for most <code>phylo</code>
+objects read by <code>read.tree</code>). Not all nodes need be given minimum dates; those without
+minimum dates can be given as NA in <code>node.mins</code>, but the vector must be the same length
+as the number of internal nodes in <code>tree</code>. These are minimum date constraints, such that
+a node will be forced to be <em>at least as old as this date</em>, but the final date may be even
+older depending on the taxon dates used, the time-scaling method applied, the <code>vartime</code>
+used and any other minimum node dates given (e.g. if a clade is given a very old minimum date,
+this will (of course) over-ride any minimum dates given for clades that that node is nested
+within). Although <code>vartime</code> does adjust the node age downwards when the equal method
+is used, if a user has a specific date they'd like to constrain the root to, they should use
+<code>node.mins</code> instead because the result is more predictable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>noisyDrop</code></td>
+<td>
+<p>If <code>TRUE</code> (the default), any taxa dropped from tree due to not
+having a matching entry in the time data will be listed in a system message.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>If <code>TRUE</code>, plots the input and output phylogenies.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timeList</code></td>
+<td>
+<p>A list composed of two matrices giving interval times and
+taxon appearance dates. The rownames of the second matrix should be the taxon IDs,
+identical to the <code>tip.labels</code> for tree. See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nonstoch.bin</code></td>
+<td>
+<p>If <code>nonstoch.bin = TRUE</code> (the default is <code>FALSE</code>,
+dates are <em>not</em> stochastically drawn from
+uniform distributions bounded by the upper and lower boundaries
+of the geologic intervals (the 'bins'), as typically occurs with '<code>bin_</code>'
+time-scaling methods in <code>paleotree</code> but instead first-appearance dates are
+assigned to the earliest time of the interval a taxon first appears in, while 
+last-appearance dates are placed at the youngest (the 'later-most') date in the
+interval that that taxon last appears in.  This option may be useful for plotting.
+Note that if <code>nonstoch.bin = TRUE</code>, the <code>sites</code> argument becomes arbitrary
+and has no influence on the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sites</code></td>
+<td>
+<p>Optional two column matrix, composed of site IDs for taxon FADs
+and LADs. The sites argument allows users to constrain the placement of
+dates by restricting multiple fossil taxa whose FADs or LADs are from the
+same very temporally restricted sites (such as fossil-rich Lagerstatten) to
+always have the same date, across many iterations of time-scaled trees. To
+do this, provide a <code>matrix</code> to the <code>sites</code> argument
+where the "site" of each FAD and LAD for every
+taxon is listed, as corresponding to the second matrix in <code>timeList</code>. If no
+sites matrix is given (the default), then it is assumed all fossil come from
+different "sites" and there is no shared temporal structure among the
+events.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>point.occur</code></td>
+<td>
+<p>If true, will automatically produce a 'sites' matrix
+which forces all FADs and LADs to equal each other. This should be used when
+all taxa are only known from single 'point occurrences', i.e. each is only
+recovered from a single bed/horizon, such as a Lagerstatten.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><em>Simplistic 'a posteriori' Dating (aka 'Time-Scaling') Methods for Paleontology Phylogenies</em>
+</p>
+<p>These functions are an attempt to unify and collect previously used and
+discussed <em>a posteriori</em> methods for time-scaling phylogenies of fossil taxa.
+Unfortunately, it can be difficult to attribute some time-scaling methods to
+specific references in the literature.
+</p>
+<p>There are five main <em>a posteriori</em> approaches that
+can be used by <code>timePaleoPhy</code>. Four of these
+main types use some value of absolute time, chosen <em>a priori</em>, to date the tree.
+This is handled by the argument <code>vartime</code>, which is <code>NULL</code> by default and unused
+for type <code>"basic"</code>.
+</p>
+
+<dl>
+<dt>"basic"</dt>
+<dd>
+<p>This most simple of time-scaling methods ignores <code>vartime</code> and
+scales nodes so they are as old as the first appearance of their oldest
+descendant (Smith, 1994). This method produces many zero-length branches
+(Hunt and Carrano, 2010).</p>
+</dd>
+<dt>"equal"</dt>
+<dd>
+<p>The <code>"equal"</code> method defined by G. Lloyd and used in Brusatte
+et al. (2008) and Lloyd et al. (2012). Originally usable in code supplied by
+G. Lloyd, the <code>"equal"</code> algorithm is recreated here as closely as possible. This method
+works by increasing the time of the root divergence by some amount and then
+adjusting zero-length branches so that time on early branches is re-apportioned
+out along those later branches equally. Branches are adjusted in order relative
+to the number of nodes separating the edge from the root, going from the furthest
+(most shallow) edges to the deepest edges. 
+The choice of ordering algorithm can have an unanticipated large effect on the
+resulting dated trees created using <code>"equal"</code> and it appears that 
+<code>paleotree</code> and functions written by G. Lloyd were not always consistent.
+The default option described here was only introduced in <code>paleotree</code> 
+and other available software sources in August 2014. 
+Thus, two legacy <code>"equal"</code> methods are included in this function, so users can
+emulate older ordering algorithms for <code>"equal"</code> which are now deprecated, as they do not
+match the underlying logic of the original <code>"equal"</code> algorithm and do not minimize down-passes
+when adjusting branch lengths on the time-scaled tree.
+</p>
+<p>The root age can be adjusted backwards in time by either increasing by
+an arbitrary amount (via the <code>vartime</code>  argument) or by setting the
+root age directly (via the <code>node.mins</code> argument); conversely, the
+function will also allow a user to opt to not alter the root age at all.</p>
+</dd>
+<dt>"equal_paleotree_legacy"</dt>
+<dd>
+<p>Exactly like <code>"equal"</code> above, 
+except that edges are ordered instead
+by their depth (i.e. number of nodes from the root). This minor modified version
+was referred to as <code>"equal"</code> for this <code>timePaleoPhy</code>
+function in <code>paleotree</code> until February 2014, and thus is
+included here solely for legacy purposes. 
+This ordering algorithm does not minimize branch adjustment cycles,
+like the newer default offered under currently <code>"equal"</code>.</p>
+</dd>
+<dt>"equal_date.phylo_legacy"</dt>
+<dd>
+<p>Exactly like <code>"equal"</code> above, except that edges are ordered relative
+to their time (i.e., the total edge length) from the root following the application of the 'basic'
+time-scaling method, exactly as in G. Lloyd's original application. This was the method for sorting
+edges in the <code>"equal"</code> algorithm in G. Lloyd's <code>date.phylo</code> script and <code>DatePhylo</code> in
+package <code>strap</code> until August 2014, and was the default
+<code>"equal"</code> algorithm in <code>paleotree</code>'s <code>timePaleoPhy</code>
+function from February 2014 until August 2014.  
+This ordering algorithm does not minimize branch adjustment cycles,
+like the newer default offered under currently <code>"equal"</code>. 
+Due to how the presence of zero-length
+branches can make ordering branches based on time to be very unpredictable, 
+this version of the <code>"equal"</code> algorithm is <b>highly not recommended</b>.</p>
+</dd>
+<dt>"aba"</dt>
+<dd>
+<p>All branches additive. 
+This method takes the <code>"basic"</code> time-scaled tree and
+adds <code>vartime</code> to all branches. 
+Note that this time-scaling method can (and often will) warp the
+tree structure, leading to tips to originate out of order with the appearance
+data used.</p>
+</dd>
+<dt>"zlba"</dt>
+<dd>
+<p>Zero-length branches additive. 
+This method adds <code>vartime</code> to all
+zero-length branches in the "basic" tree. 
+Discussed (possibly?) by Hunt and Carrano, 2010. 
+Note that this time-scaling method can warp the tree structure, 
+leading to tips to originate out of order with the appearance data used.</p>
+</dd>
+<dt>"mbl"</dt>
+<dd>
+<p>Minimum branch length. Scales all branches so they are
+greater than or equal to <code>vartime</code>, and subtract time added to later branches
+from earlier branches in order to maintain the temporal structure of events.
+A version of this was first introduced by Laurin (2004).</p>
+</dd> </dl>
+<p>These functions cannot time-scale branches relative to reconstructed
+character changes along branches, as used by Lloyd et al. (2012). Please
+see <code>DatePhylo</code> in R package <code>strap</code> for this functionality.
+</p>
+<p>These functions will intuitively drop taxa from the tree with NA for range
+or are missing from <code>timeData</code> or <code>timeList</code>. Taxa dropped from the tree will be
+will be listed in a message output to the user. The same is done for taxa in
+the <code>timeList</code> object not listed in the tree.
+</p>
+<p>As with many functions in the <code>paleotree</code> library, absolute time is always
+decreasing, i.e. the present day is zero.
+</p>
+<p>As of August 2014, please note that the branch-ordering algorithm used in <code>"equal"</code> has changed
+to match the current algorithm used by <code>DatePhylo</code> in package <code>strap</code>, and that two legacy
+versions of <code>"equal"</code> have been added to this function, respectively representing how <code>timePaleoPhy</code>
+and <code>DatePhylo</code> (and its predecessor <code>date.phylo</code>) applied the <code>"equal"</code> time-scaling method.
+</p>
+<p><em>Interpretation of Taxon Ages in <code>timePaleoPhy</code></em>
+</p>
+<p><code>timePaleoPhy</code> is <em>primarily</em> designed for direct application to datasets where taxon first 
+and last appearances are precisely known in continuous time, with no stratigraphic
+uncertainty. This is an uncommon form of data to have from the fossil record, 
+although not an impossible form (micropaleontologists often have very precise 
+range charts, for example). 
+Instead, most data has some form of stratigraphic uncertainty. 
+However, for some groups, the more typical 'first' and 'last' dates
+found in the literature or in databases represent the minimum
+and maximum absolute ages for the fossil collections that a taxon is known
+is known from. Presumably, the first and last appearances of that taxon in
+the fossil record is at unknown dates within these bounds. 
+</p>
+<p>As of paleotree v2.0. the treatment of taxon ages in
+<code>timePaleoPhy</code> is handled by the argument <code>dateTreatment</code>.
+<em>By default,</em> this argument is set to <code>"firstLast"</code> which means the matrix of ages are treated
+as precise first and last appearance dates (i.e. FADs and LADs). The earlier FADs will be used
+to calibrate the node ages, which could produce fairly nonsensical results if these are 'minimum'
+ages instead and reflect age uncertainty. Alternatively, <code>dateTreatment</code> can be set to <code>"minMax"</code>
+which instead treats taxon age data as minimum and maximum bounds on a single point date. 
+These point dates, if the minimum and maximum bounds option is selected,
+are chose under a uniform distribution. Many dated trees should be generated, in order to approximate
+the uncertainty in the dates. Additionally, there is a third option for <code>dateTreatment</code>:
+users may also make it so that the 'times of observation'
+of trees are uncertain, such that the tips of the tree (with terminal ranges added) should
+be randomly selected from a uniform distribution. Essentially, this third option treats the
+dates as first and last appearances, but treats the first appearance dates as known and
+fixed, but the 'last appearance' dates as unknown. In previous versions of paleotree,
+this third option was enacted with the argument <code>rand.obs</code>, which has been removed for
+clarity.
+</p>
+<p><em>Interpretation of Taxon Ages in <code>bin_timePaleoPhy</code></em>
+</p>
+<p>As an alternative to using <code>timePaleoPhy</code>, <code>bin_timePaleoPhy</code> is a wrapper of 
+<code>timePaleoPhy</code> which produces time-scaled trees for datasets which only have 
+interval data available. For each output tree, taxon first and last appearance 
+dates are placed within their listed intervals under a uniform distribution. 
+Thus, a large sample of dated trees will (hopefully) approximate the uncertainty in 
+the actual timing of the FADs and LADs. In some ways, treating taxonomic age uncertainty
+may be more logical via <code>bin_timePaleoPhy</code>, as it is tied to specific interval bounds,
+and there are more options available for certain types of age uncertainty, such as for cases
+where specimens come from the same fossil site.
+</p>
+<p>The input <code>timeList</code> object for <code>bin_timePaleoPhy</code> can have overlapping
+(i.e. non-sequential) intervals, and intervals of
+uneven size. Taxa alive in the modern should be listed as last 
+occurring in a time interval that begins at time 0 and ends at time 0. If taxa 
+occur only in single collections (i.e. their first and last appearance in the 
+fossil record is synchronous, the argument <code>point.occur</code> will force all taxa
+to have instantaneous durations in the fossil record. Otherwise, by default,
+taxa are assumed to first and last appear in the fossil record at different points
+in time, with some positive duration. The <code>sites</code> matrix can be used to force
+only a portion of taxa to have simultaneous first and last appearances.
+</p>
+<p>If <code>timeData</code> or the elements of <code>timeList</code> are actually <code>data.frames</code> (as output
+by <code>read.csv</code> or <code>read.table</code>), these will be coerced to a matrix.
+</p>
+<p><em>Tutorial</em> 
+</p>
+<p>A tutorial for applying the time-scaling functions in paleotree, along with
+an example using real (graptolite) data, can be found here:
+</p>
+<p><a href="https://nemagraptus.blogspot.com/2013/06/a-tutorial-to-cal3-time-scaling-using.html">https://nemagraptus.blogspot.com/2013/06/a-tutorial-to-cal3-time-scaling-using.html</a>
+</p>
+
+
+<h3>Value</h3>
+
+<p>The output of these functions is a time-scaled tree or set of
+time-scaled trees, of either class <code>phylo</code> or <code>multiphylo</code>, depending on the
+argument <code>ntrees</code>. All trees are output with an element $root.time. This is
+the time of the root on the tree and is important for comparing patterns
+across trees. Note that the $root.time element is defined relative to the
+earliest first appearance date, and thus later tips may seem to occur in
+the distant future under the <code>"aba"</code> and <code>"zbla"</code> time-scaling methods.
+</p>
+<p>Trees created with <code>bin_timePaleoPhy</code> will output with some additional
+elements, in particular $ranges.used, a matrix which records the
+continuous-time ranges generated for time-scaling each tree. (Essentially a
+pseudo-<code>timeData</code> matrix.)
+</p>
+
+
+<h3>Note</h3>
+
+<p>Please account for stratigraphic uncertainty in your analysis.
+Unless you have exceptionally resolved data, select an appropriate option in
+<code>dateTreatment</code> within <code>timePaleoPhy</code>, use the more sophisticated
+<code>bin_timePaleoPhy</code> or code your own wrapper function of <code>timePaleoPhy</code>
+that accounts for stratigraphic uncertainty in your dataset.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David W. Bapst, heavily inspired by code supplied by Graeme Lloyd
+and Gene Hunt.
+</p>
+
+
+<h3>References</h3>
+
+<p>Bapst, D. W. 2013. A stochastic rate-calibrated method for time-scaling
+phylogenies of fossil taxa. <em>Methods in Ecology and Evolution</em>.
+4(8):724-733.
+</p>
+<p>Bapst, D. W. 2014. Assessing the effect of time-scaling methods on
+phylogeny-based analyses in the fossil record. <b>Paleobiology</b>
+<b>40</b>(3):331-351.
+</p>
+<p>Brusatte, S. L., M. J. Benton, M. Ruta, and G. T. Lloyd. 2008 Superiority,
+Competition, and Opportunism in the Evolutionary Radiation of Dinosaurs.
+<em>Science</em> <b>321</b>(5895):1485-91488.
+</p>
+<p>Hunt, G., and M. T. Carrano. 2010 Models and methods for analyzing
+phenotypic evolution in lineages and clades. In J. Alroy, and G. Hunt, eds.
+Short Course on Quantitative Methods in Paleobiology. Paleontological
+Society.
+</p>
+<p>Laurin, M. 2004. The Evolution of Body Size, Cope's Rule and the Origin of
+Amniotes. <em>Systematic Biology</em> 53(4):594-622.
+</p>
+<p>Lloyd, G. T., S. C. Wang, and S. L. Brusatte. 2012 Identifying Heterogeneity
+in Rates of Morphological Evolution: Discrete Character Change in the
+Evolution of Lungfish(Sarcopterygii, Dipnoi). <em>Evolution</em>
+<b>66</b>(2):330–348.
+</p>
+<p>Smith, A. B. 1994 Systematics and the fossil record: documenting
+evolutionary patterns. Blackwell Scientific, Oxford.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>cal3TimePaleoPhy</code>, <code>binTimeData</code>,
+<code>multi2di</code>
+</p>
+<p>For an alternative time-scaling function, which includes the <code>'ruta'</code> method
+that weights the time-scaling of branches by estimates of character change
+along with implementations of the <code>'basic'</code> and <code>"equal"</code>
+methods described here, please see function <code>DatePhylo</code> in package <code>strap</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# examples with empirical data
+
+#load data
+data(retiolitinae)
+
+#Can plot the unscaled cladogram
+plot(retioTree)
+#Can plot discrete time interval diversity curve with retioRanges
+taxicDivDisc(retioRanges)
+
+#Use basic time-scaling (terminal branches only go to FADs)
+ttree &lt;- bin_timePaleoPhy(
+    tree = retioTree,
+    timeList = retioRanges,
+    type = "basic",
+    ntrees = 1,
+    plot = TRUE
+    )
+
+#Use basic time-scaling (terminal branches go to LADs)
+ttree &lt;- bin_timePaleoPhy(
+    tree = retioTree,
+    timeList = retioRanges,
+    type = "basic",
+    add.term = TRUE,
+    ntrees = 1, 
+    plot = TRUE
+    )
+
+#mininum branch length time-scaling (terminal branches only go to FADs)
+ttree &lt;- bin_timePaleoPhy(
+    tree = retioTree,
+    timeList = retioRanges,
+    type = "mbl",
+    vartime = 1, 
+    ntrees = 1, 
+    plot = TRUE
+    )
+
+###################
+
+# examples with simulated data
+
+# Simulate some fossil ranges with simFossilRecord
+set.seed(444)
+record &lt;- simFossilRecord(
+    p = 0.1, q = 0.1, 
+    nruns = 1,
+    nTotalTaxa = c(30,40), 
+    nExtant = 0
+    )
+taxa &lt;- fossilRecord2fossilTaxa(record)
+    
+#simulate a fossil record with imperfect sampling with sampleRanges
+rangesCont &lt;- sampleRanges(taxa, r = 0.5)
+#let's use taxa2cladogram to get the 'ideal' cladogram of the taxa
+cladogram &lt;- taxa2cladogram(taxa, 
+    plot = TRUE)
+    
+#Now let's try timePaleoPhy using the continuous range data
+ttree &lt;- timePaleoPhy(
+    cladogram,
+    rangesCont, 
+    type = "basic",
+    plot = TRUE
+    )
+    
+#plot diversity curve 
+phyloDiv(ttree)
+
+
+################################################
+# that tree lacked the terminal parts of ranges 
+    # (tips stops at the taxon FADs)
+# let's add those terminal ranges back on with add.term
+ttree &lt;- timePaleoPhy(
+    cladogram,
+    rangesCont,
+    type = "basic",
+    add.term = TRUE,
+    plot = TRUE
+    )
+    
+#plot diversity curve 
+phyloDiv(ttree)
+
+
+#################################################
+# that tree didn't look very resolved, does it? 
+   # (See Wagner and Erwin 1995 to see why)
+# can randomly resolve trees using the argument randres
+# each resulting tree will have polytomies
+   # randomly resolved stochastically using ape::multi2di
+ttree &lt;- timePaleoPhy(
+    cladogram,
+    rangesCont,
+    type = "basic",
+    ntrees = 1,
+    randres = TRUE,
+    add.term = TRUE,
+    plot = TRUE
+    )
+    
+# Notice the warning it prints! PAY ATTENTION!
+# We would need to set ntrees to a large number
+    # to get a fair sample of trees
+
+# if we set ntrees &gt; 1, timePaleoPhy will make multiple time-trees
+ttrees &lt;- timePaleoPhy(
+    cladogram,
+    rangesCont,
+    type = "basic",
+    ntrees = 9,
+    randres = TRUE,
+    add.term = TRUE,
+    plot = TRUE)
+#let's compare nine of them at once in a plot
+layout(matrix(1:9, 3, 3))
+parOrig &lt;- par(no.readonly = TRUE)
+par(mar = c(1, 1, 1, 1))
+for(i in 1:9){
+    plot(
+        ladderize(ttrees[[i]]),
+        show.tip.label = FALSE,
+        no.margin = TRUE
+        )
+    }
+#they are all a bit different!
+
+
+############################################## 
+# we can also resolve the polytomies in the tree
+    # according to time of first appearance via the function timeLadderTree
+    # by setting the argument 'timeres = TRUE'
+ttree &lt;- timePaleoPhy(
+    cladogram,
+    rangesCont,
+    type = "basic",
+    ntrees = 1,
+    timeres = TRUE,
+    add.term = TRUE,
+    plot = TRUE
+    )
+
+#can plot the median diversity curve with multiDiv
+layout(1)
+par(parOrig)
+multiDiv(ttrees)
+
+#compare different methods of timePaleoPhy
+layout(matrix(1:6, 3, 2))
+parOrig &lt;- par(no.readonly = TRUE)
+par(mar = c(3, 2, 1, 2))
+plot(ladderize(timePaleoPhy(
+    cladogram,
+    rangesCont,
+    type = "basic",
+    vartime = NULL,
+    add.term = TRUE
+    )))
+axisPhylo()
+text(x = 50,y = 23,
+     "type = basic",
+     adj = c(0,0.5),
+     cex = 1.2)
+#
+plot(ladderize(timePaleoPhy(
+    cladogram,
+    rangesCont,
+    type = "equal",
+    vartime = 10,
+    add.term = TRUE
+    )))
+axisPhylo()
+text(x = 55,y = 23,
+     "type = equal",
+     adj = c(0,0.5),
+     cex = 1.2)
+#
+plot(
+    ladderize(
+        timePaleoPhy(
+            cladogram,
+            rangesCont,
+            type = "aba",
+            vartime = 1,
+            add.term = TRUE
+            )
+        )
+    )
+    
+axisPhylo()
+text(x = 55,y = 23,
+     "type = aba",
+     adj = c(0,0.5),
+     cex = 1.2)
+     
+     
+#
+plot(
+    ladderize(
+        timePaleoPhy(
+           cladogram,
+           rangesCont,
+           type = "zlba",
+           vartime = 1,
+           add.term = TRUE
+           )
+        )
+     )
+    
+axisPhylo()
+text(x = 55, 
+     y = 23, 
+     "type = zlba",
+     adj = c(0,0.5), 
+     cex = 1.2
+     )
+     
+     
+#
+plot(
+  ladderize(
+     timePaleoPhy(
+        cladogram,
+        rangesCont,
+        type = "mbl",
+        vartime = 1,
+        add.term = TRUE
+        )
+     )
+  )
+    
+axisPhylo()
+text(x = 55,y = 23,
+     "type = mbl",
+     adj = c(0,0.5),
+     cex = 1.2
+     )
+layout(1)
+par(parOrig)
+
+
+##############################################
+#using node.mins
+#let's say we have (molecular??) evidence that
+    # node #5 is at least 1200 time-units ago
+#to use node.mins, first need to drop any unshared taxa
+
+droppers &lt;- cladogram$tip.label[is.na(
+    match(cladogram$tip.label,
+         names(which(!is.na(rangesCont[,1])))
+         )
+    )]
+cladoDrop &lt;- drop.tip(cladogram, droppers)
+
+# now make vector same length as number of nodes
+nodeDates &lt;- rep(NA, Nnode(cladoDrop))
+nodeDates[5] &lt;- 1200
+
+ttree1 &lt;- timePaleoPhy(
+    cladoDrop,rangesCont,
+    type = "basic",
+    randres = FALSE,
+    node.mins = nodeDates,
+    plot = TRUE)
+    
+ttree2 &lt;- timePaleoPhy(
+    cladoDrop,
+    rangesCont,
+    type = "basic",
+    randres = TRUE,
+    node.mins = nodeDates,
+    plot = TRUE)
+
+
+####################################################
+###################################################
+####################################################
+#Using bin_timePaleoPhy to time-scale with discrete interval data
+
+#first let's use binTimeData() to bin in intervals of 1 time unit
+rangesDisc &lt;- binTimeData(rangesCont,int.length = 1)
+
+ttreeB1 &lt;- bin_timePaleoPhy(
+    cladogram,
+    rangesDisc,
+    type = "basic",
+    ntrees = 1,
+    randres = TRUE,
+    add.term = TRUE,
+    plot = FALSE
+    )
+
+#notice the warning it prints!
+phyloDiv(ttreeB1)
+
+#with time-order resolving via timeLadderTree
+ttreeB2 &lt;- bin_timePaleoPhy(
+    cladogram,
+    rangesDisc,
+    type = "basic",
+    ntrees = 1,
+    timeres = TRUE,
+    add.term = TRUE,
+    plot = FALSE
+    )
+
+phyloDiv(ttreeB2)
+
+
+#can also force the appearance timings not to be chosen stochastically
+ttreeB3 &lt;- bin_timePaleoPhy(
+    cladogram,
+    rangesDisc,
+    type = "basic",
+    ntrees = 1,
+    nonstoch.bin = TRUE,
+    randres = TRUE,
+    add.term = TRUE,
+    plot = FALSE
+    )
+
+phyloDiv(ttreeB3)
+
+ 
+# testing node.mins in bin_timePaleoPhy
+ttree &lt;- bin_timePaleoPhy(
+    cladoDrop,
+    rangesDisc,
+    type = "basic",
+    ntrees = 1,
+    add.term = TRUE,
+    randres = FALSE,
+    node.mins = nodeDates,
+    plot = TRUE
+    )
+    
+# with randres = TRUE
+ttree &lt;- bin_timePaleoPhy(
+    cladoDrop,
+    rangesDisc,
+    type = "basic",
+    ntrees = 1,
+    add.term = TRUE,
+    randres = TRUE,
+    node.mins = nodeDates,
+    plot = TRUE
+    )
+
+
+#simple three taxon example for testing inc.term.adj
+ranges1 &lt;- cbind(c(3, 4, 5), c(2, 3, 1))
+rownames(ranges1) &lt;- paste("t", 1:3, sep = "")
+
+clado1 &lt;- read.tree(file = NA,
+    text = "(t1,(t2,t3));")
+    
+ttree1 &lt;- timePaleoPhy(
+    clado1,
+    ranges1,
+    type = "mbl",
+    vartime = 1
+    )
+    
+ttree2 &lt;- timePaleoPhy(
+    clado1,
+    ranges1,
+    type = "mbl",
+    vartime = 1,
+    add.term = TRUE
+    )
+    
+ttree3 &lt;- timePaleoPhy(
+    clado1,
+    ranges1,
+    type = "mbl",
+    vartime = 1,
+    add.term = TRUE,
+    inc.term.adj = TRUE
+    )
+
+# see differences in root times
+ttree1$root.time
+ttree2$root.time
+ttree3$root.time
+
+-apply(ranges1, 1, diff)
+
+layout(1:3)
+
+plot(ttree1)
+axisPhylo()
+
+plot(ttree2)
+axisPhylo()
+
+plot(ttree3)
+axisPhylo()
+
+
+
+</code></pre>
+
+
+</div>

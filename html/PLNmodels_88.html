@@ -1,0 +1,571 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ZIPLNfit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>An R6 Class to represent a ZIPLNfit</h2>
+
+<h3>Description</h3>
+
+<p>The function <code>ZIPLN()</code> fits a model which is an instance of an object with class <code>ZIPLNfit</code>.
+</p>
+<p>This class comes with a set of R6 methods, some of which are useful for the end-user and exported as S3 methods.
+See the documentation for <code>coef()</code>, <code>sigma()</code>, <code>predict()</code>.
+</p>
+<p>Fields are accessed via active binding and cannot be changed by the user.
+</p>
+
+
+<h3>Details</h3>
+
+<p>Covariates for the Zero-Inflation parameter (using a logistic regression model) can be specified in the formula RHS using the pipe
+(<code style="white-space: pre;">⁠~ PLN effect | ZI effect⁠</code>) to separate covariates for the PLN part of the model from those for the Zero-Inflation part.
+Note that different covariates can be used for each part.
+</p>
+
+
+<h3>Active bindings</h3>
+
+<div class="r6-active-bindings">
+
+<dl>
+<dt><code>n</code></dt>
+<dd>
+<p>number of samples/sites</p>
+</dd>
+<dt><code>q</code></dt>
+<dd>
+<p>number of dimensions of the latent space</p>
+</dd>
+<dt><code>p</code></dt>
+<dd>
+<p>number of variables/species</p>
+</dd>
+<dt><code>d</code></dt>
+<dd>
+<p>number of covariates in the PLN part</p>
+</dd>
+<dt><code>d0</code></dt>
+<dd>
+<p>number of covariates in the ZI part</p>
+</dd>
+<dt><code>nb_param_zi</code></dt>
+<dd>
+<p>number of parameters in the ZI part of the model</p>
+</dd>
+<dt><code>nb_param_pln</code></dt>
+<dd>
+<p>number of parameters in the PLN part of the model</p>
+</dd>
+<dt><code>nb_param</code></dt>
+<dd>
+<p>number of parameters in the ZIPLN model</p>
+</dd>
+<dt><code>model_par</code></dt>
+<dd>
+<p>a list with the matrices of parameters found in the model (B, Sigma, plus some others depending on the variant)</p>
+</dd>
+<dt><code>var_par</code></dt>
+<dd>
+<p>a list with two matrices, M and S2, which are the estimated parameters in the variational approximation</p>
+</dd>
+<dt><code>optim_par</code></dt>
+<dd>
+<p>a list with parameters useful for monitoring the optimization</p>
+</dd>
+<dt><code>latent</code></dt>
+<dd>
+<p>a matrix: values of the latent vector (Z in the model)</p>
+</dd>
+<dt><code>latent_pos</code></dt>
+<dd>
+<p>a matrix: values of the latent position vector (Z) without covariates effects or offset</p>
+</dd>
+<dt><code>fitted</code></dt>
+<dd>
+<p>a matrix: fitted values of the observations (A in the model)</p>
+</dd>
+<dt><code>vcov_model</code></dt>
+<dd>
+<p>character: the model used for the covariance (either "spherical", "diagonal", "full" or "sparse")</p>
+</dd>
+<dt><code>zi_model</code></dt>
+<dd>
+<p>character: the model used for the zero inflation (either "single", "row", "col" or "covar")</p>
+</dd>
+<dt><code>loglik</code></dt>
+<dd>
+<p>(weighted) variational lower bound of the loglikelihood</p>
+</dd>
+<dt><code>loglik_vec</code></dt>
+<dd>
+<p>element-wise variational lower bound of the loglikelihood</p>
+</dd>
+<dt><code>BIC</code></dt>
+<dd>
+<p>variational lower bound of the BIC</p>
+</dd>
+<dt><code>entropy</code></dt>
+<dd>
+<p>Entropy of the variational distribution</p>
+</dd>
+<dt><code>entropy_ZI</code></dt>
+<dd>
+<p>Entropy of the variational distribution</p>
+</dd>
+<dt><code>entropy_PLN</code></dt>
+<dd>
+<p>Entropy of the Gaussian variational distribution in the PLN component</p>
+</dd>
+<dt><code>ICL</code></dt>
+<dd>
+<p>variational lower bound of the ICL</p>
+</dd>
+<dt><code>criteria</code></dt>
+<dd>
+<p>a vector with loglik, BIC, ICL and number of parameters</p>
+</dd>
+</dl>
+</div>
+
+
+<h3>Methods</h3>
+
+
+
+<h4>Public methods</h4>
+
+
+<ul>
+<li> <p><a href="#method-ZIPLNfit-update"><code>ZIPLNfit$update()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ZIPLNfit-new"><code>ZIPLNfit$new()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ZIPLNfit-optimize"><code>ZIPLNfit$optimize()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ZIPLNfit-optimize_vestep"><code>ZIPLNfit$optimize_vestep()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ZIPLNfit-predict"><code>ZIPLNfit$predict()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ZIPLNfit-show"><code>ZIPLNfit$show()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ZIPLNfit-print"><code>ZIPLNfit$print()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-ZIPLNfit-clone"><code>ZIPLNfit$clone()</code></a>
+</p>
+</li>
+</ul>
+<hr>
+<a id="method-ZIPLNfit-update"></a>
+
+
+
+<h4>Method <code>update()</code>
+</h4>
+
+<p>Update a <code>ZIPLNfit</code> object
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ZIPLNfit$update(
+  B = NA,
+  B0 = NA,
+  Pi = NA,
+  Omega = NA,
+  Sigma = NA,
+  M = NA,
+  S = NA,
+  R = NA,
+  Ji = NA,
+  Z = NA,
+  A = NA,
+  monitoring = NA
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>B</code></dt>
+<dd>
+<p>matrix of regression parameters in the Poisson lognormal component</p>
+</dd>
+<dt><code>B0</code></dt>
+<dd>
+<p>matrix of regression parameters in the zero inflated component</p>
+</dd>
+<dt><code>Pi</code></dt>
+<dd>
+<p>Zero inflated probability parameter (either scalar, row-vector, col-vector or matrix)</p>
+</dd>
+<dt><code>Omega</code></dt>
+<dd>
+<p>precision matrix of the latent variables</p>
+</dd>
+<dt><code>Sigma</code></dt>
+<dd>
+<p>covariance matrix of the latent variables</p>
+</dd>
+<dt><code>M</code></dt>
+<dd>
+<p>matrix of mean vectors for the variational approximation</p>
+</dd>
+<dt><code>S</code></dt>
+<dd>
+<p>matrix of standard deviation parameters for the variational approximation</p>
+</dd>
+<dt><code>R</code></dt>
+<dd>
+<p>matrix of probabilities for the variational approximation</p>
+</dd>
+<dt><code>Ji</code></dt>
+<dd>
+<p>vector of variational lower bounds of the log-likelihoods (one value per sample)</p>
+</dd>
+<dt><code>Z</code></dt>
+<dd>
+<p>matrix of latent vectors (includes covariates and offset effects)</p>
+</dd>
+<dt><code>A</code></dt>
+<dd>
+<p>matrix of fitted values</p>
+</dd>
+<dt><code>monitoring</code></dt>
+<dd>
+<p>a list with optimization monitoring quantities</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>Update the current <code>ZIPLNfit</code> object
+</p>
+
+
+<hr>
+<a id="method-ZIPLNfit-new"></a>
+
+
+
+<h4>Method <code>new()</code>
+</h4>
+
+<p>Initialize a <code>ZIPLNfit</code> model
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ZIPLNfit$new(data, control)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>data</code></dt>
+<dd>
+<p>a named list used internally to carry the data matrices</p>
+</dd>
+<dt><code>control</code></dt>
+<dd>
+<p>a list for controlling the optimization. See details.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-ZIPLNfit-optimize"></a>
+
+
+
+<h4>Method <code>optimize()</code>
+</h4>
+
+<p>Call to the Cpp optimizer and update of the relevant fields
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ZIPLNfit$optimize(data, control)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>data</code></dt>
+<dd>
+<p>a named list used internally to carry the data matrices</p>
+</dd>
+<dt><code>control</code></dt>
+<dd>
+<p>a list for controlling the optimization. See details.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-ZIPLNfit-optimize_vestep"></a>
+
+
+
+<h4>Method <code>optimize_vestep()</code>
+</h4>
+
+<p>Result of one call to the VE step of the optimization procedure: optimal variational parameters (M, S, R) and corresponding log likelihood values for fixed model parameters (Sigma, B, B0). Intended to position new data in the latent space.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ZIPLNfit$optimize_vestep(
+  data,
+  B = self$model_par$B,
+  B0 = self$model_par$B0,
+  Omega = self$model_par$Omega,
+  control = ZIPLN_param(backend = "nlopt")$config_optim
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>data</code></dt>
+<dd>
+<p>a named list used internally to carry the data matrices</p>
+</dd>
+<dt><code>B</code></dt>
+<dd>
+<p>Optional fixed value of the regression parameters in the PLN component</p>
+</dd>
+<dt><code>B0</code></dt>
+<dd>
+<p>Optional fixed value of the regression parameters in the ZI component</p>
+</dd>
+<dt><code>Omega</code></dt>
+<dd>
+<p>inverse variance-covariance matrix of the latent variables</p>
+</dd>
+<dt><code>control</code></dt>
+<dd>
+<p>a list for controlling the optimization. See details.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>A list with three components:
+</p>
+
+<ul>
+<li>
+<p> the matrix <code>M</code> of variational means,
+</p>
+</li>
+<li>
+<p> the matrix <code>S</code> of variational standard deviations
+</p>
+</li>
+<li>
+<p> the matrix <code>R</code> of variational ZI probabilities
+</p>
+</li>
+<li>
+<p> the vector <code>Ji</code> of (variational) log-likelihood of each new observation
+</p>
+</li>
+<li>
+<p> a list <code>monitoring</code> with information about convergence status
+</p>
+</li>
+</ul>
+<hr>
+<a id="method-ZIPLNfit-predict"></a>
+
+
+
+<h4>Method <code>predict()</code>
+</h4>
+
+<p>Predict position, scores or observations of new data. See <code>predict.ZIPLNfit()</code> for the S3 method and additional details
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ZIPLNfit$predict(
+  newdata,
+  responses = NULL,
+  type = c("link", "response", "deflated"),
+  level = 1,
+  envir = parent.frame()
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>newdata</code></dt>
+<dd>
+<p>A data frame in which to look for variables with which to predict. If omitted, the fitted values are used.</p>
+</dd>
+<dt><code>responses</code></dt>
+<dd>
+<p>Optional data frame containing the count of the observed variables (matching the names of the provided as data in the PLN function), assuming the interest in in testing the model.</p>
+</dd>
+<dt><code>type</code></dt>
+<dd>
+<p>Scale used for the prediction. Either <code>"link"</code> (default, predicted positions in the latent space), <code>"response"</code> (predicted average counts, accounting for zero-inflation) or <code>"deflated"</code> (predicted average counts, not accounting for zero-inflation and using only the PLN part of the model).</p>
+</dd>
+<dt><code>level</code></dt>
+<dd>
+<p>Optional integer value the level to be used in obtaining the predictions. Level zero corresponds to the population predictions (default if <code>responses</code> is not provided) while level one (default) corresponds to predictions after evaluating the variational parameters for the new data.</p>
+</dd>
+<dt><code>envir</code></dt>
+<dd>
+<p>Environment in which the prediction is evaluated</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>A matrix with predictions scores or counts.
+</p>
+
+
+<hr>
+<a id="method-ZIPLNfit-show"></a>
+
+
+
+<h4>Method <code>show()</code>
+</h4>
+
+<p>User friendly print method
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ZIPLNfit$show(
+  model = paste("A multivariate Zero Inflated Poisson Lognormal fit with",
+    private$covariance, "covariance model.\n")
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>model</code></dt>
+<dd>
+<p>First line of the print output</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-ZIPLNfit-print"></a>
+
+
+
+<h4>Method <code>print()</code>
+</h4>
+
+<p>User friendly print method
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ZIPLNfit$print()</pre></div>
+
+
+<hr>
+<a id="method-ZIPLNfit-clone"></a>
+
+
+
+<h4>Method <code>clone()</code>
+</h4>
+
+<p>The objects of this class are cloneable with this method.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>ZIPLNfit$clone(deep = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>deep</code></dt>
+<dd>
+<p>Whether to make a deep clone.</p>
+</dd>
+</dl>
+</div>
+
+
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# See other examples in function ZIPLN
+data(trichoptera)
+trichoptera &lt;- prepare_data(trichoptera$Abundance, trichoptera$Covariate)
+myPLN &lt;- ZIPLN(Abundance ~ 1, data = trichoptera)
+class(myPLN)
+print(myPLN)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

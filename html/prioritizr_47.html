@@ -1,0 +1,288 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>add_feature_weights</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add feature weights</h2>
+
+<h3>Description</h3>
+
+<p>Add features weights to a conservation planning problem. Specifically,
+some objective functions aim to maximize (or minimize) a metric that
+measures how well a set of features are represented by a solution
+(e.g., maximize the number of features that are adequately represented,
+<code>add_max_features_objective()</code>). In such cases,
+it may be desirable to prefer the representation of some features
+over other features (e.g., features that have higher extinction risk
+might be considered more important than those with lower extinction risk).
+To achieve this, weights can be used to specify how much more important
+it is for a solution to represent particular features compared with other
+features.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S4 method for signature 'ConservationProblem,numeric'
+add_feature_weights(x, weights)
+
+## S4 method for signature 'ConservationProblem,matrix'
+add_feature_weights(x, weights)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>problem()</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p><code>numeric</code> or <code>matrix</code> of weights.
+See the Weights format section for more information.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Weights can only be applied to problems that have an objective
+that is budget limited (e.g., <code>add_max_cover_objective()</code>,
+<code>add_min_shortfall_objective()</code>).
+They can also be applied to problems that aim to maximize phylogenetic
+representation (<code>add_max_phylo_div_objective()</code>) to favor the
+representation of specific features over the representation of
+some phylogenetic branches. Weights cannot be negative values
+and must have values that are equal to or larger than zero.
+<strong>Note that planning unit costs are scaled to 0.01 to identify
+the cheapest solution among multiple optimal solutions. This means
+that the optimization process will favor cheaper solutions over solutions
+that meet feature targets (or occurrences) when feature weights are
+lower than 0.01.</strong>
+</p>
+
+
+<h3>Value</h3>
+
+<p>An updated <code>problem()</code> with the weights added to it.
+</p>
+
+
+<h3>Weights format</h3>
+
+<p>The argument to <code>weights</code> can be specified using the following formats.
+</p>
+
+<dl>
+<dt>
+<code>weights</code> as a <code>numeric</code> vector</dt>
+<dd>
+<p>containing weights for each feature.
+Note that this format cannot be used to specify weights for problems with
+multiple zones.</p>
+</dd>
+<dt>
+<code>weights</code> as a <code>matrix</code> object</dt>
+<dd>
+<p>containing weights
+for each feature in each zone.
+Here, each row corresponds to a different feature in argument to
+<code>x</code>, each column corresponds to a different zone in argument to
+<code>x</code>, and each cell contains the weight value for a given feature
+that the solution can to secure in a given zone. Note that
+if the problem contains targets created using
+<code>add_manual_targets()</code> then a <code>matrix</code> should be
+supplied containing a single column that indicates that weight for
+fulfilling each target.</p>
+</dd>
+</dl>
+<h3>See Also</h3>
+
+<p>See penalties for an overview of all functions for adding penalties.
+</p>
+<p>Other penalties: 
+<code>add_asym_connectivity_penalties()</code>,
+<code>add_boundary_penalties()</code>,
+<code>add_connectivity_penalties()</code>,
+<code>add_linear_penalties()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# load package
+require(ape)
+
+# load data
+sim_pu_raster &lt;- get_sim_pu_raster()
+sim_features &lt;- get_sim_features()
+sim_phylogeny &lt;- get_sim_phylogeny()
+sim_zones_pu_raster &lt;- get_sim_zones_pu_raster()
+sim_zones_features &lt;- get_sim_zones_features()
+
+# create minimal problem that aims to maximize the number of features
+# adequately conserved given a total budget of 3800. Here, each feature
+# needs 20% of its habitat for it to be considered adequately conserved
+p1 &lt;-
+  problem(sim_pu_raster, sim_features) %&gt;%
+  add_max_features_objective(budget = 3800) %&gt;%
+  add_relative_targets(0.2) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# create weights that assign higher importance to features with less
+# suitable habitat in the study area
+w2 &lt;- exp((1 / terra::global(sim_features, "sum", na.rm = TRUE)[[1]]) * 200)
+
+# create problem using rarity weights
+p2 &lt;- p1 %&gt;% add_feature_weights(w2)
+
+# create manually specified weights that assign higher importance to
+# certain features. These weights could be based on a pre-calculated index
+# (e.g., an index measuring extinction risk where higher values
+# denote higher extinction risk)
+w3 &lt;- c(0, 0, 0, 100, 200)
+p3 &lt;- p1 %&gt;% add_feature_weights(w3)
+
+# solve problems
+s1 &lt;- c(solve(p1), solve(p2), solve(p3))
+names(s1) &lt;- c("equal weights", "rarity weights", "manual weights")
+
+# plot solutions
+plot(s1, axes = FALSE)
+
+# plot the example phylogeny
+par(mfrow = c(1, 1))
+plot(sim_phylogeny, main = "simulated phylogeny")
+
+# create problem with a maximum phylogenetic diversity objective,
+# where each feature needs 10% of its distribution to be secured for
+# it to be adequately conserved and a total budget of 1900
+p4 &lt;-
+  problem(sim_pu_raster, sim_features) %&gt;%
+  add_max_phylo_div_objective(1900, sim_phylogeny) %&gt;%
+  add_relative_targets(0.1) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve problem
+s4 &lt;- solve(p4)
+
+# plot solution
+plot(s4, main = "solution", axes = FALSE)
+
+# find out which features have their targets met
+r4 &lt;- eval_target_coverage_summary(p4, s4)
+print(r4, width = Inf)
+
+# plot the example phylogeny and color the represented features in red
+plot(
+  sim_phylogeny, main = "represented features",
+  tip.color = replace(
+    rep("black", terra::nlyr(sim_features)), which(r4$met), "red"
+  )
+)
+
+# we can see here that the third feature ("layer.3", i.e.,
+# sim_features[[3]]) is not represented in the solution. Let us pretend
+# that it is absolutely critical this feature is adequately conserved
+# in the solution. For example, this feature could represent a species
+# that plays important role in the ecosystem, or a species that is
+# important commercial activities (e.g., eco-tourism). So, to generate
+# a solution that conserves the third feature whilst also aiming to
+# maximize phylogenetic diversity, we will create a set of weights that
+# assign a particularly high weighting to the third feature
+w5 &lt;- c(0, 0, 10000, 0, 0)
+
+# we can see that this weighting (i.e., w5[3]) has a much higher value than
+# the branch lengths in the phylogeny so solutions that represent this
+# feature be much closer to optimality
+print(sim_phylogeny$edge.length)
+
+# create problem with high weighting for the third feature and solve it
+s5 &lt;- p4 %&gt;% add_feature_weights(w5) %&gt;% solve()
+
+# plot solution
+plot(s5, main = "solution", axes = FALSE)
+
+# find which features have their targets met
+r5 &lt;- eval_target_coverage_summary(p4, s5)
+print(r5, width = Inf)
+
+# plot the example phylogeny and color the represented features in red
+# here we can see that this solution only adequately conserves the
+# third feature. This means that, given the budget, we are faced with the
+# trade-off of conserving either the third feature, or a phylogenetically
+# diverse set of three different features.
+plot(
+  sim_phylogeny, main = "represented features",
+  tip.color = replace(
+    rep("black", terra::nlyr(sim_features)), which(r5$met), "red"
+  )
+)
+
+# create multi-zone problem with maximum features objective,
+# with 10% representation targets for each feature, and set
+# a budget such that the total maximum expenditure in all zones
+# cannot exceed 3000
+p6 &lt;-
+  problem(sim_zones_pu_raster, sim_zones_features) %&gt;%
+  add_max_features_objective(3000) %&gt;%
+  add_relative_targets(matrix(0.1, ncol = 3, nrow = 5)) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# create weights that assign equal weighting for the representation
+# of each feature in each zone except that it does not matter if
+# feature 1 is represented in zone 1 and it really important
+# that feature 3 is really in zone 1
+w7 &lt;- matrix(1, ncol = 3, nrow = 5)
+w7[1, 1] &lt;- 0
+w7[3, 1] &lt;- 100
+
+# create problem with weights
+p7 &lt;- p6 %&gt;% add_feature_weights(w7)
+
+# solve problems
+s6 &lt;- solve(p6)
+s7 &lt;- solve(p7)
+
+# convert solutions to category layers
+c6 &lt;- category_layer(s6)
+c7 &lt;- category_layer(s7)
+
+# plot solutions
+plot(c(c6, c7), main = c("equal weights", "manual weights"), axes = FALSE)
+
+# create minimal problem to show the correct method for setting
+# weights for problems with manual targets
+p8 &lt;-
+  problem(sim_pu_raster, sim_features) %&gt;%
+  add_max_features_objective(budget = 3000) %&gt;%
+  add_manual_targets(
+    data.frame(
+    feature = c("feature_1", "feature_4"),
+    type = "relative",
+    target = 0.1)
+  ) %&gt;%
+  add_feature_weights(matrix(c(1, 200), ncol = 1)) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve problem
+s8 &lt;- solve(p8)
+
+# plot solution
+plot(s8, main = "solution", axes = FALSE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

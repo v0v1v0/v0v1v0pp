@@ -1,0 +1,143 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fixRootTime</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Modify, Drop or Bind Terminal Branches of Various Types (Mainly for Paleontological Phylogenies)</h2>
+
+<h3>Description</h3>
+
+<p>Modifying a dated tree with <code>$root.time</code> elements often
+changes the actual timing of the root relative to the 
+tips, such as when dropping tips, extending branches, or
+shift node ages backwards. When such modifications occur, 
+the function <code>fixRootTime</code> can be used to find
+the correct root age. 
+This function is mainly used as a
+utility function called by other tree-modifying functions discussed
+in the manual page for <code>modifyTerminalBranches</code>.
+This is typically performed via the function <code>fixRootTime</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fixRootTime(
+  treeOrig,
+  treeNew,
+  testConsistentDepth = TRUE,
+  fixingMethod = "matchCladeTransferNodeAge"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>treeOrig</code></td>
+<td>
+<p>A <code>phylo</code> object of a time-scaled
+phylogeny with a <code>$root.time</code> element.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>treeNew</code></td>
+<td>
+<p>A <code>phylo</code> object containing a
+modified form of <code>treeOrig</code> (with
+no extra tip taxa added, but possibly with
+some tip taxa removed).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>testConsistentDepth</code></td>
+<td>
+<p>A logical, either <code>TRUE</code>
+or <code>FALSE</code>. If <code>TRUE</code> (the default)
+the tree's root-to-furthest-tip depth is tested
+to make sure this depth is
+not greater than the new <code>$root.time</code>
+appended to the output tree.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixingMethod</code></td>
+<td>
+<p>must be an character value, with a length of 1.
+</p>
+<p>The default option <code>fixingMethod = "matchCladeTransferNodeAge"</code>, 
+will determine the <code>$root.time</code> of the new tree by
+comparing the clades of taxa between the two input
+trees. The new root age assigned is the age of
+(<em>1</em>) the <code>treeOrig</code> clade that contains <em>all</em>
+taxa present in <code>treeNew</code> and, if the set of (1)
+contains multiple clades, (<em>2</em>) the clade in the
+first set that contains the fewest taxa not in
+<code>treeNew</code>. 
+</p>
+<p>If <code>fixingMethod = "rescaleUsingTipToRootDist"</code>, 
+the <code>root.time</code> assigned to <code>treeNew</code> is the
+<code>$root.time</code> of <code>treeOrig</code>, adjusted
+based on the change in total tree depth between <code>treeOrig</code> and
+<code>treeNew</code>, as measured between the root and
+the first matching taxon in both trees. The
+<code>"rescaleUsingTipToRootDist"</code> option was the default for 
+<code>fixRootTime</code> prior to paleotree v2.3, and is the
+option used by function <code>minBranchLength</code> when
+applied to a tree with pre-existing root age element.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Gives back a modified phylogeny as a <code>phylo</code> object, with a
+modified <code>$root.time</code> element.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David W. Bapst
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>modifyTerminalBranches</code>,
+<code>minBranchLength</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+
+#testing dropPaleoTip... and fixRootTime by extension
+
+#simple example
+tree &lt;- read.tree(text = "(A:3,(B:2,(C:5,D:3):2):3);")
+tree$root.time &lt;- 10
+plot(tree,no.margin = FALSE)
+axisPhylo()
+
+# now a series of tests, dropping various tips
+(test &lt;- dropPaleoTip(tree,"A")$root.time) #  = 7
+(test[2] &lt;- dropPaleoTip(tree,"B")$root.time) #  = 10
+(test[3] &lt;- dropPaleoTip(tree,"C")$root.time) #  = 10
+(test[4] &lt;- dropPaleoTip(tree,"D")$root.time) #  = 10
+(test[5] &lt;- dropPaleoTip(tree,c("A","B"))$root.time) #  = 5
+(test[6] &lt;- dropPaleoTip(tree,c("B","C"))$root.time) #  = 10
+(test[7] &lt;- dropPaleoTip(tree,c("A","C"))$root.time) #  = 7
+(test[8] &lt;- dropPaleoTip(tree,c("A","D"))$root.time) #  = 7
+
+# is it all good? if not, fail so paleotree fails...
+if(!identical(test,c(7,10,10,10,5,10,7,7))){stop("fixRootTime fails!")}
+
+
+</code></pre>
+
+
+</div>

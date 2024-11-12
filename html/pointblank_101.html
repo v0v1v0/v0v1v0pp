@@ -1,0 +1,179 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>has_columns</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Determine if one or more columns exist in a table</h2>
+
+<h3>Description</h3>
+
+<p>This utility function can help you easily determine whether a column of a
+specified name is present in a table object. This function works well enough
+on a table object but it can also be used as part of a formula in any
+validation function's <code>active</code> argument. Using <code>active = ~ . %&gt;% has_columns(column_1)</code> means that the validation step will be inactive if
+the target table doesn't contain a column named <code>column_1</code>. We can also use
+multiple columns in <code>c()</code>, so having <code>active = ~ . %&gt;% has_columns(c(column_1, column_2))</code> in a validation step will make it
+inactive at <code>interrogate()</code> time unless the columns <code>column_1</code> and <code>column_2</code>
+are both present.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">has_columns(x, columns)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><em>A data table</em>
+</p>
+<p><code style="white-space: pre;">⁠obj:&lt;tbl_*&gt;⁠</code> // <strong>required</strong>
+</p>
+<p>The input table. This can be a data frame, tibble, a <code>tbl_dbi</code> object, or a
+<code>tbl_spark</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>columns</code></td>
+<td>
+<p><em>The target columns</em>
+</p>
+<p><code style="white-space: pre;">⁠&lt;tidy-select&gt;⁠</code> // <em>required</em>
+</p>
+<p>One or more columns or column-selecting expressions. Each element is
+checked for a match in the table <code>x</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A length-1 logical vector.
+</p>
+
+
+<h3>Examples</h3>
+
+<p>The <code>small_table</code> dataset in the package has the columns <code>date_time</code>, <code>date</code>,
+and the <code>a</code> through <code>f</code> columns.
+</p>
+<div class="sourceCode r"><pre>small_table
+#&gt; # A tibble: 13 x 8
+#&gt;    date_time           date           a b             c      d e     f    
+#&gt;    &lt;dttm&gt;              &lt;date&gt;     &lt;int&gt; &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;lgl&gt; &lt;chr&gt;
+#&gt;  1 2016-01-04 11:00:00 2016-01-04     2 1-bcd-345     3  3423. TRUE  high 
+#&gt;  2 2016-01-04 00:32:00 2016-01-04     3 5-egh-163     8 10000. TRUE  low  
+#&gt;  3 2016-01-05 13:32:00 2016-01-05     6 8-kdg-938     3  2343. TRUE  high 
+#&gt;  4 2016-01-06 17:23:00 2016-01-06     2 5-jdo-903    NA  3892. FALSE mid  
+#&gt;  5 2016-01-09 12:36:00 2016-01-09     8 3-ldm-038     7   284. TRUE  low  
+#&gt;  6 2016-01-11 06:15:00 2016-01-11     4 2-dhe-923     4  3291. TRUE  mid  
+#&gt;  7 2016-01-15 18:46:00 2016-01-15     7 1-knw-093     3   843. TRUE  high 
+#&gt;  8 2016-01-17 11:27:00 2016-01-17     4 5-boe-639     2  1036. FALSE low  
+#&gt;  9 2016-01-20 04:30:00 2016-01-20     3 5-bce-642     9   838. FALSE high 
+#&gt; 10 2016-01-20 04:30:00 2016-01-20     3 5-bce-642     9   838. FALSE high 
+#&gt; 11 2016-01-26 20:07:00 2016-01-26     4 2-dmx-010     7   834. TRUE  low  
+#&gt; 12 2016-01-28 02:51:00 2016-01-28     2 7-dmx-010     8   108. FALSE low  
+#&gt; 13 2016-01-30 11:23:00 2016-01-30     1 3-dka-303    NA  2230. TRUE  high
+</pre></div>
+<p>With <code>has_columns()</code> we can check for column existence by using it directly
+on the table.
+</p>
+<div class="sourceCode r"><pre>small_table %&gt;% has_columns(columns = date)
+</pre></div>
+<div class="sourceCode"><pre>## [1] TRUE
+</pre></div>
+<p>Multiple column names can be supplied. The following is <code>TRUE</code> because both
+columns are present in <code>small_table</code>.
+</p>
+<div class="sourceCode r"><pre>small_table %&gt;% has_columns(columns = c(a, b))
+</pre></div>
+<div class="sourceCode"><pre>## [1] TRUE
+</pre></div>
+<p>It's possible to use a tidyselect helper as well:
+</p>
+<div class="sourceCode r"><pre>small_table %&gt;% has_columns(columns = c(a, starts_with("b")))
+</pre></div>
+<div class="sourceCode"><pre>## [1] TRUE
+</pre></div>
+<p>Because column <code>h</code> isn't present, this returns <code>FALSE</code> (all specified columns
+need to be present to obtain <code>TRUE</code>).
+</p>
+<div class="sourceCode r"><pre>small_table %&gt;% has_columns(columns = c(a, h))
+</pre></div>
+<div class="sourceCode"><pre>## [1] FALSE
+</pre></div>
+<p>The same holds in the case of tidyselect helpers. Because no columns start
+with <code>"h"</code>, including <code>starts_with("h")</code> returns <code>FALSE</code> for the entire
+check.
+</p>
+<div class="sourceCode r"><pre>small_table %&gt;% has_columns(columns = starts_with("h"))
+small_table %&gt;% has_columns(columns = c(a, starts_with("h")))
+</pre></div>
+<div class="sourceCode"><pre>## [1] FALSE
+## [1] FALSE
+</pre></div>
+<p>The <code>has_columns()</code> function can be useful in expressions that involve the
+target table, especially if it is uncertain that the table will contain a
+column that's involved in a validation.
+</p>
+<p>In the following agent-based validation, the first two steps will be 'active'
+because all columns checked for in the expressions are present. The third
+step becomes inactive because column <code>j</code> isn't there (without the <code>active</code>
+statement there we would get an evaluation failure in the agent report).
+</p>
+<div class="sourceCode r"><pre>agent &lt;- 
+  create_agent(
+    tbl = small_table,
+    tbl_name = "small_table"
+  ) %&gt;%
+  col_vals_gt(
+    columns = c, value = vars(a),
+    active = ~ . %&gt;% has_columns(c(a, c))
+  ) %&gt;%
+  col_vals_lt(
+    columns = h, value = vars(d),
+    preconditions = ~ . %&gt;% dplyr::mutate(h = d - a),
+    active = ~ . %&gt;% has_columns(c(a, d))
+  ) %&gt;%
+  col_is_character(
+    columns = j,
+    active = ~ . %&gt;% has_columns(j)
+  ) %&gt;%
+  interrogate()
+</pre></div>
+<p>Through the agent's x-list, we can verify that no evaluation error (any
+evaluation at all, really) had occurred. The third value, representative of
+the third validation step, is actually <code>NA</code> instead of <code>FALSE</code> because the
+step became inactive.
+</p>
+<div class="sourceCode r"><pre>x_list &lt;- get_agent_x_list(agent = agent)
+
+x_list$eval_warning
+</pre></div>
+<div class="sourceCode"><pre>## [1] FALSE FALSE    NA
+</pre></div>
+
+
+<h3>Function ID</h3>
+
+<p>13-2
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Utility and Helper Functions: 
+<code>affix_date()</code>,
+<code>affix_datetime()</code>,
+<code>col_schema()</code>,
+<code>from_github()</code>,
+<code>stop_if_not()</code>
+</p>
+
+
+</div>

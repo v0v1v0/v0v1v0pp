@@ -1,0 +1,131 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pltree-summaries</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Plackett-Luce Tree Summaries</h2>
+
+<h3>Description</h3>
+
+<p>Obtain the coefficients, variance-covariance matrix, AIC, or predictions
+from a Plackett-Luce tree fitted by <code>pltree()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'pltree'
+coef(object, node = NULL, drop = TRUE, ...)
+
+## S3 method for class 'pltree'
+vcov(object, node = nodeids(object, terminal = TRUE), ...)
+
+## S3 method for class 'pltree'
+AIC(object, newdata = NULL, ...)
+
+## S3 method for class 'pltree'
+predict(
+  object,
+  newdata = NULL,
+  type = c("itempar", "rank", "best", "node"),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>a fitted model object of class <code>"pltree"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>node</code></td>
+<td>
+<p>a vector of node ids specifying the nodes to summarise, by
+default the ids of the terminal nodes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drop</code></td>
+<td>
+<p>if <code>TRUE</code> return the coefficients as a vector when only one
+node is selected.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments passed to
+<code>itempar</code> by <code>predict</code>, and to
+<code>model.frame</code> by <code>AIC</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>an optional data frame to use instead of the
+original data. For <code>AIC</code> this must include the response variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>the type of prediction to return for each group, one of:
+<code>"itempar"</code> to give the result of <code>itempar</code> (by default the
+fitted probability of each item being ranked first out of all objects),
+<code>"rank"</code> the corresponding rank, <code>"best"</code> the topped ranked item,
+or <code>"node"</code> the node of the tree the group belongs to.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>AIC</code> computes <code class="reqn">-2L + 2p</code> where <code class="reqn">L</code> is the
+joint likelihood of the observed rankings under the tree model and
+<code class="reqn">p</code> is the degrees of freedom used to fit the tree model.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(beans)
+# fit tree based on pairwise comparisons with variety B
+pairB &lt;- data.frame(Winner = ifelse(beans$var_b == "Worse",
+                                    "Local", beans$variety_b),
+                    Loser = ifelse(beans$var_b == "Worse",
+                                   beans$variety_b, "Local"),
+                    stringsAsFactors = FALSE, row.names = NULL)
+beans$G &lt;- as.rankings(pairB, input = "orderings",
+                       index = rep(seq(nrow(beans)), 1))
+
+mod &lt;- pltree(G ~ ., data = beans[c("G", "maxTN")])
+
+coef(mod, node = 3)
+AIC(mod)
+
+# treat first row from each year as new data
+newdata &lt;- beans[!duplicated(beans$year),]
+
+## fitted probabilities
+predict(mod, newdata)
+
+## fitted log-abilities, with Local as reference
+predict(mod, newdata, log = TRUE, ref = "Local")
+
+## variety ranks
+predict(mod, newdata, type = "rank")
+
+## top ranked variety
+predict(mod, newdata, type = "best")
+
+## node the trial belongs to
+predict(mod, newdata, type = "node")
+</code></pre>
+
+
+</div>

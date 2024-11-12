@@ -1,0 +1,170 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>betaHPD</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>compute and optionally plot beta HDRs</h2>
+
+<h3>Description</h3>
+
+<p>Compute and optionally plot highest density regions for the Beta
+distribution.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">   betaHPD(alpha,beta,p=.95,plot=FALSE,xlim=NULL,debug=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>scalar, first shape parameter of the Beta density.  Must be
+greater than 1, see details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>scalar, second shape parameter of the Beta density.  Must be
+greater than 1, see details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>scalar, content of HPD, must lie between 0 and 1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>logical flag, if <code>TRUE</code> then plot the density and
+show the HDR</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xlim</code></td>
+<td>
+<p>numeric vector of length 2, the limits of the density's
+support to show when plotting; the default is <code>NULL</code>, in which
+case the function will confine plotting to where the density is
+non-negligible</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>debug</code></td>
+<td>
+<p>logical flag, if <code>TRUE</code> produce messages to the
+console</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The Beta density arises frequently in Bayesian models of
+binary events, rates, and proportions, which take on values in the
+open unit interval.  For instance, the Beta density is a conjugate prior
+for the unknown success probability in binomial trials.  With shape
+parameters <code class="reqn">\alpha &gt; 1</code> and <code class="reqn">\beta &gt; 1</code>, the Beta density is
+unimodal.
+</p>
+<p>In general, suppose <code class="reqn">\theta \in \Theta \subseteq R^k</code>
+is a random variable with density <code class="reqn">f(\theta)</code>.  A highest
+density region (HDR) of <code class="reqn">f(\theta)</code> with content <code class="reqn">p \in
+  (0,1]</code> is a set <code class="reqn">\mathcal{Q} \subseteq \Theta</code> with the
+following properties:
+</p>
+<p style="text-align: center;"><code class="reqn">\int_\mathcal{Q} f(\theta) d\theta = p</code>
+</p>
+
+<p>and
+</p>
+<p style="text-align: center;"><code class="reqn">f(\theta) &gt; f(\theta^*) \, \forall\
+    \theta \in \mathcal{Q},
+    \theta^* \not\in \mathcal{Q}.</code>
+</p>
+
+<p>For a unimodal
+Beta density (the class of Beta densities handled by this function),
+a HDR of content <code class="reqn">0 &lt; p &lt; 1</code> is simply an interval <code class="reqn">\mathcal{Q} \in (0,1)</code>.
+</p>
+<p>This function uses numerical methods to solve for the
+end points of a HDR for a Beta density with user-specified shape
+parameters, via repeated calls to the functions <code>dbeta</code>,
+<code>pbeta</code> and <code>qbeta</code>. The function
+<code>optimize</code> is used to find points <code class="reqn">v</code> and <code class="reqn">w</code>
+such that </p>
+<p style="text-align: center;"><code class="reqn">f(v) = f(w)</code>
+</p>
+<p> subject to the constraint
+</p>
+<p style="text-align: center;"><code class="reqn">\int_v^w f(\theta; \alpha, \beta) d\theta = p,</code>
+</p>
+
+<p>where <code class="reqn">f(\theta; \alpha, \beta)</code> is a Beta density with shape
+parameters <code class="reqn">\alpha</code> and <code class="reqn">\beta</code>. 
+</p>
+<p>In the special case of <code class="reqn">\alpha = \beta &gt; 1</code>, the end points
+of a HDR  with content <code class="reqn">p</code> are given by the <code class="reqn">(1 \pm p)/2</code>
+quantiles of the Beta density, and are computed with the
+<code>qbeta</code> function. 
+</p>
+<p>Again note that the function will only compute a HDR for a unimodal
+Beta density, and exit with an error if <code>alpha&lt;=1 | beta &lt;=1</code>.
+Note that the uniform density results with <code class="reqn">\alpha = \beta = 1</code>,
+which does not have a unique HDR with content <code class="reqn">0 &lt; p &lt;
+  1</code>.  With shape parameters <code class="reqn">\alpha&lt;1</code> and <code class="reqn">\beta&gt;1</code> (or
+vice-versa, respectively), the Beta density is infinite at 0 (or 1,
+respectively), but still integrates to one, and so a HDR is still
+well-defined (but not implemented here, at least not yet).
+Similarly, with <code class="reqn">0 &lt; \alpha, \beta &lt; 1</code> the Beta density is
+infinite at both 0 and 1, but integrates to one, and again a HDR of
+content <code class="reqn">p&lt;1</code> is well-defined in this case, but will be a set of
+two disjoint intervals (again, at present, this function does not
+cover this case).
+</p>
+
+
+<h3>Value</h3>
+
+<p>If the numerical optimization is successful an vector of length 2,
+containing <code class="reqn">v</code> and <code class="reqn">w</code>, defined above.    If the optimization
+fails for whatever reason, a vector of <code>NAs</code> is returned.
+</p>
+<p>The function will also produce a plot of the density with area under
+the density supported by the HDR shaded, if the user calls the
+function with <code>plot=TRUE</code>; the plot will appear on the current
+graphics device.
+</p>
+<p>Debugging messages are printed to the console if the <code>debug</code>
+logical flag is set to <code>TRUE</code>.  
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Simon Jackman <a href="mailto:simon.jackman@sydney.edu.au">simon.jackman@sydney.edu.au</a>.  Thanks to John
+Bullock who discovered a bug in an earlier version.</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pbeta</code>, <code>qbeta</code>,
+<code>dbeta</code>, <code>uniroot</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">betaHPD(4,5)
+betaHPD(2,120)
+betaHPD(120,45,p=.75,xlim=c(0,1))
+</code></pre>
+
+
+</div>

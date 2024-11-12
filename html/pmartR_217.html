@@ -1,0 +1,209 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>trelli_missingness_bar</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Bar chart trelliscope building function for missing data</h2>
+
+<h3>Description</h3>
+
+<p>Specify a plot design and cognostics for the missing barchart
+trelliscope. Missingness is displayed per panel_by variable. Main_effects
+data is used to split samples when applicable. For RNA-Seq data, use 
+"trelli rnaseq nonzero bar".
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">trelli_missingness_bar(
+  trelliData,
+  cognostics = c("total count", "observed count", "observed proportion"),
+  proportion = TRUE,
+  ggplot_params = NULL,
+  interactive = FALSE,
+  path = .getDownloadsFolder(),
+  name = "Trelliscope",
+  test_mode = FALSE,
+  test_example = 1,
+  single_plot = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>trelliData</code></td>
+<td>
+<p>A trelliscope data object made by as.trelliData.edata or
+as.trelliData. Required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cognostics</code></td>
+<td>
+<p>A vector of cognostic options for each plot. Defaults are "total count",
+"observed count", and "observed proportion". If grouping
+data is included, all cognostics will be reported per group. If the 
+trelliData is paneled by a biomolecule, the counts and proportion we be 
+samples. If paneled by a sample or biomolecule class, the counts and proportions
+will be biomolecules. If statRes data is included, "g-test p-value" may 
+be included.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>proportion</code></td>
+<td>
+<p>A logical to determine whether plots should display counts
+or proportions. Default is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ggplot_params</code></td>
+<td>
+<p>An optional vector of strings of ggplot parameters to
+the backend ggplot function. For example, c("ylab(”)", "xlab(”)").
+Default is NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interactive</code></td>
+<td>
+<p>A logical argument indicating whether the plots should be
+interactive or not. Interactive plots are ggplots piped to ggplotly (for
+now). Default is FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path</code></td>
+<td>
+<p>The base directory of the trelliscope application. Default is
+Downloads.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>The name of the display. Default is Trelliscope.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test_mode</code></td>
+<td>
+<p>A logical to return a smaller trelliscope to confirm plot
+and design. Default is FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test_example</code></td>
+<td>
+<p>A vector of plot indices to return for test_mode. Default
+is 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>single_plot</code></td>
+<td>
+<p>A TRUE/FALSE to indicate whether 1 plot (not a
+trelliscope) should be returned. Default is FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments to be passed on to the trelli builder</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>No return value, builds a trelliscope display of missingness bar charts that is stored in 'path'
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David Degnan, Lisa Bramer
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+if (interactive()) {
+library(pmartRdata)
+
+trelliData1 &lt;- as.trelliData.edata(e_data = pep_edata,
+                                   edata_cname = "Peptide",
+                                   omics_type = "pepData")
+# Transform the data
+omicsData &lt;- edata_transform(omicsData = pep_object, data_scale = "log2")
+
+# Group the data by condition
+omicsData &lt;- group_designation(omicsData = omicsData, main_effects = c("Phenotype"))
+
+# Apply the IMD ANOVA filter
+imdanova_Filt &lt;- imdanova_filter(omicsData = omicsData)
+omicsData &lt;- applyFilt(filter_object = imdanova_Filt, omicsData = omicsData,
+                       min_nonmiss_anova = 2)
+
+# Normalize my pepData
+omicsData &lt;- normalize_global(omicsData, "subset_fn" = "all", "norm_fn" = "median",
+                             "apply_norm" = TRUE, "backtransform" = TRUE)
+
+# Implement the IMD ANOVA method and compute all pairwise comparisons 
+# (i.e. leave the `comparisons` argument NULL)
+statRes &lt;- imd_anova(omicsData = omicsData, test_method = 'combined')
+
+# Generate the trelliData object
+trelliData2 &lt;- as.trelliData(omicsData = omicsData)
+trelliData3 &lt;- as.trelliData(statRes = statRes)
+trelliData4 &lt;- as.trelliData(omicsData = omicsData, statRes = statRes)
+
+# Build the missingness bar plot with an edata file. Generate trelliData in as.trelliData.edata
+trelli_panel_by(trelliData = trelliData1, panel = "Peptide") %&gt;% 
+  trelli_missingness_bar(test_mode = TRUE, test_example = 1:10, path = tempdir())
+trelli_panel_by(trelliData = trelliData1, panel = "Sample") %&gt;% 
+  trelli_missingness_bar(test_mode = TRUE, test_example = 1:10, 
+   cognostics = "observed proportion", path = tempdir())
+
+# Build the missingness bar plot with an omicsData object. Generate trelliData in as.trelliData
+trelli_panel_by(trelliData = trelliData2, panel = "Peptide") %&gt;% 
+  trelli_missingness_bar(test_mode = TRUE, test_example = 1:10, path = tempdir())
+
+# Build the missingness bar plot with a statRes object. Generate trelliData in as.trelliData
+trelli_panel_by(trelliData = trelliData3, panel = "Peptide") %&gt;%
+  trelli_missingness_bar(test_mode = TRUE, test_example = 1:10, path = tempdir(),
+                         cognostics = c("observed proportion", "g-test p-value"))
+
+# Build the missingness bar plot with an omicsData and statRes object. 
+# Generate trelliData in as.trelliData.
+trelli_panel_by(trelliData = trelliData4, panel = "RazorProtein") %&gt;%
+  trelli_missingness_bar(test_mode = TRUE, test_example = 1:10, path = tempdir()) 
+
+# Or making the plot interactive 
+trelli_panel_by(trelliData = trelliData2, panel = "Peptide") %&gt;% 
+   trelli_missingness_bar(
+     test_mode = TRUE, test_example = 1:5, interactive = TRUE, path = tempdir())
+   
+# Or visualize only count data 
+trelli_panel_by(trelliData = trelliData2, panel = "Peptide") %&gt;% 
+   trelli_missingness_bar(
+     test_mode = TRUE, test_example = 1:5, 
+     cognostics = "observed count", proportion = FALSE,
+     path = tempdir()
+   )
+
+
+}
+
+
+</code></pre>
+
+
+</div>

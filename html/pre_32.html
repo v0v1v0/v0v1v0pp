@@ -1,0 +1,165 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rare_level_sampler</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Dealing with rare factor levels in fitting prediction rule ensembles.</h2>
+
+<h3>Description</h3>
+
+<p>Provides a sampling function to be supplied to the <code>sampfrac</code>
+argument of function <code>pre</code>, making sure that each level of specified factor(s)
+are present in each sample.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rare_level_sampler(factors, data, sampfrac = 0.5, warning = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>factors</code></td>
+<td>
+<p>Character vector with name(s) of factors with rare levels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p><code>data.frame</code> containing the variables in the model. Response 
+must be of class <code>factor</code> for classification, <code>numeric</code> for (count) 
+regression, <code>Surv</code> for survival regression. Input variables must be of 
+class numeric, factor or ordered factor. Otherwise, <code>pre</code> will attempt
+to recode.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sampfrac</code></td>
+<td>
+<p>numeric value <code class="reqn">&gt; 0</code> and <code class="reqn">\le 1</code>. Specifies
+the fraction of randomly selected training observations used to produce each 
+tree. Values <code class="reqn">&lt; 1</code> will result in sampling without replacement (i.e., 
+subsampling), a value of 1 will result in sampling with replacement 
+(i.e., bootstrap sampling). Alternatively, a sampling function may be supplied, 
+which should take arguments <code>n</code> (sample size) and <code>weights</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>warning</code></td>
+<td>
+<p>logical. Whether a warning should be printed if observations with
+rare factor levels are added to the training sample of the current iteration.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Categorical predictor variables (factors) with rare levels may be problematic 
+in boosting algorithms employing sampling (which is employed by default in
+function <code>pre</code>).
+</p>
+<p>If a sample in a given boosting iteration does not have any observations with a given
+(rare) level of a factor, while this level is present in the full training dataset, and 
+the factor is selected for splitting in the tree, then no prediction for that level of the factor
+can be generated, resulting in an error. Note that boosting methods other than <code>pre</code> that also 
+employ sampling (e.g., <code>gbm</code> or <code>xgboost</code>) may not generate an error in such cases, 
+but also do not document how intermediate predictions are generated in such a case. It is likely that
+these methods use one-hot-encoding of factors, which from a perspective of model interpretation 
+introduces new problems, especially when the aim is to obtain a sparse set of rules as in 'pre'. 
+</p>
+<p>With function <code>pre()</code>, the rare-factor-level issue, if encountered, can be dealt with by the user 
+in one of the following ways (in random order):
+</p>
+
+<ul>
+<li>
+<p> Use a sampling function that guarantees inclusion of rare factor levels in each sample. E.g., 
+use <code>rare_level_sampler</code>, yielding a sampling function which creates training samples 
+guaranteed to include each level of specified factor(s). Advantage: No loss of information, easy to implement, 
+guaranteed to solve the issue. Disadvantage: May result in oversampling 
+of observations with rare factor levels, potentially biasing results. The bias is likely small though, and 
+will be larger for smaller sample sizes and sampling fractions, and for larger numbers of rare
+levels. The latter will also increase computational demands. 
+</p>
+</li>
+<li>
+<p> Specify <code>learnrate = 0</code>. This results in a (su)bagging instead of boosting approach.
+Advantage: Eliminates the rare-factor-level issue completely, because intermediate predictions
+need not be computed. Disadvantage: Boosting with low learning rate often improves predictive accuracy.
+</p>
+</li>
+<li>
+<p> Data pre-processing: Before running function <code>pre()</code>, combine rare factor levels 
+with other levels of the factors. Advantage: Limited loss of information. Disadvantage: Likely, but 
+not guaranteed to solve the issue. 
+</p>
+</li>
+<li>
+<p> Data pre-processing: Apply one-hot encoding to the predictor matrix before applying function 'pre()'. This can easily be 
+done through applying function <code>model.matrix</code>. Advantage: Guaranteed to solve the error,
+easy to implement. Disadvantage: One-hot-encoding increases the number of predictor variables 
+which may reduce interpretability and, but probably to a lesser extent, accuracy.                                     
+</p>
+</li>
+<li>
+<p> Data pre-processing: Remove observations with rare factor levels from the dataset
+before running function <code>pre()</code>. Advantage: Guaranteed to solve the error. Disadvantage: 
+Removing outliers results in a loss of information, and may bias the results.
+</p>
+</li>
+<li>
+<p> Increase the value of <code>sampfrac</code> argument of function <code>pre()</code>. Advantage: Easy to
+implement. Disadvantage: Larger samples are more likely but not guaranteed to contain all possible 
+factor levels, thus not guaranteed to solve the issue.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>A sampling function, which generates sub- or bootstrap samples as usual in function <code>pre</code>, but 
+checks if all levels of the specified factor(s) are present and adds observation with those levels if not. 
+If <code>warning = TRUE</code>, a warning is issued).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pre</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Create dataset with two factors containing rare levels
+dat &lt;- iris[iris$Species != "versicolor", ]
+dat &lt;- rbind(dat, iris[iris$Species == "versicolor", ][1:5, ])
+dat$factor2 &lt;- factor(rep(1:21, times = 5))
+
+## Set up sampling function
+samp_func &lt;- rare_level_sampler(c("Species", "factor2"), data = dat, 
+                                  sampfrac = .51, warning = TRUE)
+
+## Illustrate what it does                                                                   
+N &lt;- nrow(dat)
+wts &lt;- rep(1, times = nrow(dat))
+set.seed(3)
+dat[samp_func(n = N, weights = wts), ] # single sample
+for (i in 1:500) dat[samp_func(n = N, weights = wts), ]
+warnings() # to illustrate warnings that may occur when fitting a full PRE
+
+## Illustrate use with function pre:
+## (Note: low ntrees value merely to reduce computation time for the example)
+set.seed(42)
+# iris.ens &lt;- pre(Petal.Width ~ . , data = dat, ntrees = 20) # would yield error
+iris.ens &lt;- pre(Petal.Width ~ . , data = dat, ntrees = 20, 
+  sampfrac = samp_func) # should work
+</code></pre>
+
+
+</div>

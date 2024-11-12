@@ -1,0 +1,410 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pense</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compute (Adaptive) Elastic Net S-Estimates of Regression</h2>
+
+<h3>Description</h3>
+
+<p>Compute elastic net S-estimates (PENSE estimates) along a grid of penalization levels with
+optional penalty loadings for adaptive elastic net.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pense(
+  x,
+  y,
+  alpha,
+  nlambda = 50,
+  nlambda_enpy = 10,
+  lambda,
+  lambda_min_ratio,
+  enpy_lambda,
+  penalty_loadings,
+  intercept = TRUE,
+  bdp = 0.25,
+  cc,
+  add_zero_based = TRUE,
+  enpy_specific = FALSE,
+  other_starts,
+  carry_forward = TRUE,
+  eps = 1e-06,
+  explore_solutions = 10,
+  explore_tol = 0.1,
+  explore_it = 5,
+  max_solutions = 1,
+  comparison_tol = sqrt(eps),
+  sparse = FALSE,
+  ncores = 1,
+  standardize = TRUE,
+  algorithm_opts = mm_algorithm_options(),
+  mscale_opts = mscale_algorithm_options(),
+  enpy_opts = enpy_options(),
+  cv_k = deprecated(),
+  cv_objective = deprecated(),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>n</code> by <code>p</code> matrix of numeric predictors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>vector of response values of length <code>n</code>.
+For binary classification, <code>y</code> should be a factor with 2 levels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>elastic net penalty mixing parameter with <code class="reqn">0 \le \alpha \le 1</code>.
+<code>alpha = 1</code> is the LASSO penalty, and <code>alpha = 0</code> the Ridge penalty.
+Can be a vector of several values, but <code>alpha = 0</code> cannot be mixed with other values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlambda</code></td>
+<td>
+<p>number of penalization levels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlambda_enpy</code></td>
+<td>
+<p>number of penalization levels where the EN-PY initial estimate is computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>optional user-supplied sequence of penalization levels. If given and not <code>NULL</code>,
+<code>nlambda</code> and <code>lambda_min_ratio</code> are ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda_min_ratio</code></td>
+<td>
+<p>Smallest value of the penalization level as a fraction of the largest
+level (i.e., the smallest value for which all coefficients are zero). The default depends on
+the sample size relative to the number of variables and <code>alpha</code>. If more observations than
+variables are available, the default is <code>1e-3 * alpha</code>, otherwise <code>1e-2 * alpha</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>enpy_lambda</code></td>
+<td>
+<p>optional user-supplied sequence of penalization levels at which EN-PY
+initial estimates are computed. If given and not <code>NULL</code>, <code>nlambda_enpy</code> is ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalty_loadings</code></td>
+<td>
+<p>a vector of positive penalty loadings (a.k.a. weights) for different
+penalization of each coefficient. Only allowed for <code>alpha</code> &gt; 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intercept</code></td>
+<td>
+<p>include an intercept in the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bdp</code></td>
+<td>
+<p>desired breakdown point of the estimator, between 0.05 and 0.5. The actual
+breakdown point may be slightly larger/smaller to avoid instabilities of the S-loss.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cc</code></td>
+<td>
+<p>tuning constant for the S-estimator. Default is chosen based on the breakdown
+point <code>bdp</code>. This affects the estimated coefficients only if
+<code>standardize=TRUE</code>. Otherwise only the estimated scale of the residuals
+would be affected.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add_zero_based</code></td>
+<td>
+<p>also consider the 0-based regularization path. See details for a
+description.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>enpy_specific</code></td>
+<td>
+<p>use the EN-PY initial estimates only at the penalization level they
+are computed for. See details for a description.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>other_starts</code></td>
+<td>
+<p>a list of other staring points, created by <code>starting_point()</code>.
+If the output of <code>enpy_initial_estimates()</code> is given, the starting points will be <em>shared</em>
+among all penalization levels.
+Note that if a the starting point is <em>specific</em> to a penalization level, this penalization
+level is added to the grid of penalization levels (either the manually specified grid in
+<code>lambda</code> or the automatically generated grid of size <code>nlambda</code>).
+If <code>standardize = TRUE</code>, the starting points are also scaled.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>carry_forward</code></td>
+<td>
+<p>carry the best solutions forward to the next penalty
+level.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps</code></td>
+<td>
+<p>numerical tolerance.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>explore_solutions</code></td>
+<td>
+<p>number of solutions to compute up to the desired precision <code>eps</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>explore_tol, explore_it</code></td>
+<td>
+<p>numerical tolerance and maximum number of iterations for
+exploring possible solutions. The tolerance should be (much) looser than <code>eps</code> to be useful,
+and the number of iterations should also be much smaller than the maximum number of
+iterations given via <code>algorithm_opts</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_solutions</code></td>
+<td>
+<p>only retain up to <code>max_solutions</code> unique solutions per penalization level.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>comparison_tol</code></td>
+<td>
+<p>numeric tolerance to determine if two solutions are equal.
+The comparison is first done on the absolute difference in the value of the objective
+function at the solution If this is less than <code>comparison_tol</code>, two solutions are deemed
+equal if the squared difference of the intercepts is less than <code>comparison_tol</code> and the
+squared <code class="reqn">L_2</code> norm of the difference vector is less than <code>comparison_tol</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sparse</code></td>
+<td>
+<p>use sparse coefficient vectors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+<p>number of CPU cores to use in parallel. By default, only one CPU core is used.
+Not supported on all platforms, in which case a warning is given.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardize</code></td>
+<td>
+<p>logical flag to standardize the <code>x</code> variables prior to fitting the PENSE
+estimates. Coefficients are always returned on the original scale. This can fail for
+variables with a large proportion of a single value (e.g., zero-inflated data).
+In this case, either compute with <code>standardize = FALSE</code> or standardize the data manually.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>algorithm_opts</code></td>
+<td>
+<p>options for the MM algorithm to compute the estimates.
+See <code>mm_algorithm_options()</code> for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mscale_opts</code></td>
+<td>
+<p>options for the M-scale estimation. See <code>mscale_algorithm_options()</code>
+for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>enpy_opts</code></td>
+<td>
+<p>options for the ENPY initial estimates, created with the
+<code>enpy_options()</code> function. See <code>enpy_initial_estimates()</code> for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv_k, cv_objective</code></td>
+<td>
+<p>deprecated and ignored. See <code>pense_cv()</code> for estimating
+prediction performance via cross-validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>ignored. See the section on deprecated parameters below.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a list-like object with the following items
+</p>
+
+<dl>
+<dt><code>alpha</code></dt>
+<dd>
+<p>the sequence of <code>alpha</code> parameters.</p>
+</dd>
+<dt><code>lambda</code></dt>
+<dd>
+<p>a list of sequences of penalization levels, one per <code>alpha</code> parameter.</p>
+</dd>
+<dt><code>estimates</code></dt>
+<dd>
+<p>a list of estimates. Each estimate contains the following information:
+</p>
+
+<dl>
+<dt><code>intercept</code></dt>
+<dd>
+<p>intercept estimate.</p>
+</dd>
+<dt><code>beta</code></dt>
+<dd>
+<p>beta (slope) estimate.</p>
+</dd>
+<dt><code>lambda</code></dt>
+<dd>
+<p>penalization level at which the estimate is computed.</p>
+</dd>
+<dt><code>alpha</code></dt>
+<dd>
+<p><em>alpha</em> hyper-parameter at which the estimate is computed.</p>
+</dd>
+<dt><code>bdp</code></dt>
+<dd>
+<p>chosen breakdown-point.</p>
+</dd>
+<dt><code>objf_value</code></dt>
+<dd>
+<p>value of the objective function at the solution.</p>
+</dd>
+<dt><code>statuscode</code></dt>
+<dd>
+<p>if <code style="white-space: pre;">⁠&gt; 0⁠</code> the algorithm experienced issues when
+computing the estimate.</p>
+</dd>
+<dt><code>status</code></dt>
+<dd>
+<p>optional status message from the algorithm.</p>
+</dd>
+</dl>
+</dd>
+<dt><code>bdp</code></dt>
+<dd>
+<p>the actual breakdown point used.</p>
+</dd>
+<dt><code>call</code></dt>
+<dd>
+<p>the original call.</p>
+</dd>
+</dl>
+<h3>Strategies for Using Starting Points</h3>
+
+<p>The function supports several different strategies to compute, and use the provided starting
+points for optimizing the PENSE objective function.
+</p>
+<p>Starting points are computed internally but can also be supplied via <code>other_starts</code>.
+By default, starting points are computed internally by the EN-PY procedure for penalization
+levels supplied in <code>enpy_lambda</code> (or the automatically generated grid of length <code>nlambda_enpy</code>).
+By default, starting points computed by the EN-PY procedure are <em>shared</em> for all penalization
+levels in <code>lambda</code> (or the automatically generated grid of length <code>nlambda</code>).
+If the starting points should be <em>specific</em> to the penalization level the starting points'
+penalization level, set the <code>enpy_specific</code> argument to <code>TRUE</code>.
+</p>
+<p>In addition to EN-PY initial estimates, the algorithm can also use the "0-based" strategy if
+<code>add_zero_based = TRUE</code> (by default). Here, the 0-vector is used to start the optimization at
+the largest penalization level in <code>lambda</code>. At subsequent penalization levels, the solution at
+the previous penalization level is also used as starting point.
+</p>
+<p>At every penalization level, all starting points are explored using the loose numerical
+tolerance <code>explore_tol</code>. Only the best <code>explore_solutions</code> are computed to the stringent
+numerical tolerance <code>eps</code>.
+Finally, only the best <code>max_solutions</code> are retained and carried forward as starting points for
+the subsequent penalization level.
+</p>
+
+
+<h3>Deprecated Arguments</h3>
+
+<p>Starting with version 2.0.0, cross-validation is performed by separate function <code>pense_cv()</code>.
+Arguments related cross-validation cause an error when supplied to <code>pense()</code>.
+Furthermore, the following arguments are deprecated as of version 2.0.0:
+<code>initial</code>, <code>warm_reset</code>, <code>cl</code>, <code>options</code>, <code>init_options</code>, <code>en_options</code>.
+If <code>pense()</code> is called with any of these arguments, warnings detail how to replace them.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pense_cv()</code> for selecting hyper-parameters via cross-validation.
+</p>
+<p><code>coef.pense_fit()</code> for extracting coefficient estimates.
+</p>
+<p><code>plot.pense_fit()</code> for plotting the regularization path.
+</p>
+<p>Other functions to compute robust estimates: 
+<code>regmest()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Compute the PENSE regularization path for Freeny's revenue data
+# (see ?freeny)
+data(freeny)
+x &lt;- as.matrix(freeny[ , 2:5])
+
+regpath &lt;- pense(x, freeny$y, alpha = 0.5)
+plot(regpath)
+
+# Extract the coefficients at a certain penalization level
+coef(regpath, lambda = regpath$lambda[[1]][[40]])
+
+# What penalization level leads to good prediction performance?
+set.seed(123)
+cv_results &lt;- pense_cv(x, freeny$y, alpha = 0.5,
+                       cv_repl = 2, cv_k = 4)
+plot(cv_results, se_mult = 1)
+
+# Extract the coefficients at the penalization level with
+# smallest prediction error ...
+coef(cv_results)
+# ... or at the penalization level with prediction error
+# statistically indistinguishable from the minimum.
+coef(cv_results, lambda = '1-se')
+</code></pre>
+
+
+</div>

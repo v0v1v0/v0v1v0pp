@@ -1,0 +1,198 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>nicfi_crop_images</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Crop the downloaded NICFI .tif or .vrt file using 'gdalwarp'</h2>
+
+<h3>Description</h3>
+
+<p>Crop the downloaded NICFI .tif or .vrt file using 'gdalwarp'
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">nicfi_crop_images(
+  input_pth,
+  output_pth,
+  bbox_AOI,
+  threads = 1,
+  of = "GTiff",
+  resize_method = "lanczos",
+  verbose = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>input_pth</code></td>
+<td>
+<p>a valid path to either a .tif or a .vrt (virtual raster) file that should be cropped based on the bounding box using 'gdalwarp'</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>output_pth</code></td>
+<td>
+<p>a valid path to the output .tif file. This file path can also point to a .vrt file by setting the 'of' parameter to 'VRT'</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bbox_AOI</code></td>
+<td>
+<p>a list of the format "list(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax)" that includes the bounding box 'xmin', 'xmax', 'ymin', 'ymax' coordinate values of the Area of Interest (AOI)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threads</code></td>
+<td>
+<p>an integer. In case that this parameter is greater than 1 then multiple threads will be utilized in the 'gdalwarp' function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>of</code></td>
+<td>
+<p>a character string specifying the format of the saved file. The default is GeoTIFF (GTiff). For more information see the 'gdal_utils' function of the 'sf' package</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resize_method</code></td>
+<td>
+<p>a character string specifying the resize method. Can be one of 'near', 'bilinear', 'cubic', 'cubicspline', 'lanczos', 'average', 'mode', 'max', 'min', 'med', 'q1', 'q3'. For more information see the 'r' parameter of  the 'gdal_utils' function of the 'sf' package</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>a boolean. If TRUE then information will be printed out in the console</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a logical indicating success (i.e., TRUE); in case of failure, an error is raised
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Not run: 
+
+require(PlanetNICFI)
+
+#....................................
+# first extract the available Mosaics
+#....................................
+
+api_key = 'use_your_planet_nicfi_API_key'
+
+mosaic_files = nicfi_mosaics(planet_api_key = api_key,
+                             type = 'monthly',
+                             crs_bbox = 4326,
+                             URL = 'https://api.planet.com/basemaps/v1/mosaics',
+                             verbose = TRUE)
+
+#....................................
+# keep the mosaic of 'September 2020'
+#....................................
+
+keep_idx = 1
+mosaic_ID = mosaic_files$dtbl_mosaic$id[keep_idx]
+
+
+#................................................................
+# then extract the available Quad files for the Mosaic for an AOI
+#................................................................
+
+wkt_file = system.file('data_files/Sugar_Cane_Bolivia.wkt', package = "PlanetNICFI")
+WKT = readLines(wkt_file, warn = FALSE)
+
+quad_files = nicfi_quads_bbox(planet_api_key = api_key,
+                              mosaic_id = mosaic_ID,
+                              bbox_AOI = NULL,
+                              wkt_AOI = WKT,
+                              page_size = 10,
+                              crs_bbox = 4326,
+                              verbose = TRUE)
+
+#..................................
+# formated aria2c download weblinks
+#..................................
+
+web_links_aria2c = aria2c_download_paths(mosaic_output = mosaic_files,
+                                         mosaic_id = mosaic_ID,
+                                         quads_output = quad_files,
+                                         img_type = 'tif')
+
+#.........................................................
+# download the .tif files that intersect with the bbox AOI
+#.........................................................
+
+temp_dir_out = tempdir()
+
+all_threads = parallel::detectCores()
+set_threads = length(web_links_aria2c) / 2
+num_threads = ifelse(set_threads &lt; all_threads, set_threads, all_threads)
+aria_args = '--allow-overwrite --file-allocation=none --retry-wait=5 --max-tries=0'
+
+res_downl = aria2c_bulk_donwload(vector_or_file_path = web_links_aria2c,
+                                 default_directory = temp_dir_out,
+                                 user = NULL,
+                                 password = NULL,
+                                 threads = num_threads,
+                                 verbose = TRUE,
+                                 secondary_args_aria = aria_args)
+
+#........................................
+# create a Virtual Raster (VRT) file from
+# the downloaded .tif files
+#........................................
+
+VRT_out = file.path(temp_dir_out, glue::glue("{mosaic_ID}.vrt"))
+
+res_vrt = create_VRT_from_dir(dir_tifs = temp_dir_out,
+                              output_path_VRT = VRT_out,
+                              file_extension = '.tif',
+                              verbose = TRUE)
+
+#....................................................
+# Adjust the Coordinate Reference System of the
+# bounding box from 4326 to the one of the .tif files
+#....................................................
+
+wkt_sf = sf::st_as_sfc(WKT, crs = 4326)
+proj_info = proj_info_extract(path_to_raster = VRT_out)
+
+wkt_transf = sf::st_transform(wkt_sf, crs = proj_info)
+bbx_transf = sf::st_bbox(wkt_transf)
+
+
+#....................................................
+# crop the output .vrt file based on the bounding box
+#....................................................
+
+pth_crop_out = file.path(temp_dir_out, glue::glue("{mosaic_ID}_CROPPED.tif"))
+
+bbx_crop = list(xmin = as.numeric(bbx_transf['xmin']),
+                xmax = as.numeric(bbx_transf['xmax']),
+                ymin = as.numeric(bbx_transf['ymin']),
+                ymax = as.numeric(bbx_transf['ymax']))
+
+warp_obj = nicfi_crop_images(input_pth = VRT_out,
+                             output_pth = pth_crop_out,
+                             bbox_AOI = bbx_crop,
+                             threads = num_threads,
+                             of = 'GTiff',
+                             resize_method = 'lanczos',
+                             verbose = TRUE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

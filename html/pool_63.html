@@ -1,0 +1,121 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>poolWithTransaction</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Self-contained database transactions using pool</h2>
+
+<h3>Description</h3>
+
+<p>This function allows you to use a pool object directly to execute a
+transaction on a database connection, without ever having to actually
+check out a connection from the pool and then return it. Using this
+function instead of the direct transaction methods will guarantee that
+you don't leak connections or forget to commit/rollback a transaction.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">poolWithTransaction(pool, func)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pool</code></td>
+<td>
+<p>The pool object to fetch the connection from.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>func</code></td>
+<td>
+<p>A function that has one argument, <code>conn</code> (a database
+connection checked out from <code>pool</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is similar to <code>DBI::dbWithTransaction()</code>, but
+its arguments work a little differently. First, it takes in a pool
+object, instead of a connection. Second, instead of taking an arbitrary
+chunk of code to execute as a transaction (i.e. either run all the
+commands successfully or not run any of them), it takes in a function.
+This function (the <code>func</code> argument) gives you an argument to use
+in its body, a database connection. So, you can use connection methods
+without ever having to check out a connection. But you can also use
+arbitrary R code inside the <code>func</code>'s body. This function will be
+called once we fetch a connection from the pool. Once the function
+returns, we release the connection back to the pool.
+</p>
+<p>Like its DBI sister <code>DBI::dbWithTransaction()</code>, this function
+calls <code>dbBegin()</code> before executing the code, and <code>dbCommit()</code>
+after successful completion, or <code>dbRollback()</code> in case of an error.
+This means that calling <code>poolWithTransaction</code> always has side
+effects, namely to commit or roll back the code executed when <code>func</code>
+is called. In addition, if you modify the local R environment from within
+<code>func</code> (e.g. setting global variables, writing to disk), these
+changes will persist after the function has returned.
+</p>
+<p>Also, like <code>DBI::dbWithTransaction()</code>, there is also a special
+function called <code>dbBreak()</code> that allows for an early, silent exit
+with rollback. It can be called only from inside <code>poolWithTransaction</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>func</code>'s return value.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">if (requireNamespace("RSQLite", quietly = TRUE)) {
+  pool &lt;- dbPool(RSQLite::SQLite(), dbname = ":memory:")
+
+  dbWriteTable(pool, "cars", head(cars, 3))
+  dbReadTable(pool, "cars")   # there are 3 rows
+
+  ## successful transaction
+  poolWithTransaction(pool, function(conn) {
+    dbExecute(conn, "INSERT INTO cars (speed, dist) VALUES (1, 1);")
+    dbExecute(conn, "INSERT INTO cars (speed, dist) VALUES (2, 2);")
+    dbExecute(conn, "INSERT INTO cars (speed, dist) VALUES (3, 3);")
+  })
+  dbReadTable(pool, "cars")   # there are now 6 rows
+
+  ## failed transaction -- note the missing comma
+  tryCatch(
+    poolWithTransaction(pool, function(conn) {
+      dbExecute(conn, "INSERT INTO cars (speed, dist) VALUES (1, 1);")
+      dbExecute(conn, "INSERT INTO cars (speed dist) VALUES (2, 2);")
+      dbExecute(conn, "INSERT INTO cars (speed, dist) VALUES (3, 3);")
+    }),
+    error = identity
+  )
+  dbReadTable(pool, "cars")   # still 6 rows
+
+  ## early exit, silently
+  poolWithTransaction(pool, function(conn) {
+    dbExecute(conn, "INSERT INTO cars (speed, dist) VALUES (1, 1);")
+    dbExecute(conn, "INSERT INTO cars (speed, dist) VALUES (2, 2);")
+    if (nrow(dbReadTable(conn, "cars")) &gt; 7) dbBreak()
+    dbExecute(conn, "INSERT INTO cars (speed, dist) VALUES (3, 3);")
+  })
+  dbReadTable(pool, "cars")   # still 6 rows
+
+  poolClose(pool)
+
+} else {
+  message("Please install the 'RSQLite' package to run this example")
+}
+</code></pre>
+
+
+</div>

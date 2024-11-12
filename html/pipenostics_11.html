@@ -1,0 +1,169 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>b31gpf</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>ASME B31G. Failure pressure of the corroded pipe (original)</h2>
+
+<h3>Description</h3>
+
+<p>Calculate failure pressure of the corroded pipe
+according to <em>Original B31G</em>,
+<em>Level-1</em> algorithm listed
+in <a href="https://www.asme.org/codes-standards/find-codes-standards/b31g-manual-determining-remaining-strength-corroded-pipelines">ASME B31G-2012</a>.
+</p>
+<p>The next assumption of the corrosion shape is adopted by
+<a href="https://www.asme.org/codes-standards/find-codes-standards/b31g-manual-determining-remaining-strength-corroded-pipelines">ASME B31G-2012</a>:
+</p>
+<p><img src="../help/figures/b31gpf.png" alt="b31gpf.png"></p>
+<p>There (a) is a parabolic and (b) is a rectangular idealizations of a
+corroded area.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">b31gpf(d, wth, smys, depth, l)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>nominal outside diameter of pipe, [<em>inch</em>]. Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wth</code></td>
+<td>
+<p>nominal wall thickness of pipe, [<em>inch</em>]. Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>smys</code></td>
+<td>
+<p>specified minimum yield of stress (<em>SMYS</em>) as a
+characteristics of steel strength, [<em>PSI</em>]. Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>depth</code></td>
+<td>
+<p>measured maximum depth of the corroded area, [<em>inch</em>]. Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>l</code></td>
+<td>
+<p>measured maximum longitudinal length of corroded area, [<em>inch</em>]. Type: <code>assert_double</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Since the definition of flow stress, <em>Sflow</em>, in
+<a href="https://www.asme.org/codes-standards/find-codes-standards/b31g-manual-determining-remaining-strength-corroded-pipelines">ASME B31G-2012</a>
+is recommended with <em>Level 1</em> as follows:
+</p>
+<p style="text-align: center;"><code class="reqn">Sflow =  1.1SMYS</code>
+</p>
+
+<p>no other possibilities of its evaluation are incorporated.
+</p>
+<p>For this code we avoid possible semantic optimization to
+preserve readability and correlation with original text description
+in <a href="https://www.asme.org/codes-standards/find-codes-standards/b31g-manual-determining-remaining-strength-corroded-pipelines">ASME B31G-2012</a>.
+At the same time source code for estimated failure pressure preserves
+maximum affinity with its semantic description in <a href="https://www.asme.org/codes-standards/find-codes-standards/b31g-manual-determining-remaining-strength-corroded-pipelines">ASME B31G-2012</a>
+and slightly differs from that given by <em>Timashev et al</em>. The latter
+deviates up to 0.7
+(<code>b31gdata</code>).
+</p>
+<p>Numeric <code>NA</code>s may appear in case prescribed conditions of
+use are offended.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Estimated failure pressure of the corroded pipe, [<em>PSI</em>].
+Type: <code>assert_double</code>.
+</p>
+
+
+<h3>References</h3>
+
+
+<ol>
+<li> <p><a href="https://store.accuristech.com:443/standards/asme-b31g-2012-r2017?product_id=1842873">ASME B31G-2012</a>.
+Manual for determining the remaining strength of corroded pipelines:
+supplement to <em>B31 Code</em> for pressure piping.
+</p>
+</li>
+<li>
+<p>  S. Timashev and A. Bushinskaya, <em>Diagnostics and Reliability
+of Pipeline Systems</em>, Topics in Safety, Risk, Reliability and Quality 30,
+<strong>DOI 10.1007/978-3-319-25307-7</strong>
+</p>
+</li>
+</ol>
+<h3>See Also</h3>
+
+<p>Other fail pressure functions: <code>b31gmodpf</code>, <code>dnvpf</code>,
+<code>shell92pf</code>, <code>pcorrcpf</code>
+</p>
+<p>Other ASME B31G functions: 
+<code>b31crvl()</code>,
+<code>b31gacd()</code>,
+<code>b31gacl()</code>,
+<code>b31gafr()</code>,
+<code>b31gdep()</code>,
+<code>b31gmodpf()</code>,
+<code>b31gops()</code>,
+<code>b31gsap()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"> library(pipenostics)
+
+ ## Example: maximum percentage disparity of original B31G
+ ## algorithm and modified B31G showed on CRVL.BAS data
+ with(b31gdata, {
+   original  &lt;- b31gpf(d, wth, smys, depth, l)
+   modified  &lt;- b31gmodpf(d, wth, smys, depth, l)
+   round(max(100*abs(1 - original/modified), na.rm = TRUE), 4)
+ })
+ ## Output:
+ #[1] 32.6666
+
+ ## Example: plot disparity of original B31G algorithm and
+ ## modified B31G showed on CRVL data
+ with(b31gdata[-(6:7),], {
+   b31g  &lt;- b31gpf(depth, wth, smys, depth, l)
+   b31gmod  &lt;- b31gmodpf(depth, wth, smys, depth, l)
+   axe_range &lt;- range(c(b31g, b31gmod))
+   plot(b31g, b31g, type = 'b', pch = 16,
+        xlab = 'Pressure, [PSI]',
+        ylab = 'Pressure, [PSI]',
+        main = 'Failure pressure method comparison',
+        xlim = axe_range, ylim = axe_range)
+   inc &lt;- order(b31g)
+   lines(b31g[inc], b31gmod[inc], type = 'b', col = 'red')
+   legend('topleft',
+          legend = c('B31G Original',
+                     'B31G Modified'),
+          col = c('black', 'red'),
+          lty = 'solid')
+ })
+
+
+</code></pre>
+
+
+</div>

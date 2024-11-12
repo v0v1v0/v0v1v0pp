@@ -1,0 +1,147 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PCMVar</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Expected variance-covariance matrix for each couple of tips (i,j)</h2>
+
+<h3>Description</h3>
+
+<p>Expected variance-covariance matrix for each couple of tips (i,j)
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PCMVar(
+  tree,
+  model,
+  W0 = matrix(0, PCMNumTraits(model), PCMNumTraits(model)),
+  SE = matrix(0, PCMNumTraits(model), PCMTreeNumTips(tree)),
+  metaI = PCMInfo(NULL, tree, model, verbose = verbose),
+  internal = FALSE,
+  diagOnly = FALSE,
+  verbose = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tree</code></td>
+<td>
+<p>a phylo object with N tips.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>an S3 object specifying both, the model type (class, e.g. "OU") as
+well as the concrete model parameter values at which the likelihood is to be
+calculated (see also Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>W0</code></td>
+<td>
+<p>a numeric matrix denoting the initial k x k variance covariance matrix at the
+root (default is the k x k zero matrix).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SE</code></td>
+<td>
+<p>a k x N matrix specifying the standard error for each measurement in
+X. Alternatively, a k x k x N cube specifying an upper triangular k x k
+factor of the variance covariance matrix for the measurement error
+for each tip <code>i=1, ..., N</code>. When <code>SE</code> is a matrix, the k x k
+measurement error variance matrix for a tip <code>i</code> is calculated as
+<code>VE[, , i] &lt;- diag(SE[, i] * SE[, i], nrow = k)</code>. When <code>SE</code> is a
+cube, the way how the measurement variance matrix for a tip <code>i</code> is
+calculated depends on the runtime option <code>PCMBase.Transpose.Sigma_x</code>
+as follows:
+</p>
+
+<dl>
+<dt>if <code>getOption("PCMBase.Transpose.Sigma_x", FALSE) == FALSE</code> (default): </dt>
+<dd>
+<p>VE[, , i] &lt;- SE[, , i] %*% t(SE[, , i])</p>
+</dd>
+<dt>if <code>getOption("PCMBase.Transpose.Sigma_x", FALSE) == TRUE</code>: </dt>
+<dd>
+<p>VE[, , i] &lt;- t(SE[, , i]) %*% SE[, , i]</p>
+</dd>
+</dl>
+<p>Note that the above behavior is consistent with the treatment of the model
+parameters <code>Sigma_x</code>, <code>Sigmae_x</code> and <code>Sigmaj_x</code>, which are
+also specified as upper triangular factors.
+Default: <code>matrix(0.0, PCMNumTraits(model), PCMTreeNumTips(tree))</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>metaI</code></td>
+<td>
+<p>a list returned from a call to <code>PCMInfo(X, tree, model, SE)</code>,
+containing meta-data such as N, M and k. Alternatively, this can be a
+character string naming a function or a function object that returns such
+a list, e.g. the function<code>PCMInfo</code> or the function <code>PCMInfoCpp</code>
+from the <code>PCMBaseCpp</code> package.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>internal</code></td>
+<td>
+<p>a logical indicating if the per-node variance-covariances matrices for
+the internal nodes should be returned (see Value). Default FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>diagOnly</code></td>
+<td>
+<p>a logical indicating if only the variance
+blocks for the nodes should be calculated. By default this is set to FALSE,
+meaning that the co-variances are calculated for all couples of nodes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical indicating if some debug-messages should printed.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>If internal is FALSE, a (k x N) x (k x N) matrix W, such that k x k block
+<code>W[((i-1)*k)+(1:k), ((j-1)*k)+(1:k)]</code> equals the expected
+covariance matrix between tips i and j. Otherwise, a list with an element 'W' as described above and
+a k x M matrix element 'Wii' containing the per-node variance covariance matrix for each node:
+The k x k block <code>Wii[, (i-1)*k + (1:k)]</code> represents the variance covariance matrix for node i.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># a Brownian motion model with one regime
+modelBM &lt;- PCM(model = "BM", k = 2)
+# print the model
+modelBM
+# assign the model parameters at random: this will use uniform distribution
+# with boundaries specified by PCMParamLowerLimit and PCMParamUpperLimit
+# We do this in two steps:
+# 1. First we generate a random vector. Note the length of the vector equals PCMParamCount(modelBM)
+randomParams &lt;- PCMParamRandomVecParams(modelBM, PCMNumTraits(modelBM), PCMNumRegimes(modelBM))
+randomParams
+# 2. Then we load this random vector into the model.
+PCMParamLoadOrStore(modelBM, randomParams, 0, PCMNumTraits(modelBM), PCMNumRegimes(modelBM), TRUE)
+
+# create a random tree of 10 tips
+tree &lt;- ape::rtree(10)
+covMat &lt;- PCMVar(tree, modelBM)
+</code></pre>
+
+
+</div>

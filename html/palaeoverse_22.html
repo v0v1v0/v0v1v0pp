@@ -1,0 +1,222 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tax_range_space</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate the geographic range of fossil taxa</h2>
+
+<h3>Description</h3>
+
+<p>A function to calculate the geographic range of fossil taxa from occurrence
+data. The function can calculate geographic range in four ways: convex
+hull, latitudinal range, maximum Great Circle Distance, and the number of
+occupied equal-area hexagonal grid cells.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">tax_range_space(
+  occdf,
+  name = "genus",
+  lng = "lng",
+  lat = "lat",
+  method = "lat",
+  spacing = 100,
+  coords = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>occdf</code></td>
+<td>
+<p><code>dataframe</code>. A dataframe of fossil occurrences. This
+dataframe should contain at least three columns: names of taxa, longitude
+and latitude (see <code>name</code>, <code>lng</code>, and <code>lat</code> arguments).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p><code>character</code>. The name of the column you wish to be treated
+as the input names (e.g. "species" or "genus"). NA data should be removed
+prior to function call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lng</code></td>
+<td>
+<p><code>character</code>. The name of the column you wish to be treated
+as the input longitude (e.g. "lng" or "p_lng"). NA data should be removed
+prior to function call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lat</code></td>
+<td>
+<p><code>character</code>. The name of the column you wish to be treated
+as the input latitude (e.g. "lat" or "p_lat"). NA data should be removed
+prior to function call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p><code>character</code>. How should geographic range be calculated
+for each taxon in <code>occdf</code>? Four options exist in this function: "con",
+"lat", "gcd", and "occ". See Details for a description of each.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spacing</code></td>
+<td>
+<p><code>numeric</code>. The desired spacing (in km) between the
+center of adjacent grid cells. Only required if the <code>method</code> argument is
+set to "occ". The default is 100.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coords</code></td>
+<td>
+<p><code>logical</code>. Should the output coordinates be returned for
+the "con" and "gcd" <code>method</code>?</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Four commonly applied approaches (Darroch et al. 2020)
+are available using the <code>tax_range_space</code> function for calculating ranges:
+</p>
+
+<ul>
+<li>
+<p> Convex hull: the "con" method calculates the geographic range of taxa
+using a convex hull for each taxon in <code>occdf</code>, and calculates the area of
+the convex hull (in km<sup>2</sup>) using
+<code>geosphere::areaPolygon()</code>. The
+convex hull method works by creating a polygon that encompasses all
+occurrence points of the taxon.
+</p>
+</li>
+<li>
+<p> Latitudinal: the "lat" method calculates the palaeolatitudinal
+range of a taxon. It does so for each taxon in <code>occdf</code> by finding their
+maximum and minimum latitudinal occurrence (from input <code>lat</code>).
+The palaeolatitudinal range of each taxon is also calculated (i.e. the
+difference between the minimum and maximum latitude).
+</p>
+</li>
+<li>
+<p> Maximum Great Circle Distance: the "gcd" method calculates the maximum
+Great Circle Distance between occurrences for each taxon in <code>occdf</code>. It does
+so using <code>geosphere::distHaversine()</code>.
+This function calculates Great Circle Distance using the Haversine method
+with the radius of the Earth set to the 6378.137 km.
+Great Circle Distance represents the shortest distance between two
+points on the surface of a sphere. This is different from Euclidean Distance,
+which represents the distance between two points on a plane.
+</p>
+</li>
+<li>
+<p> Occupied cells: the "occ" method calculates the number and proportion of
+occupied equal-area grid cells. It does so using discrete hexagonal grids
+via the <code>h3jsr</code> package. This package relies on
+<a href="https://h3geo.org/docs/">Uber's H3</a> library, a geospatial indexing system
+that partitions the world into hexagonal cells. In H3, 16 different
+resolutions are available
+(<a href="https://h3geo.org/docs/core-library/restable/">see here</a>).
+In the implementation of the <code>tax_range_space()</code> function, the resolution is
+defined by the user-input <code>spacing</code> which represents the distance between
+the centroid of adjacent cells. Using this distance, the function identifies
+which resolution is most similar to the input <code>spacing</code>, and uses this
+resolution.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>A <code>dataframe</code> with method-specific columns:
+</p>
+
+<ul>
+<li>
+<p> For the "con" method, a <code>dataframe</code> with each unique taxa (<code>taxon</code>)
+and taxon ID (<code>taxon_id</code>) by convex hull coordinate (<code>lng</code> &amp; <code>lat</code>)
+combination, and area (<code>area</code>) in
+km<sup>2</sup> is returned.
+</p>
+</li>
+<li>
+<p> For the "lat" method, a <code>dataframe</code> with unique taxa (<code>taxon</code>),
+taxon ID (<code>taxon_id</code>), maximum latitude of occurrence (<code>max_lat</code>),
+minimum latitude of occurrence (<code>min_lat</code>), and latitudinal
+range (<code>range_lat</code>) is returned.
+</p>
+</li>
+<li>
+<p> For the "gcd" method, a <code>dataframe</code> with each unique taxa (<code>taxon</code>)
+and taxon ID (<code>taxon_id</code>) by coordinate combination (<code>lng</code> &amp; <code>lat</code>) of the
+two most distant points, and the Great Circle Distance (<code>gcd</code>) between
+these points in km is returned.
+</p>
+</li>
+<li>
+<p> For the "occ" method, a <code>dataframe</code> with unique taxa (<code>taxon</code>), taxon
+ID (<code>taxon_id</code>), the number of occupied cells (<code>n_cells</code>), proportion of
+occupied cells from all occupied by occurrences (<code>proportional_occ</code>),
+and the spacing between cells (<code>spacing</code>) in km is returned. Note: the number
+of occupied cells and proportion of occupied cells is highly dependent on
+the user-defined <code>spacing.</code>
+For the "con", "lat" and "gcd" method, values of zero indicate that the
+respective taxon is a singleton (i.e. represented by only one occurrence).
+</p>
+</li>
+</ul>
+<h3>Reference(s)</h3>
+
+<p>Darroch, S. A., Casey, M. M., Antell, G. S., Sweeney, A., &amp; Saupe, E. E.
+(2020). High preservation potential of paleogeographic range size
+distributions in deep time. The American Naturalist, 196(4), 454-471.
+</p>
+
+
+<h3>Developer(s)</h3>
+
+<p>Lewis A. Jones
+</p>
+
+
+<h3>Reviewer(s)</h3>
+
+<p>Bethany Allen &amp; Christopher D. Dean
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Grab internal data
+occdf &lt;- tetrapods[1:100, ]
+# Remove NAs
+occdf &lt;- subset(occdf, !is.na(genus))
+# Convex hull
+ex1 &lt;- tax_range_space(occdf = occdf, name = "genus", method = "con")
+# Latitudinal range
+ex2 &lt;- tax_range_space(occdf = occdf, name = "genus", method = "lat")
+# Great Circle Distance
+ex3 &lt;- tax_range_space(occdf = occdf, name = "genus", method = "gcd")
+# Occupied grid cells
+ex4 &lt;- tax_range_space(occdf = occdf, name = "genus",
+                       method = "occ", spacing = 500)
+# Convex hull with coordinates
+ex5 &lt;- tax_range_space(occdf = occdf, name = "genus", method = "con",
+coords = TRUE)
+</code></pre>
+
+
+</div>

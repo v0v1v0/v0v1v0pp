@@ -1,0 +1,156 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>compareTimescaling</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Comparing the Time-Scaling of Trees</h2>
+
+<h3>Description</h3>
+
+<p>These functions take two trees and calculate the changes in node ages (for
+<code>compareNodeAges</code>) for shared clades or terminal branch lengths leading to
+shared tip taxa (for <code>compareTermBranches</code>).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">compareNodeAges(tree1, tree2, dropUnshared = FALSE)
+
+compareTermBranches(tree1, tree2)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tree1</code></td>
+<td>
+<p>A time-scaled phylogeny of class <code>phylo</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tree2</code></td>
+<td>
+<p>A time-scaled phylogeny of class <code>phylo</code>; for <code>compareNodeAges</code>,
+<code>tree2</code> can also be an object of class <code>multiPhylo</code> composed of multiple
+phylogenies. See below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dropUnshared</code></td>
+<td>
+<p>If <code>TRUE</code>, nodes not shared across all input trees are
+dropped from the final output for <code>compareNodeAge</code>. This argument has no
+effect if <code>tree2</code> is a single phylogeny (a <code>phylo</code>-class object).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For their most basic usage, these functions compare the time-scaling of two
+trees. Any taxa not-shared on both trees are dropped before analysis, based
+on tip labels.
+</p>
+<p>As with many <code>paleotree</code> functions, calculations relating to time on trees are
+done with respect to any included <code>$root.time</code> elements. If these are not
+present, the latest tip is assumed to be at the present day (time = 0).
+</p>
+<p>The function <code>compareNodeAges</code> calculates
+the changes in the clade ages among those clades
+shared by the two trees, relative to the first tree in absolute time. For
+example, a shift of <code>+5</code> means the clade originates five time-units <code>later</code> in
+absolute time on the second tree, while a shift of <code>-5</code> means the clade
+originated five time-units <em>prior</em> on the second tree.
+</p>
+<p>For <code>compareNodeAges</code>, if <code>tree2</code> is actually a <code>multiPhylo</code> object composed of
+multiple phylogenies, the output will be a <code>matrix</code>, with each row
+representing a different tree and each column a different clade shared
+between at least some subset of the trees in <code>tree2</code> and the tree in <code>tree1</code>.
+values in the matrix are the changes in clade ages between from tree1 (as
+baseline) to <code>tree2</code>, with <code>NA</code> values representing a clade that is not contained
+in the tree represented by that row (but is contained in tree1 and at least
+one other tree in tree2). The matrix can be reduced to only those clades
+shared by all trees input via the argument <code>dropUnshared</code>. Note that this
+function distinguishes clades based on their shared taxa, and cannot so infer
+that two clades might be identical if it were not for single taxon within
+the crown of one considered clade, despite that such a difference should
+probably have no effect on compare a node divergence date. Users should
+consider their dataset for such scenarios prior to application of
+<code>compareNodeAges</code>, perhaps by dropping all taxa not included in all other
+trees to be considered (this is NOT done by this function).
+</p>
+<p><code>compareTermBranches</code> calculates the changes in the terminal branch lengths
+attached to tip taxa shared by the two trees, relative to the first tree.
+Thus, a shift of <code>+5</code> means that this particular terminal taxon is connected
+to a terminal branch which is five time-units longer.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>compareTermBranches</code> returns a vector of temporal shifts for terminal
+branches with the shared tip names as labels.
+</p>
+<p>For the function <code>compareNodeAges</code>, if both <code>tree1</code>
+and <code>tree2</code> are single trees, outputs a vector
+of temporal shifts for nodes on tree2 with respect to <code>tree1</code>. 
+If <code>tree2</code> is multiple trees, then a <code>matrix</code> is output, with each row representing each
+tree in <code>tree2</code> (and carrying the name of each tree, if any is given).
+The values are temporal shifts for each tree in <code>tree2</code> with respect to <code>tree1</code>. 
+For either case, the column names or element names (for a vector) are the sorted
+taxon names of the particular clade, the dates of which are given in that
+column. See above for more details. These names can be very long when large
+trees are considered.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>dateNodes</code>, <code>taxa2phylo</code>, <code>phyloDiv</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+set.seed(444)
+record &lt;- simFossilRecord(p = 0.1, q = 0.1, nruns = 1,
+	nTotalTaxa = c(30,40), nExtant = 0)
+taxa &lt;- fossilRecord2fossilTaxa(record)
+#get the true tree
+tree1 &lt;- taxa2phylo(taxa)
+#simulate a fossil record with imperfect sampling with sampleRanges()
+rangesCont &lt;- sampleRanges(taxa,r = 0.5)
+#let's use taxa2cladogram to get the 'ideal' cladogram of the taxa
+cladogram &lt;- taxa2cladogram(taxa,plot = TRUE)
+#Now let's try timePaleoPhy using the continuous range data
+tree2 &lt;- timePaleoPhy(cladogram,rangesCont,type = "basic")
+#let's look at the distribution of node shifts
+hist(compareNodeAges(tree1,tree2))
+#let's look at the distribution of terminal branch lengths
+hist(compareTermBranches(tree1,tree2))
+
+#testing ability to compare multiple trees with compareNodeAges
+trees &lt;- cal3TimePaleoPhy(cladogram,rangesCont,brRate = 0.1,extRate = 0.1,
+    sampRate = 0.1,ntrees = 10)
+nodeComparison &lt;- compareNodeAges(tree1,trees)
+#plot it as boxplots for each node
+boxplot(nodeComparison,names = NULL);abline(h = 0)
+#plot mean shift in node dates
+abline(h = mean(apply(nodeComparison,2,mean,na.rm = TRUE)),lty = 2)
+
+#just shifting a tree back in time
+set.seed(444)
+tree1 &lt;- rtree(10)
+tree2 &lt;- tree1
+tree1$root.time &lt;- 10
+compareNodeAges(tree1,tree2)
+compareTermBranches(tree1,tree2)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,199 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Skeleton of the PC algorithm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+The skeleton of a Bayesian network learned with the PC algorithm
+</h2>
+
+<h3>Description</h3>
+
+<p>The skeleton of a Bayesian network learned with the PC algorithm.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pchc.skel(x, method = "pearson", alpha = 0.05,
+robust = FALSE, ini.stat = NULL, R = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+
+<p>A numerical matrix with the variables. If you have a data.frame (i.e. categorical data) turn them into a matrix
+using <code>data.frame.to_matrix</code>. Note, that for the categorical case data, the numbers must start from 0. No missing data are allowed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+
+<p>If you have continuous data, this "pearson". If you have categorical data though,
+this must be "cat". In this case, make sure the minimum value of each variable is zero. The function "g2Test" in the R package <b>Rfast</b> and the relevant functions work that way.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+
+<p>The significance leve for assessing the p-values.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>robust</code></td>
+<td>
+
+<p>Do you want outliers to be removed prior to applying the PCHC algorithm? If yes, set this to TRUE to utilise the
+MCD.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ini.stat</code></td>
+<td>
+
+<p>If the initial test statistics (univariate associations) are available, pass them through this parameter.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+
+<p>If the correlation matrix is available, pass it here.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The PC algorithm as proposed by Spirtes et al. (2000) is implemented. The variables must be either continuous or
+categorical, only. The skeleton of the PC algorithm is order independent, since we are using the third heuristic
+(Spirte et al., 2000, pg. 90). At every stage of the algorithm use the pairs which are least statistically associated. The conditioning set consists of variables which are most statistically associated with each other of the pair of variables.
+</p>
+<p>For example, for the pair (X, Y) there can be two conditioning sets for example (Z1, Z2) and (W1, W2). All p-values and test statistics and degrees of freedom have been computed at the first step of the algorithm. Take the p-values between (Z1, Z2) and (X, Y) and between (Z1, Z2) and (X, Y). The conditioning set with the minimum p-value is used first. If the minimum p-values are the same, use the second lowest p-value. If the unlikely, but not impossible, event of all p-values being the same, the test statistic divided by the degrees of freedom is used as a means of choosing which conditioning set is to be used first.
+</p>
+<p>If two or more p-values are below the machine epsilon (.Machine$double.eps which is equal to 2.220446e-16), all of them are set to 0. To make the comparison or the ordering feasible we use the logarithm of p-value. Hence,
+the logarithm of the p-values is always calculated and used.
+</p>
+<p>In the case of the <code class="reqn">G^2</code> test of independence (for categorical data) with no permutations, we have incorporated a rule of thumb. If the number of samples is at least 5 times the number of the parameters to be estimated, the test is performed, otherwise, independence is not rejected according to Tsamardinos et al. (2006). We have modified it so that it calculates the p-value using permutations.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list including:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>stat</code></td>
+<td>
+
+<p>The test statistics of the univariate associations.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ini.pvalue</code></td>
+<td>
+
+<p>The initial p-values univariate associations.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pvalue</code></td>
+<td>
+
+<p>The logarithm of the p-values of the univariate associations.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>runtime</code></td>
+<td>
+
+<p>The duration of the algorithm.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kappa</code></td>
+<td>
+
+<p>The maximum value of k, the maximum cardinality of the conditioning set at which the algorithm stopped.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.tests</code></td>
+<td>
+
+<p>The number of tests conducted during each k.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>G</code></td>
+<td>
+
+<p>The adjancency matrix. A value of 1 in G[i, j] appears in G[j, i] also, indicating that i and j have an edge between them.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sepset</code></td>
+<td>
+
+<p>A list with the separating sets for every value of k.
+</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Michail Tsagris.
+</p>
+<p>R implementation and documentation: Michail Tsagris <a href="mailto:mtsagris@uoc.gr">mtsagris@uoc.gr</a>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Spirtes P.,  Glymour C. and Scheines R. (2001). Causation, Prediction, and Search. 
+The MIT Press, Cambridge, MA, USA, 3nd edition.
+</p>
+<p>Tsagris M. (2021). A new scalable Bayesian network learning algorithm with applications to economics. 
+Computational Economics, 57(1):341-367.
+</p>
+<p>Tsamardinos I. and Borboudakis G. (2010) Permutation Testing Improves Bayesian Network Learning. 
+In Machine Learning and Knowledge Discovery in Databases. ECML PKDD 2010. 322-337.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code> fedhc.skel, mmhc.skel, pchc, pchc.skel.boot </code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># simulate a dataset with continuous data
+x &lt;- matrix( rnorm(300 * 30, 1, 100), nrow = 300 )
+a &lt;- pchc::pchc.skel(x)
+</code></pre>
+
+
+</div>

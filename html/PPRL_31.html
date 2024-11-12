@@ -1,0 +1,184 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>CreateRecordLevelBF</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Record Level Bloom Filter (RLBF) Encoding</h2>
+
+<h3>Description</h3>
+
+<p>Creates Record Level Bloom filters, combining single Bloom filters into a singular bit vector.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">CreateRecordLevelBF(ID, data, password, lenRLBF = 1000, k = 20,
+                       padding = as.integer(c(0)),
+                       qgram = as.integer(c(2)),
+                       lenBloom = as.integer(c(500)),
+                       method = "StaticUniform",
+                       weigths = as.numeric(c(1)))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ID</code></td>
+<td>
+<p>a character vector or integer vector containing the IDs of the data.frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a character vector containing the data to be encoded. Make sure the input vectors are not factors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>password</code></td>
+<td>
+<p>a string used as a password for the random hashing of the q-grams and the shuffling.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lenRLBF</code></td>
+<td>
+<p>length of the final Bloom filter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lenBloom</code></td>
+<td>
+<p>an integer vector containing the length of the first level Bloom filters which are to be combined. For the methods "StaticUniform" and "StaticWeighted", a single integer is required, since all original Bloom filters will have the same length.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>number of bit positions set to one for each q-gram.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>padding</code></td>
+<td>
+<p>integer (0 or 1) indicating if string padding is to be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>qgram</code></td>
+<td>
+<p>integer (1 or 2) indicating whether to split the input strings into bigrams (q = 2) or unigrams (q = 1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>any of either "StaticUniform", "StaticWeigthed", "DynamicUniform" or "DynamicWeighted" (see details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weigths</code></td>
+<td>
+<p>weigths are used for the "StaticWeighted" and "DynamicWeighted" methods. The weights vector must have the same length as number of columns in the input data. The sum of the weights must be  1.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Single Bloom filters are first built for every variable in the input data.frame. Combining the Bloom filters is done by sampling a set fraction of the original Bloom filters and concatenating the samples. The result is then shuffled. The sampling can be done using four different weighting methods:
+</p>
+
+<ol>
+<li>
+<p> StaticUniform
+</p>
+</li>
+<li>
+<p> StaticWeighted
+</p>
+</li>
+<li>
+<p> DynamicUniform
+</p>
+</li>
+<li>
+<p> DynamicWeighted
+</p>
+</li>
+</ol>
+<p>Details are described in the original publication.</p>
+
+
+<h3>Value</h3>
+
+<p>A data.frame containing IDs and the corresponding bit vector.
+</p>
+
+
+<h3>Source</h3>
+
+<p>Durham, E. A. (2012). A framework for accurate, efficient
+private record linkage. Dissertation. Vanderbilt University.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>CreateBF</code>,
+<code>CreateCLK</code>,
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Load test data
+testFile &lt;- file.path(path.package("PPRL"), "extdata/testdata.csv")
+## Not run: 
+testData &lt;- read.csv(testFile, head = FALSE, sep = "\t",
+  colClasses = "character")
+
+# StaticUniform
+RLBF &lt;- CreateRecordLevelBF(ID = testData$V1,
+  data = testData[, c(2, 3, 7, 8)],
+  lenRLBF = 1000, k = 20,
+  padding = c(0, 0, 1, 1), qgram = c(1, 1, 2, 2),
+  lenBloom = 500,
+  password = c("(H]$6Uh*-Z204q", "lkjg", "klh", "KJHkälk5"),
+  method = "StaticUniform")
+
+# StaticWeigthed
+RLBF &lt;- CreateRecordLevelBF(ID = testData$V1,
+  data = testData[, c(2, 3, 7, 8)],
+  lenRLBF = 1000, k = 20,
+  padding = c(0, 0, 1, 1), qgram = c(1, 1, 2, 2),
+  lenBloom = 500,
+  password = c("(H]$6Uh*-Z204q", "lkjg", "klh", "KJHkälk5"),
+  method = "StaticWeigthed", weigths = c(0.1, 0.1, 0.5, 0.3))
+
+# DynamicUniform
+RLBF &lt;- CreateRecordLevelBF(ID = testData$V1,
+  data = testData[, c(2, 3, 7, 8)],
+  lenRLBF = 1000, k = 20,
+  padding = c(0, 0, 1, 1), qgram = c(1, 1, 2, 2),
+  lenBloom = c(300, 400, 550, 500),
+  password = c("(H]$6Uh*-Z204q", "lkjg", "klh", "KJHkälk5"),
+  method = "DynamicUniform")
+
+# DynamicWeigthed
+RLBF &lt;- CreateRecordLevelBF(ID = testData$V1,
+  data = testData[, c(2, 3, 7, 8)],
+  lenRLBF = 1000, k = 20,
+  padding = c(0, 0, 1, 1), qgram = c(1, 1, 2, 2),
+  lenBloom = c(300, 400, 550, 500),
+  password = c("(H]$6Uh*-Z204q", "lkjg", "klh", "KJHkälk5"),
+  method = "DynamicWeigthed", weigths = c(0.1, 0.1, 0.5, 0.3))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

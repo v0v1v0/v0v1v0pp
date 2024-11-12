@@ -1,0 +1,173 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>LRCalibrate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Calibration of two-sided p-values obtained from the likelihood ratio test statistic
+
+</h2>
+
+<h3>Description</h3>
+
+<p>Transforms two-sided p-values from likelihood ratio (deviance) tests to lower bounds on the Bayes factor
+for the point null hypothesis against the alternative.
+
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">LRCalibrate(p, df, alternative="gamma", transform="id")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+
+<p>a vector of two-sided p-values
+
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+
+<p>a vector of degrees of freedom of the asymptotic chi-squared distribution(s)
+of likelihood ratio test statistic(s)
+
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alternative</code></td>
+<td>
+
+<p>either <code>"simple"</code> or <code>"gamma"</code>.
+Defaults to <code>"gamma"</code>.
+Specifies the alternative hypotheses on the non-centrality
+parameter of the chi-squared distribution to consider.
+<code>"simple"</code> only considers simple point alternative hypotheses.
+<code>"gamma"</code> assumes a specific gamma distribution.
+
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transform</code></td>
+<td>
+
+<p>either <code>"id"</code>, <code>"log"</code>, <code>"log2"</code>  or <code>"log10"</code>.
+Defaults to <code>"id"</code>.
+Specifies how to transform the lower bound on the Bayes factor.
+<code>"id"</code> corresponds to no transformation.
+<code>"log"</code> refers to the natural logarithm, <code>"log2"</code> to the logarithm
+to the base 2 and <code>"log10"</code> to the logarithm
+to the base 10.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Under the assumption that the parameter vector of interest
+(which has dimension <code>df</code>) is equal to the vector of zeros,
+the distribution of the deviance converges to a
+chi-squared distribution with <code>df</code> degrees of freedom.
+Under a simple point alternative for the parameter vector of interest
+and some regularity conditions,
+the distribution of the deviance converges to a
+non-central chi-squared distribution with <code>df</code> degrees of freedom.
+</p>
+<p>For <code>alternative = "simple"</code>, the lower bound on the Bayes factor
+is obtained by mazimizing the
+(asymptotic) chi-squared distribution under the alternative
+with respect to the non-centrality parameter.
+That calibration is described in
+Held and Ott (2018), Section 4.2.1.
+</p>
+<p>The calibration for <code>alternative = "normal"</code> uses the test-based Bayes factors
+introduced in Johnson (2008).
+That approach is also outlined in Held and Ott (2018), Section 4.2.2.
+</p>
+<p>Using <code>alternative = "gamma"</code> yields a larger bound than
+<code>alternative = "simple"</code>. <br>
+Typical applications of these calibrations include generalized linear models.
+
+</p>
+
+
+<h3>Value</h3>
+
+<p>A matrix containing the lower bounds on the Bayes factors 
+as entries,
+for all combinations of p-value and degrees of freedom.
+The values for the k-th degrees of freedom (k-th entry in the vector <code>df</code>) and the different p-values
+are given in the k-th row.
+
+
+
+
+
+</p>
+
+
+<h3>References</h3>
+
+<p>Held, L. and Ott, M. (2018). On p-values and Bayes factors.
+<em>Annual Review of Statistics and Its Application</em>, <b>5</b>, 393–419.
+</p>
+<p>Johnson, V. E. (2008). Properties of Bayes factors based on test statistics. <em>Scandinavian
+Journal of Statistics</em>, <b>35</b>, 354–368.
+
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">LRCalibrate(p=c(0.05, 0.01, 0.005), df=2, alternative="simple")
+# gamma alternatives
+LRCalibrate(p=c(0.05, 0.01, 0.005), df=c(2, 5, 10))
+
+# plot the minimum Bayes factor as a function of the p-value
+# for different degrees of freedom df of the LR test statistic
+par(mfrow=c(1,2), las=1)
+
+p &lt;- exp(seq(log(0.005), log(0.3), by=0.01))
+df &lt;- c(1, 5, 20)
+par(las=1)
+
+# for a simple alternative
+minBF.sim &lt;- LRCalibrate(p, df=df, alternative="simple")
+matplot(p, t(minBF.sim), type="l", ylab="Minimum Bayes factor", log="xy", 
+        xlab="Two-sided LR-test p-value", lty=1, lwd=2, axes=FALSE,
+        main="Simple alternative")
+axis(1, at=c(0.01, 0.03, 0.1, 0.3), c(0.01, 0.03, 0.1, 0.3))
+my.values &lt;- c(30, 20, 10, 5, 3, 1)
+my.at &lt;- 1/my.values
+my.ylegend &lt;- c(paste("1/", my.values[-length(my.values)], sep=""), "1")
+axis(2, at=my.at, my.ylegend)
+box()
+legend("bottomright", legend=c("df=1", "df=5", "df=20"), 
+        lty=1, lwd=2, , col=1:3)
+
+# for gamma alternatives
+minBF.loc &lt;- LRCalibrate(p, df=df, alternative="gamma")
+matplot(p, t(minBF.loc), type="l", ylab="  Minimum Bayes factor", 
+        log="xy", xlab="Two-sided LR-test p-value", lty=1, lwd=2, 
+        axes=FALSE, main="Local alternatives")
+axis(1, at=c(0.01, 0.03, 0.1, 0.3), c(0.01, 0.03, 0.1, 0.3))
+axis(2, at=my.at, my.ylegend)
+box()
+legend("bottomright", legend=c("df=1", "df=5", "df=20"), 
+        lty=1, lwd=2, col=1:3)
+</code></pre>
+
+
+</div>

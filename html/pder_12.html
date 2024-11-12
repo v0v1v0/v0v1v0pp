@@ -1,0 +1,278 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>HousePricesUS</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>House Prices Data</h2>
+
+<h3>Description</h3>
+
+<p>yearly observations of 49 regions from 1976 to 2003
+</p>
+<p><em>number of observations</em> : 1421
+</p>
+<p><em>number of  time-series </em> :  29 
+</p>
+<p><em>country</em> :  United States 
+</p>
+<p><em>package</em> : hedprice
+</p>
+<p><em>JEL codes: </em>C51, R31
+</p>
+<p><em>Chapter</em> : 09, 10
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">data(HousePricesUS)</code></pre>
+
+
+<h3>Format</h3>
+
+<p>A dataframe containing:
+</p>
+
+<dl>
+<dt>state</dt>
+<dd>
+<p>state index</p>
+</dd>
+<dt>year</dt>
+<dd>
+<p>year</p>
+</dd>
+<dt>names</dt>
+<dd>
+<p>state name</p>
+</dd>
+<dt>plate</dt>
+<dd>
+<p>state number plate index</p>
+</dd>
+<dt>region</dt>
+<dd>
+<p>region index</p>
+</dd>
+<dt>region.name</dt>
+<dd>
+<p>region name</p>
+</dd>
+<dt>price</dt>
+<dd>
+<p>real house price index, 1980=100</p>
+</dd>
+<dt>income</dt>
+<dd>
+<p>real per-capita income</p>
+</dd>
+<dt>pop</dt>
+<dd>
+<p>total population</p>
+</dd>
+<dt>intrate</dt>
+<dd>
+<p>real interest rate on borrowing</p>
+</dd>
+</dl>
+<h3>Source</h3>
+
+<p>Journal of Applied Econometrics Data Archive : <a href="http://qed.econ.queensu.ca/jae/">http://qed.econ.queensu.ca/jae/</a></p>
+
+
+<h3>References</h3>
+
+<p>Holly, S.; Pesaran, M.G. and T. Yamagata (2010) “A Spatio-temporal Model of House Prices in the USA”, <em>Journal of Econometrics</em>, <b>158(1)</b>, 160–173, doi: <a href="https://doi.org/10.1016/j.jeconom.2010.03.040">10.1016/j.jeconom.2010.03.040</a>
+.
+</p>
+<p>Millo, Giovanni (2015) “Narrow Replication of 'spatio-temporal Model of House Prices in the Usa', Using R”, <em>Journal of Applied Econometrics</em>, <b>30(4)</b>, 703–704, doi: <a href="https://doi.org/10.1002/jae.2424">10.1002/jae.2424</a>
+.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#### Example 4-11
+
+## ------------------------------------------------------------------------
+## Not run: 
+data("HousePricesUS", package = "pder")
+library("plm")
+php &lt;- pdata.frame(HousePricesUS)
+
+## ------------------------------------------------------------------------
+cbind("rho"   = pcdtest(diff(log(php$price)), test = "rho")$statistic,
+      "|rho|" = pcdtest(diff(log(php$price)), test = "absrho")$statistic)
+
+## ------------------------------------------------------------------------
+regions.names &lt;- c("New Engl", "Mideast", "Southeast", "Great Lks",
+                   "Plains", "Southwest", "Rocky Mnt", "Far West")
+corr.table.hp &lt;- cortab(diff(log(php$price)), grouping = php$region,
+                        groupnames = regions.names)
+colnames(corr.table.hp) &lt;- substr(rownames(corr.table.hp), 1, 5)
+round(corr.table.hp, 2)
+
+## ------------------------------------------------------------------------
+pcdtest(diff(log(price)) ~ diff(lag(log(price))) + diff(lag(log(price), 2)),
+        data = php)
+
+#### Example 9-2
+
+## ------------------------------------------------------------------------
+data("HousePricesUS", package = "pder")
+swmod &lt;- pvcm(log(price) ~ log(income), data = HousePricesUS, model= "random")
+mgmod &lt;- pmg(log(price) ~ log(income), data = HousePricesUS, model = "mg")
+coefs &lt;- cbind(coef(swmod), coef(mgmod))
+dimnames(coefs)[[2]] &lt;- c("Swamy", "MG")
+coefs
+
+#### Example 9-3
+
+## ------------------------------------------------------------------------
+
+if (requireNamespace("texreg")){
+    library("texreg")
+    data("RDSpillovers", package = "pder")
+    fm.rds &lt;- lny ~ lnl + lnk + lnrd
+    mg.rds &lt;- pmg(fm.rds, RDSpillovers, trend = TRUE)
+    dmg.rds &lt;- update(mg.rds, . ~ lag(lny) + .)
+    screenreg(list('Static MG' = mg.rds, 'Dynamic MG'= dmg.rds), digits = 3)
+    if (requireNamespace("msm")){
+        library("msm")
+        b.lr &lt;- coef(dmg.rds)["lnrd"]/(1 - coef(dmg.rds)["lag(lny)"])
+        SEb.lr &lt;- deltamethod(~ x5 / (1 - x2),
+                              mean = coef(dmg.rds), cov = vcov(dmg.rds))
+        z.lr &lt;- b.lr / SEb.lr
+        pval.lr &lt;- 2 * pnorm(abs(z.lr), lower.tail = FALSE)
+        lr.lnrd &lt;- matrix(c(b.lr, SEb.lr, z.lr, pval.lr), nrow=1)
+        dimnames(lr.lnrd) &lt;- list("lnrd (long run)", c("Est.", "SE", "z", "p.val"))
+        round(lr.lnrd, 3)
+    }
+}
+
+
+#### Example 9-4
+
+## ------------------------------------------------------------------------
+housep.np &lt;- pvcm(log(price) ~ log(income), data = HousePricesUS, model = "within")
+housep.pool &lt;- plm(log(price) ~ log(income), data = HousePricesUS, model = "pooling")
+housep.within &lt;- plm(log(price) ~ log(income), data = HousePricesUS, model = "within")
+
+d &lt;- data.frame(x = c(coef(housep.np)[[1]], coef(housep.np)[[2]]), 
+                coef = rep(c("intercept", "log(income)"), 
+                           each = nrow(coef(housep.np))))
+if (requireNamespace("ggplot2")){
+    library("ggplot2")
+    ggplot(d, aes(x)) + geom_histogram(col = "black", fill = "white", bins = 8) +
+        facet_wrap(~ coef, scales = "free") + xlab("") + ylab("")
+}
+
+
+## ------------------------------------------------------------------------
+summary(housep.np)
+
+## ------------------------------------------------------------------------
+pooltest(housep.pool, housep.np)
+pooltest(housep.within, housep.np)
+
+
+#### Example 9-5
+
+## ------------------------------------------------------------------------
+library("texreg")
+cmgmod &lt;- pmg(log(price) ~ log(income), data = HousePricesUS, model = "cmg")
+screenreg(list(mg = mgmod, ccemg = cmgmod), digits = 3)
+
+#### Example 9-6
+
+## ------------------------------------------------------------------------
+ccemgmod &lt;- pcce(log(price) ~ log(income), data=HousePricesUS, model="mg")
+summary(ccemgmod)
+
+## ------------------------------------------------------------------------
+ccepmod &lt;- pcce(log(price) ~ log(income), data=HousePricesUS, model="p")
+summary(ccepmod)
+
+
+
+#### Example 9-8
+
+## ------------------------------------------------------------------------
+data("HousePricesUS", package = "pder")
+price &lt;- pdata.frame(HousePricesUS)$price
+purtest(log(price), test = "levinlin", lags = 2, exo = "trend")
+purtest(log(price), test = "madwu", lags = 2, exo = "trend")
+purtest(log(price), test = "ips", lags = 2, exo = "trend")
+
+
+#### Example 9-9
+
+## ------------------------------------------------------------------------
+tab5a &lt;- matrix(NA, ncol = 4, nrow = 2)
+tab5b &lt;- matrix(NA, ncol = 4, nrow = 2)
+
+for(i in 1:4) {
+    mymod &lt;- pmg(diff(log(income)) ~ lag(log(income)) + 
+                 lag(diff(log(income)), 1:i),
+                 data = HousePricesUS,
+                 model = "mg", trend = TRUE)
+    tab5a[1, i] &lt;- pcdtest(mymod, test = "rho")$statistic
+    tab5b[1, i] &lt;- pcdtest(mymod, test =  "cd")$statistic
+}
+
+for(i in 1:4) {
+    mymod &lt;- pmg(diff(log(price)) ~ lag(log(price)) +
+                 lag(diff(log(price)), 1:i),
+                 data=HousePricesUS,
+                 model="mg", trend = TRUE)
+    tab5a[2, i] &lt;- pcdtest(mymod, test = "rho")$statistic
+    tab5b[2, i] &lt;- pcdtest(mymod, test =  "cd")$statistic
+}
+
+tab5a &lt;- round(tab5a, 3)
+tab5b &lt;- round(tab5b, 2)
+dimnames(tab5a) &lt;- list(c("income", "price"),
+                        paste("ADF(", 1:4, ")", sep=""))
+dimnames(tab5b) &lt;- dimnames(tab5a)
+
+tab5a
+tab5b
+
+## ------------------------------------------------------------------------
+php &lt;- pdata.frame(HousePricesUS)
+cipstest(log(php$price), type = "drift")
+cipstest(diff(log(php$price)), type = "none")
+
+## ------------------------------------------------------------------------
+cipstest(resid(ccemgmod), type="none")
+cipstest(resid(ccepmod), type="none")
+
+
+#### Example 10-2
+
+## ------------------------------------------------------------------------
+data("usaw49", package="pder")
+library("plm")
+php &lt;- pdata.frame(HousePricesUS)
+pcdtest(php$price, w = usaw49)
+
+## ------------------------------------------------------------------------
+
+if (requireNamespace("splm")){
+    library("splm")
+    rwtest(php$price, w = usaw49, replications = 999)
+}
+
+## ------------------------------------------------------------------------
+mgmod &lt;- pmg(log(price) ~ log(income), data = HousePricesUS)
+ccemgmod &lt;- pmg(log(price) ~ log(income), data = HousePricesUS, model = "cmg")
+pcdtest(resid(ccemgmod), w = usaw49)
+rwtest(resid(mgmod), w = usaw49, replications = 999)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

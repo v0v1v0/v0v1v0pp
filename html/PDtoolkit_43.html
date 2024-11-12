@@ -1,0 +1,148 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>stepMIV</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Stepwise logistic regression based on marginal information value (MIV)</h2>
+
+<h3>Description</h3>
+
+<p><code>stepMIV</code> performs stepwise logistic regression based on MIV.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">stepMIV(
+  start.model,
+  miv.threshold,
+  m.ch.p.val,
+  coding,
+  coding.start.model = FALSE,
+  db,
+  offset.vals = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>start.model</code></td>
+<td>
+<p>Formula class that represent starting model. It can include some risk factors, but it can be
+defined only with intercept (<code>y ~ 1</code> where <code>y</code> is target variable).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>miv.threshold</code></td>
+<td>
+<p>MIV entrance threshold. Only the risk factors with MIV higher than the threshold are candidate
+for the new model. Additional criteria is that MIV value should significantly separate
+good from bad cases measured by marginal chi-square test.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m.ch.p.val</code></td>
+<td>
+<p>Significance level of p-value for marginal chi-square test. This test additionally supports MIV value of
+candidate risk factor for final decision.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coding</code></td>
+<td>
+<p>Type of risk factor coding within the model. Available options are: <code>"WoE"</code> and
+<code>"dummy"</code>. If <code>"WoE"</code> is selected, then modalities of the risk factors are replaced
+by WoE values, while for <code>"dummy"</code> option dummies (0/1) will be created for <code>n-1</code>
+modalities where <code>n</code> is total number of modalities of analyzed risk factor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coding.start.model</code></td>
+<td>
+<p>Logical (<code>TRUE</code> or <code>FALSE</code>), if risk factors from the starting model should be WoE coded.
+It will have an impact only for WoE coding option. Default value is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>db</code></td>
+<td>
+<p>Modeling data with risk factors and target variable. All risk factors should be categorized as of
+character type.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offset.vals</code></td>
+<td>
+<p>This can be used to specify an a priori known component to be included in the linear predictor during fitting.
+This should be <code>NULL</code> or a numeric vector of length equal to the number of cases. Default is <code>NULL</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The command <code>stepMIV</code> returns a list of five objects.<br>
+The first object (<code>model</code>), is the final model, an object of class inheriting from <code>"glm"</code>.<br>
+The second object (<code>steps</code>), is the data frame with risk factors selected at each iteration.<br>
+The third object (<code>miv.iter</code>), is the data frame with iteration details.<br>
+The fourth object (<code>warnings</code>), is the data frame with warnings if any observed.
+The warnings refer to the following checks: if risk factor has more than 10 modalities,
+if any of the bins (groups) has less than 5% of observations and
+if there are problems with WoE calculations.<br>
+The final, fifth, object <code>dev.db</code> object <code>dev.db</code> returns the model development database.
+</p>
+
+
+<h3>References</h3>
+
+<p>Scallan, G. (2011). Class(ic) Scorecards: Selecting Characteristics and Attributes in Logistic Regression,
+Edinburgh Credit Scoring Conference.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">suppressMessages(library(PDtoolkit))
+data(loans)
+##identify numeric risk factors
+#num.rf &lt;- sapply(loans, is.numeric)
+#num.rf &lt;- names(num.rf)[!names(num.rf)%in%"Creditability" &amp; num.rf]
+##discretized numeric risk factors using ndr.bin from monobin package
+#loans[, num.rf] &lt;- sapply(num.rf, function(x) 
+#	ndr.bin(x = loans[, x], y = loans[, "Creditability"])[[2]])
+#str(loans)
+#run stepMIV
+rf &lt;- c("Account Balance", "Payment Status of Previous Credit", "Purpose",
+       "Value Savings/Stocks", "Most valuable available asset", "Foreign Worker")
+res &lt;- stepMIV(start.model = Creditability ~ 1, 
+	   miv.threshold = 0.02, 
+	   m.ch.p.val = 0.05,
+	   coding = "WoE",
+	   coding.start.model = FALSE,
+	   db = loans[, c("Creditability", rf)])
+#check output elements
+names(res)
+#print model warnings
+res$warnings
+#extract the final model
+final.model &lt;- res$model
+#print coefficients
+summary(final.model)$coefficients
+#print steps of stepwise
+res$steps
+#print head of all iteration details
+head(res$miv.iter)
+#print warnings
+res$warnings
+#print head of coded development data
+head(res$dev.db)
+#calculate AUC
+auc.model(predictions = predict(final.model, type = "response", newdata = res$dev.db),
+    observed = res$dev.db$Creditability)
+</code></pre>
+
+
+</div>

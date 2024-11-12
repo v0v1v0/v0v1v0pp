@@ -1,0 +1,321 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>methods-group-generic</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Pdqr methods for S3 group generic functions</h2>
+
+<h3>Description</h3>
+
+<p>There are custom methods implemented for three out of four S3 group generic functions: <code>Math</code>, <code>Ops</code>, <code>Summary</code>. <strong>Note</strong> that many
+of them have random nature with an idea of generating samples from input
+pdqr-functions, performing certain operation on them (results in one
+generated sample from desired random variable), and creating new
+pdqr-function with appropriate new_*() function. This is done
+with <code>form_trans()</code>, so all rules for determining class and
+type of output is taken from it.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'pdqr'
+Math(x, ...)
+
+## S3 method for class 'pdqr'
+Ops(e1, e2)
+
+## S3 method for class 'pdqr'
+Summary(..., na.rm = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x, e1, e2</code></td>
+<td>
+<p>Objects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to methods.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.rm</code></td>
+<td>
+<p>Logical: should missing values be removed?</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Customization of method behavior may be done using mechanism of
+options(). These are the possible options:
+</p>
+
+<ul>
+<li> <p><strong><code>pdqr.group_gen.args_new</code></strong>. This will be used as <code>args_new</code> argument for
+<code>form_trans()</code> in methods with random nature. Default is <code>list()</code>.
+</p>
+</li>
+<li> <p><strong><code>pdqr.group_gen.n_sample</code></strong>. This will be used as <code>n_sample</code> argument for
+<code>form_trans()</code> in methods with random nature. Default is 10000.
+</p>
+</li>
+<li> <p><strong><code>pdqr.group_gen.repair_supp_method</code></strong>. All methods that have random
+nature take care of output support by trying to "repair" it, because default
+use of <code style="white-space: pre;">⁠new_*()⁠</code> functions returns a slightly bigger support than range of
+input sample (see Examples). Repairing is done with <code>form_resupport()</code> where
+target support is computed separately and <code>method</code> argument is controlled by
+this option (preferred ones are <code>"reflect"</code>, default, and <code>"trim"</code>). In most
+cases output support is computed directly based on special features of
+generic function. But for some difficult cases, like <code>gamma()</code>, <code>digamma()</code>,
+<code>lgamma()</code>, <code>psigamma()</code>, <code>^</code>, and <code>%%</code> it is a result of simulation (i.e.
+slightly random, which slightly increases random nature of those methods).
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>All methods return pdqr-function which represents the result of
+applying certain function to random variable(s) described with input
+pdqr-function(s). <strong>Note</strong> that independence of input random variables is
+assumed, i.e. <code>f + f</code> is not the same as <code>2*f</code> (see Examples).
+</p>
+
+
+<h3>Math</h3>
+
+<p>This family of S3 generics represents mathematical functions. Most of the
+methods have <strong>random nature</strong>, except <code>abs()</code> and <code>sign()</code> which are
+computed directly. Output of <code>sign()</code> has "discrete" type with 3 "x" values:
+-1, 0, 1.
+</p>
+<p><strong>Note</strong> that <code>cumsum()</code>, <code>cumprod()</code>, <code>cummmax()</code>, and <code>cummin()</code> functions
+don't make much sense in these implementations: their outputs represent
+random variable, sample of which is computed by applying <code style="white-space: pre;">⁠cum*()⁠</code> function to
+a sample, generated from input pdqr-function.
+</p>
+
+
+<h3>Ops</h3>
+
+<p>This family of S3 generics represents common operators. For all functions
+(except <code>&amp;</code> and <code>|</code>) input can be a pdqr-function or single number.
+</p>
+<p>A list of methods with <strong>non-random nature</strong>:
+</p>
+
+<ul>
+<li> <p><code>!</code>, <code>+</code>, <code>-</code> in case of single input, i.e. <code>!f</code> or <code>-f</code>.
+</p>
+</li>
+<li>
+<p> Functions representing linear transformation, i.e. adding, subtracting,
+multiplying, and dividing by a single number. For example, all <code>f + 1</code>,
+<code>2 - f</code> (which is actually <code>(-f) + 2</code>), <code>3*f</code> and <code>f/2</code> are linear
+transformations, but <code>1 / f</code>, <code>f + g</code> are not.
+</p>
+</li>
+<li>
+<p> Functions for comparing: <code>==</code>, <code>!=</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;=</code>, <code>&gt;</code>. Their output is
+<strong>boolean pdqr-function</strong>: "discrete" type function with elements being
+exactly 0 and 1. Probability of 0 represents probability of operator output
+being false, and 1 - being true. Probability of being true is computed
+directly as <strong>limit of empirical estimation from simulations</strong> (as size of
+samples grows to infinity). In other words, output is an exact number which
+might be approximated by simulating two big samples of same size from input
+<code>e1</code> and <code>e2</code> (one of which can be a single number), and estimating
+probability as share of those pairs from samples for which comparison is
+true. <strong>Note</strong> that if at least one input has "continuous" type, then:
+</p>
+
+<ul>
+<li> <p><code>==</code> will always have probability 0 of being true because probability
+of generating a certain exact one or two numbers from continuous random
+variable is zero.
+</p>
+</li>
+<li> <p><code>!=</code> will always have probability 1 of being true for the same reason
+as above.
+</p>
+</li>
+<li>
+<p> Pairs <code>&gt;=</code> and <code>&gt;</code>, <code>&lt;=</code> and <code>&lt;</code> will return the same input because
+probability of being equal is always zero.
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p> Logical functions <code>&amp;</code> and <code>|</code>. Their input can be only pdqr-functions
+(because single number input doesn't make much sense). They are most useful
+for applying to boolean pdqr-functions (see description of functions for
+comparing), and warning is thrown in case any input is not a boolean
+pdqr-function. <code>&amp;</code>'s probability of being true is a product of those
+probabilities from input <code>e1</code> and <code>e2</code>. <code>|</code>'s probability of being false is a
+product of those probabilities from input <code>e1</code> and <code>e2</code>. <strong>Note</strong> that
+probability of being false is a probability of being equal to 0; of being
+true - complementary to that.
+</p>
+</li>
+</ul>
+<p>All other methods are <strong>random</strong>. For example, <code>f + f</code>, <code>f^g</code> are random.
+</p>
+
+
+<h3>Summary</h3>
+
+<p>Methods for <code>all()</code> and <code>any()</code> have <strong>non-random nature</strong>. Their input can
+be only pdqr-functions, and if any of them is not boolean, a warning is
+thrown (because otherwise output doesn't make much sense). They return a
+boolean pdqr-function with the following probability of being true:
+</p>
+
+<ul>
+<li>
+<p> In <code>all()</code> - probability of <em>all</em> input function being true, i.e. product
+of probabilities of being true (implemented as complementary to probability
+of being equal to 0).
+</p>
+</li>
+<li>
+<p> In <code>any()</code> - probability of <em>any</em> input function being true, i.e.
+complementary probability to product of all functions being false
+(implemented as probability of being equal to 0).
+</p>
+</li>
+</ul>
+<p>Methods for <code>sum()</code>, <code>prod()</code>, <code>min()</code>, <code>max()</code> have <strong>random nature</strong>. They
+are implemented to use vectorized version of certain generic, because
+transformation function for <code>form_trans()</code> should be vectorized: for input
+samples which all have size n it should also return sample of size n (where
+each element is a transformation output for corresponding elements from input
+samples). This way <code>min(f, g)</code> can be read as "random variable
+representing minimum of <code>f</code> and <code>g</code>", etc.
+</p>
+<p><strong>Notes</strong>:
+</p>
+
+<ul>
+<li> <p><code>range()</code> function doesn't make sense here because it returns 2 numbers per
+input and therefore can't be made vectorized. Error is thrown if it is
+applied to pdqr-function.
+</p>
+</li>
+<li>
+<p> Although all <code>sum()</code>, <code>prod()</code>, <code>min()</code>, <code>max()</code> accept pdqr-functions or
+single numbers, using numbers and "continuous" functions simultaneously is
+not a great idea. This is because output will be automatically smoothed (as
+<code>form_trans()</code> will use some <code style="white-space: pre;">⁠new_*()⁠</code> function) which will give a misleading
+picture. For a more realistic output:
+</p>
+
+<ul>
+<li>
+<p> Instead of <code>min(f, num)</code> use
+<code>form_resupport(f, c(num, NA), method = "winsor")</code> (see
+<code>form_resupport()</code>).
+</p>
+</li>
+<li>
+<p> Instead of <code>max(f, num)</code> use
+<code>form_resupport(f, c(NA, num), method = "winsor")</code>.
+</p>
+</li>
+<li>
+<p> Instead of <code>sum(f, num)</code> use <code>f + num</code>.
+</p>
+</li>
+<li>
+<p> Instead of <code>prod(f, num)</code> use <code>f * num</code>.
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>summ_prob_true()</code> and <code>summ_prob_false()</code> for extracting
+probability from boolean pdqr-functions.
+</p>
+<p>Other pdqr methods for generic functions: 
+<code>methods-plot</code>,
+<code>methods-print</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">d_norm &lt;- as_d(dnorm)
+d_unif &lt;- as_d(dunif)
+d_dis &lt;- new_d(data.frame(x = 1:4, prob = 1:4 / 10), "discrete")
+
+set.seed(101)
+
+# Math
+plot(d_norm, main = "Math methods")
+## `abs()` and `sign()` are not random
+lines(abs(d_norm), col = "red")
+## All others are random
+lines(cos(d_norm), col = "green")
+lines(cos(d_norm), col = "blue")
+
+## Although here distribution shouldn't change, it changes slightly due to
+## random implementation
+meta_x_tbl(d_dis)
+meta_x_tbl(floor(d_dis))
+
+# Ops
+## Single input, linear transformations, and logical are not random
+d_dis &gt; 1
+!(d_dis &gt; 1)
+d_norm &gt;= (2 * d_norm + 1)
+## All others are random
+plot(d_norm + d_norm)
+## This is an exact reference curve
+lines(as_d(dnorm, sd = sqrt(2)), col = "red")
+
+plot(d_dis + d_norm)
+
+plot(d_unif^d_unif)
+
+# Summary
+## `all()` and `any()` are non-random
+all(d_dis &gt; 1, d_dis &gt; 1)
+## Others are random
+plot(max(d_norm, d_norm, d_norm))
+
+plot(d_norm + d_norm + d_norm)
+lines(sum(d_norm, d_norm, d_norm), col = "red")
+
+## Using single numbers is allowed, but gives misleading output in case of
+## "continuous" functions. Use other functions instead (see documentation).
+plot(min(d_unif, 0.5))
+lines(form_resupport(d_unif, c(NA, 0.5), method = "winsor"), col = "blue")
+
+# Use `options()` to control methods
+plot(d_unif + d_unif)
+op &lt;- options(
+  pdqr.group_gen.n_sample = 100,
+  pdqr.group_gen.args_new = list(adjust = 0.5)
+)
+lines(d_unif + d_unif, col = "red")
+## `f + f` is different from `2*f` due to independency assumption. Also the
+## latter implemented non-randomly.
+lines(2 * d_unif, col = "blue")
+
+# Methods for generics attempt to repair support, so they are more reasonable
+# to use than direct use of `form_trans()`
+d_unif + d_unif
+form_trans(list(d_unif, d_unif), `+`)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,722 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PwrGSD</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate Power in a Group Sequential Design</h2>
+
+<h3>Description</h3>
+
+<p>Derives power in a two arm clinical trial under a group sequential design.  Allows for
+arbitrary number of interim analyses, arbitrary specification of arm-0/arm-1 time to
+event distributions (via survival or hazard), arm-0/arm-1 censoring distribution,
+provisions for two types of continuous time non-compliance according to arm-0/arm-1 rate
+followed by switch to new hazard rate.  Allows for analyses using (I) weighted log-rank
+statistic, with weighting function (a) a member of the Flemming-Harrington G-Rho class,
+or (b) a stopped version thereof, or (c) the ramp-plateau deterministic weights, or (II)
+the integrated survival distance (currently under method=="S" without futility only).
+Stopping boundaries are computed via the Lan-Demets method, Haybittle method, converted
+from the stochastic curtailment procedure, or be completely specified by the user.  The
+Lan-Demets boundaries can be constructed usign either O'Brien-Flemming, Pocock or
+Wang-Tsiatis power alpha-spending.  The C kernel is readily extensible, and further
+options will become available in the near future.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PwrGSD(EfficacyBoundary = LanDemets(alpha = 0.05, spending = ObrienFleming),
+    FutilityBoundary = LanDemets(alpha = 0.1, spending = ObrienFleming),
+    NonBindingFutility = TRUE, sided = c("2&gt;", "2&lt;", "1&gt;", "1&lt;"),
+    method = c("S", "A"), accru, accrat, tlook,
+    tcut0 = NULL, h0 = NULL, s0 = NULL, tcut1 = NULL,
+    rhaz = NULL, h1 = NULL, s1 = NULL, tcutc0 = NULL, hc0 = NULL,
+    sc0 = NULL, tcutc1 = NULL, hc1 = NULL, sc1 = NULL, tcutd0A = NULL,
+    hd0A = NULL, sd0A = NULL, tcutd0B = NULL, hd0B = NULL, sd0B = NULL,
+    tcutd1A = NULL, hd1A = NULL, sd1A = NULL, tcutd1B = NULL,
+    hd1B = NULL, sd1B = NULL, tcutx0A = NULL, hx0A = NULL, sx0A = NULL,
+    tcutx0B = NULL, hx0B = NULL, sx0B = NULL, tcutx1A = NULL,
+    hx1A = NULL, sx1A = NULL, tcutx1B = NULL, hx1B = NULL, sx1B = NULL,
+    noncompliance = c("none", "crossover", "mixed", "user"),
+    gradual = FALSE, WtFun = c("FH", "SFH", "Ramp"), ppar = cbind(c(0, 0)), 
+    Spend.Info = c("Variance", "Events", "Hybrid(k)", "Calendar"), RR.Futility = NULL, 
+    qProp.one.or.Q = c("one", "Q"), Nsim = NULL, detail = FALSE, StatType = c("WLR",
+        "ISD"), doProj=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>EfficacyBoundary</code></td>
+<td>
+<p>This specifies the method used to construct the efficacy
+boundary. The available choices are:
+</p>
+<p>‘<span class="samp">⁠(i) ⁠</span>’<code>Lan-Demets</code>(<code>alpha</code>=&lt;total type I error&gt;, <code>spending</code>
+=&lt;spending function&gt;). The Lan-Demets method is based upon a error probability
+spending approach. The spending function can be set to <code>ObrienFleming</code>,
+<code>Pocock</code>, or <code>Power(rho)</code>, where <code>rho</code> is the the power argument for
+the power spending function: rho=3 is roughly equivalent to the O'Brien-Fleming
+spending function and smaller powers result in a less conservative spending function.
+</p>
+<p>‘<span class="samp">⁠(ii) ⁠</span>’<code>Haybittle</code>(<code>alpha</code>=&lt;total type I error&gt;,
+<code>b.Haybittle</code>=&lt;user specified boundary point&gt;).  The Haybittle approach is
+conceptually the simplest of all methods for efficacy boundary construction. However,
+as it spends nearly no alpha until the end, is for all practical purposes equivalent
+to a single analysis design and to be considered overly conservative. This method sets
+all the boundary points equal to <code>b.Haybittle</code>, a user specified value (try 3)
+for all analyses except the last, which is calculated so as to result in the total
+type I error, set with the argument <code>alpha</code>.
+</p>
+<p>‘<span class="samp">⁠(iii) ⁠</span>’<code>SC</code>(<code>be.end</code>=&lt;efficacy boundary point at trial end&gt;,
+<code>prob</code>=&lt;threshold for conditional type I error for efficacy stopping&gt;).
+The stochastic curtailment method is based upon the conditional probability of type I
+error given the current value of the statistic. Under this method, a sequence of
+boundary points on the standard normal scale (as are boundary points under all other
+methods) is calculated so that the total probability of type I error is maintained.
+This is done by considering the joint probabilities of continuing to the current
+analysis and then exceeding the threshold at the current analysis. A good value for
+the threshold value for the conditional type I error, <code>prob</code> is 0.90 or greater.
+</p>
+<p>‘<span class="samp">⁠(iv) ⁠</span>’User supplied boundary points in the form <code>c(b1, b2, b3, ..., b_m)</code>,
+where <code>m</code> is the number of looks.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>FutilityBoundary</code></td>
+<td>
+<p>This specifies the method used to construct the futility
+boundary. The available choices are:
+</p>
+<p>‘<span class="samp">⁠(i) ⁠</span>’<code>Lan-Demets</code>(<code>alpha</code>=&lt;total type II error&gt;,  <code>spending</code>=
+&lt;spending function&gt;). The Lan-Demets method is based upon a error probability spending
+approach. The spending function can be set to <code>ObrienFleming</code>, <code>Pocock</code>, or
+<code>Power(rho)</code>, where <code>rho</code> is the the power argument for the power spending
+function: rho=3 is roughly equivalent to the O'Brien-Fleming spending function and
+smaller powers result in a less conservative spending function.
+</p>
+<p>‘<span class="samp">⁠NOTE: ⁠</span>’there is no implementation of the <code>Haybittle</code> method for
+futility boundary construction. Given that the futility boundary depends upon
+values of the drift function, this method doesn't apply.
+</p>
+<p>‘<span class="samp">⁠(ii) ⁠</span>’<code>SC</code>(<code>be.end</code>=&lt;efficacy boundary point at trial end&gt;,
+<code>prob</code>=&lt;threshold for conditional type II error for futility stopping&gt;,
+<code>drift.end</code>=&lt;projected drift at end of trial&gt;). The stochastic curtailment
+method is based upon the conditional probability of type II error given the current
+value of the statistic. Under this method, a sequence of boundary points on the
+standard normal scale (as are boundary points under all other methods) is calculated
+so that the total probability of type II error, is maintained. This is done by
+considering the joint probabilities of continuing to the current analysis and then
+exceeding the threshold at the current analysis. A good value for the threshold value
+for the conditional type I error, <code>prob</code> is 0.90 or greater.
+</p>
+<p>‘<span class="samp">⁠(iii) ⁠</span>’User supplied boundary points in the form <code>c(b1, b2, b3, ..., b_m)</code>,
+where <code>m</code> is the number of looks.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>NonBindingFutility</code></td>
+<td>
+<p>When using a futility boundary and this is set to 'TRUE', the
+efficacy boundary will be constructed in the absence of the futility boundary, and
+then the futility boundary will be constructed given the resulting efficacy
+boundary. This results in a more conservative efficacy boundary with true type I error
+less than the nominal level. This is recommended due to the fact that futility
+crossings are viewed by DSMB's with much less gravity than an efficacy crossing and as
+such, the consensus is that efficacy bounds should not be discounted towards the null
+hypothesis because of paths which cross a futility boundary. Default value is 'TRUE'.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sided</code></td>
+<td>
+<p>Set to “2&gt;” (quoted) for two sided tests of the null hypothesis when
+a positive drift corresponds to efficacy. Set to “2&lt;” (quoted) for two sided
+tests of the null hypothesis when a negative drift corresponds to efficacy. Set to
+“1&gt;” or “1&lt;” for one sided tests of H0 when efficacy corresponds to a
+positive or negative drift, respectively. If <code>method</code>==“S” then this must
+be of the same length as <code>StatType</code> because the interpretation of <code>sided</code> is
+different depending upon whether <code>StatType</code>==“WLR” (negative is benefit)
+or <code>StatType</code>==“ISD” (positive is benefit)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Determines how to calculate the power. Set to “A” (Asymptotic
+method, the default) or “S” (Simulation method)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>accru</code></td>
+<td>
+<p>The upper endpoint of the accrual period beginning with time 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>accrat</code></td>
+<td>
+<p>The rate of accrual per unit of time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tlook</code></td>
+<td>
+<p>The times of planned interim analyses.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tcut0</code></td>
+<td>
+<p>Left hand endpoints for intervals upon which the arm-0 specific mortality
+is constant. The last given component is the left hand endpoint of the interval having
+right hand endpoint infinity.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h0</code></td>
+<td>
+<p>A vector of the same length as <code>tcut0</code> which specifies the piecewise
+constant arm-0 mortality rate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s0</code></td>
+<td>
+<p>Alternatively, the arm-0 mortality distribution can be supplied via this
+argument, in terms of of the corresponding survival function values at the times given
+in the vector <code>tcut0</code>. If <code>s0</code> is supplied, then <code>h0</code>is derived
+internally, assuming the piecewise exponential distrubiton. If you specify <code>s0</code>,
+the first element must be 1, and correspondingly, the first component of <code>tcut0</code>
+will be the lower support point of the distribution. You must supply either <code>h0</code>
+or <code>s0</code> but not both.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tcut1</code></td>
+<td>
+<p>Left hand endpoints for intervals upon which the arm-1 specific mortality
+is constant.  The last given component is the left hand endpoint of the interval
+having right hand endpoint infinity.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rhaz</code></td>
+<td>
+<p>A vector of piecewise constant arm-1 versus arm-0 mortality rate ratios.
+If <code>tcut1</code> and <code>tcut0</code> are not identical, then <code>tcut1</code>, <code>h0</code>, and
+<code>rhaz</code> are internally rederived at the union of the sequences <code>tcut0</code> and
+<code>tcut1</code>. In all cases the arm-1 mortality rate is then derived at the time
+cutpoints <code>tcut1</code> as <code>rhaz</code> times<code>h0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h1</code></td>
+<td>
+<p>Alternatively, the arm-1 mortality distribution can be supplied via this
+argument by specifying the piecewise constant arm-1 mortality rate. See the comments
+above.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s1</code></td>
+<td>
+<p>Alternatively, the arm-1 mortality distribution can be supplied via this
+argument, in terms of of the corresponding survival function values at the times given
+in the vector <code>tcut1</code>. Comments regarding <code>s0</code> above apply here as well. You
+must supply exactly one of the following: <code>h1</code>, <code>rhaz</code>, or <code>s1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tcutc0</code></td>
+<td>
+<p>Left hand endpoints for intervals upon which the arm-0 specific censoring
+distribution hazard function is constant. The last given component is the left hand
+endpoint of the interval having right hand endpoint infinity.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hc0</code></td>
+<td>
+<p>A vector of the same length as <code>tcutc0</code> which specifies the arm-0
+censoring distribution in terms of a piecewise constant hazard function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sc0</code></td>
+<td>
+<p>Alternatively, the arm-0 censoring distribution can be supplied via this
+argument, in terms of of the corresponding survival function values at the times
+given in the vector <code>tcutc0</code>. See comments above. You must supply either
+<code>hc0</code> or <code>sc0</code> but not both.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tcutc1</code></td>
+<td>
+<p>Left hand endpoints for intervals upon which the arm-1 specific censoring
+distribution hazard function is constant. The last given component is the left hand
+endpoint of the interval having right hand endpoint infinity.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hc1</code></td>
+<td>
+<p>A vector of the same length as <code>tcutc1</code> which specifies the arm-1
+censoring distribution in terms of a piecewise constant hazard function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sc1</code></td>
+<td>
+<p>Alternatively, the arm-1 censoring distribution can be supplied via this
+argument, in terms of of the corresponding survival function values at the times given
+in the vector <code>tcutc1</code>. See comments above. You must supply either <code>hc1</code> or
+<code>sc1</code> but not both.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>noncompliance</code></td>
+<td>
+<p>(i) Seting <code>noncompliance</code> to “none” for no
+non-compliance will automatically set the non-compliance arguments, below, to
+appropriate values for no compliance. This requires no additional user specification
+of non-compliance parameters.  (ii) Setting <code>noncompliance</code> to “crossover”
+will automatically set crossover values in the arm 0/1 specific
+<em>post-cause-B-delay-mortality</em> for cross-over, i.e. simple interchange of the arm
+0 and arm 1 mortalities. The user is required to specify all parameters corresponding
+to the arm 0/1 specific <em>cause-B-delay</em> distributions. The <em>cause-A-delay</em>
+and <em>post-cause-A-delay-mortality</em> are automatically set so as not to influence
+the calculations. Setting <code>noncompliance</code> to “mixed” will set the arm 0/1
+specific <em>post-cause-B-delay-mortality</em> distributions for crossover as defined
+above. The user specifies the arm 0/1 specific <em>cause-B-delay</em> distribution as
+above, and in addition, all parameters related to the arm 0/1 specific
+<em>cause-A-delay</em> distributions and corresponding arm 0/1 specific
+<em>post-cause-A-delay-mortality</em> distributions. (iii) Setting <code>noncompliance</code>
+to “user” requires the user to specify all non-compliance distribution
+parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tcutd0A</code></td>
+<td>
+<p>Left hand endpoints for intervals upon which the arm-0 specific
+<em>cause-A delay</em> distribution hazard function is constant. The last given
+component is the left hand endpoint of the interval having right hand endpoint
+infinity. Required only when <code>noncompliance</code> is set to “mixed” or
+“user”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hd0A</code></td>
+<td>
+<p>A vector of the same length as <code>tcutd0A</code> containing peicewise constant
+hazard rates for the arm-0 <em>cause-A delay</em> distribution.  Required only when
+<code>noncompliance</code> is set to “mixed” or “user”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd0A</code></td>
+<td>
+<p>When required, the arm-0 <em>cause-A-delay</em> distribution is alternately
+specified via a survival function. A vector of the same length as <code>tcutd0A</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tcutd0B</code></td>
+<td>
+<p>Left hand endpoints for intervals upon which the arm-0 specific
+<em>cause-B delay</em> distribution hazard function is constant. The last given
+component is the left hand endpoint of the interval having right hand endpoint
+infinity. Always required when <code>noncompliance</code> is set to any value other than
+“none”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hd0B</code></td>
+<td>
+<p>A vector of the same length as <code>tcutd0B</code> containing peicewise constant
+hazard rates for the arm-0 <em>cause-B delay</em> distribution. Always required when
+<code>noncompliance</code> is set to any value other than “none”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd0B</code></td>
+<td>
+<p>When required, the arm-0 <em>cause-B-delay</em> distribution is alternately
+specified via a survival function.  A vector of the same length as <code>tcutd0B</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tcutd1A</code></td>
+<td>
+<p>Left hand endpoints for intervals upon which the arm-1 specific
+<em>cause-A delay</em> distribution hazard function is constant. The last given
+component is the left hand endpoint of the interval having right hand endpoint
+infinity. Required only when <code>noncompliance</code> is set to “mixed” or
+“user”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hd1A</code></td>
+<td>
+<p>A vector of the same length as <code>tcutd1A</code> containing peicewise constant
+hazard rates for the arm-1 <em>cause-A delay</em> distribution. Required only when
+<code>noncompliance</code> is set to “mixed” or “user”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd1A</code></td>
+<td>
+<p>When required, the arm-1 <em>cause-A-delay</em> distribution is alternately
+specified via a survival function. A vector of the same length as <code>tcutd1A</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tcutd1B</code></td>
+<td>
+<p>Left hand endpoints for intervals upon which the arm-1 specific
+<em>cause-B delay</em> distribution hazard function is constant. The last given
+component is the left hand endpoint of the interval having right hand endpoint
+infinity. Always required when <code>noncompliance</code> is set to any value other than
+“none”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hd1B</code></td>
+<td>
+<p>A vector of the same length as <code>tcutd1B</code> containing peicewise constant
+hazard rates for the arm-1 <em>cause-B delay</em> distribution. Always required when
+<code>noncompliance</code> is set to any value other than “none”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd1B</code></td>
+<td>
+<p>When required, the arm-1 <em>cause-A-delay</em> distribution is alternately
+specified via a survival function. A vector of the same length as <code>tcutd1A</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tcutx0A</code></td>
+<td>
+<p>Left hand endpoints for intervals upon which the arm-0 specific
+<em>post-cause-A-delay-mortality</em> rate is constant. The last given component is the
+left hand endpoint of the interval having right hand endpoint infinity. Required only
+when <code>noncompliance</code> is set to “mixed” or “user”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hx0A</code></td>
+<td>
+<p>A vector of the same length as <code>tcutx0A</code> containing the arm-0
+<em>post-cause-A-delay mortality</em> rates.  Required only when <code>noncompliance</code> is
+set to “mixed” or “user”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sx0A</code></td>
+<td>
+<p>When required, the arm-0 <em>post-cause-A-delay mortality</em> distribution is
+alternately specified via a survival function. A vector of the same length as
+<code>tcutx0A</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tcutx0B</code></td>
+<td>
+<p>Left hand endpoints for intervals upon which the arm-0 specific
+<em>post-cause-B-delay-mortality</em> rate is constant. The last given component is the
+left hand endpoint of the interval having right hand endpoint infinity. Always
+required when <code>noncompliance</code> is set to any value other than “none”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hx0B</code></td>
+<td>
+<p>A vector of the same length as <code>tcutx0B</code> containing the arm-0
+<em>post-cause-B-delay mortality</em> rates. Always required when <code>noncompliance</code>
+is set to any value other than “none”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sx0B</code></td>
+<td>
+<p>When required, the arm-0 <em>post-cause-B-delay mortality</em> distribution is
+alternately specified via a survival function.  A vector of the same length as
+<code>tcutx0B</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tcutx1A</code></td>
+<td>
+<p>Left hand endpoints for intervals upon which the arm-1 specific
+<em>post-cause-A-delay-mortality</em> rate is constant. The last given component is the
+left hand endpoint of the interval having right hand endpoint infinity. Required only
+when <code>noncompliance</code> is set to “mixed” or “user”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hx1A</code></td>
+<td>
+<p>A vector of the same length as <code>tcutx1A</code> containing the arm-1
+<em>post-cause-A-delay mortality</em> rates. Required only when <code>noncompliance</code> is
+set to “mixed” or “user”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sx1A</code></td>
+<td>
+<p>When required, the arm-1 <em>post-cause-A-delay mortality</em> distribution is
+alternately specified via a survival function. A vector of the same length as
+<code>tcutx1A</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tcutx1B</code></td>
+<td>
+<p>Left hand endpoints for intervals upon which the arm-1 specific
+<em>post-cause-B-delay-mortality</em> rate is constant. The last given component is the
+left hand endpoint of the interval having right hand endpoint infinity. Always
+required when <code>noncompliance</code> is set to any value other than “none”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hx1B</code></td>
+<td>
+<p>A vector of the same length as <code>tcutx1B</code> containing the arm-1
+<em>post-cause-B-delay mortality</em> rates. Always required when <code>noncompliance</code>
+is set to any value other than “none”.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sx1B</code></td>
+<td>
+<p>When required, the arm-1 <em>post-cause-B-delay mortality</em> distribution is
+alternately specified via a survival function. A vector of the same length as
+<code>tcutx1B</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gradual</code></td>
+<td>
+<p>Should the conversion to post-noncompliance mortality be gradual. Under
+the default behavior, <code>gradual</code>=<code>FALSE</code>, there is an immediate conversion to
+the post-noncompliance mortality rate function. If <code>gradual</code> is set to
+<code>TRUE</code> then this conversion is done “gradually”. In truth, at the
+individual level what is done is that the new mortality rate function is a convex
+combination of the pre-noncompliance mortality and the post-noncompliance mortality,
+with the weighting in proportion to the time spent in compliance with the study arm
+protocal.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>WtFun</code></td>
+<td>
+<p>Specifies the name of a weighting function (of time) for assigning relative
+weights to events according to the times at which they occur. The default,
+“FH”, a two parameter weight function, specifies the
+‘Fleming-Harrington’ <code>g-rho</code> family of weighting functions defined as the
+pooled arm survival function (Kaplan-Meier estimate) raised to the <code>g</code> times its
+complement raised to the <code>rho</code>. Note that <code>g</code>=<code>rho</code>=0 corresponds to
+the unweighted log-rank statistic. A second choice is the “SFH” function, (for
+‘Stopped Fleming-Harrington’), meaning that the “FH” weights are capped
+at their value at a user specified time, which has a total of 3 parameters.  A third
+choice is <code>Ramp(tcut)</code>. Under this choice, weights are assigned in a linearly
+manner from time 0 until a user specified cut-off time, <code>tcut</code>, after which
+events are weighted equally. It is possible to conduct computations on <code>nstat</code>
+candidate statistics within a single run. In this case, <code>WtFun</code> should be a
+character vector of length <code>nstat</code> having components set from among the available
+choices.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ppar</code></td>
+<td>
+<p>A vector containing all the weight function parameters, in the order
+determined by that of “WtFun”.  For example, if <code>WtFun</code> is set to
+<code>c("FH","SFH","Ramp")</code> then <code>ppar</code> should be a vector of length six, with
+the “FH” parameters in the first two elements, “SFH” parameters in the
+next 3 elements, and “Ramp” parameter in the last element.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>RR.Futility</code></td>
+<td>
+<p>The relative risk corresponding to the alternative alternative
+hypothesis that is required in the construction of the futility boundary. Required if
+<code>Boundary.Futility</code> is set to a non-null value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Spend.Info</code></td>
+<td>
+<p>When the test statistic is something other than the unweighted
+log-rank statistic, the variance information, i.e. the ratio of variance at interim
+analysis to variance at the end of trial, is something other than the ratio of events
+at interim analysis to the events at trial end.  The problem is that in practice one
+doesn't necessarily have a good idea what the end of trial variance should be.  In
+this case the user may wish to spend the type I and type II error probabilities
+according to a different time scale. Possible choices are “Variance”,
+(default), which just uses the variance ratio scale, “Events”, which uses the
+events ratio scale, “Hybrid(k)”, which makes a linear transition from the
+“Variance” scale to the “Events” scale beginning with analysis number
+<code>k</code>.  The last choice, “Calendar”, uses the calendar time scale</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>qProp.one.or.Q</code></td>
+<td>
+<p>If a futility boundary is specified, what assumption should be
+made about the drift function (the mean value of the weighted log-rank statistic at
+analysis <code>j</code> normalized by the square root of the variance function at analysis
+<code>k</code>).  In practice we don't presume to know the shape of the drift function. Set
+to “one” or “Q”.  The choice “one” results in a more conservative
+boundary.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Nsim</code></td>
+<td>
+<p>If you specify <code>method</code>==“S”, then you must specify the number
+of simulations.  1000 should be sufficient.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>detail</code></td>
+<td>
+<p>If you specify <code>method</code>==“S”, and want to see the full level
+of detail regarding arguments returned from the C level code, specify
+<code>detail</code>==TRUE</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>StatType</code></td>
+<td>
+<p>If you specify <code>method</code>==“S”, then the available choices are
+“WLR” (weighted log-rank) and “ISD” (integrated survival difference).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>doProj</code></td>
+<td>
+<p>Works only when <code>method</code>==“S”. If a weighted log-rank
+statistic is specified without maximum information having been stipulated in the
+design then certain functionals, the <code>Q</code> first and second moments, must be
+projected. Setting this argument to <code>TRUE</code> includes this projection into the
+simulation runs.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p> Returns a value of class <code>PwrGSD</code> which has components listed below.  Note
+that the print method will display a summary table of estimated powers and type I errors
+as a <code>nstat</code> by 2 matrix.  The summary method returns the same object invisibly,
+but after computing the summary table mentioned above, and it is included in the
+returned value as a commponent <code>TBL</code>.  See examples below.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>dPower</code></td>
+<td>
+<p>A <code>length(tlook)</code> by <code>nstat</code> matrix containing in each column,
+an increment in power that resulted at that analysis time for the given statistic.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dErrorI</code></td>
+<td>
+<p>A <code>length(tlook)</code> by <code>nstat</code> matrix containing in each column,
+an increment in type I error that resulted at that analysis time for the given
+statistic.  Always sums to the total alpha specified in <code>alphatot</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>detail</code></td>
+<td>
+<p>A list with components equal to the arguments of the C-call, which
+correspond in a natural way to the arguments specified in the R call, along with the
+computed results in <code>palpha0vec</code>, <code>palpha1vec</code>, <code>inffrac</code>, and
+<code>mu</code>.  The first two are identical to <code>dErrorI</code> and <code>dPower</code>, explained
+above.  The last two are <code>length(tlook)</code> by <code>nstat</code> matrices. For each
+statistic specified in <code>par</code>, the corresponding columns of <code>pinffrac</code> and
+<code>mu</code> contain the information fraction and drift at each of the analysis times.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>the call</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Grant Izmirlian <a href="mailto:izmirlian@nih.gov">izmirlian@nih.gov</a></p>
+
+
+<h3>References</h3>
+
+<p> Gu, M.-G. and Lai, T.-L.  “Determination of power and sample size in
+the design of clinical trials with failure-time endpoints and interim analyses.”
+Controlled Clinical Trials 20 (5): 423-438. 1999
+</p>
+<p>Izmirlian, G.  “The PwrGSD package.”  NCI Div. of Cancer Prevention Technical 
+Report. 2004
+</p>
+<p>Jennison, C. and Turnbull, B.W. (1999) Group Sequential Methods: Applications to
+Clinical Trials Chapman &amp; Hall/Crc, Boca Raton FL
+</p>
+<p>Proschan, M.A., Lan, K.K.G., Wittes, J.T.  (2006), corr 2nd printing (2008) Statistical
+Monitoring of Clinical Trials A Unified Approach Springer Verlag, New
+York 
+</p>
+<p>Izmirlian G. (2014). Estimation of the relative risk following group
+sequential procedure based upon the weighted log-rank statistic.
+Statistics and its Interface 7(1), 27-42
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>cpd.PwrGSD</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(PwrGSD)
+
+test.example &lt;-
+  PwrGSD(EfficacyBoundary = LanDemets(alpha = 0.05, spending = ObrienFleming),
+         FutilityBoundary = LanDemets(alpha = 0.1, spending = ObrienFleming),
+	 RR.Futility = 0.82, sided="1&lt;",method="A",accru =7.73, accrat =9818.65,
+         tlook =c(7.14, 8.14, 9.14, 10.14, 10.64, 11.15, 12.14, 13.14,
+                  14.14, 15.14, 16.14, 17.14, 18.14, 19.14, 20.14),
+         tcut0 =0:19, h0 =c(rep(3.73e-04, 2), rep(7.45e-04, 3),
+                            rep(1.49e-03, 15)),
+         tcut1 =0:19, rhaz =c(1, 0.9125, 0.8688, 0.7814, 0.6941,
+                              0.6943, 0.6072, 0.5202, 0.4332, 0.6520,
+                              0.6524, 0.6527, 0.6530, 0.6534, 0.6537,
+                              0.6541, 0.6544, 0.6547, 0.6551, 0.6554),
+         tcutc0 =0:19, hc0 =c(rep(1.05e-02, 2), rep(2.09e-02, 3),
+                              rep(4.19e-02, 15)),
+         tcutc1 =0:19, hc1 =c(rep(1.05e-02, 2), rep(2.09e-02, 3),
+                              rep(4.19e-02, 15)),
+         tcutd0B =c(0, 13), hd0B =c(0.04777, 0),
+         tcutd1B =0:6, hd1B =c(0.1109, 0.1381, 0.1485, 0.1637, 0.2446,
+                               0.2497, 0),
+         noncompliance =crossover, gradual =TRUE,
+         WtFun =c("FH", "SFH", "Ramp"),
+         ppar =c(0, 1, 0, 1, 10, 10))
+</code></pre>
+
+
+</div>

@@ -1,0 +1,126 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ridgePgen.kCV</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+K-fold cross-validated loglikelihood of ridge precision estimator.
+</h2>
+
+<h3>Description</h3>
+
+<p>Function that calculates of the k-fold cross-validated negative (!) loglikelihood of the generalized ridge precision estimator.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ridgePgen.kCV(lambda, Y, fold=nrow(Y), target, 
+              nInit=100, minSuccDiff=10^(-5)) 
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p> A symmetric <code>matrix</code> with element-wise positive penalty parameters. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p> Data <code>matrix</code> with samples as rows and variates as columns. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fold</code></td>
+<td>
+<p> A <code>numeric</code> or <code>integer</code> specifying the number of folds to apply in the cross-validation. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p> A semi-positive definite target <code>matrix</code> towards which the estimate is shrunken. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nInit</code></td>
+<td>
+<p> A <code>numeric</code> specifying the number of iterations. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minSuccDiff</code></td>
+<td>
+<p> A <code>numeric</code>: minimum successive difference (in terms of their penalized loglikelihood) between two succesive estimates to be achieved. </p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The function returns a <code>numeric</code> containing the cross-validated negative loglikelihood.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>W.N. van Wieringen.
+</p>
+
+
+<h3>References</h3>
+
+<p>van Wieringen, W.N. (2019), "The generalized ridge estimator of the inverse covariance matrix", <em>Journal of Computational and Graphical Statistics</em>, 28(4), 932-942.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ridgePgen</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># set dimension and sample size
+p &lt;- 10
+n &lt;- 10
+
+# penalty parameter matrix
+lambda       &lt;- matrix(1, p, p)
+diag(lambda) &lt;- 0.1
+
+# generate precision matrix
+Omega       &lt;- matrix(0.4, p, p)
+diag(Omega) &lt;- 1
+Sigma       &lt;- solve(Omega)
+
+# data 
+Y &lt;- mvtnorm::rmvnorm(n, mean=rep(0,p), sigma=Sigma)
+S &lt;- cov(Y)
+
+# find optimal penalty parameters through cross-validation
+lambdaOpt &lt;- optPenaltyPgen.kCVauto.banded(Y, 10^(-10), 10^(10), 
+                          target=matrix(0, p, p),
+                          penalize.diag=FALSE, nInit=100, 
+                          minSuccDiff=10^(-5)) 
+
+# format the penalty matrix
+lambdaOptMat &lt;- matrix(NA, p, p)
+for (j1 in 1:p){
+    for (j2 in 1:p){
+        lambdaOptMat[j1, j2] &lt;- lambdaOpt * (abs(j1-j2)+1)
+    }
+}
+
+# generalized ridge precision estimate
+Phat &lt;- ridgePgen(S, lambdaOptMat, matrix(0, p, p))
+</code></pre>
+
+
+</div>

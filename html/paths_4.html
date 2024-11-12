@@ -1,0 +1,123 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plot.sens</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Plot Method for <code>sens</code> Objects</h2>
+
+<h3>Description</h3>
+
+<p>Contour plot for sensitivity analysis objects.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'sens'
+plot(
+  x,
+  outcome_name = "Outcome",
+  x_axis = c("eta_k", "gamma_k"),
+  other = list(`eta_k-1` = NULL, `gamma_k-1` = NULL),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>an object of class <code>sens</code> returned by the <code>sens</code>
+function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outcome_name</code></td>
+<td>
+<p>a character string indicating the name of the outcome.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x_axis</code></td>
+<td>
+<p>sensitivity analysis parameter shown on the x axis. Default is <code>"eta_k"</code>,
+i.e., the difference in the prevalence of an unobserved confounder <code class="reqn">U</code> between treated
+and untreated units given pretreatment covariates <code class="reqn">X</code> and mediators <code class="reqn">M_1,\ldots, M_k</code>.
+Alternatively, it can be <code>"gamma_k"</code>, i.e., the average effect of the unobserved confounder
+<code class="reqn">U</code> on the outcome given pretreatment covariates <code class="reqn">X</code>, treatment <code class="reqn">A</code>,
+and mediators <code class="reqn">M_1,\ldots, M_k</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>other</code></td>
+<td>
+<p>a named list indicating the values at which other sensitivity analysis parameters,
+namely, <code>`eta_k-1`</code> and <code>`gamma_k-1`</code>, are held. This is needed only when the
+bias formula involves <code class="reqn">\eta_{k-1}</code> and <code class="reqn">\gamma_{k-1}</code> as well as <code class="reqn">\eta_k</code> and
+<code class="reqn">\gamma_k</code>. The default is to set both <code class="reqn">\eta_{k-1}</code> and <code class="reqn">\gamma_{k-1}</code> at their
+average values in the <code>sens</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a <code>ggplot2</code> plot, which can be further customized by the user.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(tatar)
+
+m1 &lt;- c("trust_g1", "victim_g1", "fear_g1")
+m2 &lt;- c("trust_g2", "victim_g2", "fear_g2")
+m3 &lt;- c("trust_g3", "victim_g3", "fear_g3")
+mediators &lt;- list(m1, m2, m3)
+
+formula_m0 &lt;- annex ~ kulak + prosoviet_pre + religiosity_pre + land_pre +
+  orchard_pre + animals_pre + carriage_pre + otherprop_pre + violence
+formula_m1 &lt;- update(formula_m0,    ~ . + trust_g1 + victim_g1 + fear_g1)
+formula_m2 &lt;- update(formula_m1,    ~ . + trust_g2 + victim_g2 + fear_g2)
+formula_m3 &lt;- update(formula_m2,    ~ . + trust_g3 + victim_g3 + fear_g3)
+formula_ps &lt;- violence ~ kulak + prosoviet_pre + religiosity_pre +
+  land_pre + orchard_pre + animals_pre + carriage_pre + otherprop_pre
+
+####################################################
+# Causal Paths Analysis using GLM
+####################################################
+
+# outcome models
+glm_m0 &lt;- glm(formula_m0, family = binomial("logit"), data = tatar)
+glm_m1 &lt;- glm(formula_m1, family = binomial("logit"), data = tatar)
+glm_m2 &lt;- glm(formula_m2, family = binomial("logit"), data = tatar)
+glm_m3 &lt;- glm(formula_m3, family = binomial("logit"), data = tatar)
+glm_ymodels &lt;- list(glm_m0, glm_m1, glm_m2, glm_m3)
+
+# propensity score model
+glm_ps &lt;- glm(formula_ps, family = binomial("logit"), data = tatar)
+
+# causal paths analysis using glm
+# note: For illustration purposes only a small number of bootstrap replicates are used
+paths_glm &lt;- paths(a = "violence", y = "annex", m = mediators,
+  glm_ymodels, ps_model = glm_ps, data = tatar, nboot = 3)
+
+# sensitivity analysis for the path-specific effect via M1
+sens_glm &lt;- sens(paths_glm, confounded = "M1", estimand = "via M1",
+  gamma_values = - seq(0, 0.5, 0.005), eta_values = seq(-0.5, 0.5, 0.005))
+
+plot(sens_glm)
+
+</code></pre>
+
+
+</div>

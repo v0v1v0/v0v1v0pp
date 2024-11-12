@@ -1,0 +1,202 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mlogit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Multinomial Logistic Regression</h2>
+
+<h3>Description</h3>
+
+<p>Solves a multinomial logistic problem using 
+Newton-Raphson method
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mlogit(
+  Y,
+  X,
+  beta = NULL,
+  add.intercept = FALSE,
+  betaOnly = FALSE,
+  tol.zero = 1e-08,
+  verbose = T,
+  suppressFittedWarning = FALSE,
+  maxNR.print.level = 0,
+  iterlim = 150,
+  checkY = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>A matrix of the outcomes, with K columns for 
+the K groups.  Row sums of the matrix should be equal
+to one, but entries do not have to be 0/1 (but they
+should be positive). i.e. this is a matrix of hard or
+soft assignments to K categories. The first column is
+used as the reference category.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>matrix of covariates for regression. Should have
+the same number of rows (observations) as Y. Coefficients
+for all parameters in X are computed for K-1 groups. 
+The coefficients  corresponding to the first column of Y
+are assumed to be zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>starting values for the optimziation.  Should be
+given as a matrix of column vectors, each vector a
+different starting value.  If null, defaults to zeros.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add.intercept</code></td>
+<td>
+<p>a logical indicator of whether an
+intercept column should be added to X</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>betaOnly</code></td>
+<td>
+<p>logical indicator of whether only the
+parameter estimates beta should be returned. Otherwise,
+beta is returned along with fitted objects. See Output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol.zero</code></td>
+<td>
+<p>the tolerance threshold for considering a
+fitted value as equal to zero.  Used for warning about
+fitted values of 0/1.  Is NOT part of the optimization
+control parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical indicator that controls whether text
+indicating progress is output to display</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>suppressFittedWarning</code></td>
+<td>
+<p>indicator of whether or not
+warnings about fitted values of 1 are returned</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxNR.print.level</code></td>
+<td>
+<p>numeric value giving the level of
+output produced by maxNR.  see <code>?maxNR</code> for details.
+Defaults to 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iterlim</code></td>
+<td>
+<p>iteration limit for maxNR. Defaults to 150.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>checkY</code></td>
+<td>
+<p>indicator for whether Y should be checked to be a valid assignment matrix.  Set to <code>FALSE</code> if using decimal values in Y.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The optimization is done using the <code>maxNR</code> function from the <code>maxLik</code> package.  The log-likehood function, along with its gradient and hessian, are implemented as C++ functions (via the <code>RcppArmadillo</code> package).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing the following:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p> a p x K matrix of parameter estimates corresponding to the K columns of Y and p covariates in X</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fitted01</code></td>
+<td>
+<p>indicator of whether fitted values of 1 were present.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fitted</code></td>
+<td>
+<p>the fitted probabilities</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>res.best</code></td>
+<td>
+<p> the best result from the maxNR fit</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>status</code></td>
+<td>
+<p> small data frame summarizing the status of the fits</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>res. all</code></td>
+<td>
+<p> a list containing the results from all maxNR fits</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Joshua Keller
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>predkmeans</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">n &lt;- 2000
+X &lt;- cbind(1,
+           matrix(rnorm(2*n), nrow=n, ncol=2),
+           rbinom(n, size=1, prob=0.3))
+beta &lt;- cbind(rep(0, 4),
+              c(0.5, 1, 0, -1),
+              c(0, 2, 2, 0))
+probs &lt;- exp(X %*% beta)
+probs &lt;- probs/rowSums(probs)
+Y &lt;- t(apply(probs, 1, function(p) rmultinom(1, 1, p)))
+mfit &lt;- mlogit(Y=Y, X=X, betaOnly=TRUE)
+mfit
+</code></pre>
+
+
+</div>

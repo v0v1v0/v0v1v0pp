@@ -1,0 +1,402 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>get_agent_report</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Get a summary report from an agent</h2>
+
+<h3>Description</h3>
+
+<p>We can get an informative summary table from an agent by using the
+<code>get_agent_report()</code> function. The table can be provided in two substantially
+different forms: as a <strong>gt</strong> based display table (the default), or, as a
+tibble. The amount of fields with intel is different depending on whether or
+not the agent performed an interrogation (with the <code>interrogate()</code> function).
+Basically, before <code>interrogate()</code> is called, the agent will contain just the
+validation plan (however many rows it has depends on how many validation
+functions were supplied a part of that plan). Post-interrogation, information
+on the passing and failing test units is provided, along with indicators on
+whether certain failure states were entered (provided they were set through
+<code>actions</code>). The display table variant of the agent report, the default form,
+will have the following columns:
+</p>
+
+<ul>
+<li>
+<p> i (unlabeled): the validation step number.
+</p>
+</li>
+<li>
+<p> STEP: the name of the validation function used for the validation step,
+</p>
+</li>
+<li>
+<p> COLUMNS: the names of the target columns used in the validation step
+(if applicable).
+</p>
+</li>
+<li>
+<p> VALUES: the values used in the validation step, where applicable; this
+could be as literal values, as column names, an expression, etc.
+</p>
+</li>
+<li>
+<p> TBL: indicates whether any there were any changes to the target table
+just prior to interrogation. A rightward arrow from a small circle indicates
+that there was no mutation of the table. An arrow from a circle to a purple
+square indicates that preconditions were used to modify the target table. An
+arrow from a circle to a half-filled circle indicates that the target table
+has been segmented.
+</p>
+</li>
+<li>
+<p> EVAL: a symbol that denotes the success of interrogation evaluation
+for each step. A checkmark indicates no issues with evaluation. A warning
+sign indicates that a warning occurred during evaluation. An explosion symbol
+indicates that evaluation failed due to an error. Hover over the symbol for
+details on each condition.
+</p>
+</li>
+<li>
+<p> UNITS: the total number of test units for the validation step
+</p>
+</li>
+<li>
+<p> PASS: on top is the absolute number of <em>passing</em> test units and below
+that is the fraction of <em>passing</em> test units over the total number of test
+units.
+</p>
+</li>
+<li>
+<p> FAIL: on top is the absolute number of <em>failing</em> test units and below
+that is the fraction of <em>failing</em> test units over the total number of test
+units.
+</p>
+</li>
+<li>
+<p> W, S, N: indicators that show whether the <code>warn</code>, <code>stop</code>, or <code>notify</code>
+states were entered; unset states appear as dashes, states that are set with
+thresholds appear as unfilled circles when not entered and filled when
+thresholds are exceeded (colors for W, S, and N are amber, red, and blue)
+</p>
+</li>
+<li>
+<p> EXT: a column that provides buttons to download data extracts as CSV
+files for row-based validation steps having <strong>failing</strong> test units. Buttons
+only appear when there is data to collect.
+</p>
+</li>
+</ul>
+<p>The small version of the display table (obtained using <code>size = "small"</code>)
+omits the <code>COLUMNS</code>, <code>TBL</code>, and <code>EXT</code> columns. The width of the small table
+is 575px; the standard table is 875px wide.
+</p>
+<p>The <code>ptblank_agent_report</code> can be exported to a standalone HTML document
+with the <code>export_report()</code> function.
+</p>
+<p>If choosing to get a tibble (with <code>display_table = FALSE</code>), it will have the
+following columns:
+</p>
+
+<ul>
+<li>
+<p> i: the validation step number.
+</p>
+</li>
+<li>
+<p> type: the name of the validation function used for the validation step.
+</p>
+</li>
+<li>
+<p> columns: the names of the target columns used in the validation step
+(if applicable).
+</p>
+</li>
+<li>
+<p> values: the values used in the validation step, where applicable; for
+a <code>conjointly()</code> validation step, this is a listing of all sub-validations.
+</p>
+</li>
+<li>
+<p> precon: indicates whether any there are any preconditions to apply
+before interrogation and, if so, the number of statements used.
+</p>
+</li>
+<li>
+<p> active: a logical value that indicates whether a validation step is
+set to <code>"active"</code> during an interrogation.
+</p>
+</li>
+<li>
+<p> eval: a character value that denotes the success of interrogation
+evaluation for each step. A value of <code>"OK"</code> indicates no issues with
+evaluation. The <code>"WARNING"</code> value indicates a warning occurred during
+evaluation. The <code>"ERROR"</code> VALUES indicates that evaluation failed due to an
+error. With <code>"W+E"</code> both warnings and an error occurred during evaluation.
+</p>
+</li>
+<li>
+<p> units: the total number of test units for the validation step.
+</p>
+</li>
+<li>
+<p> n_pass: the number of <em>passing</em> test units.
+</p>
+</li>
+<li>
+<p> f_pass: the fraction of <em>passing</em> test units.
+</p>
+</li>
+<li>
+<p> W, S, N: logical value stating whether the <code>warn</code>, <code>stop</code>, or <code>notify</code>
+states were entered. Will be <code>NA</code> for states that are unset.
+</p>
+</li>
+<li>
+<p> extract: an integer value that indicates the number of rows available
+in a data extract. Will be <code>NA</code> if no extract is available.
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">get_agent_report(
+  agent,
+  arrange_by = c("i", "severity"),
+  keep = c("all", "fail_states"),
+  display_table = TRUE,
+  size = "standard",
+  title = ":default:",
+  lang = NULL,
+  locale = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>agent</code></td>
+<td>
+<p><em>The pointblank agent object</em>
+</p>
+<p><code style="white-space: pre;">⁠obj:&lt;ptblank_agent&gt;⁠</code> // <strong>required</strong>
+</p>
+<p>A <strong>pointblank</strong> <em>agent</em> object that is commonly created through the use of
+the <code>create_agent()</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>arrange_by</code></td>
+<td>
+<p><em>Method of arranging the report's table rows</em>
+</p>
+<p><code style="white-space: pre;">⁠singl-kw:[i|severity]⁠</code> // <em>default:</em> <code>"i"</code>
+</p>
+<p>A choice to arrange the report table rows by the validation step number
+(<code>"i"</code>, the default), or, to arrange in descending order by severity of the
+failure state (with <code>"severity"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep</code></td>
+<td>
+<p><em>Which table rows should be kept?</em>
+</p>
+<p><code style="white-space: pre;">⁠singl-kw:[all|fail_states]⁠</code> // <em>default:</em> <code>"all"</code>
+</p>
+<p>An option to keep <code>"all"</code> of the report's table rows (the
+default), or, keep only those rows that reflect one or more
+<code>"fail_states"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>display_table</code></td>
+<td>
+<p><em>Return a display-table report via gt</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;logical&gt;⁠</code> // <em>default:</em> <code>TRUE</code>
+</p>
+<p>Should a display table be generated? If <code>TRUE</code>, and if the <strong>gt</strong> package
+is installed, a display table for the report will be shown in the Viewer.
+If <code>FALSE</code>, or if <strong>gt</strong> is not available, then a tibble will be returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>size</code></td>
+<td>
+<p><em>Size option for display-table report</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;character&gt;⁠</code> // <em>default:</em> <code>"standard"</code>
+</p>
+<p>The size of the display table, which can be either <code>"standard"</code> (the
+default) or <code>"small"</code>. This only applies to a display table (where
+<code>display_table = TRUE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>title</code></td>
+<td>
+<p><em>Title customization options</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;character&gt;⁠</code> // <em>default:</em> <code>":default:"</code>
+</p>
+<p>Options for customizing the title of the report. The default is the keyword
+<code>":default:"</code> which produces generic title text that refers to the
+<strong>pointblank</strong> package in the language governed by the <code>lang</code> option.
+Another keyword option is <code>":tbl_name:"</code>, and that presents the name of the
+table as the title for the report. If no title is wanted, then the
+<code>":none:"</code> keyword option can be used. Aside from keyword options, text can
+be provided for the title and <code>glue::glue()</code> calls can be used to construct
+the text string. If providing text, it will be interpreted as Markdown text
+and transformed internally to HTML. To circumvent such a transformation,
+use text in <code>I()</code> to explicitly state that the supplied text should not be
+transformed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lang</code></td>
+<td>
+<p><em>Reporting language</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;character&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>The language to use for automatic creation of briefs (short descriptions
+for each validation step) and for the <em>agent report</em> (a summary table that
+provides the validation plan and the results from the interrogation. By
+default, <code>NULL</code> will create English (<code>"en"</code>) text. Other options include
+French (<code>"fr"</code>), German (<code>"de"</code>), Italian (<code>"it"</code>), Spanish (<code>"es"</code>),
+Portuguese (<code>"pt"</code>), Turkish (<code>"tr"</code>), Chinese (<code>"zh"</code>), Russian (<code>"ru"</code>),
+Polish (<code>"pl"</code>), Danish (<code>"da"</code>), Swedish (<code>"sv"</code>), and Dutch (<code>"nl"</code>).
+This <code>lang</code> option will override any previously set language setting (e.g.,
+by the <code>create_agent()</code> call).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>locale</code></td>
+<td>
+<p><em>Locale for value formatting</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;character&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>An optional locale ID to use for formatting values in the
+<em>agent report</em> summary table according the locale's rules. Examples include
+<code>"en_US"</code> for English (United States) and <code>"fr_FR"</code> for French (France);
+more simply, this can be a language identifier without a country
+designation, like <code>"es"</code> for Spanish (Spain, same as <code>"es_ES"</code>). This
+<code>locale</code> option will override any previously set locale value (e.g., by the
+<code>create_agent()</code> call).</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>ptblank_agent_report</code> object if <code>display_table = TRUE</code> or a tibble
+if <code>display_table = FALSE</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<p>For the example here, we'll use a simple table with a single numerical column
+<code>a</code>.
+</p>
+<div class="sourceCode r"><pre>tbl &lt;- dplyr::tibble(a = c(5, 7, 8, 5))
+
+tbl
+#&gt; # A tibble: 4 x 1
+#&gt;       a
+#&gt;   &lt;dbl&gt;
+#&gt; 1     5
+#&gt; 2     7
+#&gt; 3     8
+#&gt; 4     5
+</pre></div>
+<p>Let's create an <em>agent</em> and validate that values in column <code>a</code> are always
+greater than <code>4</code>.
+</p>
+<div class="sourceCode r"><pre>agent &lt;-
+  create_agent(
+    tbl = tbl,
+    tbl_name = "small_table",
+    label = "An example."
+  ) %&gt;%
+  col_vals_gt(columns = a, value = 4) %&gt;%
+  interrogate()
+</pre></div>
+<p>We can get a tibble-based report from the agent by using <code>get_agent_report()</code>
+with <code>display_table = FALSE</code>.
+</p>
+<div class="sourceCode r"><pre>agent %&gt;% get_agent_report(display_table = FALSE)
+</pre></div>
+<pre>## # A tibble: 1 × 14
+##       i type    columns values precon active eval  units n_pass
+##   &lt;int&gt; &lt;chr&gt;   &lt;chr&gt;   &lt;chr&gt;  &lt;chr&gt;  &lt;lgl&gt;  &lt;chr&gt; &lt;dbl&gt;  &lt;dbl&gt;
+## 1     1 col_va… a       4      NA     TRUE   OK        4      4
+## # … with 5 more variables: f_pass &lt;dbl&gt;, W &lt;lgl&gt;, S &lt;lgl&gt;,
+## #   N &lt;lgl&gt;, extract &lt;int&gt;</pre>
+<p>The full-featured display-table-based report can be viewed by printing the
+<code>agent</code> object, but, we can get a <code>"ptblank_agent_report"</code> object returned to
+us when using <code>display_table = TRUE</code> (the default for <code>get_agent_report</code>).
+</p>
+<div class="sourceCode r"><pre>report &lt;- get_agent_report(agent)
+
+report
+</pre></div>
+
+
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_get_agent_report_1.png" alt="This image was generated from the first code example in the `get_agent_report()` help file." style="width:100%;"><p>What can you do with the <code>report</code> object? Print it at will wherever, and, it
+can serve as an input to the <code>export_report()</code> function.
+</p>
+<p>However, the better reason to use <code>get_agent_report()</code> over just printing the
+agent for display-table purposes is to make use of the different display
+options.
+</p>
+<p>The agent report as a <strong>gt</strong> display table comes in two sizes: <code>"standard"</code>
+(the default, 875px wide) and <code>"small"</code> (575px wide). Let's take a look at
+the smaller-sized version of the report.
+</p>
+<div class="sourceCode r"><pre>small_report &lt;- 
+  get_agent_report(
+    agent = agent,
+    size = "small"
+  )
+  
+small_report
+</pre></div>
+
+
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_get_agent_report_2.png" alt="This image was generated from the second code example in the `get_agent_report()` help file." style="width:100%;"><p>We can use our own title by supplying it to the <code>title</code> argument, or, use
+a special keyword like <code>":tbl_name:"</code> to get the table name (set in the
+<code>create_agent()</code> call) as the title.
+</p>
+<div class="sourceCode r"><pre>report_title &lt;- get_agent_report(agent, title = ":tbl_name:")
+
+report_title
+</pre></div>
+
+
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_get_agent_report_3.png" alt="This image was generated from the third code example in the `get_agent_report()` help file." style="width:100%;"><p>There are more options! You can change the language of the display table with
+the <code>lang</code> argument (this overrides the language set in <code>create_agent()</code>),
+validation steps can be rearranged using the <code>arrange_by</code> argument, and we
+can also apply some filtering with the <code>keep</code> argument in
+<code>get_agent_report()</code>.
+</p>
+
+
+<h3>Function ID</h3>
+
+<p>6-2
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Interrogate and Report: 
+<code>interrogate()</code>
+</p>
+
+
+</div>

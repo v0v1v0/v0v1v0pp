@@ -1,0 +1,152 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rpls.cv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Determination of the ridge regularization parameter and the number of PLS 
+components to be used for classification with RPLS for binary data</h2>
+
+<h3>Description</h3>
+
+<p>The function <code>rpls.cv</code> determines the best ridge regularization parameter and the best 
+number of PLS components to be used for classification for Fort and Lambert-Lacroix (2005) 
+RPLS algorithm.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rpls.cv(Ytrain, Xtrain, LambdaRange, ncompMax, NbIterMax=50, ncores=1)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Xtrain</code></td>
+<td>
+<p>a (ntrain x p) data matrix of predictors. <code>Xtrain</code> must be a matrix. 
+Each row corresponds to an observation and each column to a predictor variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Ytrain</code></td>
+<td>
+<p>a ntrain vector of responses. <code>Ytrain</code> must be a vector. 
+<code>Ytrain</code> is a {0,1}-valued vector and contains the response variable for each
+observation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>LambdaRange</code></td>
+<td>
+<p>the vector of positive real value from which the best ridge regularization 
+parameter has to be chosen by cross-validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncompMax</code></td>
+<td>
+<p>a positive integer. the best number of components is chosen from  
+1,...,<code>ncompMax</code>. If <code>ncompMax</code>=0,then the Ridge regression is performed without 
+reduction dimension. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>NbIterMax</code></td>
+<td>
+<p>a positive integer. <code>NbIterMax</code> is the maximal number of iterations in the 
+Newton-Rapson parts.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+<p>a positive integer. The number of cores to be used for parallel computing 
+(if different from 1)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>A cross-validation procedure is used to determine the best ridge regularization parameter and 
+number of PLS components to be used for classification with RPLS for binary data 
+(for categorical data see <code>mrpls</code> and <code>mrpls.cv</code>).
+At each cross-validation run, <code>Xtrain</code> is split into a pseudo training
+set (ntrain-1 samples) and a pseudo test set (1 sample) and the classification error rate is 
+determined for each value of ridge regularization parameter and number of components. Finally, 
+the function <code>mrpls.cv</code> returns the values of the ridge regularization parameter and 
+bandwidth for which the mean classification error rate is minimal. 
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>Lambda</code></td>
+<td>
+<p>the optimal regularization parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncomp</code></td>
+<td>
+<p>the optimal number of PLS components.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Sophie Lambert-Lacroix 
+(<a href="http://membres-timc.imag.fr/Sophie.Lambert/">http://membres-timc.imag.fr/Sophie.Lambert/</a>). 
+</p>
+
+
+<h3>References</h3>
+
+<p>G. Fort and S. Lambert-Lacroix (2005). Classification using Partial Least Squares with 
+Penalized Logistic Regression, Bioinformatics, vol 21,  n 8, 1104-1111. 
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>rpls</code>, <code>mrpls</code>, <code>mrpls.cv</code>.</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+## between 5~15 seconds
+# load plsgenomics library
+library(plsgenomics)
+
+# load Colon data
+data(Colon)
+IndexLearn &lt;- c(sample(which(Colon$Y==2),12),sample(which(Colon$Y==1),8))
+
+# preprocess data
+res &lt;- preprocess(Xtrain= Colon$X[IndexLearn,], Xtest=Colon$X[-IndexLearn,],
+                    Threshold = c(100,16000),Filtering=c(5,500),
+                    log10.scale=TRUE,row.stand=TRUE)
+# the results are given in res$pXtrain and res$pXtest
+
+# Determine optimum ncomp and lambda
+nl &lt;- rpls.cv(Ytrain=Colon$Y[IndexLearn]-1,Xtrain=res$pXtrain,LambdaRange=c(0.1,1),ncompMax=3)
+
+# perform prediction by RPLS
+resrpls &lt;- rpls(Ytrain=Colon$Y[IndexLearn]-1,Xtrain=res$pXtrain,Lambda=nl$Lambda,
+			ncomp=nl$ncomp,Xtest=res$pXtest)
+sum(resrpls$Ytest!=Colon$Y[-IndexLearn]-1)
+
+
+## End(Not run)
+</code></pre>
+
+
+</div>

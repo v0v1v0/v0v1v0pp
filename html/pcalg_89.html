@@ -1,0 +1,469 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate the Equivalence Class of a DAG using the PC Algorithm</h2>
+
+<h3>Description</h3>
+
+<p>Estimate the equivalence class of a directed acyclic
+graph (DAG) from observational data, using the PC-algorithm.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pc(suffStat, indepTest, alpha, labels, p,
+   fixedGaps = NULL, fixedEdges = NULL, NAdelete = TRUE, m.max = Inf,
+   u2pd = c("relaxed", "rand", "retry"),
+   skel.method = c("stable", "original", "stable.fast"),
+   conservative = FALSE, maj.rule = FALSE, solve.confl = FALSE, 
+   numCores = 1, verbose = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>suffStat</code></td>
+<td>
+<p>A <code>list</code> of sufficient statistics,
+containing all necessary elements for the conditional independence
+decisions in the function <code>indepTest</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indepTest</code></td>
+<td>
+<p>A <code>function</code> for testing conditional
+independence.  It is internally called as
+<code>indepTest(x,y,S,suffStat)</code>, and tests conditional independence
+of <code>x</code> and <code>y</code> given <code>S</code>.  Here, <code>x</code> and
+<code>y</code> are variables, and <code>S</code> is a (possibly empty) vector of
+variables (all variables are denoted by their (integer) column positions
+in the adjacency matrix).  <code>suffStat</code> is a list, see the
+argument above.  The return value of <code>indepTest</code> is the p-value
+of the test for conditional independence.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>significance level (number in <code class="reqn">(0,1)</code> for the
+individual conditional independence tests.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>labels</code></td>
+<td>
+<p>(optional) character vector of variable (or
+“node”) names.  Typically preferred to specifying <code>p</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>(optional) number of variables (or nodes).  May be specified
+if <code>labels</code> are not, in which case <code>labels</code> is set to
+<code>1:p</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>numCores</code></td>
+<td>
+<p>Specifies the number of cores to be used for parallel
+estimation of <code>skeleton</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If <code>TRUE</code>, detailed output is provided.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixedGaps</code></td>
+<td>
+<p>A logical matrix of dimension p*p. If entry
+<code>[i,j]</code> or <code>[j,i]</code> (or both) are TRUE, the edge i-j is
+removed before starting the algorithm. Therefore, this edge is
+guaranteed to be absent in the resulting graph.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixedEdges</code></td>
+<td>
+<p>A logical matrix of dimension p*p. If entry
+<code>[i,j]</code> or <code>[j,i]</code> (or both) are TRUE, the edge i-j is
+never considered for removal. Therefore, this edge is
+guaranteed to be present in the resulting graph.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>NAdelete</code></td>
+<td>
+<p>If indepTest returns <code>NA</code> and this option is
+<code>TRUE</code>, the corresponding edge is deleted. If this option is
+<code>FALSE</code>, the edge is not deleted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m.max</code></td>
+<td>
+<p>Maximal size of the conditioning sets that are considered in the
+conditional independence tests.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>u2pd</code></td>
+<td>
+<p>String specifying the method for dealing with conflicting
+information when trying to orient edges (see details below).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>skel.method</code></td>
+<td>
+<p>Character string specifying method; the default,
+<code>"stable"</code> provides an <em>order-independent</em> skeleton, see
+<code>skeleton</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conservative</code></td>
+<td>
+<p>Logical indicating if the conservative PC is used.
+In this case, only option <code>u2pd = "relaxed"</code> is supported.
+Note that therefore the resulting object might not be extendable to
+a DAG.  See details for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maj.rule</code></td>
+<td>
+<p>Logical indicating that the triples shall be checked
+for ambiguity using a majority rule idea, which is less strict than the
+conservative PC algorithm.  For more information, see details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>solve.confl</code></td>
+<td>
+<p>If <code>TRUE</code>, the orientation of the v-structures and the
+orientation rules work with lists for candidate sets and allow
+bi-directed edges to resolve conflicting edge orientations. In this
+case, only option <code>u2pd = relaxed</code> is supported. Note, that
+therefore the resulting object might not be a CPDAG because
+bi-directed edges might be present. See details
+for more information.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Under the assumption that the distribution of the observed variables
+is faithful to a DAG, this function estimates the Markov equivalence class of
+the DAG. We do not estimate the DAG itself, because this is typically
+impossible (even with an infinite amount of data), since different
+DAGs can describe the same conditional independence relationships.
+Since all DAGs in an equivalence class describe the same conditional
+independence relationships, they are equally valid ways to
+describe the conditional dependence structure that was given as
+input.
+</p>
+<p>All DAGs in a Markov equivalence class have the same skeleton (i.e.,
+the same adjacency information) and the same v-structures (see
+definition below). However, the direction of some edges may be
+undetermined, in the sense that they point one way in one DAG in the
+equivalence class, while they point the other way in another DAG in
+the equivalence class.
+</p>
+<p>A Markov equivalence class can be uniquely represented by a completed
+partially directed acyclic graph (CPDAG). A CPDAG
+contains undirected and directed edges. The edges have the following
+interpretation: (i) there is a (directed or undirected) edge between i
+and j if and only if variables i and j are conditionally dependent
+given S for all possible subsets S of the remaining nodes; (ii) a directed
+edge <code class="reqn">i \longrightarrow j</code> means that this directed edge is 
+present in all DAGs in the Markov equivalence class; (iii) an undirected 
+edge <code class="reqn">i - j</code> means that there is at least one DAG in the Markov 
+equivalence class with edge <code class="reqn">i \longrightarrow j</code> and
+there is at least one DAG in the Markov equivalence class with edge 
+<code class="reqn">i \longleftarrow j</code>.
+</p>
+<p>The CPDAG is estimated using the PC algorithm (named after its inventors
+<b>P</b>eter Spirtes and <b>C</b>lark Glymour). The skeleton is
+estimated by the function <code>skeleton</code> which uses a modified
+version of the original PC algorithm (see Colombo and Maathuis (2014) for
+details). The original PC algorithm is known to be
+order-dependent, in the sense that the output depends on the order in
+which the variables are given. Therefore, Colombo and Maathuis (2014)
+proposed a simple modification, called PC-stable, that yields
+order-independent adjacencies in the skeleton (see the help file
+of this function for details). Subsequently, as many edges as possible
+are oriented. This is done in two steps. It is important to note that
+if no further actions are taken (see below) these two steps still
+remain order-dependent.
+</p>
+<p>The edges are oriented as follows. First, the algorithm considers all
+triples <code>(a,b,c)</code>, where <code class="reqn">a</code> and <code class="reqn">b</code> are adjacent, <code class="reqn">b</code> and 
+<code class="reqn">c</code> are adjacent, but <code class="reqn">a</code> and <code class="reqn">c</code> are not adjacent. For all such 
+triples, we direct both edges towards <code class="reqn">b</code> 
+(<code class="reqn">a \longrightarrow b \longleftarrow c</code>) if and only if 
+<code class="reqn">b</code> was not part of the conditioning set that made the edge between 
+<code class="reqn">a</code> and <code class="reqn">c</code> drop out. These conditioning sets were saved in
+<code>sepset</code>. The structure 
+<code class="reqn">a \longrightarrow b \longleftarrow c</code> is called a 
+v-structure.
+</p>
+<p>After determining all v-structures, there may still
+be undirected edges. It may be possible to direct some of these edges, since
+one can deduce that one of the two possible directions of the edge is
+invalid because it introduces
+a new v-structure or a directed cycle. Such edges are found by
+repeatedly applying rules R1-R3 of the PC algorithm as given in
+Algorithm 2 of Kalisch and Bühlmann (2007). The algorithm stops if
+none of the rules is applicable to the graph.
+</p>
+<p>The conservative PC algorithm (<code>conservative = TRUE</code>) is a
+slight variation of the PC algorithm (see Ramsey et al. 2006). After
+the skeleton is computed, all potential v-structures <code class="reqn">a - b - c</code> are 
+checked in the following way. We test whether a and c are independent
+conditioning on all subsets of the neighbors of <code class="reqn">a</code> and all subsets of 
+the neighbors of <code class="reqn">c</code>. When a subset makes <code class="reqn">a</code> and <code class="reqn">c</code> 
+conditionally independent, we call it a separating set. If <code class="reqn">b</code> is in no 
+such separating set or in all such separating sets, no further action is 
+taken and the usual PC is continued. If, however, <code class="reqn">b</code> is in only some 
+separating sets, the triple <code class="reqn">a - b - c</code> is marked as 'ambiguous'.
+Moreover, if no separating set is found among the neighbors, the triple is 
+also marked as 'ambiguous'. An ambiguous triple is not oriented as a
+v-structure. Furthermore, no further orientation rule that needs to
+know whether <code class="reqn">a - b - c</code> is a v-structure or not is applied. Instead of
+using the conservative version, which is quite strict towards the
+v-structures, Colombo and Maathuis (2014) introduced a less strict
+version for the v-structures called majority rule. This adaptation can
+be called using <code>maj.rule = TRUE</code>. In this case, the triple 
+<code class="reqn">a - b - c</code> is marked as 'ambiguous' if and only if <code class="reqn">b</code> is in 
+exactly 50 percent of such separating sets or no separating set was found. 
+If <code class="reqn">b</code> is in less than 50 percent of the separating sets it is set as a 
+v-structure, and if in more than 50 percent it is set as a non v-structure 
+(for more details see Colombo and Maathuis, 2014). The usage of both the
+conservative and the majority rule versions resolve the
+order-dependence issues of the determination of the v-structures.
+</p>
+<p>Sampling errors (or hidden variables) can lead to conflicting
+information about edge directions. For example, one may find that
+<code class="reqn">a - b - c</code> and <code class="reqn">b - c - d</code> should both be directed as v-structures. 
+This gives conflicting information about the edge <code class="reqn">b - c</code>, since it should 
+be directed as <code class="reqn">b \longleftarrow c</code> in v-structure 
+<code class="reqn">a \longrightarrow b \longleftarrow c</code>, while it should be 
+directed as <code class="reqn">b \longrightarrow c</code> in v-structure 
+<code class="reqn">b \longrightarrow c \longleftarrow d</code>. With the option 
+<code>solve.confl = FALSE</code>, in such cases, we simply overwrite the
+directions of the conflicting edge. In the example above this means
+that we obtain 
+<code class="reqn">a \longrightarrow b \longrightarrow c \longleftarrow d</code> 
+if <code class="reqn">a - b - c</code> was visited first, and 
+<code class="reqn">a \longrightarrow b \longleftarrow c \longleftarrow d</code>
+if <code class="reqn">b - c - d</code> was visited first, meaning that the final orientation on 
+the edge depends on the ordering in which the v-structures were
+considered. With the option <code>solve.confl = TRUE</code> (which is only
+supported with option <code>u2pd = "relaxed"</code>), we first generate a list
+of all (unambiguous) v-structures (in the example above <code class="reqn">a - b - c</code> and
+<code class="reqn">b - c - d</code>), and then we simply orient them allowing both directions on 
+the edge <code class="reqn">b - c</code>, namely we allow the bi-directed edge 
+<code class="reqn">b \leftrightarrow c</code> resolving the order-dependence issues on the 
+edge orientations. We denote bi-directed edges in the adjacency matrix 
+<code class="reqn">M</code> of the graph as <code>M[b,c] = 2</code> and <code>M[c,b] = 2</code>. In a similar 
+way, using lists for the candidate edges for each orientation rule and 
+allowing bi-directed edges, the order-dependence issues in the orientation 
+rules can be resolved. Note that bi-directed edges merely represent a 
+conflicting orientation and they should not to be interpreted causally. The 
+useage of these lists for the candidate edges and allowing bi-directed edges 
+resolves the order-dependence issues on the orientation of the v-structures 
+and on the orientation rules, see Colombo and Maathuis (2014) for
+more details.
+</p>
+<p>Note that calling (<code>conservative = TRUE</code>), or <code>maj.rule =
+  TRUE</code>, together with <code>solve.confl = TRUE</code> produces a fully
+order-independent output, see Colombo and Maathuis (2014).
+</p>
+<p>Sampling errors, non faithfulness, or hidden variables can also lead
+to non-extendable CPDAGs, meaning that there does not exist a DAG that
+has the same skeleton and v-structures as the graph found by the
+algorithm. An example of this is an undirected cycle consisting of the
+edges <code class="reqn">a - b - c - d</code> and <code class="reqn">d - a</code>. In this case it is impossible to 
+direct the edges without creating a cycle or a new v-structure. The option
+<code>u2pd</code> specifies what should be done in such a situation. If the
+option is set to <code>"relaxed"</code>, the algorithm simply outputs the
+invalid CPDAG. If the option is set to <code>"rand"</code>, all direction
+information is discarded and a random DAG is generated on the
+skeleton, which is then converted into its CPDAG. If the option is set
+to <code>"retry"</code>, up to 100 combinations of possible directions of
+the ambiguous edges are tried, and the first combination that results
+in an extendable CPDAG is chosen. If no valid combination is found, an
+arbitrary DAG is generated on the skeleton as in the option "rand",
+and then converted into its CPDAG. Note that the output can also be an
+invalid CPDAG, in the sense that it cannot arise from the oracle PC
+algorithm, but be extendible to a DAG, for example 
+<code class="reqn">a \longrightarrow b \longleftarrow c \longleftarrow d</code>. 
+In this case, <code>u2pd</code> is not used.
+</p>
+<p>Using the function <code>isValidGraph</code> one can check if the final output is indeed a valid CPDAG.
+</p>
+<p>Notes: (1) Throughout, the algorithm works with the column positions
+of the variables in the adjacency matrix, and not with the names of
+the variables. (2) When plotting the object, undirected and bidirected
+edges are equivalent.</p>
+
+
+<h3>Value</h3>
+
+<p>An object of <code>class</code> <code>"pcAlgo"</code> (see
+<code>pcAlgo</code>) containing an estimate of the equivalence
+class of the underlying DAG.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Markus Kalisch (<a href="mailto:kalisch@stat.math.ethz.ch">kalisch@stat.math.ethz.ch</a>), Martin Maechler,
+and Diego Colombo.
+</p>
+
+
+<h3>References</h3>
+
+<p>D. Colombo and M.H. Maathuis (2014).Order-independent constraint-based
+causal structure learning. <em>Journal of Machine Learning Research</em>
+<b>15</b> 3741-3782. 
+</p>
+<p>M. Kalisch, M. Maechler, D. Colombo, M.H. Maathuis and P. Buehlmann
+(2012). Causal Inference Using Graphical Models with the R Package
+pcalg. <em>Journal of Statistical Software</em> <b>47(11)</b> 1–26,
+<a href="https://doi.org/10.18637/jss.v047.i11">doi:10.18637/jss.v047.i11</a>.
+</p>
+<p>M. Kalisch and P. Buehlmann (2007).
+Estimating high-dimensional directed acyclic graphs with the PC-algorithm.
+<em>JMLR</em> <b>8</b> 613-636.
+</p>
+<p>J. Ramsey, J. Zhang and P. Spirtes (2006).
+Adjacency-faithfulness and conservative causal inference. In
+<em>Proceedings of the 22nd Annual Conference on Uncertainty in
+Artificial Intelligence</em>. AUAI Press, Arlington, VA.
+</p>
+<p>P. Spirtes, C. Glymour and R. Scheines (2000).
+<em>Causation, Prediction, and Search</em>, 2nd edition. The MIT Press.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>skeleton</code> for estimating a skeleton of a DAG;
+<code>udag2pdag</code> for converting the
+skeleton to a CPDAG; <code>gaussCItest</code>,
+<code>disCItest</code>, <code>binCItest</code> and
+<code>dsepTest</code> as examples for <code>indepTest</code>. <code>isValidGraph</code> for testing whether the output is a valid CPDAG.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">##################################################
+## Using Gaussian Data
+##################################################
+## Load predefined data
+data(gmG)
+n &lt;- nrow    (gmG8$ x)
+V &lt;- colnames(gmG8$ x) # labels aka node names
+
+## estimate CPDAG
+pc.fit &lt;- pc(suffStat = list(C = cor(gmG8$x), n = n),
+             indepTest = gaussCItest, ## indep.test: partial correlations
+             alpha=0.01, labels = V, verbose = TRUE)
+if (require(Rgraphviz)) {
+  ## show estimated CPDAG
+  par(mfrow=c(1,2))
+  plot(pc.fit, main = "Estimated CPDAG")
+  plot(gmG8$g, main = "True DAG")
+}
+##################################################
+## Using d-separation oracle
+##################################################
+## define sufficient statistics (d-separation oracle)
+suffStat &lt;- list(g = gmG8$g, jp = RBGL::johnson.all.pairs.sp(gmG8$g))
+## estimate CPDAG
+fit &lt;- pc(suffStat, indepTest = dsepTest, labels = V,
+          alpha= 0.01) ## value is irrelevant as dsepTest returns either 0 or 1
+if (require(Rgraphviz)) {
+  ## show estimated CPDAG
+  plot(fit, main = "Estimated CPDAG")
+  plot(gmG8$g, main = "True DAG")
+}
+
+##################################################
+## Using discrete data
+##################################################
+## Load data
+data(gmD)
+V &lt;- colnames(gmD$x)
+## define sufficient statistics
+suffStat &lt;- list(dm = gmD$x, nlev = c(3,2,3,4,2), adaptDF = FALSE)
+## estimate CPDAG
+pc.D &lt;- pc(suffStat,
+           ## independence test: G^2 statistic
+           indepTest = disCItest, alpha = 0.01, labels = V, verbose = TRUE)
+if (require(Rgraphviz)) {
+  ## show estimated CPDAG
+  par(mfrow = c(1,2))
+  plot(pc.D, main = "Estimated CPDAG")
+  plot(gmD$g, main = "True DAG")
+}
+
+##################################################
+## Using binary data
+##################################################
+## Load binary data
+data(gmB)
+V &lt;- colnames(gmB$x)
+## estimate CPDAG
+pc.B &lt;- pc(suffStat = list(dm = gmB$x, adaptDF = FALSE),
+           indepTest = binCItest, alpha = 0.01, labels = V, verbose = TRUE)
+pc.B
+if (require(Rgraphviz)) {
+  ## show estimated CPDAG
+  plot(pc.B, main = "Estimated CPDAG")
+  plot(gmB$g, main = "True DAG")
+}
+
+##################################################
+## Detecting ambiguities due to sampling error
+##################################################
+## Load predefined data
+data(gmG)
+n &lt;- nrow    (gmG8$ x)
+V &lt;- colnames(gmG8$ x) # labels aka node names
+
+## estimate CPDAG
+pc.fit &lt;- pc(suffStat = list(C = cor(gmG8$x), n = n),
+             indepTest = gaussCItest, ## indep.test: partial correlations
+             alpha=0.01, labels = V, verbose = TRUE)
+
+## due to sampling error, some edges were overwritten:
+isValidGraph(as(pc.fit, "amat"), type = "cpdag")
+
+## re-fit with solve.confl = TRUE
+pc.fit2 &lt;- pc(suffStat = list(C = cor(gmG8$x), n = n),
+             indepTest = gaussCItest, ## indep.test: partial correlations
+             alpha=0.01, labels = V, verbose = TRUE,
+             solve.confl = TRUE)
+
+## conflicting edge is V5 - V6
+as(pc.fit2, "amat")
+</code></pre>
+
+
+</div>

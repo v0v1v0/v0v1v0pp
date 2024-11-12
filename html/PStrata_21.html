@@ -1,0 +1,493 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PSSample</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Sample with <code>Stan</code>
+</h2>
+
+<h3>Description</h3>
+
+<p>Sample from the posterior distribution by calling <code>stan</code>. 
+Check <code>stan</code> for details of the arguments.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PSSample(
+  file,
+  model_name = "anon_model",
+  model_code = "",
+  fit = NA,
+  data = list(),
+  pars = NA,
+  chains = 4,
+  iter = 2000,
+  warmup = floor(iter/2),
+  thin = 1,
+  init = "random",
+  seed = sample.int(.Machine$integer.max, 1),
+  algorithm = c("NUTS", "HMC", "Fixed_param"),
+  control = NULL,
+  sample_file = NULL,
+  diagnostic_file = NULL,
+  save_dso = TRUE,
+  verbose = FALSE,
+  include = TRUE,
+  cores = getOption("mc.cores", 1L),
+  open_progress = interactive() &amp;&amp; !isatty(stdout()) &amp;&amp; !identical(Sys.getenv("RSTUDIO"),
+    "1"),
+  ...,
+  boost_lib = NULL,
+  eigen_lib = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+
+<p>The path to the Stan program to use.
+<code>file</code> should be a character string file name or a connection that
+<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> supports containing the text of a model specification in the Stan
+modeling language.
+</p>
+<p>A model may also be specified directly as a character string using the
+<code>model_code</code> argument, but we recommend always putting Stan programs
+in separate files with a <code>.stan</code> extension.
+</p>
+<p>The <code>stan</code> function can also use the Stan program from an existing
+<code>stanfit</code> object via the <code>fit</code> argument. When <code>fit</code> is
+specified, the <code>file</code> argument is ignored.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model_name</code></td>
+<td>
+
+<p>A string to use as the name of the model; defaults
+to <code>"anon_model"</code>. However, the model name will be derived from
+<code>file</code> or <code>model_code</code> (if <code>model_code</code> is the name
+of a character string object) if <code>model_name</code> is not specified.
+This is not a particularly important argument, although since it
+affects the name used in printed messages, developers of other packages
+that use <span class="pkg">rstan</span> to fit models may want to use informative names.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model_code</code></td>
+<td>
+
+<p>A character string either containing the model definition or the name of
+a character string object in the workspace. This argument is used only
+if arguments <code>file</code> and <code>fit</code> are not specified.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+
+<p>An instance of S4 class <code>stanfit</code> derived from a previous fit;
+defaults to <code>NA</code>. If <code>fit</code> is not <code>NA</code>, the compiled model
+associated with the fitted result is re-used; thus the time that would
+otherwise be spent recompiling the C++ code for the model can be saved.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A named <code>list</code> or <code>environment</code> providing the data for
+the model, or a character vector for all the names of objects to use as data.
+See the <strong>Passing data to Stan</strong> section below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pars</code></td>
+<td>
+<p>A character vector specifying parameters of interest to be saved.
+The default is to save all parameters from the model.
+If <code>include = TRUE</code>, only samples for parameters named in <code>pars</code>
+are stored in the fitted results. Conversely, if <code>include = FALSE</code>,
+samples for all parameters <em>except</em> those named in <code>pars</code> are
+stored in the fitted results.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chains</code></td>
+<td>
+<p>A positive integer specifying the number of Markov chains.
+The default is 4.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iter</code></td>
+<td>
+<p>A positive integer specifying the number of iterations for each
+chain (including warmup). The default is 2000.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>warmup</code></td>
+<td>
+<p>A positive integer specifying the number of warmup (aka burnin)
+iterations per chain. If step-size adaptation is on (which it is by default),
+this also controls the number of iterations for which adaptation is run (and
+hence these warmup samples should not be used for inference). The number of
+warmup iterations should be smaller than <code>iter</code> and the default is
+<code>iter/2</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thin</code></td>
+<td>
+<p>A positive integer specifying the period for saving samples.
+The default is 1, which is usually the recommended value. Unless your
+posterior distribution takes up too much memory we do <em>not</em> recommend
+thinning as it throws away information. The tradition of thinning when
+running MCMC stems primarily from the use of samplers that require
+a large number of iterations to achieve the desired effective sample size.
+Because of the efficiency (effective samples per second) of
+Hamiltonian Monte Carlo, rarely should this be necessary when using Stan.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+
+<p>Specification of initial values for all or some parameters.
+Can be the digit <code>0</code>, the strings <code>"0"</code> or <code>"random"</code>,
+a function that returns a named list, or a list of named lists:
+</p>
+
+<dl>
+<dt>
+<code>init="random"</code> (default):</dt>
+<dd>
+<p>Let Stan generate random initial values
+for all parameters. The seed of the random number generator used by Stan
+can be specified via the <code>seed</code> argument. If the seed for Stan is
+fixed, the same initial values are used. The default is to randomly
+generate initial values between <code>-2</code> and <code>2</code> <em>on the
+unconstrained support</em>. The optional additional parameter <code>init_r</code> can
+be set to some value other than <code>2</code> to change the range of the randomly
+generated inits.</p>
+</dd>
+<dt>
+<code>init="0", init=0</code>:</dt>
+<dd>
+<p>Initialize all parameters to zero on
+the unconstrained support.</p>
+</dd>
+<dt>inits via list:</dt>
+<dd>
+<p>Set inital values by providing a list
+equal in length to the number of chains. The elements of this list should
+themselves be named lists, where each of these named lists has the name
+of a parameter and is used to specify the initial values for that parameter
+for the corresponding chain.</p>
+</dd>
+<dt>inits via function:</dt>
+<dd>
+<p>Set initial values by providing a function that
+returns a list for specifying the initial values of parameters for a chain.
+The function can take an optional parameter <code>chain_id</code> through which the
+<code>chain_id</code> (if specified) or the integers from 1 to <code>chains</code> will be
+supplied to the function for generating initial values.
+See the <strong>Examples</strong> section below for examples of defining
+such functions and using a list of lists for specifying initial values.</p>
+</dd>
+</dl>
+<p>When specifying initial values via a <code>list</code> or <code>function</code>, any
+parameters for which values are not specified will receive initial values
+generated as described in the <code>init="random"</code> description above.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>The seed for random number generation. The default is generated
+from 1 to the maximum integer supported by <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> on the machine. Even if
+multiple chains are used, only one seed is needed, with other chains having
+seeds derived from that of the first chain to avoid dependent samples.
+When a seed is specified by a number, <code>as.integer</code> will be applied to it.
+If <code>as.integer</code> produces <code>NA</code>, the seed is generated randomly.
+The seed can also be specified as a character string of digits, such as
+<code>"12345"</code>, which is converted to integer.
+</p>
+<p>Using <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>'s <code>set.seed</code> function to set the seed for Stan will not work.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>algorithm</code></td>
+<td>
+
+<p>One of the sampling algorithms that are implemented in Stan.
+The default and preferred algorithm is <code>"NUTS"</code>, which is
+the No-U-Turn sampler variant of Hamiltonian Monte Carlo
+(Hoffman and Gelman 2011, Betancourt 2017). Currently the other options
+are <code>"HMC"</code> (Hamiltonian Monte Carlo), and <code>"Fixed_param"</code>.
+When <code>"Fixed_param"</code> is used no MCMC sampling is performed
+(e.g., for simulating with in the generated quantities block).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>A named <code>list</code> of parameters to control the sampler's
+behavior. It defaults to <code>NULL</code> so all the default values are used.
+First, the following are adaptation parameters for sampling algorithms.
+These are parameters used in Stan with similar names here.
+</p>
+
+<ul>
+<li> <p><code>adapt_engaged</code> (<code>logical</code>)
+</p>
+</li>
+<li> <p><code>adapt_gamma</code> (<code>double</code>, positive, defaults to 0.05)
+</p>
+</li>
+<li> <p><code>adapt_delta</code> (<code>double</code>, between 0 and 1, defaults to 0.8)
+</p>
+</li>
+<li> <p><code>adapt_kappa</code> (<code>double</code>, positive, defaults to 0.75)
+</p>
+</li>
+<li> <p><code>adapt_t0</code> (<code>double</code>, positive, defaults to 10)
+</p>
+</li>
+<li> <p><code>adapt_init_buffer</code> (<code>integer</code>, positive, defaults to 75)
+</p>
+</li>
+<li> <p><code>adapt_term_buffer</code> (<code>integer</code>, positive, defaults to 50)
+</p>
+</li>
+<li> <p><code>adapt_window</code> (<code>integer</code>, positive, defaults to 25)
+</p>
+</li>
+</ul>
+<p>In addition, algorithm HMC (called 'static HMC' in Stan) and NUTS share the
+following parameters:
+</p>
+
+<ul>
+<li> <p><code>stepsize</code> (<code>double</code>, positive, defaults to 1)
+Note: this controls the <em>initial</em> stepsize only, unless <code>adapt_engaged=FALSE</code>.
+</p>
+</li>
+<li> <p><code>stepsize_jitter</code> (<code>double</code>, [0,1], defaults to 0)
+</p>
+</li>
+<li> <p><code>metric</code> (<code>string</code>, one of "unit_e", "diag_e", "dense_e",
+defaults to "diag_e")
+</p>
+</li>
+</ul>
+<p>For algorithm NUTS, we can also set:
+</p>
+
+<ul><li> <p><code>max_treedepth</code> (<code>integer</code>, positive, defaults to 10)
+</p>
+</li></ul>
+<p>For algorithm HMC, we can also set:
+</p>
+
+<ul><li> <p><code>int_time</code> (<code>double</code>, positive)
+</p>
+</li></ul>
+<p>For <code>test_grad</code> mode, the following parameters can be set:
+</p>
+
+<ul>
+<li> <p><code>epsilon</code> (<code>double</code>, defaults to 1e-6)
+</p>
+</li>
+<li> <p><code>error</code> (<code>double</code>, defaults to 1e-6)
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sample_file</code></td>
+<td>
+<p>An optional character string providing the name of a file.
+If specified the draws for <em>all</em> parameters and other saved quantities
+will be written to the file. If not provided, files are not created.
+When the folder specified is not writable, <code>tempdir()</code> is used.
+When there are multiple chains, an underscore and chain number are appended
+to the file name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>diagnostic_file</code></td>
+<td>
+<p>An optional character string providing the name of a file.
+If specified the diagnostics data for <em>all</em> parameters will be written
+to the file. If not provided, files are not created. When the folder specified
+is not writable, <code>tempdir()</code> is used. When there are multiple chains,
+an underscore and chain number are appended to the file name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>save_dso</code></td>
+<td>
+<p>Logical, with default <code>TRUE</code>, indicating whether the
+dynamic shared object (DSO) compiled from the C++ code for the model
+will be saved or not. If <code>TRUE</code>, we can draw samples from
+the same model in another <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session using the saved DSO (i.e.,
+without compiling the C++ code again).
+This parameter only takes effect if <code>fit</code> is not used; with
+<code>fit</code> defined, the DSO from the previous run is used.
+When <code>save_dso=TRUE</code>, the fitted object can be loaded from
+what is saved previously and used for sampling, if the compiling is
+done on the same platform, that is, same operating system and same
+architecture (32bits or 64bits).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p><code>TRUE</code> or <code>FALSE</code>: flag indicating whether
+to print intermediate output from Stan on the console, which might
+be helpful for model debugging.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>include</code></td>
+<td>
+<p>Logical scalar defaulting to <code>TRUE</code> indicating
+whether to include or exclude the parameters given by the
+<code>pars</code> argument. If <code>FALSE</code>, only entire multidimensional
+parameters can be excluded, rather than particular elements of them.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cores</code></td>
+<td>
+
+<p>The number of cores to use when executing the Markov chains in parallel.
+The default is to use the value of the <code>"mc.cores"</code> option if it
+has been set and otherwise to default to 1 core. However, we recommend
+setting it to be as many processors as the hardware and RAM allow
+(up to the number of chains). See <code>detectCores</code>
+if you don't know this number for your system.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>open_progress</code></td>
+<td>
+<p>Logical scalar that only takes effect if
+<code>cores &gt; 1</code> but is recommended to be <code>TRUE</code> in interactive
+use so that the progress of the chains will be redirected to a file
+that is automatically opened for inspection. For very short runs, the
+user might prefer <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other optional parameters:
+</p>
+
+<ul>
+<li> <p><code>chain_id</code> (<code>integer</code>)
+</p>
+</li>
+<li> <p><code>init_r</code> (<code>double</code>, positive)
+</p>
+</li>
+<li> <p><code>test_grad</code> (<code>logical</code>)
+</p>
+</li>
+<li> <p><code>append_samples</code> (<code>logical</code>)
+</p>
+</li>
+<li> <p><code>refresh</code>(<code>integer</code>)
+</p>
+</li>
+<li> <p><code>save_warmup</code>(<code>logical</code>)
+</p>
+</li>
+<li>
+<p> deprecated: <code>enable_random_init</code>(<code>logical</code>)
+</p>
+</li>
+</ul>
+<p><code>chain_id</code> can be a vector to specify the chain_id for all
+chains or an integer. For the former case, they should be unique.
+For the latter, the sequence of integers starting from the given
+<code>chain_id</code> are used for all chains.
+</p>
+<p><code>init_r</code> is used only for generating random initial values,
+specifically when <code>init="random"</code> or not all parameters
+are initialized in the user-supplied list or function. If specified,
+the initial values are simulated uniformly from interval
+[-<code>init_r</code>, <code>init_r</code>] rather than using the default interval
+(see the manual of (cmd)Stan).
+</p>
+<p><code>test_grad</code> (<code>logical</code>).
+If <code>test_grad=TRUE</code>, Stan will not do any sampling. Instead,
+the gradient calculation is tested and printed out and the fitted
+<code>stanfit</code> object is in test gradient mode.  By default, it is
+<code>FALSE</code>.
+</p>
+<p><code>append_samples</code> (<code>logical</code>).
+Only relevant if <code>sample_file</code> is specified <em>and</em> is an
+existing file. In that case, setting <code>append_samples=TRUE</code> will append
+the samples to the existing file rather than overwriting the contents of
+the file.
+</p>
+<p><code>refresh</code> (<code>integer</code>) can be used to
+control how often the progress of the sampling is reported (i.e.
+show the progress every <code>refresh</code> iterations).
+By default, <code>refresh = max(iter/10, 1)</code>.
+The progress indicator is turned off if <code>refresh &lt;= 0</code>.
+</p>
+<p>Deprecated: <code>enable_random_init</code> (<code>logical</code>) being <code>TRUE</code>
+enables specifying initial values randomly when the initial
+values are not fully specified from the user.
+</p>
+<p><code>save_warmup</code> (<code>logical</code>) indicates whether to
+save draws during the warmup phase and defaults to <code>TRUE</code>. Some
+memory related problems can be avoided by setting it to <code>FALSE</code>,
+but some diagnostics are more limited if the warmup draws are not
+stored.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>boost_lib</code></td>
+<td>
+<p>The path for an alternative version of the Boost C++
+to use instead of the one in the <span class="pkg">BH</span> package.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eigen_lib</code></td>
+<td>
+<p>The path for an alternative version of the Eigen C++
+library to the one in <span class="pkg">RcppEigen</span>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An object of S4 class <code>rstan::stanfit</code>.
+</p>
+
+
+</div>

@@ -1,0 +1,131 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>thickenPolys</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Thicken a PolySet of Polygons</h2>
+
+<h3>Description</h3>
+
+<p>Thicken a PolySet, where each unique (<code>PID</code>, <code>SID</code>)
+describes a polygon.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">thickenPolys (polys, tol = 1, filter = 3, keepOrig = TRUE,
+              close = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>polys</code></td>
+<td>
+<p>PolySet to thicken.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>tolerance (in kilometres when <code>proj</code> is
+<code>"LL"</code> and <code>"UTM"</code>; otherwise, same units as
+<code>polys</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filter</code></td>
+<td>
+<p>minimum number of vertices per result polygon.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keepOrig</code></td>
+<td>
+<p>Boolean value; if <code>TRUE</code>, keep the original
+points in the PolySet.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>close</code></td>
+<td>
+<p>Boolean value; if <code>TRUE</code>, create intermediate vertices
+between each polygon's last and first vertex, if necessary.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function thickens each polygon within <code>polys</code> according to
+the input arguments.
+</p>
+<p>If <code>keepOrig = TRUE</code>, all of the original vertices appear in the
+result.  It calculates the distance between two sequential original
+vertices, and if that distance exceeds <code>tol</code>, it adds a
+sufficient number of vertices spaced evenly between the two original
+vertices so that the distance between vertices no longer exceeds
+<code>tol</code>.  If <code>close = TRUE</code>, it adds intermediate vertices
+between the last and first vertices when necessary.
+</p>
+<p>If <code>keepOrig = FALSE</code>, only the first vertex of each polygon is
+guaranteed to appear in the results.  From this first vertex, the
+algorithm walks the polygon summing the distance between vertices.
+When this cumulative distance exceeds <code>tol</code>, it adds a vertex on
+the line segment under inspection.  After doing so, it resets the
+distance sum, and walks the polygon from this new vertex.  If
+<code>close = TRUE</code>, it will walk the line segment from the last
+vertex to the first.
+</p>
+
+
+<h3>Value</h3>
+
+<p>PolySet containing the thickened data.  The function
+recalculates the <code>POS</code> values for each polygon.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p><a href="https://github.com/boersn/">Nicholas M. Boers</a>, Staff Software Engineer<br>
+Jobber, Edmonton AB<br>
+Last modified <code>Rd: 2013-04-10</code>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>thinPolys</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">local(envir=.PBSmapEnv,expr={
+  oldpar = par(no.readonly=TRUE)
+  #--- load the data (if using R)
+  if (!is.null(version$language) &amp;&amp; (version$language=="R"))
+    data(nepacLL,envir=.PBSmapEnv)
+  #--- plot Vancouver Island
+  plotMap(nepacLL[nepacLL$PID == 33, ])
+  #--- calculate a thickened version using a 30 kilometres tolerance,
+  #--- without keeping the original points
+  p &lt;- thickenPolys(nepacLL[nepacLL$PID == 33, ], tol = 30, keepOrig = FALSE)
+  #--- convert the PolySet to EventData by dropping the PID column and
+  #--- renaming POS to EID
+  p &lt;- p[-1]; names(p)[1] &lt;- "EID"
+  #--- convert the now invalid PolySet into a data frame, and then into
+  #--- EventData
+  p &lt;- as.EventData(as.data.frame(p), projection="LL")
+  #--- plot the results
+  addPoints(p, col=2, pch=19)
+  par(oldpar)
+})
+</code></pre>
+
+
+</div>

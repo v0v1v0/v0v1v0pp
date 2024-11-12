@@ -1,0 +1,185 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pmml</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate the PMML representation for R objects.</h2>
+
+<h3>Description</h3>
+
+<p><code>pmml</code> is a generic function implementing S3 methods used to produce
+the PMML (Predictive Model Markup Language) representation of an R model.
+The resulting PMML file can then be imported into other systems that accept
+PMML.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pmml(
+  model = NULL,
+  model_name = "R_Model",
+  app_name = "SoftwareAG PMML Generator",
+  description = NULL,
+  copyright = NULL,
+  model_version = NULL,
+  transforms = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>An object to be converted to PMML.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model_name</code></td>
+<td>
+<p>A name to be given to the PMML model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>app_name</code></td>
+<td>
+<p>The name of the application that generated the PMML.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>description</code></td>
+<td>
+<p>A descriptive text for the Header element of the PMML.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>copyright</code></td>
+<td>
+<p>The copyright notice for the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model_version</code></td>
+<td>
+<p>A string specifying the model version.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transforms</code></td>
+<td>
+<p>Data transformations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to or from other methods.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The data transformation functions previously available in the separate
+<code>pmmlTransformations</code> package have been merged into <code>pmml</code>
+starting with version 2.0.0.
+</p>
+<p>This function can also be used to output variable transformations in PMML
+format. In particular, it can be used as a transformations generator.
+Various transformation operations can be implemented in R and those
+transformations can then be output in PMML format by calling the function
+with a NULL value for the model input and a data transformation object as
+the transforms input. Please see the documentation for <code>xform_wrap</code> for
+more information on how to create a data transformation object.
+</p>
+<p>In addition, the <code>pmml</code> function can also be called using a
+pre-existing PMML model as the first input and a data transformation object
+as the transforms input.  The result is a new PMML model with the
+transformation inserted as a "LocalTransformations" element in the original
+model. If the original model already had a "LocalTransformations" element,
+the new information will be appended to that element. If the model variables
+are derived directly from a chain of transformations defined in the
+transforms input, the field names in the model are replaced with the
+original field names with the correct data types to make a consistent model.
+The covered cases include model fields derived from an original field, model
+fields derived from a chain of transformations starting from an original
+field and multiple fields derived from the same original field.
+</p>
+<p>This package exports models to PMML version 4.4.1.
+</p>
+<p>Please note that package <span class="pkg">XML_3.95-0.1</span> or later is required to perform
+the full and correct functionality of <span class="pkg">pmml</span>.
+</p>
+<p>If data used for an R model contains features of type <code>character</code>,
+these must be converted to factors before the model is trained and converted
+with <code>pmml</code>.
+</p>
+<p>A list of all the supported models and packages is available in the
+vignette:
+</p>
+<p><code>vignette("packages_and_functions", package="pmml")</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>XMLNode</code> as that defined by the <span class="pkg">XML</span> package.
+This represents the top level, or root node, of the XML document and is of
+type PMML. It can be written to file with <code>saveXML</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Graham Williams
+</p>
+
+
+<h3>References</h3>
+
+
+<ul>
+<li> <p><a href="http://dmg.org/pmml/v4-4-1/GeneralStructure.html">PMML home page</a>
+</p>
+</li>
+<li> <p><a href="http://dmg.org/pmml/v4-4-1/Transformations.html">PMML transformations</a>
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>pmml.ada</code>, <code>pmml.rules</code>,
+<code>pmml.coxph</code>, <code>pmml.cv.glmnet</code>,
+<code>pmml.glm</code>, <code>pmml.hclust</code>,
+<code>pmml.kmeans</code>, <code>pmml.ksvm</code>, <code>pmml.lm</code>,
+<code>pmml.multinom</code>, <code>pmml.naiveBayes</code>,
+<code>pmml.neighbr</code>, <code>pmml.nnet</code>,
+<code>pmml.rpart</code>, <code>pmml.svm</code>,
+<code>pmml.xgb.Booster</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Build an lm model
+iris_lm &lt;- lm(Sepal.Length ~ ., data = iris)
+
+# Convert to pmml
+iris_lm_pmml &lt;- pmml(iris_lm)
+
+# Create a data transformation object
+iris_trans &lt;- xform_wrap(iris)
+
+# Transform the 'Sepal.Length' variable
+iris_trans &lt;- xform_min_max(iris_trans, xform_info = "column1-&gt;d_sl")
+
+# Output the tranformation in PMML format
+iris_trans_pmml &lt;- pmml(NULL, transforms = iris_trans)
+</code></pre>
+
+
+</div>

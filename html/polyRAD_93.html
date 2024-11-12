@@ -1,0 +1,173 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>readHMC</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Import read depth from UNEAK
+</h2>
+
+<h3>Description</h3>
+
+<p>This function reads the “HapMap.hmc.txt” and “HapMap.fas.txt”
+files output by the UNEAK pipeline and uses the data to generate a 
+“RADdata” object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">readHMC(file, includeLoci = NULL, shortIndNames = TRUE, 
+        possiblePloidies = list(2), taxaPloidy = 2L, contamRate = 0.001,
+        fastafile = sub("hmc.txt", "fas.txt", file, fixed = TRUE))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+
+<p>Name of the file containing read depth (typically “HapMap.hmc.txt”).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>includeLoci</code></td>
+<td>
+
+<p>An optional character vector of loci to be included in the output.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shortIndNames</code></td>
+<td>
+
+<p>Boolean.  If TRUE, taxa names will be shortened with respect to those in the
+file, eliminating all text after and including the first underscore.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>possiblePloidies</code></td>
+<td>
+
+<p>A list of numeric vectors indicating potential inheritance modes of SNPs in the
+dataset.  See <code>RADdata</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>taxaPloidy</code></td>
+<td>
+
+<p>A single integer, or an integer vector with one value per taxon, indicating
+ploidy.  See <code>RADdata</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contamRate</code></td>
+<td>
+
+<p>A number ranging from zero to one (typically small) indicating the expected 
+rate of sample cross-contamination.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fastafile</code></td>
+<td>
+
+<p>Name of the file containing tag sequences (typically “HapMap.fas.txt”).
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>RADdata</code> object containing read depth, taxa and locus names, and
+nucleotides at variable sites.
+</p>
+
+
+<h3>Note</h3>
+
+<p>UNEAK is not able to report read depths greater than 127, which may be 
+problematic for high depth data on polyploid organisms.  The UNEAK
+pipeline is no longer being updated and is currently only available with
+archived versions of TASSEL.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>References</h3>
+
+<p>Lu, F., Lipka, A. E., Glaubitz, J., Elshire, R., Cherney, J. H., Casler, M. D.,
+Buckler, E. S. and Costich, D. E. (2013) Switchgrass genomic diversity, ploidy, 
+and evolution: novel insights from a network-based SNP discovery protocol.  
+<em>PLoS Genetics</em> <b>9</b>, e1003215.
+</p>
+<p><a href="https://www.maizegenetics.net/tassel">https://www.maizegenetics.net/tassel</a>
+</p>
+<p><a href="https://tassel.bitbucket.io/TasselArchived.html">https://tassel.bitbucket.io/TasselArchived.html</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>readTagDigger</code>, <code>VCF2RADdata</code>, 
+<code>readStacks</code>, <code>readTASSELGBSv2</code>,
+<code>readDArTag</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># for this example we'll create dummy files rather than using real ones
+hmc &lt;- tempfile()
+write.table(data.frame(rs = c("TP1", "TP2", "TP3"),
+                       ind1_merged_X3 = c("15|0", "4|6", "13|0"),
+                       ind2_merged_X3 = c("0|0", "0|1", "0|5"),
+                       HetCount_allele1 = c(0, 1, 0),
+                       HetCount_allele2 = c(0, 1, 0),
+                       Count_allele1 = c(15, 4, 13),
+                       Count_allele2 = c(0, 7, 5),
+                       Frequency = c(0, 0.75, 0.5)), row.names = FALSE,
+            quote = FALSE, col.names = TRUE, sep = "\t", file = hmc)
+fas &lt;- tempfile()
+writeLines(c("&gt;TP1_query_64",
+             "TGCAGAAAAAAAACGCTCGATGCCCCCTAATCCGTTTTCCCCATTCCGCTCGCCCCATCGGAGT",
+             "&gt;TP1_hit_64",
+             "TGCAGAAAAAAAACGCTCGATGCCCCCTAATCCGTTTTCCCCATTCCGCTCGCCCCATTGGAGT",
+             "&gt;TP2_query_64",
+             "TGCAGAAAAACAACACCCTAGGTAACAACCATATCTTATATTGCCGAATAAAAAACAACACCCC",
+             "&gt;TP2_hit_64",
+             "TGCAGAAAAACAACACCCTAGGTAACAACCATATCTTATATTGCCGAATAAAAAATAACACCCC",
+             "&gt;TP3_query_64",
+             "TGCAGAAAACATGGAGAGGGAGATGGCACGGCAGCACCACCGCTGGTCCGCTGCCCGTTTGCGG",
+             "&gt;TP3_hit_64",
+             "TGCAGAAAACATGGAGATGGAGATGGCACGGCAGCACCACCGCTGGTCCGCTGCCCGTTTGCGG"),
+             fas)
+
+# now read the data
+mydata &lt;- readHMC(hmc, fastafile = fas)
+
+# inspect the results
+mydata
+mydata$alleleDepth
+mydata$alleleNucleotides
+row.names(mydata$locTable)
+</code></pre>
+
+
+</div>

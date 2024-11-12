@@ -1,0 +1,184 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>log4r_step</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Enable logging of failure conditions at the validation step level</h2>
+
+<h3>Description</h3>
+
+<p>The <code>log4r_step()</code> function can be used as an action in the <code>action_levels()</code>
+function (as a list component for the <code>fns</code> list). Place a call to this
+function in every failure condition that should produce a log (i.e., <code>warn</code>,
+<code>stop</code>, <code>notify</code>). Only the failure condition with the highest severity for a
+given validation step will produce a log entry (skipping failure conditions
+with lower severity) so long as the call to <code>log4r_step()</code> is present.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">log4r_step(x, message = NULL, append_to = "pb_log_file")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A reference to the x-list object prepared by the <code>agent</code>. This
+version of the x-list is the same as that generated via
+<code style="white-space: pre;">⁠get_agent_x_list(&lt;agent&gt;, i = &lt;step&gt;)⁠</code> except this version is internally
+generated and hence only available in an internal evaluation context.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>message</code></td>
+<td>
+<p>The message to use for the log entry. When not provided, a
+default glue string is used for the messaging. This is dynamic since the
+internal <code>glue::glue()</code> call occurs in the same environment as <code>x</code>, the
+x-list that's constrained to the validation step. The default message, used
+when <code>message = NULL</code> is the glue string <code>"Step {x$i} exceeded the {level} failure threshold (f_failed = {x$f_failed}) ['{x$type}']"</code>. As can be seen,
+a custom message can be crafted that uses other elements of the x-list with
+the <code style="white-space: pre;">⁠{x$&lt;component&gt;}⁠</code> construction.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>append_to</code></td>
+<td>
+<p>The file to which log entries at the warn level are
+appended. This can alternatively be one or more <strong>log4r</strong> appenders.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Nothing is returned however log files may be written in very specific
+conditions.
+</p>
+
+
+<h3>YAML</h3>
+
+<p>A <strong>pointblank</strong> agent can be written to YAML with <code>yaml_write()</code> and the
+resulting YAML can be used to regenerate an agent (with <code>yaml_read_agent()</code>)
+or interrogate the target table (via <code>yaml_agent_interrogate()</code>). Here is an
+example of how <code>log4r_step()</code> can be expressed in R code (within
+<code>action_levels()</code>, itself inside <code>create_agent()</code>) and in the corresponding
+YAML representation.
+</p>
+<p>R statement:
+</p>
+<div class="sourceCode r"><pre>create_agent(
+  tbl = ~ small_table,
+  tbl_name = "small_table",
+  label = "An example.",
+  actions = action_levels(
+    warn_at = 1,
+    fns = list(
+      warn = ~ log4r_step(
+        x, append_to = "example_log"
+      )
+    )
+  )
+)
+</pre></div>
+<p>YAML representation:
+</p>
+<div class="sourceCode yaml"><pre>type: agent
+tbl: ~small_table
+tbl_name: small_table
+label: An example.
+lang: en
+locale: en
+actions:
+  warn_count: 1.0
+  fns:
+    warn: ~log4r_step(x, append_to = "example_log")
+steps: []
+</pre></div>
+<p>Should you need to preview the transformation of an <em>agent</em> to YAML (without
+any committing anything to disk), use the <code>yaml_agent_string()</code> function. If
+you already have a <code>.yml</code> file that holds an <em>agent</em>, you can get a glimpse
+of the R expressions that are used to regenerate that agent with
+<code>yaml_agent_show_exprs()</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<p>For the example provided here, we'll use the included <code>small_table</code> dataset.
+We are also going to create an <code>action_levels()</code> list object since this is
+useful for demonstrating a logging scenario. It will have a threshold for
+the <code>warn</code> state, and, an associated function that should be invoked
+whenever the <code>warn</code> state is entered. Here, the function call with
+<code>log4r_step()</code> will be invoked whenever there is one failing test unit.
+</p>
+<div class="sourceCode r"><pre>al &lt;-
+  action_levels(
+    warn_at = 1,
+    fns = list(
+      warn = ~ log4r_step(
+        x, append_to = "example_log"
+      )
+    )
+  )
+</pre></div>
+<p>Within the <code>action_levels()</code>-produced object, it's important to match things
+up: notice that <code>warn_at</code> is given a threshold and the list of functions
+given to <code>fns</code> has a <code>warn</code> component.
+</p>
+<p>Printing <code>al</code> will show us the settings for the <code>action_levels</code> object:
+</p>
+<div class="sourceCode r"><pre>al
+#&gt; -- The `action_levels` settings
+#&gt; WARN failure threshold of 1test units.
+#&gt; \fns\ ~ log4r_step(x, append_to = "example_log")
+#&gt; ----
+</pre></div>
+<p>Let's create an agent with <code>small_table</code> as the target table. We'll apply the
+<code>action_levels</code> object created above as <code>al</code>, add two validation steps, and
+then <code>interrogate()</code> the data.
+</p>
+<div class="sourceCode r"><pre>agent &lt;- 
+  create_agent(
+    tbl = ~ small_table,
+    tbl_name = "small_table",
+    label = "An example.",
+    actions = al
+  ) %&gt;%
+  col_vals_gt(columns = d, 300) %&gt;%
+  col_vals_in_set(columns = f, c("low", "high")) %&gt;%
+  interrogate()
+
+agent
+</pre></div>
+
+
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_log4r_step_1.png" alt="This image was generated from the first code example in the `log4r_step()` help file." style="width:100%;"><p>From the agent report, we can see that both steps have yielded warnings upon
+interrogation (i.e., filled yellow circles in the <code>W</code> column).
+</p>
+<p>What's not immediately apparent is that when entering the <code>warn</code> state
+in each validation step during interrogation, the <code>log4r_step()</code> function
+call was twice invoked! This generated an <code>"example_log"</code> file in the working
+directory (since it was not present before the interrogation) and log entries
+were appended to the file. Here are the contents of the file:
+</p>
+<div class="sourceCode"><pre>WARN  [2022-06-28 10:06:01] Step 1 exceeded the WARN failure threshold
+  (f_failed = 0.15385) ['col_vals_gt']
+WARN  [2022-06-28 10:06:01] Step 2 exceeded the WARN failure threshold
+  (f_failed = 0.15385) ['col_vals_in_set']
+</pre></div>
+
+
+<h3>Function ID</h3>
+
+<p>5-1
+</p>
+
+
+</div>

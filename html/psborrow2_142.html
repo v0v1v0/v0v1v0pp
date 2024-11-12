@@ -1,0 +1,226 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mcmc_sample</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Sample from Stan model</h2>
+
+<h3>Description</h3>
+
+<p>Method to sample from compiled Stan model and
+return a <code>CmdStanMCMC</code> object with draws.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mcmc_sample(x, ...)
+
+## S4 method for signature 'ANY'
+mcmc_sample(x, ...)
+
+## S4 method for signature 'Analysis'
+mcmc_sample(
+  x,
+  iter_warmup = 1000L,
+  iter_sampling = 10000L,
+  chains = 4L,
+  verbose = FALSE,
+  ...
+)
+
+## S4 method for signature 'Simulation'
+mcmc_sample(
+  x,
+  posterior_quantiles = c(0.025, 0.975),
+  iter_warmup = 1000L,
+  iter_sampling = 10000L,
+  chains = 4L,
+  verbose = FALSE,
+  keep_cmd_stan_models = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>object to sample, such as <code>Analysis</code> (created with <code>create_analysis_obj()</code>) or <code>Simulation</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments passed to the $sample() method of a
+<code>cmdstanr</code> Stan model.
+See https://mc-stan.org/cmdstanr/reference/model-method-sample.html</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iter_warmup</code></td>
+<td>
+<p>integer. The number of warm up iterations to run per chain.
+The default is 1000.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iter_sampling</code></td>
+<td>
+<p>integer. The number of post-warm up iterations to run per chain.
+The default is 10000.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chains</code></td>
+<td>
+<p>integer. The number of Markov chains to run. The default is 4.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical. Whether to print sampler updates (<code>TRUE</code>) or not
+(<code>FALSE</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>posterior_quantiles</code></td>
+<td>
+<p>numeric vector of length two.
+The posterior quantiles used for summarizing simulation results. The
+default is <code>c(0.025, 0.975)</code> See details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_cmd_stan_models</code></td>
+<td>
+<p>logical. Whether to keep the
+<code>CmdStanModel</code> objects from the <code>mcmc_sampler</code> (<code>TRUE</code>,
+discouraged in most scenarios) or not (<code>FALSE</code>). The default is <code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+
+
+<h4>Simulation objects</h4>
+
+<p>This function takes draws from an MCMC sampler and summarizes
+results.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>CmdStanMCMC</code>
+</p>
+<p>An object of class <code>MCMCSimulationResult</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Analysis objects
+if (check_cmdstan()) {
+  anls &lt;- create_analysis_obj(
+    data_matrix = example_matrix,
+    covariates = add_covariates(
+      covariates = c("cov1", "cov2"),
+      priors = prior_normal(0, 1000)
+    ),
+    outcome = outcome_surv_weibull_ph(
+      "time",
+      "cnsr",
+      shape_prior = prior_normal(0, 1000),
+      baseline_prior = prior_normal(0, 1000)
+    ),
+    borrowing = borrowing_hierarchical_commensurate(
+      "ext",
+      prior_exponential(.001)
+    ),
+    treatment = treatment_details("trt", prior_normal(0, 1000))
+  )
+
+  mcmc_results &lt;- mcmc_sample(anls, chains = 1, iter_warmup = 500L, iter_sampling = 1000L)
+}
+
+## Simulation objects
+base_mat &lt;- matrix(
+  c(
+    rep(0, 200), rep(0, 200), rep(1, 200),
+    rep(1, 200), rep(0, 200), rep(0, 200),
+    rep(0, 600)
+  ),
+  ncol = 3,
+  dimnames = list(NULL, c("ext", "trt", "driftOR"))
+)
+
+add_binary_endpoint &lt;- function(odds_ratio,
+                                base_matrix = base_mat) {
+  linear_predictor &lt;- base_matrix[, "trt"] * log(odds_ratio)
+  prob &lt;- 1 / (1 + exp(-linear_predictor))
+
+  bin_endpoint &lt;- rbinom(
+    NROW(base_matrix),
+    1,
+    prob
+  )
+
+  cbind(base_matrix, matrix(bin_endpoint, ncol = 1, dimnames = list(NULL, "ep")))
+}
+
+data_list &lt;- list(
+  list(add_binary_endpoint(1.5), add_binary_endpoint(1.5)),
+  list(add_binary_endpoint(2.5), add_binary_endpoint(2.5))
+)
+
+guide &lt;- data.frame(
+  trueOR = c(1.5, 2.5),
+  driftOR = c(1.0, 1.0),
+  index = 1:2
+)
+
+sdl &lt;- sim_data_list(
+  data_list = data_list,
+  guide = guide,
+  effect = "trueOR",
+  drift = "driftOR",
+  index = "index"
+)
+
+if (check_cmdstan()) {
+  sim_object &lt;- create_simulation_obj(
+    data_matrix_list = sdl,
+    outcome = outcome_bin_logistic("ep", prior_normal(0, 1000)),
+    borrowing = sim_borrowing_list(list(
+      full_borrowing = borrowing_full("ext"),
+      bdb = borrowing_hierarchical_commensurate("ext", prior_exponential(0.0001))
+    )),
+    treatment = treatment_details("trt", prior_normal(0, 1000))
+  )
+
+  mcmc_sample(sim_object, chains = 1, iter_warmup = 500L, iter_sampling = 1000L)
+}
+## Not run: 
+library(future)
+# Use two separate R processes
+plan("multisession", workers = 2)
+
+# and two parallel threads in each.
+mcmc_sample(sim_object, chains = 1, iter_warmup = 500L, iter_sampling = 1000L, parallel_chains = 2)
+
+# Tidy up processes when finished
+plan("sequential")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

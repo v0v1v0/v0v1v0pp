@@ -1,0 +1,427 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>negbinBvs</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Bayesian variable selection for the negative binomial model</h2>
+
+<h3>Description</h3>
+
+<p>This function performs Bayesian regression modelling of overdispersed count 
+data including variable selection via spike and slab priors. 
+Posterior inference is based on MCMC sampling techniques.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">negbinBvs(
+  y,
+  offset = NULL,
+  X,
+  model = list(),
+  prior = list(),
+  mcmc = list(),
+  start = NULL,
+  BVS = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>an integer vector of count data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offset</code></td>
+<td>
+<p>an (optional) offset term; should be <code>NULL</code> or an integer 
+vector of length equal to the number of counts.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>a design matrix (including an intercept term)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>an (optional) list specifying the structure of the model (see 
+details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior</code></td>
+<td>
+<p>an (optional) list of prior settings and hyper-parameters 
+controlling the priors (see details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mcmc</code></td>
+<td>
+<p>an (optional) list of MCMC sampling options (see details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start</code></td>
+<td>
+<p>an (optional), numeric vector containing starting values for the
+regression effects (including an intercept term); defaults to <code>NULL</code> 
+(i.e. a vector of zeros is used).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>BVS</code></td>
+<td>
+<p>if <code>TRUE</code> (default), Bayesian variable selection is performed
+to identify regressors with a non-zero effect; otherwise, an unrestricted 
+model is estimated (without variable selection).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The method provides Bayesian variable selection in regression modelling 
+of overdispersed count data. The negative binomial 
+distribution is derived marginally from a Poisson-Gamma (mixture) model, 
+which can be interpreted as an overdispersed Poisson model with 
+observation-specific random intercept log <code class="reqn">\gamma</code>, where 
+<code class="reqn">\gamma|\rho \sim \Gamma(\rho,\rho)</code>. A hyper-prior for <code class="reqn">\rho</code> is
+specified as <code class="reqn">\rho \sim \Gamma(c_0,C_0)</code>, see details for <code>prior</code> 
+below. 
+By default, variable selection is incorporated in the model based on mixture 
+priors with a spike and a slab component for the regression effects 
+<code class="reqn">\beta</code>. More specifically, a Dirac spike is used, i.e. a point mass at 
+zero, and (by default), the slab component is specified as a scale mixture 
+of normal distributions, resulting in a Student-t distribution with 
+2<code>psi.nu</code> degrees of freedom. 
+</p>
+<p>The MCMC sampling scheme relies on the representation of the conditional 
+Poisson model as a Gaussian regression model in auxiliary variables, 
+as described in <code>poissonBvs</code>. Data augmentation is based
+on the auxiliary mixture sampling algorithm of Fruehwirth-Schnatter 
+et al. (2009). For details concerning the algorithm, see 
+Dvorzak and Wagner (2016b), available on request from the authors.   
+</p>
+<p>Details for model specification (see arguments): 
+</p>
+ 
+<dl>
+<dt>
+<code>model</code>:</dt>
+<dd>
+
+<dl>
+<dt><code>deltafix</code></dt>
+<dd>
+<p>an indicator vector of length 
+<code>ncol(X)-1</code> specifying which regression effects are subject to selection
+(i.e., 0 = subject to selection, 1 = fix in the model); defaults to a vector 
+of zeros.</p>
+</dd> 
+</dl>
+</dd>
+<dt>
+<code>prior</code>:</dt>
+<dd>
+      
+<dl>
+<dt><code>slab</code></dt>
+<dd>
+<p>distribution of the slab component, i.e. "<code>Student</code>" 
+(default) or "<code>Normal</code>".</p>
+</dd> 
+<dt><code>psi.nu</code></dt>
+<dd>
+<p>hyper-parameter of the Student-t slab (used for a 
+"<code>Student</code>" slab); defaults to 5.</p>
+</dd> 
+<dt><code>m0</code></dt>
+<dd>
+<p>prior mean for the intercept parameter; defaults to 0.</p>
+</dd> 
+<dt><code>M0</code></dt>
+<dd>
+<p>prior variance for the intercept parameter; defaults to 100.</p>
+</dd> 
+<dt><code>aj0</code></dt>
+<dd>
+<p>a vector of prior means for the regression effects 
+(which is encoded in a normal distribution, see notes); defaults to vector of 
+zeros.</p>
+</dd> 
+<dt><code>V</code></dt>
+<dd>
+<p>variance of the slab; defaults to 5.</p>
+</dd> 
+<dt><code>w</code></dt>
+<dd>
+<p>hyper-parameters of the Beta-prior for the mixture weight
+<code class="reqn">\omega</code>; defaults to <code>c(wa0=1, wb0=1)</code>, i.e. a uniform distribution.</p>
+</dd> 
+<dt><code>c0, C0</code></dt>
+<dd>
+<p>scale and rate of the gamma prior for the 
+hyper-parameter <code class="reqn">\rho</code>; defaults to 2 and 1.</p>
+</dd> 
+<dt><code>eps</code></dt>
+<dd>
+<p>tuning parameter in the MH-step to sample <code class="reqn">\rho</code>; 
+defaults to 0.05.</p>
+</dd> 
+</dl>
+</dd>
+<dt>
+<code>mcmc</code>:</dt>
+<dd>
+
+<dl>
+<dt><code>M</code></dt>
+<dd>
+<p>number of MCMC iterations after the burn-in phase; defaults
+to 8000.</p>
+</dd> 
+<dt><code>burnin</code></dt>
+<dd>
+<p>number of MCMC iterations discarded as burn-in; defaults 
+to 2000.</p>
+</dd> 
+<dt><code>thin</code></dt>
+<dd>
+<p>thinning parameter; defaults to 1.</p>
+</dd> 
+<dt><code>startsel</code></dt>
+<dd>
+<p>number of MCMC iterations drawn from the unrestricted 
+model (e.g., <code>burnin/2</code>); defaults to 1000.</p>
+</dd> 
+<dt><code>verbose</code></dt>
+<dd>
+<p>MCMC progress report in each <code>verbose</code>-th iteration 
+step; defaults to 500. If <code>verbose=0</code>, no output is generated.</p>
+</dd> 
+<dt><code>msave</code></dt>
+<dd>
+<p>returns additional output with variable selection details 
+(i.e. posterior samples for <code class="reqn">\omega</code>, <code class="reqn">\delta</code>); defaults to <code>FALSE</code>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<h3>Value</h3>
+
+<p>The function returns an object of class "<code>pogit</code>" with methods
+<code>print.pogit</code>, <code>summary.pogit</code> and 
+<code>plot.pogit</code>. 
+</p>
+<p>The returned object is a list containing the following elements: 
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>samplesNB</code></td>
+<td>
+<p>a named list containing the samples from the posterior
+distribution of the parameters in the negative binomial model 
+(see also <code>msave</code>): 
+</p>
+
+<dl>
+<dt><code>beta, rho</code></dt>
+<dd>
+<p>regression coefficients <code class="reqn">\beta</code> and <code class="reqn">\rho</code></p>
+</dd>
+<dt><code>pdeltaBeta</code></dt>
+<dd>
+<p>P(<code class="reqn">\delta_\beta</code>=1)</p>
+</dd>
+<dt><code>psiBeta</code></dt>
+<dd>
+<p>scale parameter <code class="reqn">\psi_\beta</code> of the slab component</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a list containing the data <code>y</code>, <code>offset</code> and <code>X</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model.nb</code></td>
+<td>
+<p>a list containing details on the model specification, 
+see details for <code>model</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mcmc</code></td>
+<td>
+<p>see details for <code>mcmc</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior.nb</code></td>
+<td>
+<p>see details for <code>prior</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dur</code></td>
+<td>
+<p>a list containing the total runtime (<code>total</code>) 
+and the runtime after burn-in (<code>durM</code>), in seconds</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>acc.rho</code></td>
+<td>
+<p>acceptance rate of parameter <code class="reqn">\rho</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>BVS</code></td>
+<td>
+<p>see arguments</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start</code></td>
+<td>
+<p>a list containing starting values, see arguments</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>"negbin"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>function call</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>Alternatively, a Poisson model with observation-specific normal 
+random intercept (i.e., a Poisson-log-normal mixture model) can be used 
+to deal with overdispersion of count data, which is provided in the 
+function <code>poissonBvs</code>.
+</p>
+<p>If prior information on the regression parameters is available, this 
+information is encoded in a normal distribution instead of the spike 
+and slab prior (consequently, <code>BVS</code> is set to <code>FALSE</code>).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Michaela Dvorzak &lt;m.dvorzak@gmx.at&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>Dvorzak, M. and Wagner, H. (2016b). Bayesian inference for 
+overdispersed count data subject to underreporting - An application to
+norovirus illness in Germany. (Unpublished) working paper.
+</p>
+<p>Fruehwirth-Schnatter, S., Fruehwirth, R., Held, L. and Rue, H. 
+(2009). Improved auxiliary mixture sampling for hierarchical models of 
+non-Gaussian data. <em>Statistics and Computing</em>, <strong>19</strong>, 479 - 492.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>poissonBvs</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+## Examples below should take about 1-2 minutes.
+
+## ------ (use simul_pois1) ------
+data(simul_pois1)
+y &lt;- simul_pois1$y
+X &lt;- as.matrix(simul_pois1[, -1])
+
+# Bayesian variable selection for simulated data set
+m1 &lt;- negbinBvs(y = y, X = X)
+
+# print results (check acceptance rate for 'rho')
+print(m1)
+
+# re-run with adapted tuning parameter 'eps'
+m2 &lt;- negbinBvs(y = y, X = X, prior = list(eps = 0.4)) 
+
+# print and summarize results
+print(m2)
+summary(m2)
+
+# alternatively, compare results to overdispersed Poisson model with 
+# normal random intercept (subject to selection), provided in 'poissonBvs' 
+
+# specify observation-specific random intercept
+cID &lt;- seq_along(y)
+m3  &lt;- poissonBvs(y = y, X = X, model = list(ri = TRUE, clusterID = cID))
+
+# print, summarize and plot results
+print(m3)
+summary(m3) 
+# note that thetaB is not selected (!)
+
+plot(m3, burnin = FALSE, thin = FALSE)
+
+
+## ------ (use data set "azdrg112" from package "COUNT") ------
+
+if (!requireNamespace("COUNT", quietly = TRUE)){
+ stop("package 'COUNT' is needed for this example to work. 
+       Please install it.")
+}
+
+library(COUNT)
+# load data set 'azdrg112' 
+# (Arizona Medicare data for DRG (Diagnostic Related Group) 112)
+data(azdrg112) 
+
+y &lt;- as.numeric(azdrg112$los) # hospital length of stay: 1-53 days
+X &lt;- as.matrix(azdrg112[,-1]) # covariates (gender, type1, age75)
+m4 &lt;- negbinBvs(y = y, X = X, mcmc = list(M = 4000))  
+
+# print results (check acceptance rate for 'rho')
+print(m4)
+summary(m4)
+plot(m4, burnin = FALSE)
+
+# adapte tuning parameter eps (and set BVS to FALSE)
+prior &lt;- list(eps = 0.1)
+m5 &lt;- negbinBvs(y = y, X = X, mcmc = list(M = 4000), prior = prior, 
+                BVS = FALSE)  
+
+# print, summarize and plot results
+print(m5)
+summary(m5)
+plot(m5, burnin = FALSE, thin = FALSE)
+plot(m5, type = "acf", lag.max = 50)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

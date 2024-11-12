@@ -1,0 +1,94 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>constrained.logit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Constrained logistic regression</h2>
+
+<h3>Description</h3>
+
+<p><code>constrained.logit</code> performs estimation of logistic regression with constrains on values of the
+estimated coefficient.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">constrained.logit(db, x, y, lower, upper)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>db</code></td>
+<td>
+<p>Data set of risk factors and target variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Character vector of risk factors (independent variables) used in logistic regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Character vector of target (dependent variable) used in logistic regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower</code></td>
+<td>
+<p>Numeric vector of lower boundaries of the coefficients. This vector should contain value of the intercept,
+therefore number of elements should be equal to number of elements of the argument <code>x</code> plus one.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper</code></td>
+<td>
+<p>Numeric vector of upper boundaries of the coefficients. This vector should contain value of the intercept,
+therefore number of elements should be equal to number of elements of the argument <code>x</code> plus one.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The command <code>constrained.logit</code> returns list of two vectors. The first vector contains values of the
+estimated coefficients, while the second vector contains predictions of the constrained logistic regression.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">suppressMessages(library(PDtoolkit))
+data(loans)
+#model 1
+reg.1 &lt;- glm(Creditability ~ `Account Balance`, family = "binomial", data = loans)
+summary(reg.1)$coefficient
+loans$pred.1 &lt;-  unname(predict(reg.1, type = "response"))
+#model 2
+reg.2 &lt;- glm(Creditability ~ `Age (years)`, family = "binomial", data = loans)
+summary(reg.2)$coefficient
+loans$pred.2 &lt;-  unname(predict(reg.2, type = "response"))
+#integration
+fm &lt;- glm(Creditability ~ pred.1 + pred.2, family = "binomial", data = loans)
+summary(fm)$coefficient
+fm.pred &lt;- predict(fm, type = "response", newdata = loans)
+auc.model(predictions = fm.pred, observed = loans$Creditability)
+#constrained integration (regression)
+cl.r &lt;- constrained.logit(db = loans, 
+		  x = c("pred.1", "pred.2"), 
+		  y = "Creditability",
+		  lower = c(-Inf, -Inf, -Inf), 
+		  upper = c(Inf, 4.5, Inf))
+names(cl.r)
+cl.r[["beta"]]
+auc.model(predictions = cl.r[["prediction"]], observed = loans$Creditability)
+</code></pre>
+
+
+</div>

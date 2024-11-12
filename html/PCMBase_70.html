@@ -1,0 +1,192 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PCMLik</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Likelihood of a multivariate Gaussian phylogenetic comparative model with non-interacting lineages</h2>
+
+<h3>Description</h3>
+
+<p>The likelihood of a PCM represents the probability density function
+of observed trait values (data) at the tips of a tree given the tree and
+the model parameters. Seen as a function of the model parameters, the
+likelihood is used to fit the model to the observed trait data and the
+phylogenetic tree (which is typically inferred from another sort of data, such
+as an alignment of genetic sequences for the species at the tips of the tree).
+The <code>PCMLik</code> function
+provides a common interface for calculating the (log-)likelihood of different
+PCMs.
+Below we denote by N the number of tips, by M the total number of nodes in the
+tree including tips, internal and root node, and by k - the number of traits.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PCMLik(
+  X,
+  tree,
+  model,
+  SE = matrix(0, PCMNumTraits(model), PCMTreeNumTips(tree)),
+  metaI = PCMInfo(X = X, tree = tree, model = model, SE = SE, verbose = verbose),
+  log = TRUE,
+  verbose = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>a <code>k x N</code> numerical matrix with possible <code>NA</code> and
+<code>NaN</code> entries. For <code>i=1,..., N</code>, the column <code>i</code> of X contains
+the measured trait values for species <code>i</code> (the tip with integer
+identifier equal to <code>i</code> in <code>tree</code>). Missing values can be either
+not-available (<code>NA</code>) or not existing (<code>NaN</code>). These two values are
+treated differently when calculating likelihoods (see
+<code>PCMPresentCoordinates</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tree</code></td>
+<td>
+<p>a phylo object with N tips.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>an S3 object specifying both, the model type (class, e.g. "OU") as
+well as the concrete model parameter values at which the likelihood is to be
+calculated (see also Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SE</code></td>
+<td>
+<p>a k x N matrix specifying the standard error for each measurement in
+X. Alternatively, a k x k x N cube specifying an upper triangular k x k
+factor of the variance covariance matrix for the measurement error
+for each tip <code>i=1, ..., N</code>. When <code>SE</code> is a matrix, the k x k
+measurement error variance matrix for a tip <code>i</code> is calculated as
+<code>VE[, , i] &lt;- diag(SE[, i] * SE[, i], nrow = k)</code>. When <code>SE</code> is a
+cube, the way how the measurement variance matrix for a tip <code>i</code> is
+calculated depends on the runtime option <code>PCMBase.Transpose.Sigma_x</code>
+as follows:
+</p>
+
+<dl>
+<dt>if <code>getOption("PCMBase.Transpose.Sigma_x", FALSE) == FALSE</code> (default): </dt>
+<dd>
+<p>VE[, , i] &lt;- SE[, , i] %*% t(SE[, , i])</p>
+</dd>
+<dt>if <code>getOption("PCMBase.Transpose.Sigma_x", FALSE) == TRUE</code>: </dt>
+<dd>
+<p>VE[, , i] &lt;- t(SE[, , i]) %*% SE[, , i]</p>
+</dd>
+</dl>
+<p>Note that the above behavior is consistent with the treatment of the model
+parameters <code>Sigma_x</code>, <code>Sigmae_x</code> and <code>Sigmaj_x</code>, which are
+also specified as upper triangular factors.
+Default: <code>matrix(0.0, PCMNumTraits(model), PCMTreeNumTips(tree))</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>metaI</code></td>
+<td>
+<p>a list returned from a call to <code>PCMInfo(X, tree, model, SE)</code>,
+containing meta-data such as N, M and k. Alternatively, this can be a
+character string naming a function or a function object that returns such
+a list, e.g. the function<code>PCMInfo</code> or the function <code>PCMInfoCpp</code>
+from the <code>PCMBaseCpp</code> package.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>log</code></td>
+<td>
+<p>logical indicating whether a log-likelehood should be calculated. Default
+is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical indicating if some debug-messages should printed.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For efficiency, the argument <code>metaI</code>
+can be provided explicitly, because this is not supposed to change during a
+model inference procedure such as likelihood maximization.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a numerical value with named attributes as follows:
+</p>
+
+<dl>
+<dt>X0</dt>
+<dd>
+<p>A numerical vector of length k specifying the value at the root for which
+the likelihood value was calculated. If the model contains a member called X0, this
+vector is used; otherwise the value of X0 maximizing the likelihood for the given
+model parameters is calculated by maximizing the quadratic polynomial
+'X0 * L_root * X0 + m_root * X0 + r_root';</p>
+</dd>
+<dt>error</dt>
+<dd>
+<p>A character string with information if a numerical or other
+logical error occurred during likelihood calculation.</p>
+</dd>
+</dl>
+<p>If an error occured during likelihood calculation, the default behavior is to
+return NA with a non-NULL error attribute. This behavior can be changed in
+using global options:
+</p>
+
+<dl>
+<dt>"PCMBase.Value.NA"</dt>
+<dd>
+<p>Allows to specify a different NA value such as <code>-Inf</code> or <code>-1e20</code> which can be used in combination with <code>log = TRUE</code> when
+using <code>optim</code> to maximize the log-likelihood;</p>
+</dd>
+<dt>"PCMBase.Errors.As.Warnings"</dt>
+<dd>
+<p>Setting this option to FALSE will cause any
+error to result in calling the <code>stop</code> R-base function. If not caught
+in a <code>tryCatch</code>, this will cause the inference procedure to abort at the occurence of a numerical error. By default, this option is set to TRUE, which
+means that <code>getOption("PCMBase.Value.NA", as.double(NA))</code> is returned with
+an error attribute and a warning is issued.</p>
+</dd>
+</dl>
+<h3>See Also</h3>
+
+<p><code>PCMInfo</code> <code>PCMAbCdEf</code> <code>PCMLmr</code> <code>PCMSim</code> <code>PCMCond</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">N &lt;- 10
+tr &lt;- PCMTree(ape::rtree(N))
+
+model &lt;- PCMBaseTestObjects$model_MixedGaussian_ab
+
+PCMTreeSetPartRegimes(tr, c(`11` = 'a'), setPartition = TRUE)
+
+set.seed(1, kind = "Mersenne-Twister", normal.kind = "Inversion")
+X &lt;- PCMSim(tr, model, X0 = rep(0, 3))
+
+PCMLik(X, tr, model)
+</code></pre>
+
+
+</div>

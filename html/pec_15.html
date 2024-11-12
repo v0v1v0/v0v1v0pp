@@ -1,0 +1,722 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pec</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Prediction error curves</h2>
+
+<h3>Description</h3>
+
+<p>Evaluating the performance of risk prediction models in survival analysis.
+The Brier score is a weighted average of the squared distances between the
+observed survival status and the predicted survival probability of a model.
+Roughly the weights correspond to the probabilities of not being censored.
+The weights can be estimated depend on covariates. Prediction error curves
+are obtained when the Brier score is followed over time.  Cross-validation
+based on bootstrap resampling or bootstrap subsampling can be applied to
+assess and compare the predictive power of various regression modelling
+strategies on the same set of data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pec(
+  object,
+  formula,
+  data,
+  traindata,
+  times,
+  cause,
+  start,
+  maxtime,
+  exact = TRUE,
+  exactness = 100,
+  fillChar = NA,
+  cens.model = "cox",
+  ipcw.refit = FALSE,
+  ipcw.args = NULL,
+  splitMethod = "none",
+  B,
+  M,
+  reference = TRUE,
+  model.args = NULL,
+  model.parms = NULL,
+  keep.index = FALSE,
+  keep.matrix = FALSE,
+  keep.models = FALSE,
+  keep.residuals = FALSE,
+  keep.pvalues = FALSE,
+  noinf.permute = FALSE,
+  multiSplitTest = FALSE,
+  testIBS,
+  testTimes,
+  confInt = FALSE,
+  confLevel = 0.95,
+  verbose = TRUE,
+  savePath = NULL,
+  slaveseed = NULL,
+  na.action = na.fail,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A named list of prediction models, where allowed entries are
+(1) R-objects for which a predictSurvProb method exists (see
+details), (2) a <code>call</code> that evaluates to such an R-object (see
+examples), (3) a matrix with predicted probabilities having as many rows as
+<code>data</code> and as many columns as <code>times</code>. For cross-validation all
+objects in this list must include their <code>call</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>A survival formula as obtained either
+with <code>prodlim::Hist</code> or <code>survival::Surv</code>.
+The left hand side is used to find the status response variable in <code>data</code>. For right censored data, the right
+hand side of the formula is used to specify conditional censoring models.
+For example, set <code>Surv(time,status)~x1+x2</code> and <code>cens.model="cox"</code>.
+Then the weights are based on a Cox regression model for the censoring times
+with predictors x1 and x2.  Note that the usual coding is assumed:
+<code>status=0</code> for censored times and that each variable name that appears
+in <code>formula</code> must be the column name in <code>data</code>. If there are no
+covariates, i.e. <code>formula=Surv(time,status)~1</code> the <code>cens.model</code> is
+coerced to <code>"marginal"</code> and the Kaplan-Meier estimator for the
+censoring times is used to calculate the weights.  If <code>formula</code> is
+<code>missing</code>, try to extract a formula from the first element in object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame in which to validate the prediction models and to
+fit the censoring model.  If <code>data</code> is missing, try to extract a data
+set from the first element in object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>traindata</code></td>
+<td>
+<p>A data frame in which the models are trained. This argument
+is used only in the absence of crossvalidation, in which case it is
+passed to the predictHandler function predictSurvProb</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>times</code></td>
+<td>
+<p>A vector of time points. At each time point the prediction
+error curves are estimated. If <code>exact==TRUE</code> the <code>times</code> are
+merged with all the unique values of the response variable.  If <code>times</code>
+is missing and <code>exact==TRUE</code> all the unique values of the response
+variable are used.  If missing and <code>exact==FALSE</code> use a equidistant
+grid of values between <code>start</code> and <code>maxtime</code>.  The distance is
+determined by <code>exactness</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cause</code></td>
+<td>
+<p>For competing risks, the event of interest. Defaults to the
+first state of the response, which is obtained by evaluating the left hand
+side of <code>formula</code> in <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start</code></td>
+<td>
+<p>Minimal time for estimating the prediction error curves.  If
+missing and <code>formula</code> defines a <code>Surv</code> or <code>Hist</code> object then
+<code>start</code> defaults to <code>0</code>, otherwise to the smallest observed value
+of the response variable. <code>start</code> is ignored if <code>times</code> are given.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxtime</code></td>
+<td>
+<p>Maximal time for estimating the prediction error curves. If
+missing the largest value of the response variable is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exact</code></td>
+<td>
+<p>Logical. If <code>TRUE</code> estimate the prediction error curves at
+all the unique values of the response variable. If <code>times</code> are given
+and <code>exact=TRUE</code> then the <code>times</code> are merged with the unique
+values of the response variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exactness</code></td>
+<td>
+<p>An integer that determines how many equidistant gridpoints
+are used between <code>start</code> and <code>maxtime</code>.  The default is 100.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fillChar</code></td>
+<td>
+<p>Symbol used to fill-in places where the values of the
+prediction error curves are not available. The default is <code>NA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cens.model</code></td>
+<td>
+<p>Method for estimating inverse probability of censoring
+weigths:
+</p>
+<p><code>cox</code>: A semi-parametric Cox proportional hazard model is fitted to the
+censoring times
+</p>
+<p><code>marginal</code>: The Kaplan-Meier estimator for the censoring times
+</p>
+<p><code>nonpar</code>: Nonparametric extension of the Kaplan-Meier for the censoring
+times using symmetric nearest neighborhoods – available for arbitrary many
+strata variables on the right hand side of argument <code>formula</code> but at
+most one continuous variable. See the documentation of the functions
+<code>prodlim</code> and <code>neighborhood</code> from the prodlim package.
+</p>
+<p><code>aalen</code>: The nonparametric Aalen additive model fitted to the censoring
+times. Requires the <code>timereg</code> package.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ipcw.refit</code></td>
+<td>
+<p>If <code>TRUE</code> the inverse probability of censoring
+weigths are estimated separately in each training set during
+cross-validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ipcw.args</code></td>
+<td>
+<p>List of arguments passed to function specified by argument <code>cens.model</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>splitMethod</code></td>
+<td>
+<p>SplitMethod for estimating the prediction error curves.
+</p>
+<p><code>none/noPlan</code>: Assess the models in the same data where they are
+fitted.  <code>boot</code>: DEPRECIATED.
+</p>
+<p><code>cvK</code>: K-fold cross-validation, i.e. <code>cv10</code> for 10-fold
+cross-validation.  After splitting the data in K subsets, the prediction
+models (ie those specified in <code>object</code>) are evaluated on the data
+omitting the Kth subset (training step). The prediction error is estimated
+with the Kth subset (validation step).
+</p>
+<p>The random splitting is repeated <code>B</code> times and the estimated prediction
+error curves are obtained by averaging.
+</p>
+<p><code>BootCv</code>: Bootstrap cross validation. The prediction models are trained
+on <code>B</code> bootstrap samples, that are either drawn with replacement of the
+same size as the original data or without replacement from <code>data</code> of
+the size <code>M</code>.  The models are assessed in the observations that are NOT
+in the bootstrap sample.
+</p>
+<p><code>Boot632</code>: Linear combination of AppErr and BootCvErr using the
+constant weight .632.
+</p>
+<p><code>Boot632plus</code>: Linear combination of AppErr and BootCv using weights
+dependent on how the models perform in permuted data.
+</p>
+<p><code>loocv</code>: Leave one out cross-validation.
+</p>
+<p><code>NoInf</code>: Assess the models in permuted data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>Number of bootstrap samples. The default depends on argument
+<code>splitMethod</code>.  When <code>splitMethod</code> in
+c("BootCv","Boot632","Boot632plus") the default is 100. For
+<code>splitMethod="cvK"</code> <code>B</code> is the number of cross-validation cycles,
+and – default is 1.  For <code>splitMethod="none"</code> <code>B</code> is the number
+of bootstrap simulations e.g. to obtain bootstrap confidence limits –
+default is 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M</code></td>
+<td>
+<p>The size of the bootstrap samples for resampling without
+replacement. Ignored for resampling with replacement.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reference</code></td>
+<td>
+<p>Logical. If <code>TRUE</code> add the marginal Kaplan-Meier
+prediction model as a reference to the list of models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model.args</code></td>
+<td>
+<p>List of extra arguments that can be passed to the
+<code>predictSurvProb</code> methods. The list must have an entry for each entry
+in <code>object</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model.parms</code></td>
+<td>
+<p>Experimental.  List of with exactly one entry for each
+entry in <code>object</code>.  Each entry names parts of the value of the fitted
+models that should be extracted and added to the value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.index</code></td>
+<td>
+<p>Logical. If <code>FALSE</code> remove the bootstrap or
+cross-validation index from the output list which otherwise is included in
+the splitMethod part of the output list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.matrix</code></td>
+<td>
+<p>Logical. If <code>TRUE</code> add all <code>B</code> prediction error
+curves from bootstrapping or cross-validation to the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.models</code></td>
+<td>
+<p>Logical. If <code>TRUE</code> keep the models in object. Since
+fitted models can be large objects the default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.residuals</code></td>
+<td>
+<p>Logical. If <code>TRUE</code> keep the patient individual
+residuals at <code>testTimes</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep.pvalues</code></td>
+<td>
+<p>For <code>multiSplitTest</code>. If <code>TRUE</code> keep the
+pvalues from the single splits.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>noinf.permute</code></td>
+<td>
+<p>If <code>TRUE</code> the noinformation error is approximated
+using permutation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multiSplitTest</code></td>
+<td>
+<p>If <code>TRUE</code> the test proposed by van de Wiel et al.
+(2009) is applied. Requires subsampling bootstrap cross-validation, i.e.
+that <code>splitMethod</code> equals <code>bootcv</code> and that <code>M</code> is specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>testIBS</code></td>
+<td>
+<p>A range of time points for testing differences between models
+in the integrated Brier scores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>testTimes</code></td>
+<td>
+<p>A vector of time points for testing differences between
+models in the time-point specific Brier scores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>confInt</code></td>
+<td>
+<p>Experimental.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>confLevel</code></td>
+<td>
+<p>Experimental.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>if <code>TRUE</code> report details of the progress, e.g. count the
+steps in cross-validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>savePath</code></td>
+<td>
+<p>Place in your file system (i.e., a directory on your
+computer) where training models fitted during cross-validation are saved. If
+<code>missing</code> training models are not saved.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>slaveseed</code></td>
+<td>
+<p>Vector of seeds, as long as <code>B</code>, to be given to the
+slaves in parallel computing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.action</code></td>
+<td>
+<p>Passed immediately to model.frame. Defaults to na.fail. If
+set otherwise most prediction models will not work.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Not used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Note that package riskRegression provides very similar
+functionality (and much more) but not yet every feature of pec.
+</p>
+<p>Missing data in the response or in the input matrix cause a failure.
+</p>
+<p>The status of the continuous response variable at cutpoints (<code>times</code>),
+ie status=1 if the response value exceeds the cutpoint and status=0
+otherwise, is compared to predicted event status probabilities which are
+provided by the prediction models on the basis of covariates.  The
+comparison is done with the Brier score: the quadratic difference between
+0-1 response status and predicted probability.
+</p>
+<p>There are two different sources for bias when estimating prediction error in
+right censored survival problems: censoring and high flexibility of the
+prediction model. The first is controlled by inverse probability of
+censoring weighting, the second can be controlled by special Monte Carlo
+simulation. In each step, the resampling procedures reevaluate the
+prediction model.  Technically this is done by replacing the argument
+<code>object$call$data</code> by the current subset or bootstrap sample of the
+full data.
+</p>
+<p>For each prediction model there must be a <code>predictSurvProb</code> method: for
+example, to assess a prediction model which evaluates to a <code>myclass</code>
+object one defines a function called <code>predictSurvProb.myclass</code> with
+arguments <code>object,newdata,cutpoints,...</code>
+</p>
+<p>Such a function takes the object and
+derives a matrix with predicted event status probabilities for each subject
+in newdata (rows) and each cutpoint (column) of the response variable that
+defines an event status.
+</p>
+<p>Currently, <code>predictSurvProb</code> methods are readily available for 
+various survival models, see <code>methods(predictSurvProb)</code>
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>pec</code> object. See also the help pages of the corresponding
+<code>print</code>, <code>summary</code>, and <code>plot</code> methods.  The object includes
+the following components: </p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>PredErr</code></td>
+<td>
+<p> The estimated prediction error
+according to the <code>splitMethod</code>. A matrix where each column represents
+the estimated prediction error of a fit at the time points in time.  </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AppErr</code></td>
+<td>
+<p> The training error or apparent error obtained when the
+model(s) are evaluated in the same data where they were trained. Only if
+<code>splitMethod</code> is one of "NoInf", "cvK", "BootCv", "Boot632" or
+"Boot632plus".  </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>BootCvErr</code></td>
+<td>
+<p> The prediction error when the model(s)
+are trained in the bootstrap sample and evaluated in the data that are not
+in the bootstrap sample.  Only if <code>splitMethod</code> is one of "Boot632" or
+"Boot632plus". When <code>splitMethod="BootCv"</code> then the <code>BootCvErr</code> is
+stored in the component <code>PredErr</code>.  </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>NoInfErr</code></td>
+<td>
+<p> The prediction
+error when the model(s) are evaluated in the permuted data.  Only if
+<code>splitMethod</code> is one of "BootCv", "Boot632", or "Boot632plus".  For
+<code>splitMethod="NoInf"</code> the <code>NoInfErr</code> is stored in the component
+<code>PredErr</code>.  </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weight</code></td>
+<td>
+<p> The weight used to linear combine the
+<code>AppErr</code> and the <code>BootCvErr</code> Only if <code>splitMethod</code> is one of
+"Boot632", or "Boot632plus".  </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overfit</code></td>
+<td>
+<p> Estimated <code>overfit</code> of
+the model(s).  See Efron and Tibshirani (1997, Journal of the American
+Statistical Association) and Gerds and Schumacher (2007, Biometrics).  Only
+if <code>splitMethod</code> is one of "Boot632", or "Boot632plus".  </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>The call that produced the object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>The time points
+at which the prediction error curves change.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ipcw.fit</code></td>
+<td>
+<p>The fitted
+censoring model that was used for re-weighting the Brier score residuals.
+See Gerds and Schumacher (2006, Biometrical Journal)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.risk</code></td>
+<td>
+<p>The
+number of subjects at risk for all time points.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>models</code></td>
+<td>
+<p>The
+prediction models fitted in their own data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cens.model</code></td>
+<td>
+<p>The censoring
+models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxtime</code></td>
+<td>
+<p>The latest timepoint where the prediction error
+curves are estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start</code></td>
+<td>
+<p>The earliest timepoint where the
+prediction error curves are estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exact</code></td>
+<td>
+<p><code>TRUE</code> if the
+prediction error curves are estimated at all unique values of the response
+in the full data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>splitMethod</code></td>
+<td>
+<p>The splitMethod used for estimation of
+the overfitting bias.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Thomas Alexander Gerds <a href="mailto:tag@biostat.ku.dk">tag@biostat.ku.dk</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Gerds TA, Kattan MW.
+Medical Risk Prediction Models: With Ties to Machine Learning.
+Chapman and Hall/CRC
+https://www.routledge.com/9781138384477
+</p>
+<p>Ulla B. Mogensen, Hemant Ishwaran, Thomas A. Gerds (2012).
+Evaluating Random Forests for Survival Analysis Using Prediction Error
+Curves. Journal of Statistical Software, 50(11), 1-23. DOI
+10.18637/jss.v050.i11
+</p>
+<p>E. Graf et al.  (1999), Assessment and comparison of prognostic
+classification schemes for survival data. Statistics in Medicine, vol 18,
+pp= 2529–2545.
+</p>
+<p>Efron, Tibshirani (1997) Journal of the American Statistical Association 92,
+548–560 Improvement On Cross-Validation: The .632+ Bootstrap Method.
+</p>
+<p>Gerds, Schumacher (2006), Consistent estimation of the expected Brier score
+in general survival models with right-censored event times. Biometrical
+Journal, vol 48, 1029–1040.
+</p>
+<p>Thomas A. Gerds, Martin Schumacher (2007) Efron-Type Measures of Prediction
+Error for Survival Analysis Biometrics, 63(4), 1283–1287
+doi:10.1111/j.1541-0420.2007.00832.x
+</p>
+<p>Martin Schumacher, Harald Binder, and Thomas Gerds. Assessment of survival
+prediction models based on microarray data. Bioinformatics, 23(14):1768-74,
+2007.
+</p>
+<p>Mark A. van de Wiel, Johannes Berkhof, and Wessel N. van Wieringen Testing
+the prediction error difference between 2 predictors Biostatistics (2009)
+10(3): 550-560 doi:10.1093/biostatistics/kxp011
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>plot.pec</code>, <code>summary.pec</code>,
+<code>R2</code>, <code>crps</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# simulate an artificial data frame
+# with survival response and two predictors
+
+set.seed(130971)
+library(prodlim)
+library(survival)
+dat &lt;- SimSurv(100)
+
+# fit some candidate Cox models and compute the Kaplan-Meier estimate 
+
+Models &lt;- list("Cox.X1"=coxph(Surv(time,status)~X1,data=dat,x=TRUE,y=TRUE),
+              "Cox.X2"=coxph(Surv(time,status)~X2,data=dat,x=TRUE,y=TRUE),
+              "Cox.X1.X2"=coxph(Surv(time,status)~X1+X2,data=dat,x=TRUE,y=TRUE))
+
+# compute the apparent prediction error 
+PredError &lt;- pec(object=Models,
+                  formula=Surv(time,status)~X1+X2,
+                  data=dat,
+                  exact=TRUE,
+                  cens.model="marginal",
+                  splitMethod="none",
+                  B=0,
+                  verbose=TRUE)
+
+print(PredError,times=seq(5,30,5))
+summary(PredError)
+plot(PredError,xlim=c(0,30))
+
+# Comparison of Weibull model and Cox model
+library(survival)
+library(rms)
+library(pec)
+data(pbc)
+pbc &lt;- pbc[sample(1:NROW(pbc),size=100),]
+f1 &lt;- psm(Surv(time,status!=0)~edema+log(bili)+age+sex+albumin,data=pbc)
+f2 &lt;- coxph(Surv(time,status!=0)~edema+log(bili)+age+sex+albumin,data=pbc,x=TRUE,y=TRUE)
+f3 &lt;- cph(Surv(time,status!=0)~edema+log(bili)+age+sex+albumin,data=pbc,surv=TRUE)
+brier &lt;- pec(list("Weibull"=f1,"CoxPH"=f2,"CPH"=f3),data=pbc,formula=Surv(time,status!=0)~1)
+print(brier)
+plot(brier)
+
+# compute the .632+ estimate of the generalization error
+set.seed(130971)
+library(prodlim)
+library(survival)
+dat &lt;- SimSurv(100)
+set.seed(17100)
+PredError.632plus &lt;- pec(object=Models,
+                  formula=Surv(time,status)~X1+X2,
+                  data=dat,
+                  exact=TRUE,
+                  cens.model="marginal",
+                  splitMethod="Boot632plus",
+                  B=3,
+                  verbose=TRUE)
+
+print(PredError.632plus,times=seq(4,12,4))
+summary(PredError.632plus)
+plot(PredError.632plus,xlim=c(0,30))
+# do the same again but now in parallel
+## Not run: set.seed(17100)
+# library(doMC)
+# registerDoMC()
+PredError.632plus &lt;- pec(object=Models,
+                  formula=Surv(time,status)~X1+X2,
+                  data=dat,
+                  exact=TRUE,
+                  cens.model="marginal",
+                  splitMethod="Boot632plus",
+                  B=3,
+                  verbose=TRUE)
+
+## End(Not run)
+# assessing parametric survival models in learn/validation setting
+learndat &lt;- SimSurv(50)
+testdat &lt;- SimSurv(30)
+library(survival)
+library(rms)
+f1 &lt;- psm(Surv(time,status)~X1+X2,data=learndat)
+f2 &lt;- psm(Surv(time,status)~X1,data=learndat)
+pf &lt;- pec(list(f1,f2),formula=Surv(time,status)~1,data=testdat,maxtime=200)
+plot(pf)
+summary(pf)
+
+# ---------------- competing risks -----------------
+
+library(survival)
+library(riskRegression)
+if(requireNamespace("cmprsk",quietly=TRUE)){
+library(cmprsk)
+library(pec)
+cdat &lt;- SimCompRisk(100)
+f1  &lt;- CSC(Hist(time,event)~X1+X2,cause=2,data=cdat)
+f2  &lt;- CSC(Hist(time,event)~X1,data=cdat,cause=2)
+f3  &lt;- FGR(Hist(time,event)~X1+X2,cause=2,data=cdat)
+f4  &lt;- FGR(Hist(time,event)~X1+X2,cause=2,data=cdat)
+p1 &lt;- pec(list(f1,f2,f3,f4),formula=Hist(time,event)~1,data=cdat,cause=2)
+}
+
+</code></pre>
+
+
+</div>

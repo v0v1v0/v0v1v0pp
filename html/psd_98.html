@@ -1,0 +1,241 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>riedsid</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Constrained, optimal tapers using the Riedel &amp; Sidorenko–Parker method</h2>
+
+<h3>Description</h3>
+
+<p>Estimates the optimal number of tapers at each frequency of
+given PSD, using a modified Riedel-Sidorenko MSE recipe (RS-RLP).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">riedsid(PSD, ...)
+
+## S3 method for class 'spec'
+riedsid(PSD, ...)
+
+## Default S3 method:
+riedsid(
+  PSD,
+  ntaper = 1L,
+  tapseq = NULL,
+  Deriv.method = c("local_qls", "spg"),
+  constrained = TRUE,
+  c.method = NULL,
+  verbose = TRUE,
+  ...
+)
+
+riedsid2(PSD, ...)
+
+## S3 method for class 'spec'
+riedsid2(PSD, ...)
+
+## Default S3 method:
+riedsid2(
+  PSD,
+  ntaper = 1L,
+  constrained = TRUE,
+  verbose = TRUE,
+  fast = FALSE,
+  riedsid_column = 0L,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>PSD</code></td>
+<td>
+<p>vector or class <code>'amt'</code> or <code>'spec'</code>; the spectral values used to optimize taper numbers</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>optional arguments passed to <code>constrain_tapers</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ntaper</code></td>
+<td>
+<p>scalar or vector; number of tapers to apply optimization</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tapseq</code></td>
+<td>
+<p>vector; representing positions or frequencies (same length as <code>PSD</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Deriv.method</code></td>
+<td>
+<p>character; choice of gradient estimation method</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>constrained</code></td>
+<td>
+<p>logical; apply constraints with <code>constrain_tapers</code>; <code>FALSE</code> turns off constraints</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>c.method</code></td>
+<td>
+<p>string; constraint method to use with <code>constrain_tapers</code>, only if <code>constrained=TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical; should messages be printed?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fast</code></td>
+<td>
+<p>logical; use faster method?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>riedsid_column</code></td>
+<td>
+<p>scalar integer; which column to use in multivariate optimization. If the value is 0 the maximum number of tapers for all columns is chosen. If the value is &lt; 0 the minimum number of tapers for all columns is chosen. If the value is 1, 2, 3, etc. the number of tapers is based on the column selected.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The optimization is as follows. First, weighted derivatives of the 
+input PSD are computed.
+Using those derivatives the optimal number of tapers is found through the 
+RS-RLP formulation.
+Constraints are then placed on the practicable number of tapers.
+</p>
+<p><code>riedsid2</code> is a new (faster) implementation which does not allow 
+for multiple constraint methods; this is the preferred function to use.
+</p>
+
+
+<h4>Taper constraints</h4>
+
+<p>The parameter <code>c.method</code> provides an option to change the method
+of taper constraints.  A description of each may be found in 
+the documentation for <code>constrain_tapers</code>.
+</p>
+<p>Once can use <code>constrained=FALSE</code> to turn off all taper constraints; this
+could lead to strange behavior though.
+</p>
+
+
+
+<h4>Spectral derivatives</h4>
+
+<p>The parameter <code>Deriv.method</code> determines which method is used
+to estimate derivatives.
+</p>
+
+<ul>
+<li>
+<p><code>"local_qls"</code> (<strong>default</strong>) uses quadratic weighting and
+local least-squares estimation; this can be slower than <code>"spg"</code>.
+</p>
+</li>
+<li>
+<p><code>"spg"</code> uses <code>splineGrad</code>; then, additional arguments
+may be passed to control the smoothness of the derivatives
+(e.g <code>spar</code> in <code>smooth.spline</code>).
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>Object with class <code>'tapers'</code>
+</p>
+
+
+<h3>Warning</h3>
+
+<p>The <code>"spg"</code> can become numerically unstable, and it's not clear when it will
+be the preferred over the <code>"local_qls"</code> method, other than for efficiency's sake.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>A.J. Barbour adapted original by R.L. Parker
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>constrain_tapers</code>, <code>resample_fft_rcpp</code>, <code>psdcore</code>, <code>pspectrum</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: #REX
+library(psd)
+
+##
+## Riedel-Sidorenko-Parker taper optimization
+##
+
+set.seed(1234)
+# some params
+nd &lt;- 512 # num data
+ntap &lt;- 10 # num tapers
+nrm &lt;- 40 # sharpness of the peaks rel 2*variance
+#
+# create a pseudo spectrum
+# with broad peaks
+x &lt;- 0:(nd-1)
+riex &lt;- rnorm(nd) + nrm*abs(cos(pi*x/180) + 1.2)
+riex &lt;- riex + 8*nrm*dcauchy(x, nd/3)
+riex &lt;- riex + 5*nrm*dnorm(x, nd/2)
+# some flat regions
+riex[riex&lt;25] &lt;- 25
+ried &lt;- dB(riex, invert=TRUE)
+
+# optimize tapers
+rtap &lt;- riedsid(riex, ntaper=ntap) # deprecation warning
+rtap2 &lt;- riedsid2(riex, ntaper=ntap)
+rtap3 &lt;- riedsid2(riex, ntaper=ntap, fast=TRUE)
+
+# plot
+op &lt;- par(no.readonly = TRUE)
+par(mfrow=c(2,1), mar=rep(1.3,4), mai=rep(0.6,4))
+# ... the mock spectrum
+plot(riex, type="h", xaxs="i", ylim=c(0,200), 
+     main='Pseudo-spectrum') 
+
+# ... tapers
+plot(rtap2, col=NA, xaxs="i",
+     main='Original and Optimized tapers', 
+     ylim=c(0,max(c(ntap, rtap,rtap2,rtap3)))) 
+# original tapers:
+abline(h=ntap, lty=2)
+# optimized tapers
+lines(rtap, col="red")
+# 2 and 2-fast
+lines(rtap2, lwd=3, col="blue")
+lines(rtap3, col="cyan")
+par(op)
+
+
+## End(Not run)#REX
+</code></pre>
+
+
+</div>

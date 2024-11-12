@@ -1,0 +1,119 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>normalize</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Normalize the microbiome dataset prior to perform the permutation test.
+</h2>
+
+<h3>Description</h3>
+
+<p>A critical aspect when working with microbiome data is to achieve a proper normalization to the retrieved counts, thus overpassing the variability in terms of sequencing efforts or coverage. There are several ways to do normalization, and we have implemented two well-known methods whose choice will depend on the research question investigated and the researcher's preference. Optionally, if you don't feel comfortable with normalization methods implemented in this package or if your data are already normalized, you have the option of performing no normalization on your data (<em>method</em>=0).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">normalize(prevalence = 0.3, method = 1)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>prevalence</code></td>
+<td>
+
+<p>This controls the prevalence of microbiome features across samples in order to keep those with higher occurrence in the cohort of samples under survey. If you have 20 samples and declare a <em>prevalence</em> = 0.3 (default), the algorithm will remove those categories with less prevalence than 6 samples. Although the permutation test deals fairly well with zeros, we recommend setting a restricted value in order to improve the statistics for the biomarker discovery (i.e <em>prevalence</em> =&gt; 0.3).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+
+<p>Describes the normalization method to be used. We implemented two different strategies to normalize the microbiome data: (1) corresponds to the relative proportion of counts to the features. After retrieving the relative abundance for every feature in very sample the normalization process generate the number of reads corresponding to the features per million reads; (2) corresponds with normalization method described by Anders &amp; Huber (2010), which uses a size factor to correct differences in sequencing coverage. If the user decides not to perform normalization, it must declare <em>method</em> = 0.
+</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Alfonso Benitez-Paez
+</p>
+
+
+<h3>References</h3>
+
+<p>Benitez-Paez A. 2023. Permubiome: an R package to perform permutation based test for biomarker discovery in microbiome analyses. [https://cran.r-project.org].
+Benitez-Paez A, et al. mSystems. 2020;5:e00857-19. doi: 10.1128/mSystems.00857-19.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## The function is currently defined as
+function (prevalence = 0.3, method = 1) 
+{
+    load("permubiome.RData")
+    df_norm &lt;- df
+    if (method == 1) {
+        y &lt;- array(, nrow(df_norm))
+        for (j in 1:nrow(df_norm)) {
+            y[j] &lt;- sum(df_norm[j, 3:ncol(df_norm)])
+        }
+        for (l in 3:ncol(df_norm)) {
+            for (m in 1:nrow(df_norm)) {
+                df_norm[m, l] &lt;- round((df_norm[m, l]/y[m]) * 
+                  1e+06, digits = 0)
+            }
+        }
+        for (i in ncol(df_norm):3) {
+            if (sum(df_norm[, i] == "0") &gt;= (nrow(df_norm) * 
+                1 - prevalence)) {
+                df_norm[, i] &lt;- NULL
+            }
+        }
+    }
+    else if (method == 2) {
+        for (i in ncol(df_norm):3) {
+            if (sum(df_norm[, i] == 0) &gt;= (nrow(df_norm) * 1 - prevalence)) {
+                df_norm[, i] &lt;- NULL
+            }
+        }
+        sfactor_matrix &lt;- matrix(, ncol = ncol(df_norm) - 2, 
+            nrow = nrow(df_norm))
+        y &lt;- array(, nrow(df_norm))
+        for (m in 1:nrow(df_norm)) {
+            for (l in 3:ncol(df_norm)) {
+                sfactor_matrix[m, l - 2] &lt;- signif((df_norm[m, 
+                  l]/mean(df_norm[, l])), digits = 3)
+            }
+            y[m] &lt;- median(sfactor_matrix[m, 1:ncol(sfactor_matrix)])
+        }
+        for (a in 3:ncol(df_norm)) {
+            for (b in 1:nrow(df_norm)) {
+                df_norm[b, a] &lt;- round((df_norm[b, a] * y[b]), 
+                  digits = 0)
+            }
+        }
+    }
+    else if (method == 0) {
+        head(df_norm)
+        print(paste("Your dataset was not normalized according to method option: 0"))
+    }
+    else {
+        print(paste("Select and appropiate method for normalization: 1 ('proportions'), 
+        2 ('anders'), or 0 ('none')"))
+    }
+    print(paste("Your normalized data now contains:", ncol(df_norm) - 
+        2, "normalize categories ready to analize"))
+    save(df_norm, file = "permubiome.RData")
+  }
+</code></pre>
+
+
+</div>

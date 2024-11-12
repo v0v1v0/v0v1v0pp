@@ -1,0 +1,187 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>flexible_argument</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Flexible Variable Usage in <span class="pkg">popEpi</span> Functions</h2>
+
+<h3>Description</h3>
+
+<p>Certain arguments in <span class="pkg">popEpi</span> can be passed in multiple 
+ways. This document shows the usage and a pitfall in the
+usage of such flexible arguments.
+</p>
+
+
+<h3>Details</h3>
+
+<p>Flexible arguments in <span class="pkg">popEpi</span> are used to pass variables existing
+in your data or in the environment where the function is used 
+(for everyday users this is the global environment - in simple terms,
+where your data is / your work space). The flexible arguments
+are modelled after the <code>by</code> argument in <code>data.tables</code> - 
+see <code>?data.table</code>. There are many ways to supply the same information
+to certain functions in <span class="pkg">popEpi</span>, but the possible ways listed below
+may be limited in some of them to only allow for using only a part of them.
+</p>
+
+
+<h3>Everyday usage</h3>
+
+<p>Most commonly you may pass
+variable names as character strings, e.g.
+</p>
+<p><code>FUN(arg = c("V1", "V2"), data = x)</code>
+</p>
+<p>which may be stored in advance:
+</p>
+<p><code>vars &lt;- c("V1", "V2")</code>
+</p>
+<p><code>FUN(arg = vars, data = x)</code>
+</p>
+<p>where <code>x</code> contains those variables. You may also supply variable
+names as symbols:
+</p>
+<p><code>FUN(arg = V1, data = x)</code>
+</p>
+<p>Or as a list of symbols (similarly to as in <code>aggregate</code>):
+</p>
+<p><code>FUN(arg = list(V1, V2), data = x)</code>
+</p>
+<p>Or as a list of expressions:
+</p>
+<p><code>FUN(arg = list(V1 + 1, factor(V2)), data = x)</code>
+</p>
+<p>A formula without a left-hand-side specified is sometimes allowed as well:
+</p>
+<p><code>FUN(arg = ~ I(V1 + 1) + factor(V2), data = x)</code>
+</p>
+<p>Using a symbol or a list of symbols/expressions typically
+causes the function to look for the variable(s)
+first in the supplied data (if any) and then where the function was called.
+For everyday users this means you might define e.g.
+</p>
+<p><code>V3 &lt;- factor(letters)</code>
+</p>
+<p>and do e.g.
+</p>
+<p><code>FUN(arg = list(V1 + 1, factor(V2), V3), data = x)</code>
+</p>
+<p>provided <code>V1</code> and <code>V2</code> exist in <code>x</code> or in the function calling
+environment.
+</p>
+
+
+<h3>A pitfall</h3>
+
+<p>There is one way to use flexible arguments incorrectly: By supplying
+the name of a variable which exists both in the supplied data
+and the calling environment, and intending the latter to be used. E.g.
+</p>
+<p><code>vars &lt;- c("V2")</code>
+</p>
+<p><code>FUN(arg = V3, data = x)</code>
+</p>
+<p>where <code>x</code> has a column named <code>vars</code>. This causes the function to
+use <code>x$vars</code> and NOT <code>x$V2</code>.
+</p>
+
+
+<h3>Advanced</h3>
+
+<p>Function programmers are advised to pass character strings
+whenever possible. To fool-proof against conflicts as described in the
+section above, refer to the calling environment explicitly when
+passing the variable containing the character strings:
+</p>
+<p><code>TF &lt;- environment() ## current env to refer to</code>
+</p>
+<p><code>vars &lt;- c("V1", "V2")</code>
+</p>
+<p><code>FUN(arg = TF$vars, data = x)</code>
+</p>
+<p>Even if <code>x</code> has columns named <code>vars</code> and <code>TF</code>, 
+using <code>TF$vars</code> does not use those columns but only evaluates
+<code>TF$vars</code>
+in the calling environment. This is made possible by the fact
+that data is always passed as a <code>data.frame</code>, within which evaluation
+of expressions using the dollar operator is not possible. Therefore
+it is safe to assume the data should not be used. However, lists of 
+expressions will not be checked for dollar use and will fail in conflict
+situations:
+</p>
+<p><code>TF &lt;- environment() ## current env to refer to</code>
+</p>
+<p><code>vars &lt;- letters[1:5]</code>
+</p>
+<p><code>x &lt;- data.frame(vars = 1:5, TF = 5:1, V1 = 10:6)</code>
+</p>
+<p><code>FUN(arg = list(TF$vars, V1), data = x)</code>
+</p>
+<p>On the other hand you may typically also pass quoted (<code>quote</code>)
+or substituted <code>substitute</code> expressions etc., where
+the <code>env$object</code> trick will work as well:
+</p>
+<p><code>q &lt;- quote(list(vars, V1))</code>
+</p>
+<p><code>FUN(arg = TF$q, data = x)</code>
+</p>
+<p>This works even with
+</p>
+<p><code>a &lt;- 1:5</code>
+</p>
+<p><code>V1 &lt;- quote(TF$a)</code>
+</p>
+<p><code>FUN(arg = TF$V1, data = x)</code>
+</p>
+<p>So no conflicts should occur.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Joonas Miettinen
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other popEpi argument evaluation docs: 
+<code>direct_standardization</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(sire)
+## prepare data for e.g. 5-year "period analysis" for 2008-2012
+## note: sire is a simulated cohort integrated into popEpi.
+BL &lt;- list(fot=seq(0, 5, by = 1/12))
+x &lt;- lexpand(sire, birth = bi_date, entry = dg_date, exit = ex_date,
+             status = status %in% 1:2,
+             breaks = BL)
+              
+x &lt;- aggre(x, by = fot)
+
+## silly example of referring to pyrs data by fixed character string;
+## its possible that the real name wont be fixed in a real-life application.
+pyrs &lt;- "actual_pyrs"  
+TF &lt;- environment()
+x$actual_pyrs &lt;- as.numeric(x$pyrs)
+x$pyrs &lt;- 1
+             
+## this works (uses actual_pyrs eventually)
+st &lt;- survtab_ag(fot ~ 1, data = x, surv.type = "surv.obs",
+                 pyrs = TF$pyrs, d = from0to1, 
+                 surv.method = "hazard")
+## this would be wrong (sees expression 'pyrs' and uses that column,
+## which is not what is intended here)
+st &lt;- survtab_ag(fot ~ 1, data = x, surv.type = "surv.obs",
+                 pyrs = pyrs, d = from0to1,
+                 surv.method = "hazard")
+</code></pre>
+
+
+</div>

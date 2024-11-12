@@ -1,0 +1,365 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>evaluate_check_ancestry</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Evaluate results from PLINK PCA on combined study and reference data</h2>
+
+<h3>Description</h3>
+
+<p>Evaluates and depicts results of plink –pca (via
+<code>run_check_ancestry</code> or externally conducted pca) on merged
+genotypes from individuals to be QCed and individuals of reference population
+of known genotypes. Currently, check ancestry only supports automatic
+selection of individuals of European descent. It uses information from
+principal components 1 and 2 returned by plink –pca to find the center of
+the European reference samples (mean(PC1_europeanRef), mean(PC2_europeanRef).
+It computes the maximum Euclidean distance (maxDist) of the European
+reference samples from this centre. All study samples whose Euclidean
+distance from the centre falls outside the circle described by the radius
+r=europeanTh* maxDist are considered non-European and their IDs are returned
+as failing the ancestry check.
+check_ancestry creates a scatter plot of PC1 versus PC2 colour-coded for
+samples of the reference populations and the study population.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">evaluate_check_ancestry(
+  indir,
+  name,
+  prefixMergedDataset,
+  qcdir = indir,
+  europeanTh = 1.5,
+  defaultRefSamples = c("HapMap", "1000Genomes"),
+  refSamples = NULL,
+  refColors = NULL,
+  refSamplesFile = NULL,
+  refColorsFile = NULL,
+  refSamplesIID = "IID",
+  refSamplesPop = "Pop",
+  refColorsColor = "Color",
+  refColorsPop = "Pop",
+  studyColor = "#2c7bb6",
+  refPopulation = c("CEU", "TSI"),
+  legend_labels_per_row = 6,
+  legend_text_size = 5,
+  legend_title_size = 7,
+  axis_text_size = 5,
+  axis_title_size = 7,
+  title_size = 9,
+  highlight_samples = NULL,
+  highlight_type = c("text", "label", "color", "shape"),
+  highlight_text_size = 3,
+  highlight_color = "#c51b8a",
+  highlight_shape = 17,
+  highlight_legend = FALSE,
+  interactive = FALSE,
+  verbose = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>indir</code></td>
+<td>
+<p>[character] /path/to/directory containing the basic PLINK data
+files name.bim, name.bed, name.fam files.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>[character] Prefix of PLINK files, i.e. name.bed, name.bim,
+name.fam.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prefixMergedDataset</code></td>
+<td>
+<p>[character] Prefix of merged dataset (study and
+reference samples) used in plink –pca, resulting in
+prefixMergedDataset.eigenvec.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>qcdir</code></td>
+<td>
+<p>[character] /path/to/directory/with/QC/results containing
+prefixMergedDataset.eigenvec results as returned by plink –pca. Per default
+qcdir=indir.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>europeanTh</code></td>
+<td>
+<p>[double] Scaling factor of radius to be drawn around center
+of European reference samples, with study samples inside this radius
+considered to be of European descent and samples outside this radius of
+non-European descent. The radius is computed as the maximum Euclidean distance
+of European reference samples to the centre of European reference samples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>defaultRefSamples</code></td>
+<td>
+<p>[character] Option to use pre-downloaded individual
+and population identifiers from either the 1000Genomes or HapMap project.
+If refSamples and refSamplesFile are not provided, the HapMap identifiers (or
+1000Genomes is specified) will be used as default and the function will fail
+if the reference samples in the prefixMergedDataset do not match these
+reference samples. If refColors and refColorsFile are not provided, this also
+sets default colors for the reference populations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refSamples</code></td>
+<td>
+<p>[data.frame] Dataframe with sample identifiers
+[refSamplesIID] corresponding to IIDs in prefixMergedDataset.eigenvec and
+population identifier [refSamplesPop] corresponding to population IDs
+[refColorsPop] in refColorsfile/refColors. If refSamples and
+refSamplesFile are not specified, defaultRefSamples will be used as
+reference.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refColors</code></td>
+<td>
+<p>[data.frame, optional] Dataframe with population IDs in
+column [refColorsPop] and corresponding colour-code for PCA plot in column
+[refColorsColor].  If refColors and refColorsFile are not specified and
+refSamples and refSamplesFile are not specified, default colors will be
+determined from the defaultRefSamples option. If refColors and refColorsFile
+are not specified and but refSamples or refSamplesFile are given, ggplot
+default colors will be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refSamplesFile</code></td>
+<td>
+<p>[character] /path/to/File/with/reference samples. Needs
+columns with sample identifiers [refSamplesIID] corresponding to IIDs in
+prefixMergedDataset.eigenvec and population identifier [refSamplesPop]
+corresponding to population IDs [refColorsPop] in refColorsfile/refColors. If
+both refSamplesFile and refSamples are not NULL, defaultRefSamples information
+is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refColorsFile</code></td>
+<td>
+<p>[character, optional]
+/path/to/File/with/Population/Colors containing population IDs in column
+[refColorsPop] and corresponding colour-code for PCA plot in column
+[refColorsColor]. If refColors and refColorsFile are not specified and
+refSamples and refSamplesFile are not specified, default colors will be
+determined from the defaultRefSamples option. If refColors and refColorsFile
+are not specified and but refSamples or refSamplesFile are given, ggplot
+default colors will be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refSamplesIID</code></td>
+<td>
+<p>[character] Column name of reference sample IDs in
+refSamples/refSamplesFile.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refSamplesPop</code></td>
+<td>
+<p>[character] Column name of reference sample population
+IDs in refSamples/refSamplesFile.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refColorsColor</code></td>
+<td>
+<p>[character] Column name of population colors in
+refColors/refColorsFile</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refColorsPop</code></td>
+<td>
+<p>[character] Column name of reference sample population
+IDs in refColors/refColorsFile.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>studyColor</code></td>
+<td>
+<p>[character] Colour to be used for study population if plot
+is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refPopulation</code></td>
+<td>
+<p>[vector] Vector with population identifiers of European
+reference population. Identifiers have to be corresponding to population IDs
+[refColorsPop] in refColorsfile/refColors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>legend_labels_per_row</code></td>
+<td>
+<p>[integer] Number of population names per row in
+PCA plot.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>legend_text_size</code></td>
+<td>
+<p>[integer] Size for legend text.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>legend_title_size</code></td>
+<td>
+<p>[integer] Size for legend title.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>axis_text_size</code></td>
+<td>
+<p>[integer] Size for axis text.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>axis_title_size</code></td>
+<td>
+<p>[integer] Size for axis title.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>title_size</code></td>
+<td>
+<p>[integer] Size for plot title.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>highlight_samples</code></td>
+<td>
+<p>[character vector] Vector of sample IIDs to
+highlight in the plot (p_ancestry); all highlight_samples IIDs have to
+be present in the IIDs of the prefixMergedDataset.fam file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>highlight_type</code></td>
+<td>
+<p>[character]  Type of sample highlight, labeling
+by IID ("text"/"label") and/or highlighting data points in different "color"
+and/or "shape". "text" and "label" use ggrepel for minimal
+overlap of text labels ("text) or label boxes ("label").  Only one of "text"
+and "label" can be specified.Text/Label size can be specified with
+highlight_text_size, highlight color with highlight_color,
+or highlight shape with highlight_shape.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>highlight_text_size</code></td>
+<td>
+<p>[integer] Text/Label size for samples specified to
+be highlighted (highlight_samples) by "text" or "label" (highlight_type).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>highlight_color</code></td>
+<td>
+<p>[character] Color for samples specified to
+be highlighted (highlight_samples) by "color" (highlight_type).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>highlight_shape</code></td>
+<td>
+<p>[integer] Shape for samples specified to
+be highlighted (highlight_samples) by "shape" (highlight_type). Possible
+shapes and their encoding can be found at:
+<a href="https://ggplot2.tidyverse.org/articles/ggplot2-specs.html#sec:shape-spec">https://ggplot2.tidyverse.org/articles/ggplot2-specs.html#sec:shape-spec</a></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>highlight_legend</code></td>
+<td>
+<p>[logical] Should a separate legend for the
+highlighted samples be provided; only relevant for highlight_type == "color"
+or highlight_type == "shape".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interactive</code></td>
+<td>
+<p>[logical] Should plots be shown interactively? When
+choosing this option, make sure you have X-forwarding/graphical interface
+available for interactive plotting. Alternatively, set interactive=FALSE and
+save the returned plot object (p_ancestry) via ggplot2::ggsave(p=p_ancestry,
+other_arguments) or pdf(outfile) print(p_ancestry) dev.off().</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>[logical] If TRUE, progress info is printed to standard out.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Both <code>run_check_ancestry</code> and
+<code>evaluate_check_ancestry</code> can simply be invoked by
+<code>check_ancestry</code>.
+</p>
+<p>1000 Genomes samples were downloaded from
+<a href="https://www.internationalgenome.org/category/sample/">https://www.internationalgenome.org/category/sample/</a>, HapMap Phase 3
+samples were downloaded from
+<a href="https://www.broadinstitute.org/medical-and-population-genetics/hapmap-3">https://www.broadinstitute.org/medical-and-population-genetics/hapmap-3</a>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Named [list] with i) fail_ancestry, containing a [data.frame] with
+FID and IID of non-European individuals and ii) p_ancestry, a ggplot2-object
+'containing' a scatter plot of PC1 versus PC2 colour-coded for samples of the
+reference populations and the study population, which can be shown by
+print(p_ancestry) and iii) plot_data, a data.frame with the data
+visualised in p_ancestry (ii).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+qcdir &lt;- system.file("extdata", package="plinkQC")
+name &lt;- "data"
+
+# whole dataset
+fail_ancestry &lt;- evaluate_check_ancestry(indir=qcdir, name=name,
+refSamplesFile=paste(qcdir, "/HapMap_ID2Pop.txt",sep=""),
+refColorsFile=paste(qcdir, "/HapMap_PopColors.txt", sep=""),
+prefixMergedDataset="data.HapMapIII", interactive=FALSE)
+
+# highlight samples
+highlight_samples &lt;- read.table(system.file("extdata", "keep_individuals",
+package="plinkQC"))
+fail_ancestry &lt;- evaluate_check_ancestry(indir=qcdir, name=name,
+refSamplesFile=paste(qcdir, "/HapMap_ID2Pop.txt",sep=""),
+refColorsFile=paste(qcdir, "/HapMap_PopColors.txt", sep=""),
+prefixMergedDataset="data.HapMapIII", interactive=FALSE,
+highlight_samples = highlight_samples[,2],
+highlight_type = c("text", "shape"))
+
+## End(Not run)
+</code></pre>
+
+
+</div>

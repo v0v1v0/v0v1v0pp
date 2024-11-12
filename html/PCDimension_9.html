@@ -1,0 +1,166 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>agDimFunction</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Divide Steps into "Long" and "Short" to Compute Auer-Gervini Dimension
+</h2>
+
+<h3>Description</h3>
+
+<p>Auer and Gervini developed a Bayesian graphical method to determine
+the number <code class="reqn">d</code> of significant principal components; a brief
+overview is included in the help for the <code>AuerGervini</code>
+class.  The output of their method is a step function that displays
+the maximum a posteriori (MAP) choice of <code class="reqn">d</code> as a step function of
+a one-parameter family of prior distributions, and they recommend
+choosing the highest "long" step.  The functions described here help
+automate the process of dividing the step lengths into "long" and
+"short" classes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">  agDimTwiceMean(stepLength)
+  agDimKmeans(stepLength)
+  agDimKmeans3(stepLength)
+  agDimSpectral(stepLength)
+  agDimTtest(stepLength, extra=0)
+  agDimTtest2(stepLength)
+  agDimCPT(stepLength)
+  makeAgCpmFun(method)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>stepLength</code></td>
+<td>
+<p>A numeric vector</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>A character string describing a method supported by the
+<code>detectChangePointBatch</code> function in the <code>cpm</code>
+package.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extra</code></td>
+<td>
+<p>Just ignore this. Don't use it. It's a hack to avoid
+having to maintain two different versions of the same code.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>agDimTwiceMean</code> function implements a simple and naive rule:
+a step is considered long if it as least twice the mean length.
+</p>
+<p>The <code>agDimKmeans</code> uses the <code>kmeans</code> algorithm with
+<code class="reqn">k=2</code> to divide the step lengths into two classes.  Starting
+centers for the groups are taken to be the minimum and maximum
+values.
+</p>
+<p>The <code>agDimKmeans3</code> function uses <code>kmeans</code> with <code class="reqn">k=3</code>,
+using the median as the third center.  Only one of the three groups is
+considered "short".
+</p>
+<p>The <code>agDimSpectral</code> applies spectral clustering (as implemented
+by the <code>specc</code> function from the <code>kernlab</code> package)
+to divide the steps lengths into two groups.
+</p>
+<p>The <code>agDimTtest</code> and <code>agDimTtest2</code> functions implement two
+variants of a novel algorithm specialized for this particular task.
+The idea is to start by sorting the step lengths so that </p>
+<p style="text-align: center;"><code class="reqn">L_1 \le
+  L_2 \le \dots \le L_n.</code>
+</p>
+<p>  Then, for each <code class="reqn">i \in 3,\dots, N-1</code>, we
+compute the mean and standard deviation of the first <code class="reqn">i</code> step
+lengths.  Finally, one computes the likelhood that <code class="reqn">L_{i+1}</code> comes
+from the normal distribution defined by the first <code class="reqn">i</code> lengths. If
+the probability that <code class="reqn">L_{i+1}</code> is larger is less than <code class="reqn">0.01</code>,
+then it is chosen as the "smallest long step".
+</p>
+<p>The novel method just described can also be viewed as a way to detect
+a particular kind of change point.  So, we also provide the
+<code>agDimCPT</code> function that uses the changepoint detection
+algorithm implement by the <code>cpt.mean</code> function in the
+<code>changepoint</code> package.  More generally, the <code>makeAgCpmFun</code>
+allows you to use any of the changepoint models implemented as part
+of the <code>detectChangePointBatch</code> function in the <code>cpm</code>
+package.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Each of the functions <code>agDimTwiceMean</code>, <code>agDimKmeans</code>,
+<code>agDimKmeans3</code>, <code>agDimSpectral</code>, <code>agDimTtest</code>,
+<code>agDimTtest2</code>, and <code>agDimCPT</code> returns a logical vector whose
+length is equal to the input <code>stepLength</code>.  <code>TRUE</code> values
+identify "long" steps and <code>FALSE</code> values identify "short"
+steps.
+</p>
+<p>The <code>makeAgCpmFun</code> returns a function that takes one argument (a
+numeric <code>stepLength</code> vector) and returns a logical vector of the
+same length.
+</p>
+<p><em>Note:</em> Our simulations suggest that "TwiceMean" and "CPM" give
+the best results.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Kevin R. Coombes &lt;krc@silicovore.com&gt;, Min Wang &lt;wang.1807@osu.edu&gt;.
+</p>
+
+
+<h3>References</h3>
+
+<p>P Auer, D Gervini.
+Choosing principal components: a new graphical method based on Bayesian model selection.
+Communications in Statistics-Simulation and Computation 37 (5), 962-977
+</p>
+
+
+<h3>See Also</h3>
+
+<p>The functions described here implerment different algorithms that can
+be used by the <code>agDimension</code> function to automatically
+compute the number of significant principal components based on the
+<code>AuerGervini</code> approach.  Several of these functions are
+wrappers around functions defined in other packages, including
+<code>specc</code> in the <code>kernlab</code> package,
+<code>cpt.mean</code> in the <code>changepoint</code> package, and
+<code>detectChangePointBatch</code> in the <code>cpm</code> package.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># simulate variances
+lambda &lt;- rev(sort(diff(sort(c(0, 1, runif(9))))))
+# apply the Auer-Gervini method
+ag &lt;- AuerGervini(lambda, dd=c(3,10))
+# Review the results
+summary(ag)
+agDimension(ag)
+agDimension(ag, agDimKmeans)
+agDimension(ag, agDimSpectral)
+f &lt;- makeAgCpmFun("Exponential")
+agDimension(ag, f)
+</code></pre>
+
+
+</div>

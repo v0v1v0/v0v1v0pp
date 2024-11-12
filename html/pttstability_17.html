@@ -1,0 +1,130 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>makedynamics_general</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulate general time series</h2>
+
+<h3>Description</h3>
+
+<p>Simulates a time series following a user-defined deterministic function, observation function, process noise function, and colonization function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">makedynamics_general(
+  n = 1000,
+  n0 = 0.1,
+  pdet = c(log(3), log(1)),
+  proc = c(log(1)),
+  obs = c(log(1)),
+  pcol = c(logit(0.2), log(1)),
+  detfun = detfun0,
+  procfun = procfun0,
+  obsfun = obsfun0,
+  colfun = colfun0,
+  doplot = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>number of timesteps to simulate</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n0</code></td>
+<td>
+<p>starting population size</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pdet</code></td>
+<td>
+<p>a numeric vector of parameters for the deterministic function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>proc</code></td>
+<td>
+<p>a numeric vector of parameters for the process noise function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obs</code></td>
+<td>
+<p>a numeric vector of parameters for the observation error function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pcol</code></td>
+<td>
+<p>a numeric vector of parameters for the colonization function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>detfun</code></td>
+<td>
+<p>A function that simulates deterministic dynamics, which takes in arguments sdet (parameters for deterministic model, taken from pars$proc), and xt, observed abundances at time t. Returns estimated abundances at time t+1 based on deterministic function (either a parametric function or an EDM function). Defaults to detfun0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>procfun</code></td>
+<td>
+<p>A function that simulates process noise, which takes in arguments sp (parameters for process noise function, taken from pars$proc) and xt (abundances prior to process noise). Returns abundances after process noise has occurred. Defaults to procfun0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obsfun</code></td>
+<td>
+<p>An observation function, which takes in up to five variables, including so (a vector of parameter values, inherited from pars$obs), yt (a number, showing observed abundance at time t), xt (predicted abundances), binary value "inverse", and number "N". If inverse = TRUE,
+then function should simulate N draws from the observation function, centered around value yt. If inverse = FALSE, then function should return log probability denisty of observed value yt given predicted values in xt. Defaults to obsfun0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colfun</code></td>
+<td>
+<p>A function simulating colonization events, that takes in two arguments: co, a vector of parameter values taken from pars$pcol, and xt, a number or numeric vector of abundances at time t, before colonization has occurred. Returns predicted abundances after colonization has occurred. Defaults to colful0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>doplot</code></td>
+<td>
+<p>a logical specifying wether output should be plotted - defaults to FALSE</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An n-by-3 dataframe of states, including obs (observed values), truth (true values), and noproc (values without process noise)
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"> #run function
+ datout&lt;-makedynamics_general(n=2e4, proc = c(-2,log(1.2)))
+
+ #show regression of variance vs. mean for binned data
+ datout_ps&lt;-datout[datout$true&gt;0 &amp; datout$noproc&gt;0,]
+ #bins
+ sq&lt;-seq(0, quantile(datout$true, 0.95), length=50)
+ ctd&lt;-cut(datout_ps$noproc, sq)
+ #calculate mean and variance by bin
+ tdat&lt;-data.frame(mu=(sq[-1]+sq[-length(sq)])/2,
+      var=tapply((datout_ps$true-datout_ps$noproc)^2, ctd, mean))
+ #plot result
+ plot(log(tdat$mu), log(tdat$var), xlab="mu", ylab="var")
+ #show regression
+ summary(mod&lt;-lm(log(var)~log(mu), tdat)); abline(mod, col=2)
+</code></pre>
+
+
+</div>

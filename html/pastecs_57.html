@@ -1,0 +1,327 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>regul</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2> Regulation of one or several time series using various methods </h2>
+
+<h3>Description</h3>
+
+<p>Regulate irregular time series or regular time series with gaps. Create a <code>regul</code> object from whose one or several regular time series can be extracted using <code>extract()</code> or <code>tseries()</code>. This is the function to apply most of the time to create regular time series ('rts' objects in Splus or 'ts' objects in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>) that will be further analyzed by other functions that apply to regular time series.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">regul(x, y=NULL, xmin=min(x), n=length(x), units="days", frequency=NULL,
+        deltat=1/frequency, datemin=NULL, dateformat="m/d/Y", tol=NULL,
+        tol.type="both", methods="linear", rule=1, f=0, periodic=FALSE,
+        window=(max(x) - min(x))/(n - 1), split=100, specs=NULL)
+## S3 method for class 'regul'
+print(x, ...)
+## S3 method for class 'regul'
+summary(object, ...)
+## S3 method for class 'summary.regul'
+print(x, ...)
+## S3 method for class 'regul'
+plot(x, series=1, col=c(1, 2), lty=c(par("lty"), par("lty")), plot.pts=TRUE,
+        leg=FALSE, llab=c("initial", x$specs$methods[series]), lpos=c(1.5, 10),
+        xlab=paste("Time (", x$units, ")", sep = ""), ylab="Series",
+        main=paste("Regulation of", names(x$y)[series]), ...)
+## S3 method for class 'regul'
+lines(x, series=1, col=3, lty=1, plot.pts=TRUE, ...)
+## S3 method for class 'regul'
+identify(x, series=1, col=3, label="#", ...)
+## S3 method for class 'regul'
+hist(x, nclass=30, col=c(4, 5, 2),
+        xlab=paste("Time distance in", x$units, "with start =", min(x$x),
+        ", n = ", length(x$x), ", deltat =", x$tspar$deltat),
+        ylab=paste("Frequency, tol =", x$specs$tol),
+        main="Number of matching observations", plotit=TRUE, ...)
+## S3 method for class 'regul'
+extract(e, n, series=NULL, ...)
+## S3 method for class 'regul'
+specs(x, ...)
+## S3 method for class 'specs.regul'
+print(x, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p> for regul: a vector containing times at which observations are sampled in the initial irregular time series. It can be expressed in any unit ("years", "days", "weeks", "hours", "min", "sec",...) as defined by the argument <code>units</code>. It is often expressed in "days" and the decimal part represents the part of the day, that is the time in hour:min:sec (dates coming from Excel, or even standard dates in S+ or <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> are expressed like that). For the methods, a 'tsd' object </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p> a vector (single series) or a matrix/data frame whose columns correspond to the various irregular time series to regulate. Rows are observations made at corresponding times in <code>x</code>. The number of rows must thus match the length of vector <code>x</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xmin</code></td>
+<td>
+<p> allows to respecify the origin of time in <code>x</code>. By default, the origin is not redefined and thus, the smallest value in <code>x</code> is used </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p> the number of observations in the regular time series. By default, it is the same number than in the original irregular time series (i.e., <code>length(x)</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>units</code></td>
+<td>
+<p> the time unit for the <code>x</code> vector. By default <code>units="days"</code>. A special value, <code>units="daystoyears"</code> indicates that <code>x</code> is expressed in "days" (1 unit = 1 day) but that we want to obtain the final regular time series expressed in "years" (1 unit = 1 year). Give a correct value for <code>datemin</code> to make sure the right fraction of the year is computed for each observation (see example hereunder) </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>frequency</code></td>
+<td>
+<p> the frequency of the regulated time series in the corresponding time unit. For instance, <code>frequency=12</code> with <code>units="years"</code> means montly sampled observations. Warning! When using <code>units="daystoyears"</code>, specify <code>frequency</code> (or <code>deltat</code>) in years! </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deltat</code></td>
+<td>
+<p> the interval between two observations in the regulated time series. It is the inverse of <code>frequency</code>. If both <code>frequency</code> and <code>deltat</code> are provided, then <code>frequency</code> supersedes <code>deltat</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>datemin</code></td>
+<td>
+<p> this is mostly useful for converting "days" in "years" time-scales (<code>units="daystoyears"</code>). If the <code>x</code> vector contains: 1, 3, 6,... (day 1, day 3, day 6... of the experiment), one can give here the exact date of the first observation, allowing to define a correct origin in the "years" time scale. Provide a string in a format compatible with <code>dateformat</code>. For instance, if day 1 is the 21th March 1998, give <code>datemin="03/21/1998"</code> with <code>dateformat="m/d/Y"</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dateformat</code></td>
+<td>
+<p> indicate how <code>datemin</code> is formated. For instance: <code>"d/m/Y"</code>, or <code>"m/d/Y"</code> (by default), see <code>daystoyears()</code> for more info on date formatting </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p> the tolerance in the time-scale to determine if a measured value is used to approximate a regulated value. If <code>tol=0</code>, observations in each respective series must match exactly, otherwise observations in the regulated series are interpolated. <code>tol</code> must be a round fraction of <code>deltat</code> (deltat, deltat/2, deltat/3, etc...), and cannot be larger than it, otherwise, <code>tol</code> is automatically adjusted to the closest allowed value. By default, <code>tol=NULL</code>. This is equivalent to <code>tol=0</code>. Warning! In the particular case of <code>units="daystoyears"</code>, <code>tol</code> must be expressed in the original time-scale, that is "days", while <code>deltat</code> must be expressed in the fimal time-scale, that is "years"! </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol.type</code></td>
+<td>
+<p> the type of adjustment to use for the time-tolerance: <code>"left"</code>, <code>"right"</code>, <code>"both"</code> (by default) or <code>"none"</code>. If <code>tol.type="left"</code>, corresponding <code>x</code> values are seeked in a window ]xregul-tol, xregul]. If <code>tol.type="right"</code>, they are seeked in the window [xregul, xregul+tol[. If <code>tol.type="both"</code>, then they are seeked in the window ]xregul-tol, xregul+tol]. If several observations are in this window, the closest one is used. Finally, if <code>tol.type="none"</code>, then <em>all</em> observations in the regulated time series are interpolated (even if exactly matching observations exist!) </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>methods</code></td>
+<td>
+<p> the method(s) to use to regulate the time series. Currently, it can be: <code>"constant"</code>, <code>"linear"</code>, <code>"spline"</code> or <code>"area"</code> (or a unique abbreviation of them). If several time series are provided (<code>y</code> is a matrix or a data frame), it is possible to define methods individually for each series. For instance, <code>methods=c("l", "a", "s")</code> defines the "linear" method for the first series, the "area" method for the second one, the "spline" method for the third one,... and again the "linear" for the fourth, the "area" for the fifth one, etc. (recycling rule). By default, the "linear" method is selected for all series </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rule</code></td>
+<td>
+<p> the rule to use for extrapolated values (observations in the final regular time series that are outside the range of observed values in the initial time series). With <code>rule=1</code> (by default), these entries are not calculated and get NA; with <code>rule=2</code>, these entries are extrapolated (avoid using this option, or use with extreme care!!!) </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p> parameter for the <code>"constant"</code> regulation method. Coefficient giving more weight to the observation at left (<code>f=0</code>, by default), to the observation at right (<code>f=1</code>), or give an intermediate weight to both of these observations (0 &lt; f &lt; 1) during the interpolation (see <code>reglin()</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>periodic</code></td>
+<td>
+<p> parameter for the <code>"spline"</code> regulation method. Indicate if the time series should be considered as periodic (<code>periodic=TRUE</code>, first value must be equal to the last one). If this is the case, first and second derivates used to calculate spline segments around first and last observations use data in the other extreme of the series. In the other case (<code>periodic=FALSE</code>, by default), derivates for extremes observations are considered to be equal to zero </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>window</code></td>
+<td>
+<p> parameter for the <code>"area"</code> regulation method. Size of the window to consider (see <code>regarea()</code>). By default, the mean interval between observations in the initial irregular time series is used. Give the same value as for deltat for working with adjacent windows </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>split</code></td>
+<td>
+<p> other parameter for the <code>"area"</code> method. To optimise calculation time and to avoid to saturate memory, very long time series are splitted into smaller subunits (see <code>regarea()</code>). This is transparent for the user. The default value of <code>split=100</code> should be rarely changed. Give a lower value if the program fails and reports a memory problem during calculation </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>specs</code></td>
+<td>
+<p> a <code>specs.regul</code> object returned by the function <code>specs()</code> applied to a <code>regul</code> object. Allows to collect parameterization of the <code>regul()</code> function and to apply them to another regulation </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p> A <code>regul</code> object as obtained after using the <code>regul()</code> function </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>e</code></td>
+<td>
+<p> A <code>regul</code> object as obtained after using the <code>regul()</code> function </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>series</code></td>
+<td>
+<p> the series to plot. By default, <code>series=1</code>, corresponding to the first (or possibly the unique) series in the <code>regul</code> object </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>col</code></td>
+<td>
+<p> (1) for <code>plot()</code>: the two colors to use to draw respectively the initial irregular series and the final regulated series. <code>col=c(1,2)</code> by default. (2) for <code>hist()</code>: the three colors to use to represent respectively the fist bar (exact coincidence), the middle bars (coincidence in a certain tolerance window) and the last bar (values always interpolated). By default, <code>col=c(4,5,2)</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lty</code></td>
+<td>
+<p> the style to use to draw lines for the initial series and the regulated series, respectively. The default style is used for both lines if this argument is not provided </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.pts</code></td>
+<td>
+<p> if <code>plot.pts=TRUE</code> (by default) then points are also drawn for the regulated series (+). Those points that match observations in the initial irregular series, and are not interpolated, are further marked with a circle </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>leg</code></td>
+<td>
+<p> do we add a legend to the graph? By default, <code>leg=FALSE</code>, no legend is added </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>llab</code></td>
+<td>
+<p> the labels to use for the initial irregular and the final regulated series, respectively. By default, it is <code>"initial"</code> for the first one and the name of the regulation method used for the second one (see <code>methods</code> argument) </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lpos</code></td>
+<td>
+<p> the position of the top-left corner of the legend box (x,y), in the graph coordinates </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xlab</code></td>
+<td>
+<p> the label of the x-axis </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ylab</code></td>
+<td>
+<p> the label of the y-axis </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>main</code></td>
+<td>
+<p> the main title of the graph</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>label</code></td>
+<td>
+<p> the character to use to mark points interactively selected on the graph. By default, <code>label="#"</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nclass</code></td>
+<td>
+<p> the number of classes to calculate in the histogram. This is indicative and this value is automatically adjusted to obtain a nicely-formatted histogram. By default, <code>nclass=30</code> </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plotit</code></td>
+<td>
+<p> If <code>plotit=TRUE</code> then the histogram is plotted. Otherwise, it is only calculated </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p> additional parameters </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Several irregular time series (for instance, contained in a data frame) can be treated at once. Specify a vector with <code>"constant"</code>, <code>"linear"</code>, <code>"spline"</code> or <code>"area"</code> for the argument <code>methods</code> to use a different regulation method for each series. See corresponding fonctions (<code>regconst()</code>, <code>reglin()</code>, <code>regspline()</code> and <code>regarea()</code>), respectively, for more details on these methods. Arguments can be saved in a <code>specs</code> object and reused for other similar regulation processes. Functions <code>regul.screen()</code> and <code>regul.adj()</code> are useful to chose best time interval in the computed regular time series. If you want to work on seasonal effects in the time series, you will better use a "years" time-scale (1 unit = 1 year), or convert into such a scale. If initial time unit is "days" (1 unit = 1 day), a conversion can be operated at the same time as the regulation by specifying <code>units="daystoyears"</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of type 'regul' is returned. It has methods <code>print()</code>, <code>summary()</code>, <code>plot()</code>, <code>lines()</code>, <code>identify()</code>, <code>hist()</code>, <code>extract()</code> and <code>specs()</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p> Fr?d?ric Ibanez (<a href="mailto:ibanez@obs-vlfr.fr">ibanez@obs-vlfr.fr</a>), Philippe Grosjean (<a href="mailto:phgrosjean@sciviews.org">phgrosjean@sciviews.org</a>) </p>
+
+
+<h3>References</h3>
+
+<p>Lancaster, P. &amp; K. Salkauskas, 1986. <em>Curve and surface fitting.</em> Academic Press, England, 280 pp.
+</p>
+<p>Fox, W.T. &amp; J.A. Brown, 1965. <em>The use of time-trend analysis for environmental interpretation of limestones.</em> J. Geol., 73:510-518.
+</p>
+<p>Ibanez, F., 1991. <em>Treatment of the data deriving from the COST 647 project on coastal benthic ecology: The within-site  analysis.</em> In: B. Keegan (ed). Space and Time Series Data Analysis in Coastal Benthic Ecology. Pp 5-43.
+</p>
+<p>Ibanez, F. &amp; J.C. Dauvin, 1988. <em>Long-term changes (1977-1987) on a muddy fine sand Abra alba - Melinna palmata population community from the Western English Channel.</em> J. Mar. Ecol. Prog. Ser., 49:65-81.
+</p>
+
+
+<h3>See Also</h3>
+
+ <p><code>regul.screen</code>, <code>regul.adj</code>, <code>tseries</code>, <code>is.tseries</code>, <code>regconst</code>, <code>reglin</code>, <code>regspline</code>, <code>regarea</code>, <code>daystoyears</code> </p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(releve)
+# The series in this data frame are very irregularly sampled in time:
+releve$Day
+length(releve$Day)
+intervals &lt;- releve$Day[2:61]-releve$Day[1:60]
+intervals
+range(intervals)
+mean(intervals)
+# The series must be regulated to be converted in a 'rts' or 'ts object
+rel.reg &lt;- regul(releve$Day, releve[3:8], xmin=9, n=63, deltat=21,
+        tol=1.05, methods=c("s","c","l","a","s","a"), window=21)
+rel.reg
+plot(rel.reg, 5)
+specs(rel.reg)
+# Now we can extract one or several regular time series
+melo.ts &lt;- extract(rel.reg, series="Melosul")
+is.tseries(melo.ts)
+
+# One can convert time-scale from "days" to "years" during regulation
+# This is most useful for analyzing seasonal cycles in a second step
+melo.regy &lt;- regul(releve$Day, releve$Melosul, xmin=6, n=87,
+        units="daystoyears", frequency=24, tol=2.2, methods="linear",
+        datemin="21/03/1989", dateformat="d/m/Y")
+melo.regy
+plot(melo.regy, main="Regulation of Melosul")
+# In this case, we have only one series in 'melo.regy'
+# We can use also 'tseries()' instead of 'extract()'
+melo.tsy &lt;- tseries(melo.regy)
+is.tseries(melo.tsy)
+</code></pre>
+
+
+</div>

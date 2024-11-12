@@ -1,0 +1,319 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>simulate_phylproc</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Simultaneously simulate a phylogeny and a trait evolving on it.
+</h2>
+
+<h3>Description</h3>
+
+<p>The function does simulates a phylogeny and phenotypic dataset under 
+user defined models of trait and phylogeny evolution. In particular 
+the phenotype may influence the branching dynamics.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">simulate_phylproc(tree.height, simul.params, X0, fbirth, fdeath=NULL, 
+fbirth.params=NULL, fdeath.params=NULL, fsimulphenotype="sde.yuima", 
+n.contemporary=-1, n.tips.total=1000, step=NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tree.height</code></td>
+<td>
+
+<p>The height of the desired output tree. The simulated tree 
+is conditioned to be of a certain height. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simul.params</code></td>
+<td>
+
+<p>The parameters of the stochastic model to simulate the phenotype. 
+They should be passed as a named list. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X0</code></td>
+<td>
+
+<p>The value of the ancestral state at the start of the tree.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fbirth</code></td>
+<td>
+
+<p>A function that returns the birth rate at a given moment.
+The fist parameter of the function has to correspond to the value of the
+phenotype (it is a vector first element is time and the others the values of the trait(s)) 
+and the second to the list of birth parameters <code>birth.params</code>,
+see <code>par0</code>. The time entry of the phenotype vector is at the moment relative to 
+an unspecified (from <code>fbirth</code>'s perspective) speciation event on the phylogeny.
+Hence, it cannot be used as for writing a time-inhomogenous speciation
+function. The speciation process is assumed to be time homogeneous in the 
+current implementation. The package has support for two inbuilt rate functions.
+The can be indicated by passing a string in <code>fbirth</code>: either <code>"rate_id"</code>
+or <code>"rate_const"</code>. The string <code>"rate_const"</code> corresponds to a 
+constant rate and has to have the rate's value in field called <code>$rate</code>.
+However, a switching of rates is allowed. If the value of the first trait
+exceeds a certain threshold (provided in field <code>$switch</code> of 
+birth parameters), then the rate is changed to the value in <code>$rate2</code>,
+see body of hidden function <code>.f_rate_const()</code>, in file <code>rates.R</code>.
+The string <code>"rate_id"</code> corresponds to the <code>.f_rate_id()</code> function, 
+in file <code>rates.R</code>. If the birth parameters are <code>NULL</code>, then the
+rate equals the value of the first phenotype. However, a number 
+of linear, threshold and power transformations of the rate are
+possible.The field <code>varnum</code> indicates the index of the variable
+to take as the one influencing the rate (remember to add 1 for the time entry).
+Then, if <code class="reqn">x</code> stands for the trait influencing the branching rate it is 
+transformed into a rate by the following fields in the following order. 
+Set <code>rate&lt;-x</code> and let <code>params</code> correspond to the list containing
+the branching parameters.
+</p>
+
+<ul>
+<li>
+<p><code>substractbase</code>rate&lt;-max(0,params$rate-substractbase)
+<code>rate&lt;-abs(rate)</code>
+</p>
+</li>
+<li>
+<p><code>p</code> and if <code>is.null(params$raise.at.end) || !params$raise.at.end</code>
+rate&lt;-rate^params$p
+</p>
+</li>
+<li>
+<p><code>base</code> and <code>!is.null(params$const)</code> <br><code>if (res&lt;params$base){rate&lt;-params$const}</code>
+</p>
+</li>
+<li>
+<p><code>base</code> and <code>is.null(params$const)</code> <br><code>if (res&lt;params$base){rate&lt;-0}</code>
+</p>
+</li>
+<li>
+<p><code>invbase</code> and <code>!is.null(params$const)</code> <br><code>if (res&gt;params$invbase){rate&lt;-params$const}</code>
+</p>
+</li>
+<li>
+<p><code>invbase</code> and <code>is.null(params$const)</code> <br><code>if (res&gt;params$invbase){rate&lt;-0}</code>
+</p>
+</li>
+<li>
+<p><code>scale</code>rate&lt;-rate/params$scale
+</p>
+</li>
+<li>
+<p><code>p</code> and if <code>params$raise.at.end</code>rate&lt;-rate^params$p
+<code>res&lt;-abs(res)</code>
+</p>
+</li>
+<li>
+<p><code>maxval</code><code>if(rate&gt;params$maxval){rate&lt;-params$maxval}</code>
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fdeath</code></td>
+<td>
+
+<p>A function that returns the birth rate at a given moment. Its structure
+is the same as <code>fbirth</code>. The current version of the  package does 
+not provide any support for any inbuilt function.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fbirth.params</code></td>
+<td>
+
+<p>The parameters of the birth rate, to be provided to <code>fbirth</code>.
+They have to be a named list. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fdeath.params</code></td>
+<td>
+
+<p>The parameters of the death rate, to be provided to <code>fdeath</code>.
+They have to be a named list. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fsimulphenotype</code></td>
+<td>
+
+<p>The name of a function to simulate the phenotype over a period of time. 
+The function has to have four parameters (in the following order not by name):
+<code>time</code>, <code>params</code>, <code>X0</code> and <code>step</code>.
+The parameter <code>time</code> is the duration of the simulation, i.e. the length
+of the branch. The parameter <code>params</code> is a list of
+the parameters governing the simulation, what will be passed here
+is the list <br><code>phenotype.model.params</code>, without the fields
+<code>fixed</code>, <code>abstepsd</code> and <br><code>positivevars</code>. It is up
+to the function in <code>phenotype.model</code> to interpret the 
+provided parameters. <code>X0</code> stands for the value at the start of the branch
+and <code>step</code> is a control parameter governing the time 
+step size of the simulation. The <span class="pkg">pcmabc</span> package has inbuilt support for 
+simulating the trait as as stochastic differential equation by the <span class="pkg">yuima</span> 
+package with the function <code>simulate_sde_on_branch()</code>. However
+the user needs to write the <code>phenotype.model</code> function that translates
+the vector of parameters into an object that is understandable by <span class="pkg">yuima</span>
+and then call <code>simulate_sde_on_branch()</code>, see the Example.
+</p>
+<p>The phenotype is simulated prior to the simulation of the speciation/extinction
+events on a lineage (see Details). Hence, it is not possible (at the moment) 
+to include some special event (e.g. a cladogenetic jump) at branching. Such
+dynamics are only possible at the start of the lineage, i.e. when the new lineage
+separated from the main lineage. Hence, cladogenetic change can only be 
+included as an event connected with a lineage (subpopulation) breaking off.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.contemporary</code></td>
+<td>
+
+<p>The number of contemporary species to generate. If equals -1, then ignored.
+Otherwise when the tree reaches <code>n.contemporary</code> tips at height
+<code>tree.height</code> the simulation is stopped. However, there is no
+conditioning on this value, it is just an upper bound. It may
+just happen that due to the birth and death rate functions the
+process stops before reaching the target number of tips.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.tips.total</code></td>
+<td>
+
+<p>The total (contemporary and extinct) number of tips to generate.
+If equals -1, then ignored. Otherwise when the tree reaches 
+<code>n.tips.total</code> tips the simulation is stopped. However, there is 
+no conditioning on this value, it is just an upper bound. It may
+just happen that due to the birth and death rate functions the
+process stops before reaching the target number of tips.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>step</code></td>
+<td>
+
+<p>The time step size for simulating the phenotype. If not provided,
+then calculated as <code>min(0.001,tree.height/1000)</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The tree is simulate by means of a Cox process (i.e. Poisson process
+with random rate). First the trait is simulated along the spine of a 
+tree, i.e. a lineage of duration <code>tree.height</code>. Then, along this
+spine the birth and death rates are calculated (they may depend 
+on the value of the phenotype). The maximum for each rate is calculated
+and a homogeneous Poisson process with the maximum rate is simulated.
+Then, these events are thinned. Each event is retained with probability
+equalling true rate divided by maximum of rate (p. 32, Sheldon 2006). 
+All speciation events are retained until the first death event.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tree</code></td>
+<td>
+<p>The simulated tree in <code>phylo</code> format.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phenotype</code></td>
+<td>
+<p>A list of the trajectory of the simulated phenotype. 
+The i-th entry of the list corresponds to the trait's evolution on
+the i-th edge (as in i-th row of <code>phyltree$edge</code>) of the tree.
+Each entry is a matrix with first row equalling time (relative to the 
+start of the branch) and the next rows correspond to the trait value(s).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>root.branch.phenotype</code></td>
+<td>
+<p>The simulation on the root branch.
+A matrix with first row being time and next rows the simulated trait(s).</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Krzysztof Bartoszek</p>
+
+
+<h3>References</h3>
+
+<p>Bartoszek, K. and Lio', P (2019). 
+Modelling trait dependent speciation with Approximate Bayesian Computation.
+Acta Physica Polonica B Proceedings Supplement 12(1):25-47.
+</p>
+<p>Sheldon R. M. (2006). Simulation. Elsevier Academic Press.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>PCM_ABC</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## simulate 3d OUBM model with id branching rate
+set.seed(12345)
+
+simulate_mvsl_sde&lt;-function(time,params,X0,step){
+    A &lt;- c(paste("(-",params$a11,")*(x1-(",params$psi1,"))
+    -(",params$a12,")*(x2-(",params$psi2,"))-(",params$b11,")*x3",sep=""),
+    paste("(-",params$a21,")*(x1-(",params$psi1,"))
+    -(",params$a22,")*(x2-(",params$psi2,"))-(",params$b21,")*x3",sep=""),0)
+    S &lt;- matrix( c( params$s11, params$s12, 0, 0, params$s22 
+    , 0, 0, 0, params$s33), 3, 3,byrow=TRUE)
+    yuima.3d &lt;- yuima::setModel(drift = A, diffusion = S,
+    state.variable=c("x1","x2","x3"),solve.variable=c("x1","x2","x3") )
+    simulate_sde_on_branch(time,yuima.3d,X0,step)
+}
+
+birth.params&lt;-list(scale=1,maxval=2)
+
+sde.params&lt;-list(a11=2.569531,a12=0,a21=0,a22=28.2608,b11=-5.482939,
+b21=-34.806936,s11=0.5513215,s12=1.059831,s22=1.247302,s33=1.181376,
+psi1=-2.4590422,psi2=-0.6197838)
+X0&lt;-c(5.723548,4.103157,3.834698)
+step&lt;-0.25 ## for keeping example's running time short &lt;5s as CRAN policy, 
+            ## in reality should be much smaller e.g. step&lt;-0.001          
+            
+simres&lt;-simulate_phylproc(3.5, sde.params, X0, fbirth="rate_id", fdeath=NULL, 
+fbirth.params=NULL, fdeath.params=NULL, fsimulphenotype=simulate_mvsl_sde, 
+n.contemporary=5, n.tips.total=-1, step=step)
+</code></pre>
+
+
+</div>

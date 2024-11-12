@@ -1,0 +1,423 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plotluck</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>"I'm feeling lucky" for ggplot</h2>
+
+<h3>Description</h3>
+
+<p>The purpose of <code>plotluck</code> is to let the user focus on <em>what</em> to plot,
+and automate the <em>how</em>. Given a dependency formula with up to three
+variables, it tries to choose the most suitable type of plot. It also automates
+sampling large datasets, correct handling of observation weights, logarithmic
+axis scaling, ordering and pruning of factor levels, and overlaying smoothing
+curves or median lines.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">plotluck(data, formula, weights, opts = plotluck.options(), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a data frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>an object of class <code>formula</code>: a symbolic description
+of the relationship of up to three variables.
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+<strong>Formula</strong>
+</td>
+<td style="text-align: left;"><strong>Meaning</strong></td>
+<td style="text-align: left;"><strong>Plot types</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>y~1</code>
+</td>
+<td style="text-align: left;"> Distribution of single variable</td>
+<td style="text-align: left;"> Density, histogram, scatter, dot, bar</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>y~x</code>
+</td>
+<td style="text-align: left;"> One explanatory variable</td>
+<td style="text-align: left;"> Scatter, hex, violin, box, spine, heat</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>y~x+z</code>
+</td>
+<td style="text-align: left;"> Two explanatory variables</td>
+<td style="text-align: left;"> heat, spine</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>y~1|z</code> or <code>y~x|z</code>
+</td>
+<td style="text-align: left;"> One conditional variable</td>
+<td style="text-align: left;"> Represented through coloring or facetting</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>y~1|x+z</code>
+</td>
+<td style="text-align: left;"> Two conditional variables</td>
+<td style="text-align: left;"> Represented through facetting</td>
+</tr>
+</table>
+<p>In addition to these base plot types, the dot symbol <code>"."</code> can also be used,
+and denotes all variables in the data frame. This gives rise to a lattice or
+series of plots (use with caution, can be slow).
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+<strong>Formula</strong>
+</td>
+<td style="text-align: left;"><strong>Meaning</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>.~1</code>
+</td>
+<td style="text-align: left;"> Distribution of each variable in the data frame, separately</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>y~.</code>
+</td>
+<td style="text-align: left;"> Plot <code>y</code> against each variable in the data frame</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>.~x</code>
+</td>
+<td style="text-align: left;"> Plot each variable in the data frame against <code>x</code>
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>.~.</code>
+</td>
+<td style="text-align: left;"> Plot each variable in the data frame against each other.</td>
+</tr>
+</table>
+<p>See also section "Generating multiple plots at once" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>observation weights or frequencies (optional).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opts</code></td>
+<td>
+<p>a named list of options (optional); See also <code>plotluck.options</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters to be passed to the respective ggplot2 geom objects.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a ggplot object, or a plotluck.multi object if the dot symbol was used.
+</p>
+
+
+<h3>Determining the type of plot</h3>
+
+<p>Besides the shape of the formula, the
+algorithm takes into account the type of variables as either numeric, ordered,
+or unordered factors. Often, it makes sense to treat ordered factors similarly
+as numeric types.
+</p>
+<p>One-variable numeric (resp. factor) distributions are usually represented by
+density (resp. Cleveland dot) charts, but can be overridden to histograms or
+bar plots using the <code>geom</code> option. Density plots come with an overlaid
+vertical median line.
+</p>
+<p>For two numerical variables, by default a scatter plot is produced, but for
+high numbers of points a hexbin is preferred (option <code>min.points.hex</code>).
+These plots come with a smoothing line and standard deviation.
+</p>
+<p>The relation between two factor variables can be depicted best by spine
+(a.k.a., mosaic) plots, unless they have too many levels (options
+<code>max.factor.levels.spine.x</code>, <code>max.factor.levels.spine.y</code>,
+<code>max.factor.levels.spine.z</code>). Otherwise, a heat map is produced.
+</p>
+<p>For a mixed-type (factor/numeric) pair of variables, violin (overridable
+to box) plots are generated. However, if the resulting graph would contain
+too many (more than <code>max.factor.levels.violin</code>) violin plots in a row,
+the algorithm switches automatically. The number of bins of a histogram can
+be customized with <code>n.breaks.histogram</code>. The default setting, <code>NA</code>,
+applies a heuristic estimate.
+</p>
+<p>The case of a response two dependent variables ('y~x+z') is covered by
+either a spine plot (if all are factors) or a heat map.
+</p>
+<p>In many cases with few points for one of the aggregate plots, a scatter
+looks better (options <code>min.points.density</code>, <code>min.points.violin</code>,
+<code>min.points.hex</code>).
+</p>
+<p>If each factor combination occurs only once in the data set, we resort to
+bar plots.
+</p>
+
+
+<h3>Conditional variables</h3>
+
+<p>Conditional variables are represented by either
+trying to fit into the same graph using coloring (<code>max.factor.levels.color</code>),
+or by facetting (preferred dimensions <code>facet.num.wrap</code> (resp.
+<code>facet.num.grid</code>) for one resp. two variables). Numeric vectors are
+discretized accordingly. Facets are laid out horizontally or vertically
+according to the plot type, up to maximum dimensions of <code>facet.max.rows</code>
+and <code>facet.max.cols</code>.
+</p>
+
+
+<h3>Reordering of factor levels</h3>
+
+<p>To better illustrate the relation
+between an independent factor variable and a dependent numerical variable
+(or an ordered factor), levels are reordered according to the value of the
+dependent variable. If no other numeric or ordered variable exists, we
+sort by frequency.
+</p>
+
+
+<h3>Instance weights</h3>
+
+<p>Argument <code>weights</code> allows to specify weights
+or frequency counts for each row of data. All plots and summary statistics
+take weights into account when supplied. In scatter and heat maps, weights
+are indicated either by a shaded disk with proportional area (default) or by
+jittering (option <code>dedupe.scatter</code>), if the number of duplicated points
+exceeds <code>min.points.jitter</code>. The amount of jittering can be controlled
+with <code>jitter.x</code> and <code>jitter.y</code>.
+</p>
+
+
+<h3>Axis scaling</h3>
+
+<p><code>plotluck</code> supports logarithmic and log-modulus
+axis scaling. log-modulus is considered if values are both positive and
+negative; in this case, the transform function is <code>f(x) = sign(x) *
+ log(1+abs(x))</code>.
+</p>
+<p>The heuristic to apply scaling is based on the proportion of total display
+range that is occupied by the 'core' region of the distribution between the
+lower and upper quartiles; namely, the fact whether the transform could
+magnify this region by a factor of at least <code>trans.log.thresh</code>.
+</p>
+
+
+<h3>Missing values</h3>
+
+<p>By default, missing (<code>NA</code> or <code>NaN</code>) values
+in factors are are shown as a special factor level code"?". They can be
+removed by setting <code>na.rm=TRUE</code>. Conventionally, missing numeric values
+are not shown.
+</p>
+
+
+<h3>Sampling</h3>
+
+<p>For very large data sets, plots can take a very long time
+(or even crash R). <code>plotluck</code> has a built-in stop-gap: If the data
+comprises more than <code>sample.max.rows</code>, it will be sampled down to that
+size (taking into account <code>weights</code>, if supplied).
+</p>
+
+
+<h3>Factor preprocessing</h3>
+
+<p>Character (resp. logical) vectors are converted to
+unordered (resp. ordered) factors.
+</p>
+<p>Frequently, when numeric variables have very few values despite sufficient
+data size, it helps to treat these values as the levels of a factor; this is
+governed by option <code>few.unique.as.factor</code>.
+</p>
+<p>If an unordered factor has too many levels, plots can get messy. In this
+case, only the <code>max.factor.levels</code> most frequent ones are retained,
+while the rest are merged into a default level <code>".other."</code>.
+</p>
+
+
+<h3>Coloring</h3>
+
+<p>If <code>color</code> or <code>fill</code> aesthetics are used to
+distinguish different levels or ranges of a variable, the color scheme adjusts
+to the type. Preferably, a sequential (resp. qualitative) palette is chosen
+for a numeric/ordered (unordered) factor (<code>palette.brewer.seq</code>,
+<code>palette.brewer.qual</code>); see also RColorBrewer.
+</p>
+
+
+<h3>Generating multiple plots at once</h3>
+
+<p>If <code>formula</code> contains a dot
+(<code>"."</code>) symbol, the function creates a number of 1D or 2D plots by calling
+<code>plotluck</code> repeatedly. As described above, this allows either single
+distribution, one-vs-all and all-vs-all variable plots. To save space,
+rendering is minimal without axis labels.
+</p>
+<p>In the all-vs-all case, the diagonal contains 1D distribution plots, analogous
+to the behavior of the default plot method for data frames, see
+<code>plot.data.frame</code>.
+</p>
+<p>With setting <code>in.grid=FALSE</code>, plots are produced in a sequence, otherwise
+together on one or multiple pages, if necessary (default). Page size is
+controlled by <code>multi.max.rows</code> and  <code>multi.max.cols</code>.
+</p>
+<p>With <code>entropy.order=TRUE</code>, plots are sorted by an estimate of
+empirical conditional entropy, with the goal of prioritizing the more
+predictive variables. Set <code>verbose=TRUE</code> if you want to see the actual
+values. For large data sets the calculation can be time consuming; entropy
+calculation can be suppressed by setting <code>multi.entropy.order=FALSE</code>.
+</p>
+<p>@note The return value is an object of class <code>plotluck_multi</code>. This
+class does not have any functionality; its sole purpose is to make this
+function work in the same way as <code>ggplot</code> and <code>plotluck</code>, namely,
+do the actual drawing if and only if the return value is not assigned.
+</p>
+
+
+<h3>Debugging</h3>
+
+<p>With the option <code>verbose=TRUE</code> turned on, the function
+will print out information about the chosen and applicable plot types, ordering,
+log scaling, etc.
+</p>
+
+
+<h3>Column name matching</h3>
+
+<p>Variable names can be abbreviated if they match
+a column name uniquely by prefix.
+</p>
+
+
+<h3>Remarks on supported plot types</h3>
+
+<p>By default, <code>plotluck</code>
+uses violin and density plots in place of the more traditional box-and-whisker
+plots and histograms; these modern graph types convey the shape of a
+distribution better. In the former case, summary statistics like mean and
+quantiles are less useful if the distribution is not unimodal; a wrong
+choice of the number of bins of a histogram can create misleading artifacts.
+</p>
+<p>Following Cleveland's advice, factors are plotted on the y-axis to make labels
+most readable and compact at the same time. This direction can be controlled
+using option <code>prefer.factors.vert</code>.
+</p>
+<p>Due to their well-documented problematic aspects, pie charts and stacked bar
+graphs are not supported.
+</p>
+<p>With real-world data (as opposed to smooth mathematical functions),
+three-dimensional scatter, surface, or contour plots can often be hard to
+read if the shape of the distribution is not suitable, data coverage is
+uneven, or if the perspective is not carefully chosen depending on the data.
+Since they usually require manual tweaking, we have refrained from
+incorporating them.
+</p>
+
+
+<h3>Remarks on the use of options</h3>
+
+<p>For completeness, we have included the
+description of option parameters in the current help page. However, the
+tenet of this function is to be usable "out-of-the-box", with no or very
+little manual tweaking required. If you find yourself needing to change
+option values repeatedly or find the presets to be suboptimal, please
+contact the author.
+</p>
+
+
+<h3>Limitations</h3>
+
+<p><code>plotluck</code> is designed for generic out-of-the-box
+plotting, and not suitable to produce more specialized types of plots that
+arise in specific application domains (e.g., association, stem-and-leaf,
+star plots, geographic maps, etc). It is restricted to at most three variables.
+Parallel plots with variables on different scales (such as time
+series of multiple related signals) are not supported.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>plotluck.options</code>, <code>sample.plotluck</code>, <code>ggplot</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Single-variable density
+data(diamonds, package='ggplot2')
+plotluck(diamonds, price~1)
+invisible(readline(prompt="Press [enter] to continue"))
+
+# Violin plot
+data(iris)
+plotluck(iris, Species~Petal.Length)
+invisible(readline(prompt="Press [enter] to continue"))
+
+# Scatter plot
+data(mpg, package='ggplot2')
+plotluck(mpg, cty~model)
+invisible(readline(prompt="Press [enter] to continue"))
+
+# Spine plot
+data(Titanic)
+plotluck(as.data.frame(Titanic), Survived~Class+Sex, weights=Freq)
+invisible(readline(prompt="Press [enter] to continue"))
+
+# Facetting
+data(msleep, package='ggplot2')
+plotluck(msleep, sleep_total~bodywt|vore)
+invisible(readline(prompt="Press [enter] to continue"))
+
+# Heat map
+plotluck(diamonds, price~cut+color)
+
+
+# Multi plots
+# All 1D distributions
+plotluck(iris, .~1)
+
+# 2D dependencies with one fixed variable on vertical axis
+plotluck(iris, Species~.)
+
+# See also tests/testthat/test_plotluck.R for more examples!
+
+</code></pre>
+
+
+</div>

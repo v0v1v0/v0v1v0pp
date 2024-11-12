@@ -1,0 +1,93 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>inbr_diag</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Replace kinship diagonal with inbreeding coefficients</h2>
+
+<h3>Description</h3>
+
+<p>The usual kinship matrix contains self-kinship values along their diagonal given by <code>diag(kinship) = ( 1 + inbr ) / 2</code>, where <code>inbr</code> is the vector of inbreeding coefficient.
+This function returns a modified kinship matrix with diagonal values replaced with <code>inbr</code> (off-diagonal values stay the same).
+The resulting matrix is better for visualization, but is often not appropriate for modeling (e.g. in mixed-effects models for association or heritability estimation).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">inbr_diag(kinship)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>kinship</code></td>
+<td>
+<p>A kinship matrix with self-kinship values along the diagonal.
+Can pass multiple kinship matrices contained in a list.
+If <code>NULL</code>, it is returned as-is.</p>
+</td>
+</tr></table>
+<h3>Value</h3>
+
+<p>The modified kinship matrix, with inbreeding coefficients along the diagonal, preserving column and row names.
+If the input was a list of kinship matrices, the output is the corresponding list of transformed matrices.
+<code>NULL</code> inputs are preserved without causing errors.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>The inverse function is given by <code>bnpsd::coanc_to_kinship()</code>.
+</p>
+<p><code>inbr()</code> to extract the vector of inbreeding values from a kinship matrix.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#########
+# illustrate the main transformation on a 2x2 kinship matrix:
+# same inbreeding values for both individuals
+inbr &lt;- 0.2
+# corresponding self kinship (diagonal values) for both individuals
+kinship_self &lt;- (1 + inbr)/2
+# kinship between the two individuals
+kinship_between &lt;- 0.1
+# actual kinship matrix
+kinship &lt;- matrix(c(kinship_self, kinship_between, kinship_between, kinship_self), nrow=2)
+# expected output of inbr_diag (replaces self kinship with inbreeding)
+kinship_inbr_diag_exp &lt;- matrix(c(inbr, kinship_between, kinship_between, inbr), nrow=2)
+# actual output from this function
+kinship_inbr_diag_obs &lt;- inbr_diag(kinship)
+# verify that they match (up to machine precision)
+stopifnot( all( abs(kinship_inbr_diag_obs - kinship_inbr_diag_exp) &lt; .Machine$double.eps ) )
+
+# for a list of matrices, returns list of transformed matrices:
+inbr_diag( list(kinship, kinship) )
+
+# a list with NULL values also works
+inbr_diag( list(kinship, NULL, kinship) )
+
+#########
+# Construct toy data (to more closely resemble real data analysis)
+X &lt;- matrix(c(0,1,2,1,0,1,1,0,2), nrow=3, byrow=TRUE) # genotype matrix
+subpops &lt;- c(1,1,2) # subpopulation assignments for individuals
+
+# NOTE: for BED-formatted input, use BEDMatrix!
+# "file" is path to BED file (excluding .bed extension)
+## library(BEDMatrix)
+## X &lt;- BEDMatrix(file) # load genotype matrix object
+
+# estimate the kinship matrix from the genotypes "X"!
+kinship &lt;- popkin(X, subpops) # calculate kinship from X and optional subpop labels
+
+# lastly, replace diagonal of kinship matrix with inbreeding coefficients
+kinship_inbr_diag &lt;- inbr_diag(kinship)
+
+</code></pre>
+
+
+</div>

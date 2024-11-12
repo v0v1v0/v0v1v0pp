@@ -1,0 +1,332 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Dtrace</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Trace optimization routines</h2>
+
+<h3>Description</h3>
+
+<p>A helper function for writing output to the screen and files when optimizing.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">Dtrace(
+  fn,
+  it,
+  ni,
+  xtopt,
+  xopt,
+  aopt,
+  gxt,
+  ga,
+  dmf,
+  diff,
+  ixt,
+  ia,
+  itvector,
+  dmfvector,
+  poped.db,
+  opt_xt = poped.db$settings$optsw[2],
+  opt_a = poped.db$settings$optsw[4],
+  opt_x = poped.db$settings$optsw[3],
+  opt_samps = poped.db$settings$optsw[1],
+  opt_inds = poped.db$settings$optsw[5],
+  rsit = poped.db$settings$rsit,
+  convergence_eps = poped.db$settings$convergence_eps
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fn</code></td>
+<td>
+<p>A file to output information to. Can also be the screen if <code>''</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>it</code></td>
+<td>
+<p>the iteration number.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ni</code></td>
+<td>
+<p>A vector of the number of samples in each group.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xtopt</code></td>
+<td>
+<p>The matrix defining current best sampling schedule.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xopt</code></td>
+<td>
+<p>The cell structure defining the current best discrete design variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aopt</code></td>
+<td>
+<p>The matrix defining the current best continuous design variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gxt</code></td>
+<td>
+<p>The matrix defining the current gradient of the xt vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ga</code></td>
+<td>
+<p>The matrix defining the current gradient for the continuous design variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dmf</code></td>
+<td>
+<p>The current OFV.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>diff</code></td>
+<td>
+<p>The difference from the previous iteration.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ixt</code></td>
+<td>
+<p>If xt Gradient Inversion occurred or not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ia</code></td>
+<td>
+<p>If a Gradient Inversion occurred or not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>itvector</code></td>
+<td>
+<p>The iteration vector.  Not currently used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dmfvector</code></td>
+<td>
+<p>The dmf vector. Not currently used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>poped.db</code></td>
+<td>
+<p>A PopED database.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt_xt</code></td>
+<td>
+<p>Should the sample times be optimized?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt_a</code></td>
+<td>
+<p>Should the continuous design variables be optimized?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt_x</code></td>
+<td>
+<p>Should the discrete design variables be optimized?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt_samps</code></td>
+<td>
+<p>Are the number of sample times per group being optimized?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>opt_inds</code></td>
+<td>
+<p>Are the number of individuals per group being optimized?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rsit</code></td>
+<td>
+<p>Number of Random search iterations</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convergence_eps</code></td>
+<td>
+<p>Stochastic Gradient convergence value,
+(difference in OFV for D-optimal, difference in gradient for ED-optimal)</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(PopED)
+
+############# START #################
+## Create PopED database
+## (warfarin model for optimization)
+#####################################
+
+## Warfarin example from software comparison in:
+## Nyberg et al., "Methods and software tools for design evaluation 
+##   for population pharmacokinetics-pharmacodynamics studies", 
+##   Br. J. Clin. Pharm., 2014. 
+
+## Optimization using an additive + proportional reidual error  
+## to avoid sample times at very low concentrations (time 0 or very late samples).
+
+## find the parameters that are needed to define from the structural model
+ff.PK.1.comp.oral.sd.CL
+
+## -- parameter definition function 
+## -- names match parameters in function ff
+sfg &lt;- function(x,a,bpop,b,bocc){
+  parameters=c(CL=bpop[1]*exp(b[1]),
+               V=bpop[2]*exp(b[2]),
+               KA=bpop[3]*exp(b[3]),
+               Favail=bpop[4],
+               DOSE=a[1])
+  return(parameters) 
+}
+
+## -- Define initial design  and design space
+poped.db &lt;- create.poped.database(ff_fun=ff.PK.1.comp.oral.sd.CL,
+                                  fg_fun=sfg,
+                                  fError_fun=feps.add.prop,
+                                  bpop=c(CL=0.15, V=8, KA=1.0, Favail=1), 
+                                  notfixed_bpop=c(1,1,1,0),
+                                  d=c(CL=0.07, V=0.02, KA=0.6), 
+                                  sigma=c(prop=0.01,add=0.25),
+                                  groupsize=32,
+                                  xt=c( 0.5,1,2,6,24,36,72,120),
+                                  minxt=0.01,
+                                  maxxt=120,
+                                  a=c(DOSE=70),
+                                  mina=c(DOSE=0.01),
+                                  maxa=c(DOSE=100))
+
+############# END ###################
+## Create PopED database
+## (warfarin model for optimization)
+#####################################
+
+
+FIM &lt;- evaluate.fim(poped.db) 
+dmf &lt;- det(FIM)
+
+Dtrace(fn="",
+       it=1,
+       ni=poped.db$design$ni,
+       xtopt=poped.db$design$xt,
+       xopt=poped.db$design$x,
+       aopt=poped.db$design$a,
+       gxt=0,ga=0,
+       dmf=dmf,diff=3,
+       ixt=FALSE,
+       ia=FALSE, 
+       itvector=NULL,
+       dmfvector=NULL,
+       poped.db,
+       opt_xt=poped.db$settings$optsw[2],
+       opt_a=poped.db$settings$optsw[4],opt_x=poped.db$settings$optsw[3],
+       opt_samps=poped.db$settings$optsw[1],opt_inds=poped.db$settings$optsw[5],
+       rsit=200)
+
+Dtrace(fn="",
+       it=1,
+       ni=poped.db$design$ni,
+       xtopt=poped.db$design$xt,
+       xopt=poped.db$design$x,
+       aopt=poped.db$design$a,
+       gxt=0,ga=0,
+       dmf=dmf,diff=3,
+       ixt=FALSE,
+       ia=FALSE, 
+       itvector=NULL,
+       dmfvector=NULL,
+       poped.db,
+       opt_xt=poped.db$settings$optsw[2],
+       opt_a=poped.db$settings$optsw[4],opt_x=poped.db$settings$optsw[3],
+       opt_samps=poped.db$settings$optsw[1],opt_inds=poped.db$settings$optsw[5],
+       rsit=0)
+
+Dtrace(fn="",
+       it=1,
+       ni=poped.db$design$ni,
+       xtopt=poped.db$design$xt,
+       xopt=poped.db$design$x,
+       aopt=poped.db$design$a,
+       gxt=0,ga=0,
+       dmf=dmf,diff=3,
+       ixt=FALSE,
+       ia=FALSE, 
+       itvector=NULL,
+       dmfvector=NULL,
+       poped.db,
+       opt_xt=poped.db$settings$optsw[2],
+       opt_a=poped.db$settings$optsw[4],opt_x=poped.db$settings$optsw[3],
+       opt_samps=poped.db$settings$optsw[1],opt_inds=poped.db$settings$optsw[5],
+       rsit=1)
+
+Dtrace(fn="",
+       it=1,
+       ni=poped.db$design$ni,
+       xtopt=poped.db$design$xt,
+       xopt=poped.db$design$x,
+       aopt=poped.db$design$a,
+       gxt=0,ga=0,
+       dmf=dmf,
+       diff=0,
+       ixt=FALSE,
+       ia=FALSE, 
+       itvector=NULL,
+       dmfvector=NULL,
+       poped.db,
+       opt_xt=poped.db$settings$optsw[2],
+       opt_a=poped.db$settings$optsw[4],opt_x=poped.db$settings$optsw[3],
+       opt_samps=poped.db$settings$optsw[1],opt_inds=poped.db$settings$optsw[5],
+       rsit=1)
+
+Dtrace(fn="",
+       it=5,
+       ni=poped.db$design$ni,
+       xtopt=poped.db$design$xt,
+       xopt=poped.db$design$x,
+       aopt=poped.db$design$a,
+       gxt=0,ga=0,
+       dmf=dmf,
+       diff=0,
+       ixt=FALSE,
+       ia=FALSE, 
+       itvector=NULL,
+       dmfvector=NULL,
+       poped.db,
+       opt_xt=poped.db$settings$optsw[2],
+       opt_a=poped.db$settings$optsw[4],opt_x=poped.db$settings$optsw[3],
+       opt_samps=poped.db$settings$optsw[1],opt_inds=poped.db$settings$optsw[5],
+       rsit=1)
+
+</code></pre>
+
+
+</div>

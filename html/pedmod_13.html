@@ -1,0 +1,149 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pedigree_ll_terms</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Get a C++ Object for Log Marginal Likelihood Approximations</h2>
+
+<h3>Description</h3>
+
+<p>Constructs an object needed for <code>eval_pedigree_ll</code> and
+<code>eval_pedigree_grad</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pedigree_ll_terms(data, max_threads = 1L, n_sequences = 8L)
+
+pedigree_ll_terms_loadings(data, max_threads = 1L, n_sequences = 8L)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p><code>list</code> where each element is a list for a cluster
+with an:
+</p>
+
+<ul>
+<li>
+<p><code>"X"</code> element with the design matrix for the fixed effect,
+</p>
+</li>
+<li>
+<p><code>"Z"</code> element with the design matrix for the loadings of the effects (only needed for <code>pedigree_ll_terms_loadings</code>),
+</p>
+</li>
+<li>
+<p><code>"y"</code> element with the zero-one outcomes, and
+</p>
+</li>
+<li>
+<p><code>"scale_mats"</code> element with a list where each element is a
+scale/correlation matrix for a particular type of effect.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_threads</code></td>
+<td>
+<p>maximum number of threads to use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_sequences</code></td>
+<td>
+<p>number of randomized quasi-Monte Carlo sequences to use.
+More samples yields a better estimate of the error but a worse
+approximation. Eight is used in the original Fortran code. If one is
+used then the error will be set to zero because it cannot be estimated.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>An intercept column is not added to the <code>X</code> matrices
+like what <code>lm.fit</code> and <code>glm.fit</code> do.
+Thus, it is often important that the user adds an intercept column
+to these matrices as it is hardly ever justified to not include the
+intercept (the exceptions being e.g. when splines are used which include
+the intercept and with certain dummy designs). This equally holds for
+the <code>Z</code> matrices with <code>pedigree_ll_terms_loadings</code>.
+</p>
+<p><code>pedigree_ll_terms_loadings</code> relax the assumption that the scale
+parameter is the same for all individuals. <code>pedigree_ll_terms_loadings</code>
+and <code>pedigree_ll_terms</code> yield the same model if <code>"Z"</code> is an
+intercept column for all families but with a different parameterization.
+In this case, <code>pedigree_ll_terms</code> will be
+faster. See <code>vignette("pedmod", "pedmod")</code> for examples of using
+<code>pedigree_ll_terms_loadings</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># three families as an example
+fam_dat &lt;- list(
+  list(
+    y = c(FALSE, TRUE, FALSE, FALSE),
+    X = structure(c(
+      1, 1, 1, 1, 1.2922654151273, 0.358134905909256, -0.734963997107464,
+      0.855235473516044, -1.16189500386223, -0.387298334620742,
+      0.387298334620742, 1.16189500386223),
+      .Dim = 4:3, .Dimnames = list( NULL, c("(Intercept)", "X1", ""))),
+    rel_mat = structure(c(
+      1, 0.5, 0.5, 0.125, 0.5, 1, 0.5, 0.125, 0.5, 0.5,
+      1, 0.125, 0.125, 0.125, 0.125, 1), .Dim = c(4L, 4L)),
+    met_mat = structure(c(1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1),
+                        .Dim = c(4L, 4L))),
+  list(
+    y = c(FALSE, FALSE, FALSE),
+    X = structure(c(
+      1, 1, 1, -0.0388728997202442, -0.0913782435233639,
+      -0.0801619722392612, -1, 0, 1), .Dim = c(3L, 3L)),
+    rel_mat = structure(c(
+      1, 0.5, 0.125, 0.5, 1, 0.125, 0.125, 0.125, 1), .Dim = c(3L, 3L)),
+    met_mat = structure(c(
+      1, 1, 0, 1, 1, 0, 0, 0, 1), .Dim = c(3L, 3L))),
+  list(
+    y = c(TRUE, FALSE),
+    X = structure(c(
+      1, 1, 0.305275750370738, -1.49482995913648,  -0.707106781186547,
+      0.707106781186547),
+      .Dim = 2:3, .Dimnames = list( NULL, c("(Intercept)", "X1", ""))),
+    rel_mat = structure(c(1, 0.5,  0.5, 1), .Dim = c(2L, 2L)),
+    met_mat = structure(c(1, 1, 1, 1), .Dim = c(2L,  2L))))
+
+# get the data into the format needed for the package
+dat_arg &lt;- lapply(fam_dat, function(x){
+  # we need the following for each family:
+  #   y: the zero-one outcomes.
+  #   X: the design matrix for the fixed effects.
+  #   scale_mats: list with the scale matrices for each type of effect.
+  list(y = as.numeric(x$y), X = x$X,
+       scale_mats = list(x$rel_mat, x$met_mat))
+})
+
+# get a pointer to the C++ object
+ptr &lt;- pedigree_ll_terms(dat_arg, max_threads = 1L)
+
+# get the argument for a the version with loadings
+dat_arg_loadings &lt;- lapply(fam_dat, function(x){
+  list(y = as.numeric(x$y), X = x$X, Z = x$X[, 1:2],
+       scale_mats = list(x$rel_mat, x$met_mat))
+})
+
+ptr &lt;- pedigree_ll_terms_loadings(dat_arg_loadings, max_threads = 1L)
+
+</code></pre>
+
+
+</div>

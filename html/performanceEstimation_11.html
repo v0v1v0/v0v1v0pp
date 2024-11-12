@@ -1,0 +1,220 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cvEstimates</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Performance estimation using cross validation
+</h2>
+
+<h3>Description</h3>
+
+<p>This function obtains cross validation estimates of performance
+metrics for a given predictive task and method to solve it (i.e. a
+workflow). The function is general in the sense that the workflow
+function that the user provides as the solution to the task can
+implement or call whatever modeling technique the user wants.
+</p>
+<p>The function implements N x K-fold cross validation (CV)
+estimation. Different settings concerning this methodology are available
+through the argument <code>estTask</code> (check the help page of
+<code>EstimationTask</code> and <code>CV</code>).
+</p>
+<p>Please note that most of the times you will not call this function
+directly (though there is nothing wrong in doing it) but instead you
+will use the function <code>performanceEstimation</code>, that allows you to
+carry out performance estimation for multiple workflows on multiple tasks,
+using the estimation method you want (e.g. cross validation). Still, when you
+simply want to have the CV estimate of one workflow on one task,
+you may prefer to use this function directly. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cvEstimates(wf,task,estTask,cluster)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>wf</code></td>
+<td>
+
+<p>an object of the class <code>Workflow</code> representing the
+modeling approach to be evaluated on a certain task.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>task</code></td>
+<td>
+
+<p>an object of the class <code>PredTask</code> defining the
+prediction task for which we want estimates.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>estTask</code></td>
+<td>
+
+<p>an object of the class <code>EstimationTask</code> indicating the metrics to
+be estimated and the cross validation settings to use.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cluster</code></td>
+<td>
+
+<p>an optional parameter that can either be <code>TRUE</code> or a
+<code>cluster</code>. In case of <code>TRUE</code> the function will run in
+parallel and will internally setup the parallel back-end (defaulting
+to using half of the cores in your local machine). You may also setup
+outside your parallel back-end (c.f. <code>makeCluster</code>) and
+then pass the resulting <code>cluster</code> object to this function using
+this parameter. In case no value is provided for this parameter the
+function will run sequentially.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The idea of this function is to carry out a cross validation
+experiment with the goal of obtaining reliable estimates of the
+predictive performance of a certain approach to a predictive
+task. This approach (denoted here as a <em>workflow</em>) will be evaluated on
+the given predictive task using some user-selected  metrics,
+and this function will 
+provide k-fold cross validation estimates of the true values of these
+evaluation metrics.  k-Fold cross validation
+estimates are obtained by randomly partitioning the given data set into k
+equal size sub-sets. Then a learn+test process is repeated k times. At
+each iteration one of the k partitions is left aside as test set and
+the model is obtained with a training set formed by the remaining k-1
+partitions. The process is repeated leaving each time one of the k
+partitions aside as test set. In the end the average of the k scores
+obtained on each iteration is the cross validation estimate.
+</p>
+<p>Parallel execution of the estimation experiment is only recommended
+for minimally large data sets otherwise you may actually increase the
+computation time due to communication costs between the processes.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The result of the function is an object of class <code>EstimationResults</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p> Luis Torgo <a href="mailto:ltorgo@dcc.fc.up.pt">ltorgo@dcc.fc.up.pt</a> </p>
+
+
+<h3>References</h3>
+
+<p> Torgo, L. (2014) <em>An Infra-Structure for Performance
+Estimation and Experimental Comparison of Predictive Models in R</em>. arXiv:1412.0436 [cs.MS]
+<a href="http://arxiv.org/abs/1412.0436">http://arxiv.org/abs/1412.0436</a>  
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>CV</code>,
+<code>Workflow</code>,
+<code>standardWF</code>,
+<code>PredTask</code>,
+<code>EstimationTask</code>,
+<code>performanceEstimation</code>,
+<code>hldEstimates</code>,
+<code>bootEstimates</code>,  
+<code>loocvEstimates</code>,
+<code>mcEstimates</code>,
+<code>EstimationResults</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+
+## Estimating the mean squared error  of svm on the swiss data,
+## using two repetitions of 10-fold CV
+library(e1071)
+data(swiss)
+
+## Now the evaluation
+eval.res &lt;- cvEstimates(
+             Workflow(wf="standardWF", wfID="mySVMtrial",
+                      learner="svm", learner.pars=list(cost=10,gamma=0.1)
+                     ),
+             PredTask(Infant.Mortality ~ ., swiss),
+             EstimationTask(metrics="mse",method=CV(nReps=2,nFolds=10))
+                       )
+
+## Check a summary of the results
+summary(eval.res)
+
+
+## An example with a user-defined workflow function implementing a
+## simple approach using linear regression models but also containing
+## some data-preprocessing and well as results post-processing.
+myLM &lt;- function(form,train,test,k=10,.outModel=FALSE) {
+    require(DMwR)
+    ## fill-in NAs on both the train and test sets
+    ntr &lt;- knnImputation(train,k)
+    nts &lt;- knnImputation(test,k,distData=train)
+    ## obtain a linear regression model and simplify it
+    md &lt;- lm(form,ntr)
+    md &lt;- step(md)
+    ## get the model predictions
+    p &lt;- predict(md,nts)
+    ## post-process the predictions (this is an example assuming the target
+    ## variable is always positive so we change negative predictions into 0)
+    p &lt;- ifelse(p &lt; 0,0,p)
+    ## now get the final return object
+    res &lt;- list(trues=responseValues(form,nts), preds=p)
+    if (.outModel) res &lt;- c(res,list(model=m))
+    res
+}
+
+## Now for the CV estimation 
+data(algae,package="DMwR")
+eval.res2 &lt;- cvEstimates(
+             Workflow(wf="myLM",k=5),
+             PredTask(a1 ~ ., algae[,1:12],"alga1"),
+             EstimationTask("mse",method=CV()))
+
+## Check a summary of the results
+summary(eval.res2)
+
+##
+## Parallel execution example
+##
+## Comparing the time of sequential and parallel execution
+## using half of the cores of the local machine
+##
+data(Satellite,package="mlbench")
+library(e1071)
+system.time({p &lt;- cvEstimates(Workflow(learner="svm"),
+                              PredTask(classes ~ .,Satellite),
+                              EstimationTask("err",Boot(nReps=10)),
+                              cluster=TRUE)})[3]
+system.time({np &lt;- cvEstimates(Workflow(learner="svm"),
+                               PredTask(classes ~ .,Satellite),
+                               EstimationTask("err",Boot(nReps=10)))})[3]
+
+
+## End(Not run)
+</code></pre>
+
+
+</div>

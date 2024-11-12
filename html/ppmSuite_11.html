@@ -1,0 +1,218 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sppm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Function that fits spatial product partition model with Gaussian likelihood</h2>
+
+<h3>Description</h3>
+
+<p><code>sppm</code> is the main function used to fit model with Guassian likelihood and spatial PPM as prior on partitions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sppm(y,s,
+    s.pred=NULL,
+    cohesion,
+    M=1,
+    modelPriors=c(0, 100^2, 10, 10),
+    cParms=c(1, 1.5, 0, 1, 2, 2),
+    mh=c(0.5, 0.5),
+    draws=1100,burn=100,thin=1)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>numeric vector containing response variable</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s</code></td>
+<td>
+<p>Two-column matrix containing spatial locations (i.e., longitude and lattitude).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s.pred</code></td>
+<td>
+<p>Two-column matrix containing spatial locations at which out-of-sample predictions will be collected.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cohesion</code></td>
+<td>
+<p>Scalar that indicates which cohesion to use.
+</p>
+
+<ol>
+<li>
+<p> distance from centroids <br></p>
+</li>
+<li>
+<p> upper bound <br></p>
+</li>
+<li>
+<p> auxiliary similarity <br></p>
+</li>
+<li>
+<p> double dipper similarity <br></p>
+</li>
+</ol>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M</code></td>
+<td>
+<p>Parameter related to Dirichlet process scale or dispersion parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>modelPriors</code></td>
+<td>
+<p>Vector containing model prior values (see below for more details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cParms</code></td>
+<td>
+<p>Vector containing partition model prior values (see below for more details)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mh</code></td>
+<td>
+<p>Tuning standard deviations for metropolis updates for sigma2 and sigma20</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>draws</code></td>
+<td>
+<p>Number of MCMC samples to collect</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>burn</code></td>
+<td>
+<p>Number of the MCMC samples discarded in the burn-in phase of the sampler</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thin</code></td>
+<td>
+<p>The amount of thinning desired for the chain</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The vector <code style="white-space: pre;">⁠modelPriors = c(m0, s20, ms, ms0)⁠</code> where each prior parameter is listed in the model description below.
+</p>
+<p>The cParm vector contains values associated with the cohesion function.<br><code style="white-space: pre;">⁠
+cParm = c(
+  epsilon value - cohesion 1 only,
+  distance bound - cohesion 2 only,
+  mu0 - center of NNIG for cohesion 3 and 4
+  k0 - scale parm of gaussian part of NNIG for cohesion 3 and 4
+  v0 - degrees of freedom IG part of NNIG for cohesion 3 and 4
+  L0 - scale parm (scalar of identity matrix) IG part of NNIG for cohesion 3 and 4).⁠</code>
+</p>
+<p>The model this function fits is Gaussian likelihood model using the sPPM prior on partitions (Page and Quintana, 2016).  Specific model details are
+</p>
+<p style="text-align: center;"><code class="reqn">y_i | \mu^*, \sigma^{2*}, c_i \sim N(\mu_{c_i}^*, \sigma^{2*}_{c_i}), i=1,\ldots,n</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\mu^*_j | \mu_0, \sigma^2_0 \sim N(\mu_0,\sigma^2_0)</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\sigma^*_j | A \sim UN(0,  ms)</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\rho|M,\xi  \sim sPPM</code>
+</p>
+
+<p>To complete the model specification, the folloing hyperpriors are assumed,
+</p>
+<p style="text-align: center;"><code class="reqn">\mu_0 | m, s^2 \sim N(m0,s0^2)</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\sigma_0 | B  \sim UN(0,ms0)</code>
+</p>
+
+<p>Note that we employ uniform prior distributions on variance components as suggest in Gelman's 2006 Bayesian paper.  "sPPM" in the model specificaiton denotes the the spatial product partition model.  The computational implementation of the model is based algorithm 8 found in Neal's 2000 JCGS paper.
+</p>
+
+
+<h3>Value</h3>
+
+<p>This function returns in a list all MCMC interates for each model parameter, posterior predictive, and fitted values.  In addition the LPML model fit metric is provided.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+
+
+
+data(scallops)
+
+Y&lt;-log(scallops[,5]+1)
+s_coords &lt;- scallops[,3:4] #lat and long
+m &lt;- dim(s_coords)[1]
+
+
+
+# standardize spatial coordinates
+smn &lt;- apply(s_coords,2,mean)
+ssd &lt;- apply(s_coords,2,sd)
+s_std &lt;- t((t(s_coords) - smn)/ssd)
+
+# Create a grid of prediction locations
+np &lt;- 10
+
+sp &lt;- expand.grid(seq(min(s_coords[,1]), max(s_coords[,1]),length=np),
+                   seq(min(s_coords[,2]), max(s_coords[,2]), length=np))
+
+sp_std &lt;- t((t(sp) - smn)/ssd) # standardized prediction spatial coordinates
+
+
+niter &lt;- 20000
+nburn &lt;- 10000
+nthin &lt;- 10
+nout &lt;- (niter - nburn)/nthin
+
+
+out &lt;- sppm(y=Y,s=s_std,s.pred=sp_std,cohesion=4, M=1, draws=niter, burn=nburn, thin=nthin)
+
+# fitted values
+fitted.values &lt;- out$fitted
+fv.mn &lt;- apply(fitted.values, 2,mean)
+mean((Y - fv.mn)^2) # MSE
+out$lpml #lpml value
+
+ppred &lt;- out$ppred
+predmn &lt;- apply(ppred,2,mean)
+
+# The first partition iterate is used for plotting
+# purposes only. We recommended using the salso
+# R-package to estimate the partition based on Si
+Si &lt;- out$Si
+plot(s_coords[,1], s_coords[,2], col=Si[1,])
+
+
+
+
+
+</code></pre>
+
+
+</div>

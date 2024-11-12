@@ -1,0 +1,179 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>SS.RGBcalib</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>  Self-Start Functions for Fitting Luminance vs Grey Level Relation on CRT displays</h2>
+
+<h3>Description</h3>
+
+<p>This <code>selfStart</code> model evaluates the parameters for describing
+the luminance vs grey level relation of the R, G and B guns of
+a CRT-like display, fitting a single exponent, gamma, for each
+of the 3 guns.  It has an initial attribute that will evaluate
+initial estimates of the parameters, <code>Blev</code>, <code>Br</code>,
+<code>Bg</code>, <code>Bb</code> and <code>gamm</code>.
+In the case of fitting data from a single gun or for a combination of guns, as in the sum of the three for calibrating the <em>white</em>, the parameter <code>k</code> is used for the coefficient.
+Both functions include gradient and hessian attributes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">SS.calib(Blev, k, gamm, GL)
+SS.RGBcalib(Blev, Br, Bg, Bb, gamm, Rgun, Ggun, Bgun)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Blev</code></td>
+<td>
+<p>numeric. The black level is the luminance at the 0 grey level </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>numeric, coefficient of one gun for fitting single gun</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Br</code></td>
+<td>
+<p>numeric, coefficient of the R gun </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Bg</code></td>
+<td>
+<p>numeric, coefficient of the G gun </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Bb</code></td>
+<td>
+<p>numeric, coefficient of the B gun </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamm</code></td>
+<td>
+<p>numeric, the exponent, gamma, applied to the grey level </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>GL</code></td>
+<td>
+<p>numeric, is the grey level for the gun tested, covariate in model matrix in one gun case</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Rgun</code></td>
+<td>
+<p>numeric, is a covariate in the model matrix that indicates the grey
+level for the R gun.  See the example below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Ggun</code></td>
+<td>
+<p>numeric, is a covariate in the model matrix that indicates the grey
+level for the G gun </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Bgun</code></td>
+<td>
+<p>numeric, is a covariate in the model matrix that indicates the grey
+level for the B gun </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The model
+</p>
+<p style="text-align: center;"><code class="reqn"> Lum(GL) = Blev + \beta_i * GL^\gamma </code>
+</p>
+
+<p>where i is in {R, G, B},
+usually provides a reasonable description of the change
+in luminance of a display gun with grey level, <code>GL</code>.
+This <code>selfStart</code>
+function estimates <code class="reqn">\gamma</code> and the other parameters using the
+<code>nls</code> function.  It is assumed that grey level is normalized
+to the interval [0, 1].  This results in lower correlation between
+the linear coefficients of the guns, <code class="reqn">\beta_i</code> , than if the
+actual bit-level is used, e.g., [0, 255], for an 8-bit graphics
+card (see the example).  
+Also, with this normalization of the data, the coefficients,
+<code class="reqn">\beta_i</code>, provide estimates of the maximum luminance for
+each gun. The need for the arguments <code>Rgun</code>, <code>Ggun</code> and
+<code>Bgun</code> is really a kludge in order to add gradient and
+hessian information to the model.
+</p>
+
+
+<h3>Value</h3>
+
+<p>returns a numeric vector giving the estimated luminance given the parameters passed as arguments and a gradient matrix and a hessian array as attributes.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Kenneth Knoblauch </p>
+
+
+<h3>References</h3>
+
+<p> ~put references to the literature/web site here ~ </p>
+
+
+<h3>See Also</h3>
+
+<p><code>nls</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(RGB)
+
+#Fitting a single gun
+W.nls &lt;- nls(Lum ~ SS.calib(Blev, k, gamm, GL), data = RGB,
+				subset = (Gun == "W"))
+summary(W.nls)
+
+#curvature (parameter effect) is greater when GL is 0:255
+Wc.nls &lt;- nls(Lum ~ SS.calib(Blev, k, gamm, GL*255), data = RGB,
+				subset = (Gun == "W"))
+MASS::rms.curv(W.nls)
+MASS::rms.curv(Wc.nls)
+pairs(profile(Wc.nls), absVal = FALSE)
+pairs(profile(W.nls), absVal = FALSE)
+
+
+#Fitting 3 guns with independent gamma's		
+RGB0.nls &lt;- nlme::nlsList(Lum ~ SS.calib(Blev, k, gamm, GL) | Gun,
+		data = subset(RGB, Gun != "W"))
+summary(RGB0.nls)
+plot(nlme::intervals(RGB0.nls))
+
+# Add covariates to data.frame for R, G and B grey levels
+gg &lt;- model.matrix(~-1 + Gun/GL, RGB)[ , c(5:7)]
+RGB$Rgun &lt;- gg[, 1]
+RGB$Ggun &lt;- gg[, 2]
+RGB$Bgun &lt;- gg[, 3]
+RGB.nls &lt;- nls(Lum ~ SS.RGBcalib(Blev, Br, Bg, Bb, gamm, Rgun, Ggun, Bgun), 
+ 			              data = RGB, subset = (Gun != "W") )
+summary(RGB.nls)
+confint(RGB.nls)
+
+</code></pre>
+
+
+</div>

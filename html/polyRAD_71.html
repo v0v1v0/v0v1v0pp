@@ -1,0 +1,253 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>IterateHWE</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Iteratively Estimate Population Parameters and Genotypes In a Diversity Panel
+</h2>
+
+<h3>Description</h3>
+
+<p>These are wrapper function that iteratively run other <span class="pkg">polyRAD</span> functions 
+until allele frequencies stabilize to within a user-defined threshold.  Genotype
+posterior probabilities can then be exported for downstream analysis.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">IterateHWE(object, selfing.rate = 0, tol = 1e-05,
+           excludeTaxa = GetBlankTaxa(object),
+           overdispersion = 9)
+
+IterateHWE_LD(object, selfing.rate = 0, tol = 1e-05, 
+              excludeTaxa = GetBlankTaxa(object),
+              LDdist = 1e4, minLDcorr = 0.2,
+              overdispersion = 9)
+
+IteratePopStruct(object, selfing.rate = 0, tol = 1e-03,
+                 excludeTaxa = GetBlankTaxa(object),
+                 nPcsInit = 10, minfreq = 0.0001,
+                 overdispersion = 9, maxR2changeratio = 0.05)
+
+IteratePopStructLD(object, selfing.rate = 0, tol = 1e-03,
+                   excludeTaxa = GetBlankTaxa(object),
+                   nPcsInit = 10, minfreq = 0.0001, LDdist = 1e4, 
+                   minLDcorr = 0.2,
+                   overdispersion = 9, maxR2changeratio = 0.05)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+
+<p>A <code>"RADdata"</code> object.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>selfing.rate</code></td>
+<td>
+
+<p>A number ranging from zero to one indicating the frequency of
+self-fertilization in the species.  For individuals with odd ploidy
+(e.g. triploids), the selfing rate is always treated as zero and a warning is
+printed if a value above zero is provided.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+
+<p>A number indicating when the iteration should end.  It indicates the maximum mean 
+difference in allele frequencies between iterations that is tolerated.  Larger
+numbers will lead to fewer iterations.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>excludeTaxa</code></td>
+<td>
+
+<p>A character vector indicating names of taxa that should be excluded from allele 
+frequency estimates and chi-squared estimates.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nPcsInit</code></td>
+<td>
+
+<p>An integer indicating the number of principal component axes to initially 
+estimate from <code>object$depthRatio</code>.  Passed to <code>AddPCA</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minfreq</code></td>
+<td>
+
+<p>A number indicating the minimum allele frequency allowed.  Passed to
+<code>AddAlleleFreqByTaxa</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>LDdist</code></td>
+<td>
+
+<p>The distance, in basepairs, within which to search for alleles that may be in
+linkage disequilibrium with a given allele.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minLDcorr</code></td>
+<td>
+
+<p>The minimum correlation coefficient between two alleles 
+for linkage disequilibrium between those alleles to be used by the pipeline
+for genotype estimation; see <code>AddAlleleLinkages</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overdispersion</code></td>
+<td>
+
+<p>Overdispersion parameter; see <code>AddGenotypeLikelihood</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxR2changeratio</code></td>
+<td>
+
+<p>This number determines how many principal component axes are retained.  The 
+difference in <code class="reqn">R^2</code> values between the first and second axes 
+is multiplied by <code>maxR2changeratio</code>.  The last axis retained is the first
+axis after which the <code class="reqn">R^2</code> value changes by less than this value.
+Lower values of <code>maxR2changeratio</code> will result in more axes being retained.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For <code>IterateHWE</code>, the following functions are run iteratively,
+assuming no population structure:
+<code>AddAlleleFreqHWE</code>, 
+<code>AddGenotypePriorProb_HWE</code>, <code>AddGenotypeLikelihood</code>,
+<code>AddPloidyChiSq</code>, and <code>AddGenotypePosteriorProb</code>.
+</p>
+<p><code>IterateHWE_LD</code> runs each of the functions listed for <code>IterateHWE</code>
+once, then runs <code>AddAlleleLinkages</code>.  It then runs
+<code>AddAlleleFreqHWE</code>, <code>AddGenotypePriorProb_HWE</code>,
+<code>AddGenotypePriorProb_LD</code>, <code>AddGenotypeLikelihood</code>,
+<code>AddPloidyChiSq</code>, and <code>AddGenotypePosteriorProb</code>
+iteratively until allele frequencies converge.
+</p>
+<p>For <code>IteratePopStruct</code>, the following functions are run iteratively,
+modeling population structure:
+<code>AddPCA</code>, <code>AddAlleleFreqByTaxa</code>, 
+<code>AddAlleleFreqHWE</code>, <code>AddGenotypePriorProb_ByTaxa</code>,
+<code>AddGenotypeLikelihood</code>, <code>AddPloidyChiSq</code>, and
+<code>AddGenotypePosteriorProb</code>.
+After the first PCA analysis, the number of principal component axes is not
+allowed to decrease, and can only increase by one from one round to the next,
+in order to help the algorithm converge.
+</p>
+<p><code>IteratePopStructLD</code> runs each of the functions listed for 
+<code>IteratePopStruct</code> once, then runs <code>AddAlleleLinkages</code>.
+It then runs  
+<code>AddAlleleFreqHWE</code>, <code>AddGenotypePriorProb_ByTaxa</code>,
+<code>AddGenotypePriorProb_LD</code>,
+<code>AddGenotypeLikelihood</code>, <code>AddPloidyChiSq</code>, 
+<code>AddGenotypePosteriorProb</code>, <code>AddPCA</code>, 
+and <code>AddAlleleFreqByTaxa</code> iteratively until convergence of
+allele frequencies.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>"RADdata"</code> object identical to that passed to the function, but with
+<code>$alleleFreq</code>, <code>$priorProb</code>, <code>$depthSamplingPermutations</code>,
+<code>$genotypeLikelihood</code>, 
+<code>$ploidyChiSq</code>, and <code>$posteriorProb</code> slots added.  
+For <code>IteratePopStruct</code> and <code>IteratePopStructLD</code>, 
+<code>$alleleFreqByTaxa</code> and <code>$PCA</code> are also added.  For 
+<code>IteratePopStructLD</code> and <code>IterateHWE_LD</code>, <code>$alleleLinkages</code> 
+and <code>$priorProbLD</code> are also added.
+</p>
+
+
+<h3>Note</h3>
+
+<p>If you see the error 
+</p>
+<p><code>Error in if (rel_ch &lt; threshold &amp; count &gt; 5) { : 
+  missing value where TRUE/FALSE needed</code>
+</p>
+<p>try lowering <code>nPcsInit</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>GetWeightedMeanGenotypes</code> for outputting genotypes in a 
+useful format after iteration is completed.
+</p>
+<p><code>StripDown</code> to remove memory-hogging slots that are no longer
+needed after the pipeline has been run.
+</p>
+<p><code>PipelineMapping2Parents</code> for mapping populations.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load dataset
+data(exampleRAD)
+
+# iteratively estimate parameters
+exampleRAD &lt;- IterateHWE(exampleRAD)
+
+# export results
+GetWeightedMeanGenotypes(exampleRAD)
+
+# re-load to run pipeline assuming population structure
+data(exampleRAD)
+
+# run pipeline
+exampleRAD &lt;- IteratePopStruct(exampleRAD, nPcsInit = 3)
+
+# export results
+GetWeightedMeanGenotypes(exampleRAD)
+
+# dataset for LD pipeline
+data(Msi01genes)
+
+# run HWE + LD pipeline
+mydata1 &lt;- IterateHWE_LD(Msi01genes)
+
+# run pop. struct + LD pipeline
+# (tolerance raised to make example run faster)
+mydata2 &lt;- IteratePopStructLD(Msi01genes, tol = 0.01)
+</code></pre>
+
+
+</div>

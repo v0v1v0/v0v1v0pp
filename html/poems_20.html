@@ -1,0 +1,215 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>population_transformation</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Nested functions for a user-defined population abundance (and capacity) transformation.</h2>
+
+<h3>Description</h3>
+
+<p>Modular functions for the population simulator for performing a transformation of
+the stage abundance (and optionally carrying capacity) at a specified time step via
+a user-defined function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">population_transformation(
+  replicates,
+  time_steps,
+  years_per_step,
+  populations,
+  demographic_stochasticity,
+  density_stages,
+  transformation,
+  simulator,
+  name = "transformation"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>replicates</code></td>
+<td>
+<p>Number of replicate simulation runs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time_steps</code></td>
+<td>
+<p>Number of simulation time steps.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>years_per_step</code></td>
+<td>
+<p>Number of years per time step.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>populations</code></td>
+<td>
+<p>Number of populations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>demographic_stochasticity</code></td>
+<td>
+<p>Boolean for optionally choosing demographic stochasticity for the transformation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>density_stages</code></td>
+<td>
+<p>Array of booleans or numeric (0,1) for each stage to indicate which stages are affected by density.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transformation</code></td>
+<td>
+<p>A user-defined function (optionally nested in a list with additional attributes) for performing transformation: <code>function(params)</code>, where <em>params</em> is a list passed to the function containing:
+</p>
+
+<dl>
+<dt><code>replicates</code></dt>
+<dd>
+<p>Number of replicate simulation runs.</p>
+</dd>
+<dt><code>time_steps</code></dt>
+<dd>
+<p>Number of simulation time steps.</p>
+</dd>
+<dt><code>years_per_step</code></dt>
+<dd>
+<p>Number of years per time step.</p>
+</dd>
+<dt><code>populations</code></dt>
+<dd>
+<p>Number of populations.</p>
+</dd>
+<dt><code>stages</code></dt>
+<dd>
+<p>Number of life cycle stages.</p>
+</dd>
+<dt><code>demographic_stochasticity</code></dt>
+<dd>
+<p>Boolean for optionally choosing demographic stochasticity for the transformation.</p>
+</dd>
+<dt><code>density_stages</code></dt>
+<dd>
+<p>Array of booleans or numeric (0,1) for each stage to indicate which stages are affected by density.</p>
+</dd>
+<dt><code>r</code></dt>
+<dd>
+<p>Simulation replicate.</p>
+</dd>
+<dt><code>tm</code></dt>
+<dd>
+<p>Simulation time step.</p>
+</dd>
+<dt><code>carrying_capacity</code></dt>
+<dd>
+<p>Array of carrying capacity values for each population at time step.</p>
+</dd>
+<dt><code>stage_abundance</code></dt>
+<dd>
+<p>Matrix of (current) abundance for each stage (rows) and population (columns) at time step.</p>
+</dd>
+<dt><code>occupied_indices</code></dt>
+<dd>
+<p>Array of indices for populations occupied at (current) time step.</p>
+</dd>
+<dt><code>simulator</code></dt>
+<dd>
+<p><code>SimulatorReference</code> object with dynamically accessible <em>attached</em> and <em>results</em> lists.</p>
+</dd>
+<dt><code>additional attributes</code></dt>
+<dd>
+<p>Additional attributes when the transformation is optionally nested in a list.</p>
+</dd>
+</dl>
+<p>returns a transformed stage abundance matrix (or a list with stage abundance and carrying capacity)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simulator</code></td>
+<td>
+<p><code>SimulatorReference</code> object with dynamically accessible <em>attached</em> and <em>results</em> lists.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>Optional name for the transformation (default is "transformation").</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Abundance (and capacity) transformation function: <code>function(r, tm, carrying_capacity, stage_abundance, occupied_indices)</code>, where:
+</p>
+
+<dl>
+<dt><code>r</code></dt>
+<dd>
+<p>Simulation replicate.</p>
+</dd>
+<dt><code>tm</code></dt>
+<dd>
+<p>Simulation time step.</p>
+</dd>
+<dt><code>carrying_capacity</code></dt>
+<dd>
+<p>Array of carrying capacity values for each population at time step.</p>
+</dd>
+<dt><code>stage_abundance</code></dt>
+<dd>
+<p>Matrix of abundance for each stage (rows) and population (columns) at time step.</p>
+</dd>
+<dt><code>occupied_indices</code></dt>
+<dd>
+<p>Array of indices for populations occupied at time step.</p>
+</dd>
+<dt><code>returns</code></dt>
+<dd>
+<p>List with transformed stage abundance matrix (and optionally carrying capacity).</p>
+</dd>
+</dl>
+<h3>Examples</h3>
+
+<pre><code class="language-R">simulator &lt;- SimulatorReference$new()
+# Example transformation: a random population is chosen for a severe disturbance event
+# (only life cycle stage 3 individuals survive)
+disturbance_function &lt;- function(params) {
+  params$simulator$attached$params &lt;- params # attach to reference object
+  random_population &lt;- sample(params$occupied_indices, 1)
+  new_stage_abundance &lt;- params$stage_abundance
+  new_stage_abundance[1:2, random_population] &lt;- 0
+  return(new_stage_abundance)
+}
+transformation_function &lt;- population_transformation(
+  replicates = 4, time_steps = 10, years_per_step = 1,
+  populations = 7, demographic_stochasticity = TRUE,
+  density_stages = c(0, 1, 1), transformation = disturbance_function,
+  simulator
+)
+carrying_capacity &lt;- rep(10, 7)
+carrying_capacity &lt;- rep(10, 7)
+stage_abundance &lt;- matrix(c(
+ 7, 13, 0, 26, 0, 39, 47,
+ 2, 0, 6, 8, 0, 12, 13,
+ 0, 3, 4, 6, 0, 9, 10
+), nrow = 3, ncol = 7, byrow = TRUE)
+occupied_indices &lt;- (1:7)[-5]
+transformation_function(r = 2, tm = 6, carrying_capacity, stage_abundance,
+                        occupied_indices)
+
+</code></pre>
+
+
+</div>

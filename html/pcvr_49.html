@@ -1,0 +1,165 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>read.pcv</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Read in plantCV csv output in wide or long format</h2>
+
+<h3>Description</h3>
+
+<p>Read in plantCV csv output in wide or long format
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">read.pcv(
+  filepath,
+  mode = NULL,
+  traitCol = "trait",
+  labelCol = "label",
+  valueCol = "value",
+  reader = NULL,
+  filters = NULL,
+  awk = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>filepath</code></td>
+<td>
+<p>Path to csv file of plantCV output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mode</code></td>
+<td>
+<p>NULL (the default) or one of "wide" or "long", partial string matching is supported.
+This controls whether data is <strong>returned</strong> in long or wide format. If left NULL then
+the output format will be the same as the input format.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>traitCol</code></td>
+<td>
+<p>Column with phenotype names, defaults to "trait".
+This should generally not need to be changed from the default. This,
+labelCol, and valueCol are used to determine if data are in long format in their
+raw state (the csv file itself).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>labelCol</code></td>
+<td>
+<p>Column with phenotype labels (units), defaults to "label".
+This should generally not need to be changed from the default.
+This is used with traitCol when <code>mode="wide"</code> to identify
+unique traits since some may be ambiguous
+(ellipseCenter.x vs ellipseCenter.y, bins of histograms, etc)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>valueCol</code></td>
+<td>
+<p>Column with phenotype values, defaults to "value".
+This should generally not need to be changed from the default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reader</code></td>
+<td>
+<p>The function to use to read in data,
+defaults to NULL in which case <code>data.table::fread</code> is used if filters are in place
+and <code>read.csv</code> is used otherwise.
+Note that if you use <code>read.csv</code> with filters in place then you will need to specify
+<code>header=FALSE</code> so that the piped output from awk is read correctly.
+If fread is too slow for your needs then <code>vroom::vroom()</code> may be useful.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filters</code></td>
+<td>
+<p>If a very large pcv output file is read then it may be desireable
+to subset it before reading it into R, either for ease of use or because of RAM limitations.
+The filter argument works with "COLUMN in VALUES" syntax. This can either be a character vector
+or a list of character vectors. In these vectors there needs to be a column name,
+one of " in ", " is ", or " = " to match the string exactly, or "contains"
+to match with awk style regex, then a set of comma delimited values to filter
+that column for (see examples). Note that this and awk both use awk through <code>pipe()</code>.
+This functionality will not work on a windows system.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>awk</code></td>
+<td>
+<p>As an alternative to filters a direct call to awk can be supplied here,
+in which case that call will be used through <code>pipe()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other arguments passed to the reader function.
+In the case of 'fread' there are several defaults provided already
+which can be overwritten with these extra arguments.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In plantCV version 4 the single value traits are returned in wide format from <code>json2csv</code>
+and the multi value traits are returned in long format. Briefly plantCV data was returned as one
+long table which sparked the emphasis in this function on reading data quickly and parsing it
+outside of R. With the current plantCV output these options are largely unnecessary.
+When data is read in using read.pcv the traitCol, valueCol, and labelCol arguments are checked
+to determine if the data is in long format. This is done to keep compatibility with interim
+versions of plantcv output where all outputs were in a single long format file.
+</p>
+<p>With the current implementation and plantcv output you can read wide or long format files into
+wide or long format in R. Keep in mind that the 'mode' argument controls the format that will be
+returned in R, not the format that the data saved as in your csv file.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a data.frame in wide or long format.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+  mv &lt;- paste0(
+    "https://media.githubusercontent.com/media/joshqsumner/",
+    "pcvrTestData/main/pcv4-multi-value-traits.csv"
+  )
+  sv &lt;- paste0(
+    "https://raw.githubusercontent.com/joshqsumner/",
+    "pcvrTestData/main/pcv4-single-value-traits.csv"
+  )
+
+  w2w &lt;- read.pcv(sv, mode = "wide", reader = "fread")
+  dim(w2w)
+
+  w2l &lt;- read.pcv(sv, mode = "long", reader = "fread")
+  dim(w2l)
+
+  l2w &lt;- read.pcv(mv, mode = "wide", reader = "fread")
+  dim(l2w)
+
+  l2l &lt;- read.pcv(mv, mode = "long", reader = "fread")
+  dim(l2l)
+
+
+</code></pre>
+
+
+</div>

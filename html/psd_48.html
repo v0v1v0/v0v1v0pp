@@ -1,0 +1,190 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>psd-normalization</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Normalization of power spectral density estimates.</h2>
+
+<h3>Description</h3>
+
+<p>Normalize power spectral densities from
+various estimators into single-sided spectra.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">normalize(Spec, ...)
+
+## S3 method for class 'list'
+normalize(Spec, ...)
+
+## S3 method for class 'spec'
+normalize(
+  Spec,
+  Fsamp = 1,
+  src = c("spectrum", "double.sided", "psd", "single.sided"),
+  verbose = TRUE,
+  ...
+)
+
+## S3 method for class 'amt'
+normalize(Spec, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Spec</code></td>
+<td>
+<p>spectrum to normalize</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>(unused) additional parameters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Fsamp</code></td>
+<td>
+<p>sampling frequency</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>src</code></td>
+<td>
+<p>character string; the source of the spectrum estimator</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical; should messages be given?</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Normalizations commonly encountered for power spectra 
+depend on it's assumed sidedness: whether the
+spectrum is either single- or double-sided.
+The normalizations performed here enforce single-sidedness, and correct
+as necessary.
+</p>
+<p>Frequencies are assumed to be based on the Nyquist frequency (half the 
+sampling rate).  For example: If a series <code class="reqn">X</code> has sampling frequency <code class="reqn">F_S</code>,
+then the PSD frequencies will span <code class="reqn">[0,F_S/2]</code>.
+</p>
+<p>For amplitudes, improper normalization can can introduce errant factors
+of either 1/2 or <code class="reqn">F_S</code> into the estimates, depending on the assumed sidedness.  
+These factors can be accounted for with the <code>src</code>
+argument, which defaults to normalizing a double-sided spectrum.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object with its spectral values normalized accordingly.
+</p>
+
+
+<h3>Spectrum sidedness and the <code>src</code> argument</h3>
+
+
+
+<h4>
+<code>"double.sided"</code> or <code>"spectrum"</code>
+</h4>
+
+<p>These spectra assume frequency range of <code class="reqn">[-F_S/2,F_S/2]</code>, and so are normalized
+by scaling by a factor of two upwards.
+Some estimators producing double-sided spectra: 
+</p>
+
+<ul>
+<li>
+<p><code>stats::spectrum</code>
+</p>
+</li>
+<li>
+<p><code>RSEIS::mtapspec</code>
+</p>
+</li>
+</ul>
+<h4>
+<code>"single.sided"</code> or <code>"psd"</code>
+</h4>
+
+<p>As mentioned before, 
+these spectra assume frequency range of <code class="reqn">[0,F_S/2]</code> and
+are scaled only by the inverse of the sampling rate.
+Some estimators producing single-sided spectra: 
+</p>
+
+<ul><li>
+<p><code>psdcore</code>
+</p>
+</li></ul>
+<h3>Author(s)</h3>
+
+<p>A.J. Barbour
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>psdcore</code>, <code>spectral_properties</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: #REX
+library(psd)
+
+##
+## Normalization
+##
+
+# timeseries with sampling frequency **not** equal to 1:
+set.seed(1234)
+X &lt;- ts(rnorm(1e3), frequency=20)
+
+# spec.pgram: double sided
+pgram &lt;- spectrum(X)
+
+# psdcore: single sided
+PSD &lt;- psdcore(X)
+
+# note the normalization differences:
+plot(pgram, log="dB", ylim=c(-40,10))
+plot(PSD, add=TRUE, col="red", log="dB")
+
+# A crude representation of integrated spectrum: 
+#   should equal variance of white noise series (~= 1)
+mean(pgram[['spec']]) * max(pgram[['freq']])
+mean(PSD[['spec']]) * max(PSD[['freq']])
+
+# normalize 
+pgram &lt;- normalize(pgram, src="spectrum")
+PSD &lt;- normalize(pgram, src="psd")
+# replot them
+plot(pgram, log="dB", ylim=c(-40,10))
+plot(PSD, add=TRUE, col="red", log="dB")
+
+# Again, integrated spectrum should be ~= 1:
+mean(pgram[['spec']]) * max(pgram[['freq']])
+mean(PSD[['spec']]) * max(PSD[['freq']])
+
+
+
+## End(Not run)#REX
+</code></pre>
+
+
+</div>

@@ -1,0 +1,133 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>details_linear_reg_gls</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Linear regression via generalized least squares</h2>
+
+<h3>Description</h3>
+
+<p>The <code>"gls"</code> engine estimates linear regression for models where the rows of the
+data are not independent.
+</p>
+
+
+<h3>Details</h3>
+
+<p>For this engine, there is a single mode: regression
+</p>
+
+
+<h4>Tuning Parameters</h4>
+
+<p>This model has no tuning parameters.
+</p>
+
+
+
+<h4>Translation from parsnip to the original package</h4>
+
+<p>The <strong>multilevelmod</strong> extension package is required to fit this model.
+</p>
+<div class="sourceCode r"><pre>library(multilevelmod)
+
+linear_reg() %&gt;% 
+  set_engine("gls") %&gt;% 
+  set_mode("regression") %&gt;% 
+  translate()
+</pre></div>
+<div class="sourceCode"><pre>## Linear Regression Model Specification (regression)
+## 
+## Computational engine: gls 
+## 
+## Model fit template:
+## nlme::gls(formula = missing_arg(), data = missing_arg())
+</pre></div>
+
+
+
+<h4>Preprocessing requirements</h4>
+
+<p>There are no specific preprocessing needs. However, it is helpful to
+keep the clustering/subject identifier column as factor or character
+(instead of making them into dummy variables). See the examples in the
+next section.
+</p>
+
+
+
+<h4>Other details</h4>
+
+<p>The model can accept case weights.
+</p>
+<p>With parsnip, we suggest using the <em>fixed effects</em> formula method when
+fitting, but the details of the correlation structure should be passed
+to <code>set_engine()</code> since it is an irregular (but required) argument:
+</p>
+<div class="sourceCode r"><pre>library(tidymodels)
+# load nlme to be able to use the `cor*()` functions
+library(nlme)
+
+data("riesby")
+
+linear_reg() %&gt;% 
+  set_engine("gls", correlation =  corCompSymm(form = ~ 1 | subject)) %&gt;% 
+  fit(depr_score ~ week, data = riesby)
+</pre></div>
+<div class="sourceCode"><pre>## parsnip model object
+## 
+## Generalized least squares fit by REML
+##   Model: depr_score ~ week 
+##   Data: data 
+##   Log-restricted-likelihood: -765.0148
+## 
+## Coefficients:
+## (Intercept)        week 
+##   -4.953439   -2.119678 
+## 
+## Correlation Structure: Compound symmetry
+##  Formula: ~1 | subject 
+##  Parameter estimate(s):
+##       Rho 
+## 0.6820145 
+## Degrees of freedom: 250 total; 248 residual
+## Residual standard error: 6.868785
+</pre></div>
+<p>When using tidymodels infrastructure, it may be better to use a
+workflow. In this case, you can add the appropriate columns using
+<code>add_variables()</code> then supply the typical formula when adding the model:
+</p>
+<div class="sourceCode r"><pre>library(tidymodels)
+
+gls_spec &lt;- 
+  linear_reg() %&gt;% 
+  set_engine("gls", correlation =  corCompSymm(form = ~ 1 | subject))
+
+gls_wflow &lt;- 
+  workflow() %&gt;% 
+  # The data are included as-is using:
+  add_variables(outcomes = depr_score, predictors = c(week, subject)) %&gt;% 
+  add_model(gls_spec, formula = depr_score ~ week)
+
+fit(gls_wflow, data = riesby)
+</pre></div>
+
+
+
+<h4>Case weights</h4>
+
+<p>The underlying model implementation does not allow for case weights.
+</p>
+
+
+
+<h4>References</h4>
+
+
+<ul><li>
+<p> J Pinheiro, and D Bates. 2000. <em>Mixed-effects models in S and S-PLUS</em>.
+Springer, New York, NY
+</p>
+</li></ul>
+</div>

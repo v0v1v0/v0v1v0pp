@@ -1,0 +1,131 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>poso_estim_sir</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate the posterior distribution of individual parameters by SIR</h2>
+
+<h3>Description</h3>
+
+<p>Estimates the posterior distribution of individual parameters by
+Sequential Importance Resampling (SIR)
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">poso_estim_sir(
+  dat = NULL,
+  prior_model = NULL,
+  n_sample = 10000,
+  n_resample = 1000,
+  return_model = TRUE,
+  nocb = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dat</code></td>
+<td>
+<p>Dataframe. An individual subject dataset following the
+structure of NONMEM/rxode2 event records.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior_model</code></td>
+<td>
+<p>A <code>posologyr</code> prior population pharmacokinetics
+model, a list of six objects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_sample</code></td>
+<td>
+<p>Number of samples from the S-step</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_resample</code></td>
+<td>
+<p>Number of samples from the R-step</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_model</code></td>
+<td>
+<p>A boolean. Returns a rxode2 model using the estimated
+ETAs if set to <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nocb</code></td>
+<td>
+<p>A boolean. for time-varying covariates: the next observation
+carried backward (nocb) interpolation style, similar to NONMEM.  If
+<code>FALSE</code>, the last observation carried forward (locf) style will be used.
+Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>If <code>return_model</code> is set to <code>FALSE</code>, a list of one element: a
+dataframe <code style="white-space: pre;">⁠$eta⁠</code> of ETAs from the posterior distribution, estimated by
+Sequential Importance Resampling.
+If <code>return_model</code> is set to <code>TRUE</code>, a list of the dataframe of the posterior
+distribution of ETA, and a rxode2 model using the estimated distributions of
+ETAs.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># model
+mod_run001 &lt;- function() {
+  ini({
+    THETA_Cl &lt;- 4.0
+    THETA_Vc &lt;- 70.0
+    THETA_Ka &lt;- 1.0
+    ETA_Cl ~ 0.2
+    ETA_Vc ~ 0.2
+    ETA_Ka ~ 0.2
+    prop.sd &lt;- sqrt(0.05)
+  })
+  model({
+    TVCl &lt;- THETA_Cl
+    TVVc &lt;- THETA_Vc
+    TVKa &lt;- THETA_Ka
+
+    Cl &lt;- TVCl*exp(ETA_Cl)
+    Vc &lt;- TVVc*exp(ETA_Vc)
+    Ka &lt;- TVKa*exp(ETA_Ka)
+
+    K20 &lt;- Cl/Vc
+    Cc &lt;- centr/Vc
+
+    d/dt(depot) = -Ka*depot
+    d/dt(centr) = Ka*depot - K20*centr
+    Cc ~ prop(prop.sd)
+  })
+}
+# df_patient01: event table for Patient01, following a 30 minutes intravenous
+# infusion
+df_patient01 &lt;- data.frame(ID=1,
+                        TIME=c(0.0,1.0,14.0),
+                        DV=c(NA,25.0,5.5),
+                        AMT=c(2000,0,0),
+                        EVID=c(1,0,0),
+                        DUR=c(0.5,NA,NA))
+# estimate the posterior distribution of population parameters
+poso_estim_sir(dat=df_patient01,prior_model=mod_run001,
+n_sample=1e3,n_resample=1e2)
+
+</code></pre>
+
+
+</div>

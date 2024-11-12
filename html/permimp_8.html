@@ -1,0 +1,290 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>permimp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2> Random Forest Permutation Importance for random forests</h2>
+
+<h3>Description</h3>
+
+<p>Standard and partial/conditional permutation importance for 
+random forest-objects fit using the <span class="pkg">party</span> or <span class="pkg">randomForest</span> 
+packages, following the permutation principle of the 'mean decrease in 
+accuracy' importance in <span class="pkg">randomForest</span> . The partial/conditional permutation
+importance is implemented differently, selecting the predictions to condition 
+on in each tree using Pearson Chi-squared tests applied to the 
+by-split point-categorized predictors. In general the new implementation has
+similar results as the original <code>varimp</code> function. With 
+<code>asParty = TRUE</code>, the partial/conditional permutation importance is 
+fully backward-compatible but faster than the original <code>varimp</code>
+function in <span class="pkg">party</span>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R"> 
+permimp(object, ...)
+## S3 method for class 'randomForest'
+permimp(object, nperm = 1, OOB = TRUE, scaled = FALSE,
+     conditional = FALSE, threshold = .95, whichxnames = NULL,   
+     thresholdDiagnostics = FALSE, progressBar = TRUE,  do_check = TRUE, ...)
+## S3 method for class 'RandomForest'
+permimp(object, nperm = 1, OOB = TRUE, scaled = FALSE,
+     conditional = FALSE, threshold = .95, whichxnames = NULL,   
+     thresholdDiagnostics = FALSE, progressBar = TRUE, 
+     pre1.0_0 = conditional, AUC = FALSE, asParty = FALSE, mincriterion = 0, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p> an object as returned by <code>cforest</code> or <code>randomForest</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mincriterion</code></td>
+<td>
+<p> the value of the test statistic or 1 - p-value that
+must be exceeded in order to include a split in the 
+computation of the importance. The default 
+<code>mincriterion = 0</code> guarantees that all splits 
+are included.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>conditional</code></td>
+<td>
+<p> a logical that determines whether unconditional or conditional 
+permutation is performed. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p> the threshold value for (1 - p-value) of the association 
+between the predictor of interest and another predictor, which 
+must be exceeded in order to include the other predictor in 
+the conditioning scheme for the predictor of interest (only
+relevant if <code>conditional = TRUE</code>). A threshold value of 
+zero includes all other predictors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nperm</code></td>
+<td>
+<p> the number of permutations performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>OOB</code></td>
+<td>
+<p> a logical that determines whether the importance is computed from 
+the out-of-bag sample or the learning sample (not suggested).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pre1.0_0</code></td>
+<td>
+<p> Prior to <span class="pkg">party</span> version 1.0-0, the actual data values
+were permuted according to the original permutation
+importance suggested by Breiman (2001). Now the assignments
+to child nodes of splits in the variable of interest
+are permuted as described by Hapfelmeier et al. (2012),
+which allows for missing values in the predictors and is
+more efficient with respect to memory consumption and 
+computing time. This method does not apply to the conditional
+permutation importance, nor to random forests that were not
+fit using the <span class="pkg">party</span> package.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scaled</code></td>
+<td>
+<p> a logical that determines whether the differences in prediction
+accuracy should be scaled by the total (null-model) error.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AUC</code></td>
+<td>
+<p> a logical that determines whether the Area Under the Curve (AUC)
+instead of the accuracy is used to compute the permutation 
+importance (cf. Janitza et al., 2012). The AUC-based permutation 
+importance is more robust towards class imbalance, but it is 
+only applicable to binary classification.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>asParty</code></td>
+<td>
+<p> a logical that determines whether or not exactly the same 
+values as the original <code>varimp</code> function in 
+<span class="pkg">party</span> should be obtained.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>whichxnames</code></td>
+<td>
+<p> a character vector containing the predictor variable 
+names for which the permutation importance should be 
+computed. Only use when aware of the implications, see 
+section 'Details'.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thresholdDiagnostics</code></td>
+<td>
+<p> a logical that specifies whether diagnostics 
+with respect to the threshold-value should be 
+prompted as warnings.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progressBar</code></td>
+<td>
+<p> a logical that determines whether a progress bar should 
+be displayed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>do_check</code></td>
+<td>
+<p> a logical that determines whether a check requiring user 
+input should be included.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p> additional arguments to be passed to the Methods</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Function <code>permimp</code> is highly comparable to <code>varimp</code> in <span class="pkg">party</span>,
+but the partial/conditional variable importance has a different, more efficient
+implementation. Compared to the original <code>varimp</code> in <span class="pkg">party</span>, 
+<code>permimp</code> applies a different strategy to select the predictors to condition 
+on (ADD REFERENCE TO PAPER). 
+</p>
+<p>With <code>asParty = TRUE</code>, permimp returns exactly the same values as 
+<code>varimp</code> in <span class="pkg">party</span>, but the computation is done more efficiently.
+</p>
+<p>If <code>conditional = TRUE</code>, the importance of each variable is computed by
+permuting within a grid defined by the predictors that are associated  
+(with 1 - p-value greater than <code>threshold</code>) to the variable of interest. 
+The <code>threshold</code> can be interpreted as a parameter that moves the permutation 
+importance across a dimension from fully conditional (<code>threshold = 0</code>) to
+completely unconditional (<code>threshold = 1</code>), see Debeer and Strobl (2020). 
+</p>
+<p>Using the <code>wichxnames</code> argument, the computation of the permutation importance
+can be limited to a smaller number of specified predictors. Note, however, that when
+<code>conditional = TRUE</code>, the (other) predictors to condition on are also 
+limited to this selection of predictors. Only use when fully aware of the 
+implications.
+</p>
+<p>For further details, please refer to the documentation of <code>varimp</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>VarImp</code>, with the mean decrease in accuracy 
+as its <code>$values</code>. 
+</p>
+
+
+<h3>References</h3>
+
+ 
+<p>Leo Breiman (2001). Random Forests. <em>Machine Learning</em>, 45(1), 5–32.
+</p>
+<p>Alexander Hapfelmeier, Torsten Hothorn, Kurt Ulm, and Carolin Strobl (2012).
+A New Variable Importance Measure for Random Forests with Missing Data.
+<em>Statistics and Computing</em>, <a href="https://link.springer.com/article/10.1007/s11222-012-9349-1">https://link.springer.com/article/10.1007/s11222-012-9349-1</a>
+</p>
+<p>Torsten Hothorn, Kurt Hornik, and Achim Zeileis (2006b). Unbiased
+Recursive Partitioning: A Conditional Inference Framework.
+<em>Journal of Computational and Graphical Statistics</em>, <b>15</b> (3),
+651-674.  Preprint available from 
+<a href="https://www.zeileis.org/papers/Hothorn+Hornik+Zeileis-2006.pdf">https://www.zeileis.org/papers/Hothorn+Hornik+Zeileis-2006.pdf</a>
+</p>
+<p>Silke Janitza, Carolin Strobl and Anne-Laure Boulesteix (2013). An AUC-based
+Permutation Variable Importance Measure for Random Forests. 
+BMC Bioinformatics.2013, <b>14</b> 119.
+<a href="https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-14-119">https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-14-119</a>
+</p>
+<p>Carolin Strobl, Anne-Laure Boulesteix, Thomas Kneib, Thomas Augustin, and 
+Achim Zeileis (2008). Conditional Variable Importance for Random Forests. 
+<em>BMC Bioinformatics</em>, <b>9</b>, 307. 
+<a href="https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-9-307">https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-9-307</a>
+</p>
+<p>Debeer Dries and Carolin Strobl (2020). Conditional Permutation Importance 
+Revisited. <em>BMC Bioinformatics</em>, <b>21</b>, 307. 
+<a href="https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-020-03622-2">https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-020-03622-2</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>varimp</code>, <code>VarImp</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">  
+  ### for RandomForest-objects, by party::cforest()  
+  set.seed(290875)
+  readingSkills.cf &lt;- party::cforest(score ~ ., data = party::readingSkills, 
+                              control = party::cforest_unbiased(mtry = 2, ntree = 25))
+  
+  ### conditional importance, may take a while...
+  # party implementation:
+  set.seed(290875)
+  party::varimp(readingSkills.cf, conditional = TRUE)
+  # faster implementation but same results
+  set.seed(290875)
+  permimp(readingSkills.cf, conditional = TRUE, asParty = TRUE)
+  
+  # different implementation with similar results
+  set.seed(290875)
+  permimp(readingSkills.cf, conditional = TRUE, asParty = FALSE)
+  
+  ### standard (unconditional) importance is unchanged
+  set.seed(290875)
+  party::varimp(readingSkills.cf)
+  set.seed(290875)
+  permimp(readingSkills.cf)
+  
+  
+  ###
+  set.seed(290875)
+  readingSkills.rf &lt;- randomForest::randomForest(score ~ ., data = party::readingSkills, 
+                              mtry = 2, ntree = 25, importance = TRUE, 
+                              keep.forest = TRUE, keep.inbag = TRUE)
+                              
+    
+  ### (unconditional) Permutation Importance
+  set.seed(290875)
+  permimp(readingSkills.rf, do_check = FALSE)
+  
+  # very close to
+  readingSkills.rf$importance[,1]
+  
+  ### Conditional Permutation Importance
+  set.seed(290875)
+  permimp(readingSkills.rf, conditional = TRUE, threshold = .8, do_check = FALSE)
+                              
+  
+</code></pre>
+
+
+</div>

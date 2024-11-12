@@ -1,0 +1,727 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sample.clade</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>General rate species sampling</h2>
+
+<h3>Description</h3>
+
+<p>Generates occurrence times or time ranges (as most empirical fossil 
+occurrences) for each of the desired species using a Poisson process. Allows
+for the Poisson rate to be (1) a constant, (2) a function of time, (3) a 
+function of time and a time-series (usually environmental) variable, or (4) 
+a vector of numbers (rates in a step function). Allows for age-dependent 
+sampling with a parameter for a distribution representing the expected 
+occurrence number over a species duration. Allows for further flexibility in
+rates by a shift times vector and environmental matrix parameters. 
+Optionally takes a vector of time bins representing geologic periods, if the
+user wishes occurrence times to be represented as a range instead of true 
+points.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sample.clade(
+  sim,
+  rho,
+  tMax,
+  S = NULL,
+  envR = NULL,
+  rShifts = NULL,
+  returnTrue = TRUE,
+  returnAll = FALSE,
+  bins = NULL,
+  adFun = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>sim</code></td>
+<td>
+<p>A <code>sim</code> object, containing extinction times, speciation 
+times, parent, and status information (extant or extinct) for each species
+in the simulation. See <code>?sim</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+<p>Sampling rate (per species per million years) over time. It can 
+be a <code>numeric</code> describing a constant rate, a <code>function(t)</code> 
+describing the variation in sampling over time <code>t</code>, a 
+<code>function(t, env)</code> describing the variation in sampling over time 
+following both time AND a time-series, usually an environmental variable 
+(see <code>envR</code>), or a <code>vector</code> containing rates that correspond to 
+each rate between sampling rate shift times times (see <code>rShifts</code>). If 
+<code>adFun</code> is supplied, it will be used to find the number of occurrences 
+during the species duration, and a normalized <code>rho*adFun</code> will 
+determine their distribution along the species duration. Note that 
+<code>rho</code> should always be greater than or equal to zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tMax</code></td>
+<td>
+<p>The maximum simulation time, used by <code>rexp.var</code>. A sampling
+time greater than <code>tMax</code> would mean the occurrence is sampled after the
+present, so for consistency we require this argument. This is also required
+to ensure time follows the correct direction both in the Poisson process and
+in the output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>S</code></td>
+<td>
+<p>A vector of species numbers to be sampled. The default is all 
+species in <code>sim</code>. Species not included in <code>S</code> will not be sampled 
+by the function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>envR</code></td>
+<td>
+<p>A data frame containing time points and values of an 
+environmental variable, like temperature, for each time point. This will be 
+used to create a sampling rate, so <code>rho</code> must be a function of time and
+said variable if <code>envR</code> is not <code>NULL</code>. Note <code>paleobuddy</code> has 
+two environmental data frames, <code>temp</code> and <code>co2</code>. See <code>RPANDA</code>
+for more examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rShifts</code></td>
+<td>
+<p>Vector of rate shifts. First element must be the starting
+time for the simulation (<code>0</code> or <code>tMax</code>). It must have the same 
+length as <code>lambda</code>. <code>c(0, x, tMax)</code> is equivalent to 
+<code>c(tMax, tMax - x, 0)</code> for the purposes of <code>make.rate</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>returnTrue</code></td>
+<td>
+<p>If set to <code>FALSE</code>, it will contain the occurrence
+times as ranges. In this way, we simulate the granularity presented by
+empirical fossil records. If <code>returnTrue</code> is <code>TRUE</code>, this is 
+ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>returnAll</code></td>
+<td>
+<p>If set to <code>TRUE</code>, returns both the true sampling time 
+and age ranges. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bins</code></td>
+<td>
+<p>A vector of time intervals corresponding to geological time 
+ranges. It must be supplied if <code>returnTrue</code> or <code>returnAll</code> is
+<code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adFun</code></td>
+<td>
+<p>A density function representing the age-dependent preservation
+model. It must be a density function, and consequently integrate to 1 
+(though this condition is not verified by the function). If not provided, a 
+uniform distribution will be used by default. The function must also 
+have the following properties:
+</p>
+
+<ul>
+<li>
+<p> Return a vector of preservation densities for each time in a given
+vector <code>t</code> in geological time. 
+</p>
+</li>
+<li>
+<p> Be parameterized in the absolute geological time associated to 
+each moment in age (i.e. age works relative to absolute geological 
+time, in Mya - in other words, the convention is TS &gt; 0). The function 
+<em>does not</em> directly use the lineage's age (which would mean that
+TS = 0 for all species whenever they are born). Because of this, it is
+assumed to go from <code>tMax</code> to <code>0</code>, as opposed to most functions 
+in the package.
+</p>
+</li>
+<li>
+<p> Should be limited between <code>s</code> (i.e. the lineage's 
+speciation/birth) and <code>e</code> (i.e. the lineage's extinction/death), 
+with <code>s</code> &gt; <code>e</code>. It is possible to assign parameters in absolute 
+geological time (see third example) and relative to age as long as this 
+follows the convention of age expressed in absolute geological time (see 
+fourth example).
+</p>
+</li>
+<li>
+<p> Include the arguments <code>t</code>, <code>s</code>, <code>e</code> and <code>sp</code>. 
+The argument sp is used to pass species-specific parameters (see examples),
+allowing for <code>dFun</code> to be species-inhomogeneous.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional parameters used by <code>adFun</code>. See examples.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>data.frame</code> containing species names/numbers, whether each 
+species is extant or extinct, and the true occurrence times of each fossil, 
+a range of occurrence times based on <code>bins</code>, or both.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Matheus Januario and Bruno do Rosario Petrucci.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# vector of times
+time &lt;- seq(10, 0, -0.1)
+
+###
+# we can start with a constant case
+
+# set seed
+set.seed(1)
+
+# simulate a group
+sim &lt;- bd.sim(n0 = 1, lambda = 0.1, mu = 0.1, tMax = 10)
+
+# sampling rate
+rho &lt;- 2
+
+# bins for fossil ranges
+bins &lt;- seq(from = 10, to = 0, by = -1)
+
+# simulate fossil occurrences data frame
+fossils &lt;- sample.clade(sim, rho, tMax = 10, 
+                        bins = bins, returnTrue = FALSE)
+
+# draw simulation with fossil occurrences as ranges
+draw.sim(sim, fossils = fossils)
+
+###
+# sampling can be any function of time 
+
+# set seed
+set.seed(1)
+
+# simulate a group
+sim &lt;- bd.sim(n0 = 1, lambda = 0.1, mu = 0.1, tMax = 10)
+
+# sampling rate
+rho &lt;- function(t) {
+  return(2 - 0.15*t)
+}
+
+# plot sampling function
+plot(x = time, y = rho(time), type = "l", 
+     ylab = "Preservation rate", 
+     xlab = "Time since the start of the simulation (My)")
+# note for these examples we do not reverse time in the plot
+# see other functions in the package for examples where we do
+
+# bins for fossil ranges
+bins &lt;- seq(from = 10, to = 0, by = -1)
+
+# simulate fossil occurrences data frame
+fossils &lt;- sample.clade(sim, rho, tMax = 10, 
+                        bins = bins, returnTrue = FALSE)
+
+# draw simulation with fossil occurrences as ranges
+draw.sim(sim, fossils = fossils)
+
+###
+# now we can try a step function rate
+
+# set seed
+set.seed(1)
+
+# simulate a group
+sim &lt;- bd.sim(n0 = 1, lambda = 0.1, mu = 0.1, tMax = 10)
+
+# we will use the less efficient method of creating a step function
+# one could instead use ifelse()
+
+# rates vector
+rList &lt;- c(2, 5, 0.5)
+
+# rate shifts vector
+rShifts &lt;- c(0, 4, 8)
+
+# make it a function so we can plot it
+rho &lt;- make.rate(rList, 10, rateShifts = rShifts)
+
+# plot sampling function
+plot(x = time, y = rho(time), type = "l", 
+     ylab = "Preservation rate", 
+     xlab = "Time since the start of the simulation (My)")
+
+# bins for fossil ranges
+bins &lt;- seq(from = 10, to = 0, by = -1)
+
+# simulate fossil occurrences data frame
+fossils &lt;- sample.clade(sim, rho = rList, rShifts = rShifts, tMax = 10, 
+                        bins = bins, returnTrue = FALSE)
+
+# draw simulation with fossil occurrences as ranges
+draw.sim(sim, fossils = fossils)
+
+###
+# finally, sample.clade also accepts an environmental variable
+
+# get temperature data
+data(temp)
+
+# set seed
+set.seed(1)
+
+# simulate a group
+sim &lt;- bd.sim(n0 = 1, lambda = 0.1, mu = 0.1, tMax = 10)
+
+# rho will be temperature dependent
+envR &lt;- temp
+
+# function describing environmental dependence
+r_t &lt;- function(t, env) {
+  return(((env) / 12) ^ 6)
+}
+
+# make it a function so we can plot it
+rho &lt;- make.rate(r_t, tMax = tMax, envRate = envR)
+
+# plot sampling function
+plot(x = time, y = rho(time), type = "l", 
+     ylab = "Preservation rate", 
+     xlab = "Time since the start of the simulation (My)")
+
+# simulate fossil occurrences data frame
+fossils &lt;- sample.clade(sim, rho = r_t, envR = envR, tMax = 10, bins = bins)
+# now we record the true time of fossil occurrences 
+
+# draw simulation with fossil occurrences as time points
+draw.sim(sim, fossils = fossils)
+
+# note that any techniques used in examples for ?bd.sim to create more
+# complex mixed scenarios can be used here as well
+
+###
+# sampling can also be age-dependent
+
+# set seed
+set.seed(1)
+
+# simulate a group
+sim &lt;- bd.sim(n0 = 1, lambda = 0.1, mu = 0.1, tMax = 10)
+
+# sampling rate
+rho &lt;- 3
+
+# here we will use the PERT function. It is described in:
+# Silvestro et al 2014
+
+# age-dependence distribution
+# note that a and b define the beta distribution used, and can be modified
+dPERT &lt;- function(t, s, e, sp, a = 3, b = 3, log = FALSE) {
+  # check if it is a valid PERT
+  if (e &gt;= s) {
+   message("There is no PERT with e &gt;= s")
+   return(rep(NaN, times = length(t)))
+  }
+  
+  # find the valid and invalid times
+  id1 &lt;- which(t &lt;= e | t &gt;= s)
+  id2 &lt;- which(!(t &lt;= e | t &gt;= s))
+  t &lt;- t[id2]
+  
+  # initialize result vector
+  res &lt;- vector()
+  
+  # if user wants a log function
+  if (log) {
+   # invalid times get -Inf
+   res[id1] &lt;- -Inf
+  
+   # valid times calculated with log
+   res[id2] &lt;- log(((s - t) ^ 2) * ((-e + t) ^ 2) / 
+                 ((s - e) ^ 5 * beta(a, b)))
+  }
+  
+  # otherwise
+  else{
+   res[id1] &lt;- 0
+  
+   res[id2] &lt;- ((s - t) ^ 2) * ((-e + t) ^ 2) / ((s - e) ^ 5 * beta(a, b))
+  }
+  
+  return(res)
+}
+
+# plot it for an example species who lived from 10 to 5 million years ago
+plot(time, rev(dPERT(t = time, s = 10, e = 5, a = 1)), 
+     main = "Age-dependence distribution",
+     xlab = "Species age (My)", ylab = "Density",
+     xlim = c(0, 5), type = "l")
+
+# bins for fossil ranges
+bins &lt;- seq(from = 10, to = 0, by = -1)
+
+# simulate fossil occurrences data frame
+fossils &lt;- sample.clade(sim, rho, tMax = 10, adFun = dPERT, bins = bins, 
+                        returnAll = TRUE)
+# can use returnAll to get occurrences as both time points and ranges
+
+# draw simulation with fossil occurrences as time points
+draw.sim(sim, fossils = fossils)
+# the warning is to let you know the ranges won't be used
+
+# and also as ranges - we take out the column with true time points
+draw.sim(sim, fossils = fossils[, -3])
+
+###
+# we can have more parameters on adFun
+
+# sampling rate
+rho &lt;- function(t) {
+ return(1 + 0.5*t)
+}
+# since here rho is time-dependent, the function finds the
+# number of occurrences using rho, and their distribution
+# using a normalized rho * adFun
+
+# set seed
+set.seed(1)
+
+# simulate a group
+sim &lt;- bd.sim(n0 = 1, lambda = 0.1, mu = 0.1, tMax = 10)
+
+# here we will use the triangular distribution
+
+# age-dependence distribution
+dTRI &lt;- function(t, s, e, sp, md) {
+  # make sure it is a valid TRI
+  if (e &gt;= s) {
+   message("There is no TRI with e &gt;= s")
+   return(rep(NaN, times = length(t)))
+  }
+  
+  # another condition we must check
+  if (md &lt; e | md &gt; s) {
+   message("There is no TRI with md outside [s, e] interval")
+   return(rep(NaN, times = length(t)))
+  }
+  
+  # needed to vectorize the function:
+  id1 &lt;- which(t &gt;= e &amp; t &lt; md)
+  id2 &lt;- which(t == md)
+  id3 &lt;- which(t &gt; md &amp; t &lt;= s)
+  id4 &lt;- which( !(1:length(t) %in% c(id1,id2,id3)))
+  
+  # actually vetorizing function
+  res &lt;- vector()
+  
+  # (t &gt;= e &amp; t &lt; md)
+  res[id1] &lt;- (2*(t[id1] - e)) / ((s - e) * (md - e))
+  
+  # (t == md)
+  res[id2] &lt;- 2 / (s - e)
+  
+  # (md &lt; t &amp; t &lt;= s)
+  res[id3] &lt;- (2*(s - t[id3])) / ((s - e) * (s - md))
+  
+  # outside function's limits
+  res[id4] &lt;- 0
+  
+  return(res)
+}
+
+# set mode at 8
+md &lt;- 8
+    
+# plot it for an example species who lived from 10mya to the present
+plot(time, rev(dTRI(time, 10, 5, 1, md)),
+     main = "Age-dependence distribution",
+     xlab = "Species age (My)", ylab = "Density",
+     xlim = c(0, 5), type = "l")
+
+# bins for fossil ranges
+bins &lt;- seq(from = 10, to = 0, by = -1)
+
+# simulate fossil occurrences for the first species
+fossils &lt;- sample.clade(sim, rho, tMax = 10, S = 1, adFun = dTRI, 
+                        bins = bins, returnTrue = FALSE, md = md)
+# note we provide the peak for the triangular sampling as an argument
+# here that peak is assigned in absolute geological, but
+# it usually makes more sense to express this in terms
+# of age (a given percentile of the age, for instance) - see below
+
+# draw simulation with fossil occurrences as ranges
+draw.sim(sim, fossils = fossils)
+
+###
+# we can also have a hat-shaped increase through the duration of a species
+# with more parameters than TS and TE, but with the parameters relating to
+# the relative age of each lineage
+
+# sampling rate
+rho &lt;- function(t) {
+ return(1 + 0.1*t)
+}
+
+# set seed
+set.seed(1)
+
+# simulate a group
+sim &lt;- bd.sim(n0 = 1, lambda = 0.1, mu = 0.1, tMax = 10)
+
+# age-dependence distribution, with the "mde" of the triangle
+# being exactly at the last quarter of the duration of EACH lineage
+dTRImod1 &lt;- function(t, s, e, sp) {
+  # note that now we don't have the "md" parameter here,
+  # but it is calculated inside the function
+  
+  # check if it is a valid TRI
+  if (e &gt;= s) {
+   message("There is no TRI with e &gt;= s")
+   return(rep(NaN, times = length(t)))
+  }
+  
+  # calculate md
+  md &lt;- ((s - e) / 4) + e
+  # md is at the last quarter of the duration of the lineage
+  
+  # please note that the same logic can be used to sample parameters
+  # internally in the function, running for instance:
+  # md &lt;- runif (n = 1, min = e, max = s)
+  
+  # check it is a valid md
+  if (md &lt; e | md &gt; s) {
+   message("There is no TRI with md outside [s, e] interval")
+   return(rep(NaN, times = length(t)))
+  }
+  
+  # needed to vectorize function
+  id1 &lt;- which(t &gt;= e &amp; t &lt; md)
+  id2 &lt;- which(t == md)
+  id3 &lt;- which(t&gt;md &amp; t &lt;= s)
+  id4 &lt;- which( !(1:length(t) %in% c(id1,id2,id3)))
+  
+  # vectorize the function
+  res&lt;-vector()
+  
+  res[id1] &lt;- (2 * (t[id1] - e)) / ((s - e) * (md - e))
+  res[id2] &lt;- 2 / (s - e)
+  res[id3] &lt;- (2 * (s - t[id3])) / ((s - e) * (s - md))
+  res[id4] &lt;- 0
+  
+  return(res)
+}
+
+# plot for a species living between 10 and 0 mya
+plot(time, rev(dTRImod1(time, 10, 0, 1)),
+    main = "Age-dependence distribution",
+    xlab = "Species age (My)", ylab = "Density",
+    xlim = c(0, 10), type = "l")
+
+# sample first two species
+fossils &lt;- sample.clade(sim = sim, rho = rho, tMax = 10, adFun = dTRImod1)
+
+# draw simulation with fossil occurrences as time points
+draw.sim(sim, fossils = fossils)
+
+# here, we fix md at the last quarter
+# of the duration of the lineage
+
+###
+# the parameters of adFun can also relate to each specific lineage,
+# which is useful when using variable parameters for each species
+# to keep track of those parameters after the sampling is over
+
+# set seed
+set.seed(1)
+
+# simulate a group
+sim &lt;- bd.sim(n0 = 1, lambda = 0.1, mu = 0.1, tMax = 10)
+
+# sampling rate
+rho &lt;- 3
+
+# get the par and par1 vectors
+
+# get mins vector
+minsPar &lt;- ifelse(is.na(sim$TE), 0, sim$TE)
+
+# a random time inside each species' duration
+par &lt;- runif(n = length(sim$TE), min = minsPar, max = sim$TS)
+             
+# its complement to the middle of the lineage's age.
+par1 &lt;- (((sim$TS - minsPar) / 2) + minsPar) - par
+# note that the interaction between these two parameters creates a
+# deterministic parameter, but inside the function one of them ("par")
+# is a random parameter
+
+dTRImod2 &lt;- function(t, s, e, sp) {
+  # make sure it is a valid TRI
+  if (e &gt;= s) {
+   message("There is no TRI with e &gt;= s")
+   return(rep(NaN, times = length(t)))
+  }
+  
+  # md depends on parameters
+  md &lt;- par[sp] + par1[sp]
+  
+  # check that md is valid
+  if (md &lt; e | md &gt; s) {
+   message("There is no TRI with md outside [s, e] interval")
+   return(rep(NaN, times = length(t)))
+  }
+  
+  id1 &lt;- which(t &gt;= e &amp; t &lt; md)
+  id2 &lt;- which(t == md)
+  id3 &lt;- which(t &gt; md &amp; t &lt;= s)
+  id4 &lt;- which(!(1:length(t) %in% c(id1,id2,id3)))
+  
+  res &lt;- vector()
+  
+  res[id1] &lt;- (2*(t[id1] - e)) / ((s - e) * (md - e))
+  res[id2] &lt;- 2 / (s - e)
+  res[id3] &lt;- (2*(s - t[id3])) / ((s - e) * (s - md))
+  res[id4] &lt;- 0
+  
+  return(res)
+}
+
+# plot for a species living between 10 and 0 mya
+plot(time, rev(dTRImod2(time, 10, 0, 1)),
+    main = "Age-dependence distribution",
+    xlab = "Species age (My)", ylab = "Density",
+    xlim = c(0, 10), type = "l")
+
+# simulate fossil occurrences data frame
+fossils &lt;- sample.clade(sim, rho, tMax = 10, adFun = dTRImod2, bins = bins, 
+                        returnTrue = FALSE)
+
+# draw simulation with fossil occurrences as time ranges
+draw.sim(sim, fossils = fossils)
+
+###
+# we can also have a mix of age-independent and age-dependent
+# sampling in the same simulation
+
+# set seed
+set.seed(1)
+
+# simulate a group
+sim &lt;- bd.sim(n0 = 1, lambda = 0.1, mu = 0.1, tMax = 10)
+              
+# sampling rate
+rho &lt;- 7
+
+# define a uniform to represente age-independence
+
+# age-dependence distribution (a uniform density distribution in age) 
+# in the format that the function needs
+custom.uniform &lt;- function(t, s, e, sp) {
+  # make sure it is a valid uniform
+  if (e &gt;= s) {
+   message("There is no uniform function with e &gt;= s")
+   return(rep(NaN, times = length(t)))
+  }
+  
+  res &lt;- dunif(x = t, min = e, max = s)
+  
+  return(res)
+}
+
+# PERT as above
+dPERT &lt;- function(t, s, e, sp, a = 3, b = 3, log = FALSE) {
+  # check if it is a valid PERT
+  if (e &gt;= s) {
+   message("There is no PERT with e &gt;= s")
+   return(rep(NaN, times = length(t)))
+  }
+  
+  # find the valid and invalid times
+  id1 &lt;- which(t &lt;= e | t &gt;= s)
+  id2 &lt;- which(!(t &lt;= e | t &gt;= s))
+  t &lt;- t[id2]
+  
+  # initialize result vector
+  res &lt;- vector()
+  
+  # if user wants a log function
+  if (log) {
+   # invalid times get -Inf
+   res[id1] &lt;- -Inf
+  
+   # valid times calculated with log
+   res[id2] &lt;- log(((s - t) ^ 2) * ((-e + t) ^ 2) / 
+                 ((s - e) ^ 5 * beta(a, b)))
+  }
+  
+  # otherwise
+  else{
+   res[id1] &lt;- 0
+  
+   res[id2] &lt;- ((s - t) ^ 2) * ((-e + t) ^ 2) / ((s - e) ^ 5 * beta(a, b))
+  }
+  
+  return(res)
+}
+
+# actual age-dependency defined by a mix
+dPERTAndUniform &lt;- function(t, s, e, sp) {
+  return(
+    ifelse(t &gt; 5, custom.uniform(t, s, e, sp),
+           dPERT(t, s, e, sp))
+  )
+}
+# starts out uniform, then becomes PERT 
+# after 5my (in absolute geological time)
+
+# plot it for an example species who lived from 10 to 0 million years ago
+plot(time, rev(dPERTAndUniform(time, 10, 0, 1)),
+    main = "Age-dependence distribution",
+    xlab = "Species age (My)", ylab = "Density",
+    xlim = c(0, 10), type = "l")
+
+# bins for fossil ranges
+bins &lt;- seq(from = 10, to = 0, by = -1)
+
+# simulate fossil occurrences data frame
+fossils &lt;- sample.clade(sim, rho, tMax = 10, adFun = dPERTAndUniform,
+                        bins = bins, returnTrue = FALSE)
+
+# draw simulation with fossil occurrences as ranges
+draw.sim(sim, fossils = fossils)
+
+# note how occurrences cluster close to the speciation time of
+# species 1, but not its extinction time, since around 5mya
+# the PERT becomes the effective age-dependence distribution
+
+</code></pre>
+
+
+</div>

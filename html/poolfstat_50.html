@@ -1,0 +1,110 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fit.graph</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate parameters of an admixture graph</h2>
+
+<h3>Description</h3>
+
+<p>Estimate parameters of an admixture graph
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fit.graph(
+  graph.params,
+  Q.lambda = 0,
+  eps.admix.prop = 1e-06,
+  edge.fact = 1000,
+  admix.fact = 100,
+  compute.ci = F,
+  drift.scaling = F,
+  outfileprefix = NULL,
+  verbose = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>graph.params</code></td>
+<td>
+<p>An object of class graph.params containing graph information and relevant Fstats estimates (see the function generate.graph.params)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Q.lambda</code></td>
+<td>
+<p>A scalar (usually small) to add to the diagonal elements of the error covariance matrix of fstats estimates (may improve numerical stability of its decomposition for large number of populations)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps.admix.prop</code></td>
+<td>
+<p>A scalar defining admixture proportion domain (eps.admix.prop vary between eps.admix.prop and 1-eps.admix.prop)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>edge.fact</code></td>
+<td>
+<p>The multiplying factor of edges length in graph representation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>admix.fact</code></td>
+<td>
+<p>The multiplying factor of admixture proportion in graph representation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compute.ci</code></td>
+<td>
+<p>Derive 95% Confidence Intervals for the parameters of the admixture graph (edge lengths and admixture rates)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>drift.scaling</code></td>
+<td>
+<p>If TRUE scale edge lengths in drift units (require estimates of leave heterozygosities)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outfileprefix</code></td>
+<td>
+<p>The prefix of the dot file that will represent the graph (with extension ".dot"). If NULL, no graph file generated</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If TRUE extra information is printed on the terminal</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Let <code class="reqn">f</code> represent the n-length vector of basis target (i.e., observed)  F2 and F3 statistics and <code class="reqn">g(e;a)=X(a)*e</code> the vector of their expected values given the vector of graph edges lengths <code class="reqn">e</code> and the incidence matrix <code class="reqn">X(a)</code> that depends on the structure of the graph and the admixture rates <code class="reqn">a</code> (if there is no admixture in the graph, <code class="reqn">X(a)</code> only contains 0 or 1). The function attempts to find the  <code class="reqn">e</code> and <code class="reqn">a</code> graph parameter values that minimize a cost (score of the model) defined as <code class="reqn">S(e;a)=(f-g(e;a))'Q^{-1}(f-g(e;a))</code>. Assuming <code class="reqn">f~N(g(e;a),Q)</code> (i.e., the observed f-statistics vector is multivariate normal distributed around an expected g vector specified by the admixture graph and a covariance structure empirically estimated), <code class="reqn">S=-2log(L) - K</code> where <code class="reqn">L</code> is the likelihood of the fitted graph and <code class="reqn">K=n*log(2*pi)+log(|Q|)</code>. Also, for model comparison purpose, a standard <code class="reqn">BIC</code> is then derived from <code class="reqn">S</code> as <code class="reqn">BIC= S + p*log(n) - K</code> (p being the number of graph parameters, i.e., edge lengths and admixture rates). 
+As mentioned by Patterson et al. (2012), the score <code class="reqn">S(e;a)</code> is quadratic in edge lengths <code class="reqn">e</code> given <code class="reqn">a</code>. The function uses the Lawson-Hanson non-negative linear least squares algorithm implemented in the nnls function (package nnls) to estimate <code class="reqn">e</code> (subject to the constraint of positive edge lengths) by finding the vector <code class="reqn">e</code> that minimize <code class="reqn">S(e;a)=(f-X(a)*e)'Q^{-1}(f-X(a)*e)=||G*f-G*X(a)*e||</code> (where <code class="reqn">G</code> results from the Cholesky decomposition of <code class="reqn">Q^{-1}</code>, i.e., <code class="reqn">Q^{-1}=G'G</code>). Note that the *Q.lambda* argument may be used to add a small constant (e.g., <code class="reqn">1e-4</code>) to the diagonal elements of <code class="reqn">Q</code> to avoid numerical problems (see Patterson et al., 2012). Yet *Q.lambda* is always disregarded when computing the final score <code class="reqn">S</code> and <code class="reqn">BIC</code>. Minimization of <code class="reqn">S(e;a)</code> is thus reduced to the identification of the admixture rates (<code class="reqn">a</code> vector) which is performed using the L-BFGS-B  method (i.e., Limited-memory Broyden-Fletcher-Goldfarb-Shanno algorithm with box constraints) implemented in the optim function (stats package). The *eps.admix.prop* argument allows specifying the lower and upper bound of the admixture rates to *eps.admix.prop* and *1-eps.admix.prop* respectively.
+Scaling of the edges lengths in drift units (i.e., in units of <code class="reqn">t/2N</code> where <code class="reqn">t</code> is time in generations and <code class="reqn">N</code> is the effective population size) is performed as described in Lipson et al. (MBE, 2013) by dividing the estimated edges lengths by half the estimated heterozygosity of their parental nodes (using the property <code class="reqn">hp=hc+2e(C,P)</code> where <code class="reqn">hp</code> and <code class="reqn">hc</code> are the heterozygosities of a child C and its parent P node and <code class="reqn">e(C,P)</code> is the estimated length of the branch relating C and P.
+Finally, if compute.ci=TRUE, a (rough) <code class="reqn">95\%</code> confidence intervals is computed using a bisection method (with a <code class="reqn">1e-4</code> precision) for each parameters in turn (all others being set to their estimated value). Note that <code class="reqn">95\%</code> CI are here defined as the set of values associated to a score <code class="reqn">S</code> such that <code class="reqn">Sopt&lt;S&lt;Sopt+3.84</code> (where <code class="reqn">Sopt</code> is the optimized score), i.e., with a likelihood-ratio test statistic with respect to the fitted values <code class="reqn">&lt;3.84</code> (the <code class="reqn">95\%</code> threshold of a one ddl Chi-square distribution).
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class fitted.graph (see help(fitted.graph) for details)
+</p>
+
+
+<h3>See Also</h3>
+
+<p>To generate a graph.params object, see <code>generate.graph.params</code>. The fitted graph may be plotted directly using plot that calls grViz() function and the resulting fitted fstats may be compared to the estimated ones with <code>compare.fitted.fstats</code>.
+</p>
+
+
+</div>

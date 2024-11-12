@@ -1,0 +1,422 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fitCF</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit a model of Clutch Frequency for marine turtles.</h2>
+
+<h3>Description</h3>
+
+<p>This function fits a model of clutch frequency.<br>
+This model is an enhanced version of the one published by Briane et al. (2007).<br>
+Parameters are <code>mu</code> and <code>sd</code> being the parameters of a
+distribution used to model the clutch frequency.<br>
+This distribution is used only as a guide but has not statistical meaning.<br>
+The parameter <code>p</code> is the -logit probability that a female is seen
+on the beach for a particular nesting event. It includes both the probability
+that it is captured but also the probability that it uses that specific beach.<br>
+Several categories of females can be included in the model using index after
+the name of the parameter, for example <code>mu1</code>, <code>sd1</code> and <code>mu2</code>,
+<code>sd2</code> indicates that two categories of females with different clutch
+frequencies distribution are present. Similarly <code>p1</code> and <code>p2</code> indicates
+that two categories of females with different capture probabilities are present.<br>
+If more than one category is used, then it is necessary to include the
+parameter <code>OTN</code> to indicate the relative frequencies of each category.
+If two categories are used, one <code>OTN</code> parameter named <code>ONT1</code> must
+be included. The <code>OTN2</code> is forced to be 1. Then the relative frequency
+for category 1 is <code>OTN1/(OTN1+1)</code> and for category 2 is <code>1/(OTN1+1)</code>.
+Same logic must be applied for 3 and more categories with always the last one
+being fixed to 1.<br></p>
+<p>if p or a (logit of the capture probability) are equal to -Inf,
+the probability of capture is 0 and if they are equal to
++Inf, the probability is 1.<br></p>
+<p>The value of p out of the period
+of nesting must be set to +Inf (capture probability=1)
+to indicate that no turtle is nesting in this period.<br></p>
+<p>p must be set to -Inf (capture probability=0) to indicate that no
+monitoring has been done during a specific period of the nesting season.<br></p>
+<p>The best way to indicate capture probability for 3D model (OCF, ECF, Period)
+is to indicate p.period common for all categories and a1, a2, etc for each category.
+The capture probability for category 1 will be p.period * a1, and for category 2
+will be p.period * a2, etc. <br></p>
+<p>In this case, the parameters p.period should be indicated in fitted parameters
+as well as a1, but a2 must be fixed to +Inf in fixed.parameters. Then the capture
+probability for category 2 will be p.period and for category 1 a1 * p.period.<br></p>
+<p>If itnmax is equal to 0, it will return the model using the parameters without fitting them.<br></p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fitCF(
+  x = c(mu = 4, sd = 100, p = 0),
+  fixed.parameters = NULL,
+  data = stop("Data formated with TableECFOCF() must be provided"),
+  method = c("Nelder-Mead", "BFGS"),
+  control = list(trace = 1, REPORT = 100, maxit = 500),
+  itnmax = c(500, 100),
+  hessian = TRUE,
+  parallel = TRUE,
+  verbose = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Initial parameters to be fitted</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixed.parameters</code></td>
+<td>
+<p>Parameters that are fixed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>CMR data formated using TableECFOCF()</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Method to be used by optimx()</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>List of controls for optimx()</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>itnmax</code></td>
+<td>
+<p>A vector with maximum iterations for each method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hessian</code></td>
+<td>
+<p>Logical to estimate SE of parameters</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>If TRUE, will use parallel computing for ECFOCF_f()</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If TRUE, print the parameters at each step</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>fitCF fit a model of Clutch Frequency for marine turtles.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Return a list of class ECFOCF with the fit information.<br>
+The list has the following items:<br></p>
+
+<ul>
+<li> <p><code>data</code>: The observations to be fitted
+</p>
+</li>
+<li> <p><code>par</code>: The fitted parameters
+</p>
+</li>
+<li> <p><code>SE</code>: The standard error of parameters if hessian is TRUE
+</p>
+</li>
+<li> <p><code>value</code>: The -log likelihood of observations within the fitted model
+</p>
+</li>
+<li> <p><code>AIC</code>: The AIC of fitted model
+</p>
+</li>
+<li> <p><code>mu</code>: The vector of fitted mu values
+</p>
+</li>
+<li> <p><code>sd</code>: The vector of fitted sd values
+</p>
+</li>
+<li> <p><code>prob</code>: The vector of fitted capture probabilities
+</p>
+</li>
+<li> <p><code>a</code>: The vector of fitted capture probabilities multiplier
+</p>
+</li>
+<li> <p><code>OTN</code>: The vector of fitted relative probabilities of contribution
+</p>
+</li>
+<li> <p><code>period_categories</code>: A list with the different period probabilities as named vectors for each category
+</p>
+</li>
+<li> <p><code>period</code>: The combined period probabilities using OTN as named vector
+</p>
+</li>
+<li> <p><code>CF_categories</code>: A list with the different CF probabilities as named vectors for each category
+</p>
+</li>
+<li> <p><code>CF</code>: The combined CF probabilities  using OTN as named vector
+</p>
+</li>
+<li> <p><code>ECFOCF_categories</code>: A list with the different probability ECFOCF tables for each category
+</p>
+</li>
+<li> <p><code>ECFOCF</code>: The combined table of ECFOCF  using OTN probabilities tables
+</p>
+</li>
+<li> <p><code>ECFOCF_0</code>: The combined table of ECFOCF probabilities tables  using OTN without the OCF=0
+</p>
+</li>
+<li> <p><code>SE_df</code>: A data.frame with SE and 95\
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Marc Girondot <a href="mailto:marc.girondot@gmail.com">marc.girondot@gmail.com</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Briane J-P, Rivalan P, Girondot M (2007) The inverse problem applied
+to the Observed Clutch Frequency of Leatherbacks from Yalimapo beach,
+French Guiana. Chelonian Conservation and Biology 6:63-69
+</p>
+<p>Fossette S, Kelle L, Girondot M, Goverse E, Hilterman ML, Verhage B,
+Thoisy B, de, Georges J-Y (2008) The world's largest leatherback
+rookeries: A review of conservation-oriented research in French
+Guiana/Suriname and Gabon. Journal of Experimental Marine Biology
+and Ecology 356:69-82
+</p>
+<p>Other Model of Clutch Frequency: 
+<code>ECFOCF_f()</code>,
+<code>ECFOCF_full()</code>,
+<code>TableECFOCF()</code>,
+<code>fitCF_MHmcmc()</code>,
+<code>fitCF_MHmcmc_p()</code>,
+<code>generateCF()</code>,
+<code>lnLCF()</code>,
+<code>logLik.ECFOCF()</code>,
+<code>plot.ECFOCF()</code>,
+<code>plot.TableECFOCF()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library(phenology)
+# Example
+data(MarineTurtles_2002)
+ECFOCF_2002 &lt;- TableECFOCF(MarineTurtles_2002)
+
+# Parametric model for clutch frequency
+o_mu1p1_CFp &lt;- fitCF(x = c(mu = 2.1653229641404539, 
+                 sd = 1.1465246643327098, 
+                 p = 0.25785366120357966), 
+                 fixed.parameters=NULL, 
+                 data=ECFOCF_2002, hessian = TRUE)
+ 
+# Non parametric model for clutch frequency
+o_mu1p1_CFnp &lt;- fitCF(x = c(mu.1 = 18.246619595610383, 
+                       mu.2 = 4.2702163522832892, 
+                       mu.3 = 2.6289986859556458, 
+                       mu.4 = 3.2496360919228611, 
+                       mu.5 = 2.1602522716550943, 
+                       mu.6 = 0.68617023351032846, 
+                       mu.7 = 4.2623607001877026, 
+                       mu.8 = 1.1805600042630455, 
+                       mu.9 = 2.2786176350939731, 
+                       mu.10 = 0.47676265496204945, 
+                       mu.11 = 5.8988238539197062e-08, 
+                       mu.12 = 1.4003187851424953e-07, 
+                       mu.13 = 2.4128444894899776e-07, 
+                       mu.14 = 2.4223748020049825e-07, 
+                       p = 0.32094401970037578), 
+                 fixed.parameters=c(mu.15 = 1E-10), 
+                 data=ECFOCF_2002, hessian = TRUE)
+                 
+o_mu2p1 &lt;- fitCF(x = c(mu1 = 1.2190766766978423, 
+                     sd1 = 0.80646454821956925, 
+                     mu2 = 7.1886819592223246, 
+                     sd2 = 0.18152887523015518, 
+                     p = 0.29347220802963259, 
+                     OTN = 2.9137627675219533), 
+                  fixed.parameters=NULL,
+                  data=ECFOCF_2002, hessian = TRUE)
+
+o_mu1p2 &lt;- fitCF(x = c(mu = 5.3628701816871462, 
+                     sd = 0.39390555498088764, 
+                     p1 = 0.61159637544418755, 
+                     p2 = -2.4212753004659189, 
+                     OTN = 0.31898004668901009),
+                 data=ECFOCF_2002, hessian = TRUE)
+                 
+o_mu2p2 &lt;- fitCF(x = c(mu1 = 0.043692606004492131, 
+                   sd1 = 1.9446036983033428, 
+                   mu2 = 7.3007868915644751, 
+                   sd2 = 0.16109296152913491, 
+                   p1 = 1.6860260469536992, 
+                   p2 = -0.096816113083788985, 
+                   OTN = 2.2604431232973501), 
+                  data=ECFOCF_2002, hessian = TRUE)
+
+compare_AIC(mu1p1=o_mu1p1_CFp, 
+            mu2p1=o_mu2p1, 
+            mu1p2=o_mu1p2, 
+            mu2p2=o_mu2p2)
+                 
+o_mu3p3 &lt;- fitCF(x = c(mu1 = 0.24286312214288761, 
+                            sd1 = 0.34542255091729313, 
+                            mu2 = 5.0817174343025551, 
+                            sd2 = 1.87435099405695, 
+                            mu3 = 5.2009265101740683, 
+                            sd3 = 1.79700447678357, 
+                            p1 = 8.8961708614726156, 
+                            p2 = 0.94790116453886453, 
+                            p3 = -0.76572930634505421, 
+                            OTN1 = 1.2936848663276974, 
+                            OTN2 = 0.81164278235645926),
+                 data=ECFOCF_2002, hessian = TRUE)
+                 
+
+o_mu3p1 &lt;- fitCF(x = structure(c(0.24387978183477, 
+                                   1.2639261745506, 
+                                   4.94288464711349, 
+                                   1.945082889758, 
+                                   4.9431672350811, 
+                                   1.287663104591, 
+                                   0.323636536050397, 
+                                   1.37072039291397, 
+                                   9.28055412564559e-06), 
+                                  .Names = c("mu1", "sd1", "mu2", 
+                                             "sd2", "mu3", "sd3", 
+                                             "p", "OTN1", "OTN2")),
+                 data=ECFOCF_2002, hessian = TRUE)
+                 
+
+o_mu1p3 &lt;- fitCF(x = structure(c(4.65792402108387, 
+                                   1.58445909785, 
+                                   -2.35414198317177, 
+                                   0.623757854800649, 
+                                   -3.62623634029326, 
+                                   11.6950204755787, 
+                                   4.05273728846523), 
+                                   .Names = c("mu", "sd", 
+                                              "p1", "p2", "p3", 
+                                              "OTN1", "OTN2")),
+                 data=ECFOCF_2002, hessian = TRUE)
+                 
+compare_AIC(mu1p1=o_mu1p1, 
+            mu2p1=o_mu2p1, 
+            mu1p2=o_mu1p2, 
+            mu2p2=o_mu2p2, 
+            mu3p3=o_mu3p3, 
+            mu1p3=o_mu1p3, 
+            mu3p1=o_mu3p1)
+            
+ # 3D model for (ECF, OCF, period)           
+            
+ECFOCF_2002 &lt;- TableECFOCF(MarineTurtles_2002, 
+                           date0=as.Date("2002-01-01"))
+
+fp &lt;- rep(0, dim(ECFOCF_2002)[3])
+names(fp) &lt;- paste0("p.", formatC(1:(dim(ECFOCF_2002)[3]), width=2, flag="0"))
+par &lt;- c(mu = 2.6404831115214353, 
+        sd = 0.69362774786433479, 
+        mu_season = 12.6404831115214353, 
+        sd_season = 1.69362774786433479)
+par &lt;- c(par, fp[attributes(ECFOCF_2002)$table["begin"]:
+                 attributes(ECFOCF_2002)$table["final"]])
+                 
+# The value of p (logit of the capture probability) out of the period 
+# of nesting must be set to +Inf (capture probability=1)
+# to indicate that no turtle is nesting in this period
+
+# p must be set to -Inf (capture probability=0) to indicate that no
+# monitoring has been done during a specific period of the nesting season.
+
+fixed.parameters &lt;- c(p=+Inf)
+# The fitted values are:
+par &lt;- c(mu = 2.4911638591178051, 
+         sd = 0.96855483039640977, 
+         mu_season = 13.836059118657793, 
+         sd_season = 0.17440085345943984, 
+         p.10 = 1.3348233607728222, 
+         p.11 = 1.1960387774393837, 
+         p.12 = 0.63025680979544774, 
+         p.13 = 0.38648155002707452, 
+         p.14 = 0.31547864054366048, 
+         p.15 = 0.19720001827017075, 
+         p.16 = 0.083199496372073328, 
+         p.17 = 0.32969130595897905, 
+         p.18 = 0.36582777525265819, 
+         p.19 = 0.30301248314170637, 
+         p.20 = 0.69993987591518514, 
+         p.21 = 0.13642423871641118, 
+         p.22 = -1.3949268190534629)
+
+o_mu1p1season1 &lt;- fitCF(x=par, data=ECFOCF_2002, 
+                        fixed.parameters=fixed.parameters)
+
+# Same model but with two different models of capture probabilities
+                        
+fp &lt;- rep(0, dim(ECFOCF_2002)[3])
+names(fp) &lt;- paste0("p1.", formatC(1:(dim(ECFOCF_2002)[3]), width=2, flag="0"))
+par &lt;- c(mu = 2.6404831115214353, 
+        sd = 0.69362774786433479, 
+        mu_season = 12.6404831115214353, 
+        sd_season = 1.69362774786433479)
+par &lt;- c(par, fp[attributes(ECFOCF_2002)$table["begin"]:
+                 attributes(ECFOCF_2002)$table["final"]])
+names(fp) &lt;- paste0("p2.", formatC(1:(dim(ECFOCF_2002)[3]), width=2, flag="0"))
+par &lt;- c(par, fp[attributes(ECFOCF_2002)$table["begin"]:
+                 attributes(ECFOCF_2002)$table["final"]])
+fixed.parameters &lt;- c(p1=+Inf, p2=+Inf)
+
+o_mu1p2season1 &lt;- fitCF(x=par, data=ECFOCF_2002, 
+                        fixed.parameters=fixed.parameters)
+
+# Here the two different capture probabilities are different 
+# by a constant:
+# p1=invlogit(-p)     [Note that invlogit(-a1) = 1]
+# p2=invlogit(-p)*invlogit(-a2)
+
+fp &lt;- rep(0, dim(ECFOCF_2002)[3])
+names(fp) &lt;- paste0("p.", formatC(1:(dim(ECFOCF_2002)[3]), width=2, flag="0"))
+par &lt;- c(mu = 2.6404831115214353, 
+        sd = 0.69362774786433479, 
+        mu_season = 12.6404831115214353, 
+        sd_season = 1.69362774786433479,  
+        a2=0)
+par &lt;- c(par, fp[attributes(ECFOCF_2002)$table["begin"]:
+                 attributes(ECFOCF_2002)$table["final"]])
+fixed.parameters &lt;- c(a1=+Inf, p=+Inf)
+
+o_mu1p1aseason1 &lt;- fitCF(x=par, data=ECFOCF_2002, 
+                        fixed.parameters=fixed.parameters)
+                        data=ECFOCF_2002)
+ 
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,809 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PivotFilters</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>R6 class that defines a set of filter conditions.</h2>
+
+<h3>Description</h3>
+
+<p>The 'PivotFilters' class allows multiple filter conditions relating to
+different data frame columns to be combined, i.e. a 'PivotFilters' object
+typically contains multiple <code>PivotFilter</code> objects.
+</p>
+
+
+<h3>Format</h3>
+
+<p><code>R6Class</code> object.
+</p>
+
+
+<h3>Details</h3>
+
+<p>As well as acting as a container for multiple filter conditions, the
+'PivotFilters' class also contains logic for combining filter.
+The 'action' parameter in many of the methods controls how two filters
+are combined.<br>
+Most common cases:<br>
+(1) When working out the rowColFilters for each pivot table cell, the
+filters from the row and column leaf groups are combined using
+'action="intersect"'.<br>
+(2) When combining the rowColFilters with calculation filters the
+action could be any of (in order of most typical)
+"intersect", "replace" or "union".<br>
+"intersect" would apply additional restrictions, e.g. see the
+example in the Calculations vignette that has a measure for
+weekend trains only.<br>
+"replace" would apply when doing things like percentage of row
+total calculations - again, see example in the calculations vignette<br>
+"union" is probably much less likely (hard to envisage many
+situations when that would be needed).<br>
+(3) In custom calculation functions, the action could be any of
+"intersect", "replace" or "union".<br>
+NOTE: 'pivottabler' does not allow complex conditions to be built up,
+such as ((A=X) or (B=Y)) and (C=2) since there is complex precedence
+involved and conditions like this are not typical of pivot tables.
+If they were really needed, a workaround would be to use a custom
+calculation function and include this logic in that function.<br>
+See Appendix 2 vignette for many more complex calculation details.
+</p>
+
+
+<h3>Active bindings</h3>
+
+<div class="r6-active-bindings">
+
+<dl>
+<dt><code>count</code></dt>
+<dd>
+<p>The number of 'PivotFilter' objects in this 'PivotFilters' object.</p>
+</dd>
+<dt><code>filters</code></dt>
+<dd>
+<p>A list of 'PivotFilter' objects in this 'PivotFilters' object.</p>
+</dd>
+<dt><code>isALL</code></dt>
+<dd>
+<p>If TRUE, this 'PivotFilters' object matches all data.</p>
+</dd>
+<dt><code>isNONE</code></dt>
+<dd>
+<p>If TRUE, this 'PivotFilters' object matches no data.</p>
+</dd>
+<dt><code>filteredVariables</code></dt>
+<dd>
+<p>The names of the variables that are filtered by this
+'PivotFilters' object.</p>
+</dd>
+<dt><code>filteredValues</code></dt>
+<dd>
+<p>A list of the criteria values for each of the variables
+filtered by this 'PivotFilters' object, where the list element names are the
+variable names.</p>
+</dd>
+</dl>
+</div>
+
+
+<h3>Methods</h3>
+
+
+
+<h4>Public methods</h4>
+
+
+<ul>
+<li> <p><a href="#method-PivotFilters-new"><code>PivotFilters$new()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PivotFilters-clearFilters"><code>PivotFilters$clearFilters()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PivotFilters-keepOnlyFiltersFor"><code>PivotFilters$keepOnlyFiltersFor()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PivotFilters-removeFiltersFor"><code>PivotFilters$removeFiltersFor()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PivotFilters-getFilter"><code>PivotFilters$getFilter()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PivotFilters-isFilterMatch"><code>PivotFilters$isFilterMatch()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PivotFilters-setFilters"><code>PivotFilters$setFilters()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PivotFilters-setFilter"><code>PivotFilters$setFilter()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PivotFilters-setFilterValues"><code>PivotFilters$setFilterValues()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PivotFilters-addFilter"><code>PivotFilters$addFilter()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PivotFilters-getFilteredDataFrame"><code>PivotFilters$getFilteredDataFrame()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PivotFilters-getCopy"><code>PivotFilters$getCopy()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PivotFilters-asList"><code>PivotFilters$asList()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PivotFilters-asJSON"><code>PivotFilters$asJSON()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PivotFilters-asString"><code>PivotFilters$asString()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-PivotFilters-clone"><code>PivotFilters$clone()</code></a>
+</p>
+</li>
+</ul>
+<hr>
+<a id="method-PivotFilters-new"></a>
+
+
+
+<h4>Method <code>new()</code>
+</h4>
+
+<p>Create a new 'PivotFilters' object, optionally adding a filter.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PivotFilters$new(
+  parentPivot = NULL,
+  variableName = NULL,
+  type = "ALL",
+  values = NULL
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>parentPivot</code></dt>
+<dd>
+<p>The pivot table that this 'PivotFilters'
+instance belongs to.</p>
+</dd>
+<dt><code>variableName</code></dt>
+<dd>
+<p>The name of the column in the data frame that this filter
+applies to.  Specify 'NULL' to skip adding a filter.</p>
+</dd>
+<dt><code>type</code></dt>
+<dd>
+<p>Must be either "ALL", "VALUES" or "NONE".  "VALUES" is the most
+common type and means the data is filtered to a subset of values.  "ALL" means
+there is no filtering, i.e. all values match.  "NONE" means there can be no
+matching values/data.</p>
+</dd>
+<dt><code>values</code></dt>
+<dd>
+<p>A single data value or a vector of multiple data values that
+the filter will match on.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>A new 'PivotFilters' object.
+</p>
+
+
+<hr>
+<a id="method-PivotFilters-clearFilters"></a>
+
+
+
+<h4>Method <code>clearFilters()</code>
+</h4>
+
+<p>Remove all filters from this 'PivotFilters' object.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PivotFilters$clearFilters()</pre></div>
+
+
+
+<h5>Returns</h5>
+
+<p>No return value.
+</p>
+
+
+<hr>
+<a id="method-PivotFilters-keepOnlyFiltersFor"></a>
+
+
+
+<h4>Method <code>keepOnlyFiltersFor()</code>
+</h4>
+
+<p>Remove the filters for all variables except those specified.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PivotFilters$keepOnlyFiltersFor(variableNames = NULL)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>variableNames</code></dt>
+<dd>
+<p>A character vector specifying the variable names
+to retain the filter criteria for. Filter criteria for all other variables
+will be cleared.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>No return value.
+</p>
+
+
+<hr>
+<a id="method-PivotFilters-removeFiltersFor"></a>
+
+
+
+<h4>Method <code>removeFiltersFor()</code>
+</h4>
+
+<p>Remove the filters for the specified variables.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PivotFilters$removeFiltersFor(variableNames = NULL)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>variableNames</code></dt>
+<dd>
+<p>A character vector specifying the variable names
+for which the filter criteria will be cleared.  Filter criteria for all
+other variables will be retained.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>No return value.
+</p>
+
+
+<hr>
+<a id="method-PivotFilters-getFilter"></a>
+
+
+
+<h4>Method <code>getFilter()</code>
+</h4>
+
+<p>Find a filter with the specified variable name.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PivotFilters$getFilter(variableName = NULL)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>variableName</code></dt>
+<dd>
+<p>The variable name to find a filter for.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>A 'PivotFilter' object that filters on the specified variable.
+</p>
+
+
+<hr>
+<a id="method-PivotFilters-isFilterMatch"></a>
+
+
+
+<h4>Method <code>isFilterMatch()</code>
+</h4>
+
+<p>Tests whether this 'PivotFilters' object matches specified criteria.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PivotFilters$isFilterMatch(
+  matchMode = "simple",
+  variableNames = NULL,
+  variableValues = NULL
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>matchMode</code></dt>
+<dd>
+<p>Either "simple" (default) or "combinations".<br>
+"simple" is used when matching only one variable-value, multiple
+variable-value combinations are effectively logical "OR", i.e.
+any one single 'PivotFilter' match means the 'PivotFilters' object
+is a match.<br>
+"combinations" is used when matching for combinations of variable
+values, multiple variable-value combinations are effectively
+logical "AND", i.e. there must be a matching 'PivotFilter' for
+every variable name / variable values criteria specified.<br>
+See the "Finding and Formatting" vignette for graphical examples.</p>
+</dd>
+<dt><code>variableNames</code></dt>
+<dd>
+<p>The variable name(s) to find a filter for.  This
+can be a vector containing more than one variable name.</p>
+</dd>
+<dt><code>variableValues</code></dt>
+<dd>
+<p>A list specifying the variable names and values
+to find, e.g. 'variableValues=list("PowerType"=c("DMU", "HST"))'.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>'TRUE' if this filters object matches the specified criteria,
+'FALSE' otherwise.
+</p>
+
+
+<hr>
+<a id="method-PivotFilters-setFilters"></a>
+
+
+
+<h4>Method <code>setFilters()</code>
+</h4>
+
+<p>Update the value of this 'PivotFilters' object with the filters from the
+specified 'PivotFilters' object, either intersecting, replacing or unioning
+the filter criteria.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PivotFilters$setFilters(filters = NULL, action = "replace")</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>filters</code></dt>
+<dd>
+<p>A 'PivotFilters' object.</p>
+</dd>
+<dt><code>action</code></dt>
+<dd>
+<p>Specifies how the criteria defined in 'filters' should be
+combined with the existing filter criteria.
+Must be one of "intersect", "replace" or "union".</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>No return value.
+</p>
+
+
+<hr>
+<a id="method-PivotFilters-setFilter"></a>
+
+
+
+<h4>Method <code>setFilter()</code>
+</h4>
+
+<p>Update the value of this 'PivotFilters' object with the filters from the
+specified 'PivotFilter' object, either intersecting, replacing or unioning
+the filter criteria.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PivotFilters$setFilter(filter = NULL, action = "replace")</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>filter</code></dt>
+<dd>
+<p>A 'PivotFilter' object.</p>
+</dd>
+<dt><code>action</code></dt>
+<dd>
+<p>Specifies how the criteria defined in 'filter' should be
+combined with the existing filter criteria.
+Must be one of "intersect", "replace" or "union".</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>No return value.
+</p>
+
+
+<hr>
+<a id="method-PivotFilters-setFilterValues"></a>
+
+
+
+<h4>Method <code>setFilterValues()</code>
+</h4>
+
+<p>Update the value of this 'PivotFilters' object with additional filter criteria,
+either intersecting, replacing or unioning the filter criteria.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PivotFilters$setFilterValues(
+  variableName = NULL,
+  type = "ALL",
+  values = NULL,
+  action = "replace"
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>variableName</code></dt>
+<dd>
+<p>The name of the column in the data frame that this criteria
+applies to.</p>
+</dd>
+<dt><code>type</code></dt>
+<dd>
+<p>Must be either "ALL", "VALUES" or "NONE".</p>
+</dd>
+<dt><code>values</code></dt>
+<dd>
+<p>A single data value or a vector of multiple data values that
+comprise the additional filter criteria.</p>
+</dd>
+<dt><code>action</code></dt>
+<dd>
+<p>Specifies how the criteria defined in 'filter' should be
+combined with the existing filter criteria.
+Must be one of "intersect", "replace" or "union".</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>No return value.
+</p>
+
+
+<hr>
+<a id="method-PivotFilters-addFilter"></a>
+
+
+
+<h4>Method <code>addFilter()</code>
+</h4>
+
+<p>Add a new 'PivotFilter' object to the filter list in this 'PivotFilters'
+object.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PivotFilters$addFilter(filter = NULL)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>filter</code></dt>
+<dd>
+<p>A 'PivotFilter' object.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>No return value.
+</p>
+
+
+<hr>
+<a id="method-PivotFilters-getFilteredDataFrame"></a>
+
+
+
+<h4>Method <code>getFilteredDataFrame()</code>
+</h4>
+
+<p>Filters the specified data frame using the filters defined in this
+'PivotFilters' object and returns the results as another data frame.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PivotFilters$getFilteredDataFrame(dataFrame = NULL)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>dataFrame</code></dt>
+<dd>
+<p>A data frame to filter.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>A data frame filtered according to the criteria in this 'PivotFilters' object.
+</p>
+
+
+<hr>
+<a id="method-PivotFilters-getCopy"></a>
+
+
+
+<h4>Method <code>getCopy()</code>
+</h4>
+
+<p>Create a copy of this 'PivotFilters' object.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PivotFilters$getCopy()</pre></div>
+
+
+
+<h5>Returns</h5>
+
+<p>A copy of this 'PivotFilters' object.
+</p>
+
+
+<hr>
+<a id="method-PivotFilters-asList"></a>
+
+
+
+<h4>Method <code>asList()</code>
+</h4>
+
+<p>Return the contents of this object as a list for debugging.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PivotFilters$asList()</pre></div>
+
+
+
+<h5>Returns</h5>
+
+<p>A list of various object properties.
+</p>
+
+
+<hr>
+<a id="method-PivotFilters-asJSON"></a>
+
+
+
+<h4>Method <code>asJSON()</code>
+</h4>
+
+<p>Return the contents of this object as JSON for debugging.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PivotFilters$asJSON()</pre></div>
+
+
+
+<h5>Returns</h5>
+
+<p>A JSON representation of various object properties.
+</p>
+
+
+<hr>
+<a id="method-PivotFilters-asString"></a>
+
+
+
+<h4>Method <code>asString()</code>
+</h4>
+
+<p>Return a representation of this object as a character value.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PivotFilters$asString(includeVariableName = TRUE, seperator = ", ")</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>includeVariableName</code></dt>
+<dd>
+<p>'TRUE' (default) to include the variable name in
+the string.</p>
+</dd>
+<dt><code>seperator</code></dt>
+<dd>
+<p>A character value used when concatenating
+multiple filters.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>A character summary of various object properties.
+</p>
+
+
+<hr>
+<a id="method-PivotFilters-clone"></a>
+
+
+
+<h4>Method <code>clone()</code>
+</h4>
+
+<p>The objects of this class are cloneable with this method.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>PivotFilters$clone(deep = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>deep</code></dt>
+<dd>
+<p>Whether to make a deep clone.</p>
+</dd>
+</dl>
+</div>
+
+
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">pt &lt;- PivotTable$new()
+# ...
+# PivotFilters constructor allows a filter to be defined
+filters &lt;- PivotFilters$new(pt, variableName="Year", values=2017)
+# Create a new filter
+filter &lt;- PivotFilter$new(pt, variableName="Country", values="England")
+# Combine the filters
+filters$setFilter(filter)
+# filters now contains criteria for both Year and Country
+# Now add another filter, this time via an alternative method
+filters$setFilterValues(variableName="Product", values="Cadbury Dairy Milk
+Chocolate 100g")
+# filters now contains criteria for Year, Country and Product
+</code></pre>
+
+
+</div>

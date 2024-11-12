@@ -1,0 +1,504 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>SpatialCorrelation</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>R6 class representing a spatial correlation.</h2>
+
+<h3>Description</h3>
+
+<p><code>R6</code> class functionality for modeling spatial correlations
+within a spatially-explicit model. It provides functionality for calculating
+correlations between region cells using a distance-based function:
+<em>a*exp(-distance/b)</em>, where <em>a</em> (amplitude) and <em>b</em> (breadth) are
+configurable model attributes. It then calculates the Cholesky decomposition of
+the correlation matrix (via <code>chol</code>), which is utilized to
+generate (optionally temporal) correlated normal deviates. A compacted version of
+the decomposed matrix can also generated for computational efficiency.
+</p>
+
+
+<h3>Super classes</h3>
+
+<p><code>poems::GenericClass</code> -&gt; <code>poems::GenericModel</code> -&gt; <code>poems::SpatialModel</code> -&gt; <code>SpatialCorrelation</code>
+</p>
+
+
+<h3>Public fields</h3>
+
+<div class="r6-fields">
+
+<dl>
+<dt><code>attached</code></dt>
+<dd>
+<p>A list of dynamically attached attributes (name-value pairs).</p>
+</dd>
+</dl>
+</div>
+
+
+<h3>Active bindings</h3>
+
+<div class="r6-active-bindings">
+
+<dl>
+<dt><code>model_attributes</code></dt>
+<dd>
+<p>A vector of model attribute names.</p>
+</dd>
+<dt><code>region</code></dt>
+<dd>
+<p>A <code>Region</code> (or inherited class) object specifying the study region.</p>
+</dd>
+<dt><code>coordinates</code></dt>
+<dd>
+<p>Data frame (or matrix) of X-Y population (WGS84) coordinates in longitude (degrees West) and latitude (degrees North) (get and set), or distance-based coordinates dynamically returned by region raster (get only).</p>
+</dd>
+<dt><code>distance_scale</code></dt>
+<dd>
+<p>Scale of distance values in meters (default = 1). Usage: set to 1 for values in meters, or to 1000 for values in kilometers.</p>
+</dd>
+<dt><code>correlation_amplitude</code></dt>
+<dd>
+<p>Correlation function: <em>a*exp(-distance/b)</em> <em>a</em> parameter. Represents the amplitude or maximum magnitude of correlation values between model cells.</p>
+</dd>
+<dt><code>correlation_breadth</code></dt>
+<dd>
+<p>Correlation function: <em>a*exp(-distance/b)</em> <em>b</em> parameter. Represents the breadth of the correlation between region cells. Typically estimated via average distance between correlated region cells.</p>
+</dd>
+<dt><code>correlation_matrix</code></dt>
+<dd>
+<p>Correlation matrix calculated via correlation function: <em>a*exp(-distance/b)</em>.</p>
+</dd>
+<dt><code>t_decomposition_matrix</code></dt>
+<dd>
+<p>The transposed Cholesky decomposition of the correlation matrix (see <code>chol</code>).</p>
+</dd>
+<dt><code>compact_only</code></dt>
+<dd>
+<p>Boolean to indicate that only the compact versions of matrices will be maintained once calculated.</p>
+</dd>
+<dt><code>t_decomposition_compact_matrix</code></dt>
+<dd>
+<p>A compact (rows) version of the transposed Cholesky decomposition of the correlation matrix.</p>
+</dd>
+<dt><code>t_decomposition_compact_map</code></dt>
+<dd>
+<p>A map of the original region cell rows for the compact transposed decomposition matrix.</p>
+</dd>
+<dt><code>attribute_aliases</code></dt>
+<dd>
+<p>A list of alternative alias names for model attributes (form: <code>alias = "attribute"</code>) to be used with the set and get attributes methods.</p>
+</dd>
+<dt><code>error_messages</code></dt>
+<dd>
+<p>A vector of error messages encountered when setting model attributes.</p>
+</dd>
+<dt><code>warning_messages</code></dt>
+<dd>
+<p>A vector of warning messages encountered when setting model attributes.</p>
+</dd>
+</dl>
+</div>
+
+
+<h3>Methods</h3>
+
+
+
+<h4>Public methods</h4>
+
+
+<ul>
+<li> <p><a href="#method-SpatialCorrelation-new"><code>SpatialCorrelation$new()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SpatialCorrelation-calculate_distance_matrix"><code>SpatialCorrelation$calculate_distance_matrix()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SpatialCorrelation-calculate_correlations"><code>SpatialCorrelation$calculate_correlations()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SpatialCorrelation-calculate_cholesky_decomposition"><code>SpatialCorrelation$calculate_cholesky_decomposition()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SpatialCorrelation-calculate_compact_decomposition"><code>SpatialCorrelation$calculate_compact_decomposition()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SpatialCorrelation-get_compact_decomposition"><code>SpatialCorrelation$get_compact_decomposition()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SpatialCorrelation-generate_correlated_normal_deviates"><code>SpatialCorrelation$generate_correlated_normal_deviates()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-SpatialCorrelation-clone"><code>SpatialCorrelation$clone()</code></a>
+</p>
+</li>
+</ul>
+<details><summary>Inherited methods</summary><ul>
+<li><span class="pkg-link" data-pkg="poems" data-topic="GenericModel" data-id="get_attribute"><a href="../../poems/html/GenericModel.html#method-GenericModel-get_attribute"><code>poems::GenericModel$get_attribute()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="poems" data-topic="GenericModel" data-id="get_attribute_aliases"><a href="../../poems/html/GenericModel.html#method-GenericModel-get_attribute_aliases"><code>poems::GenericModel$get_attribute_aliases()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="poems" data-topic="GenericModel" data-id="get_attribute_names"><a href="../../poems/html/GenericModel.html#method-GenericModel-get_attribute_names"><code>poems::GenericModel$get_attribute_names()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="poems" data-topic="GenericModel" data-id="get_attributes"><a href="../../poems/html/GenericModel.html#method-GenericModel-get_attributes"><code>poems::GenericModel$get_attributes()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="poems" data-topic="GenericModel" data-id="set_attributes"><a href="../../poems/html/GenericModel.html#method-GenericModel-set_attributes"><code>poems::GenericModel$set_attributes()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="poems" data-topic="SpatialModel" data-id="new_clone"><a href="../../poems/html/SpatialModel.html#method-SpatialModel-new_clone"><code>poems::SpatialModel$new_clone()</code></a></span></li>
+</ul></details><hr>
+<a id="method-SpatialCorrelation-new"></a>
+
+
+
+<h4>Method <code>new()</code>
+</h4>
+
+<p>Initialization method sets given attributes individually and/or from a list.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SpatialCorrelation$new(compact_only = TRUE, attribute_aliases = NULL, ...)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>compact_only</code></dt>
+<dd>
+<p>Boolean to indicate that only the compact versions of matrices will be maintained once calculated.</p>
+</dd>
+<dt><code>attribute_aliases</code></dt>
+<dd>
+<p>Optional list of extra alias names for model attributes (form: <code>alias = "attribute"</code>) to be used with the set and get attributes methods.</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Parameters passed via a <em>params</em> list or individually.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-SpatialCorrelation-calculate_distance_matrix"></a>
+
+
+
+<h4>Method <code>calculate_distance_matrix()</code>
+</h4>
+
+<p>Returns a matrix with the calculated distance (in meters by default) between each pair of region cells.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SpatialCorrelation$calculate_distance_matrix(use_longlat = NULL)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>use_longlat</code></dt>
+<dd>
+<p>Optional boolean indicating use of (WGS84) coordinates in longitude (degrees West) and latitude (degrees North).</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>Matrix with distances between region cells.
+</p>
+
+
+<hr>
+<a id="method-SpatialCorrelation-calculate_correlations"></a>
+
+
+
+<h4>Method <code>calculate_correlations()</code>
+</h4>
+
+<p>Calculates the correlation matrix by applying the distance-based correlation function.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SpatialCorrelation$calculate_correlations(
+  distance_matrix = NULL,
+  decimals = NULL,
+  threshold = 1e-07,
+  ...
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>distance_matrix</code></dt>
+<dd>
+<p>Optional pre-calculated matrix with distances between region cells.</p>
+</dd>
+<dt><code>decimals</code></dt>
+<dd>
+<p>Optional number of decimal places for correlation values.</p>
+</dd>
+<dt><code>threshold</code></dt>
+<dd>
+<p>Optional threshold (minimum value) for correlation values (default 0.0000001).</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Parameters passed via a <em>params</em> list or individually.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-SpatialCorrelation-calculate_cholesky_decomposition"></a>
+
+
+
+<h4>Method <code>calculate_cholesky_decomposition()</code>
+</h4>
+
+<p>Calculates the transposed Cholesky decomposition of the correlation matrix (via <code>chol</code>).
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SpatialCorrelation$calculate_cholesky_decomposition(
+  distance_matrix = NULL,
+  decimals = NULL,
+  threshold = 1e-07,
+  ...
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>distance_matrix</code></dt>
+<dd>
+<p>Optional pre-calculated matrix with distances between region cells.</p>
+</dd>
+<dt><code>decimals</code></dt>
+<dd>
+<p>Optional number of decimal places for correlation values.</p>
+</dd>
+<dt><code>threshold</code></dt>
+<dd>
+<p>Optional threshold (minimum value) for correlation values (default 0.0000001).</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Parameters passed via a <em>params</em> list or individually.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-SpatialCorrelation-calculate_compact_decomposition"></a>
+
+
+
+<h4>Method <code>calculate_compact_decomposition()</code>
+</h4>
+
+<p>Compacts the transposed Cholesky decomposition of the correlation matrix into the minimal number of rows, which are mapped to the original matrix.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SpatialCorrelation$calculate_compact_decomposition(distance_matrix = NULL, ...)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>distance_matrix</code></dt>
+<dd>
+<p>Optional pre-calculated matrix with distances between region cells.</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Parameters passed via a <em>params</em> list or individually.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-SpatialCorrelation-get_compact_decomposition"></a>
+
+
+
+<h4>Method <code>get_compact_decomposition()</code>
+</h4>
+
+<p>Returns a compact transposed Cholesky decomposition of the correlation matrix and a corresponding map of region cell indices in a list with names: matrix, map.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SpatialCorrelation$get_compact_decomposition(distance_matrix = NULL, ...)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>distance_matrix</code></dt>
+<dd>
+<p>Optional pre-calculated matrix with distances between region cells.</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Parameters passed via a <em>params</em> list or individually.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>List containing a compact Cholesky decomposition matrix and a corresponding map of region cell indices (for the compacted rows).
+</p>
+
+
+<hr>
+<a id="method-SpatialCorrelation-generate_correlated_normal_deviates"></a>
+
+
+
+<h4>Method <code>generate_correlated_normal_deviates()</code>
+</h4>
+
+<p>Generates correlated normal deviates using the spatial correlation, utilizing the optional random seed and optional temporal correlation across time steps.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SpatialCorrelation$generate_correlated_normal_deviates(
+  random_seed = NULL,
+  temporal_correlation = 1,
+  time_steps = 1
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>random_seed</code></dt>
+<dd>
+<p>Optional seed for the random generation of correlated deviates.</p>
+</dd>
+<dt><code>temporal_correlation</code></dt>
+<dd>
+<p>Optional temporal correlation coefficient (0-1; default = 1).</p>
+</dd>
+<dt><code>time_steps</code></dt>
+<dd>
+<p>Optional number of time steps for temporal correlation (default = 1 or none).</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>Array (non-temporal) or matrix (temporal) of correlated normal deviates.
+</p>
+
+
+<hr>
+<a id="method-SpatialCorrelation-clone"></a>
+
+
+
+<h4>Method <code>clone()</code>
+</h4>
+
+<p>The objects of this class are cloneable with this method.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>SpatialCorrelation$clone(deep = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>deep</code></dt>
+<dd>
+<p>Whether to make a deep clone.</p>
+</dd>
+</dl>
+</div>
+
+
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># U Island example region
+coordinates &lt;- data.frame(
+  x = rep(seq(177.01, 177.05, 0.01), 5),
+  y = rep(seq(-18.01, -18.05, -0.01), each = 5)
+)
+template_raster &lt;- Region$new(coordinates = coordinates)$region_raster # full extent
+template_raster[][-c(7, 9, 12, 14, 17:19)] &lt;- NA # make U Island
+region &lt;- Region$new(template_raster = template_raster)
+# Spatial correlation
+env_corr &lt;- SpatialCorrelation$new(region = region, amplitude = 0.4, breadth = 500)
+env_corr$calculate_distance_matrix() # m
+env_corr$calculate_correlations(decimals = 5)
+env_corr$correlation_matrix
+env_corr$calculate_cholesky_decomposition(decimals = 2)
+env_corr$t_decomposition_matrix
+env_corr$get_compact_decomposition()
+# Scale to km
+env_corr$distance_scale &lt;- 1000
+env_corr$calculate_distance_matrix() # km
+
+</code></pre>
+
+
+</div>

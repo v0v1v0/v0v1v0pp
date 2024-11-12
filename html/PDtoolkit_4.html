@@ -1,0 +1,171 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cat.bin</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Categorical risk factor binning</h2>
+
+<h3>Description</h3>
+
+<p><code>cat.bin</code> implements three-stage binning procedure for categorical risk factors.
+The first stage is possible correction for minimum percentage of observations.
+The second stage is possible correction for target rate (default rate), while the third one is
+possible correction for maximum number of bins. Last stage implements procedure known as
+adjacent pooling algorithm (APA) which aims to minimize information loss while iterative merging of the bins.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cat.bin(
+  x,
+  y,
+  sc = NA,
+  sc.merge = "none",
+  min.pct.obs = 0.05,
+  min.avg.rate = 0.01,
+  max.groups = NA,
+  force.trend = "modalities"
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Categorical risk factor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Numeric target vector (binary).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sc</code></td>
+<td>
+<p>Special case elements. Default value is <code>NA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sc.merge</code></td>
+<td>
+<p>Define how special cases will be treated. Available options are: <br><code>"none", "first", "last", "closest"</code>. If <code>"none"</code> is selected, then the special cases
+will be kept in separate bin. If <code>"first"</code> or <code>"last"</code> is selected, then the special cases
+will be merged with first or last bin. Depending on sorting option <code>force.trend</code>, first or last
+bin will be determined based on alphabetic order (if <code>force.trend</code> is selected as <code>"modalities"</code>) or
+on minimum or maximum default rate (if <code>force.trend</code> is selected as <code>"dr"</code>).
+If <code>"closest"</code> is selected, then the special case will be merged with the bin
+that is closest based on default rate. Merging of the special cases with other bins is performed at the
+beginning i.e. before running any of three-stage procedures.
+Default value is <code>"none"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.pct.obs</code></td>
+<td>
+<p>Minimum percentage of observations per bin. Default is 0.05 or minimum 30 observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.avg.rate</code></td>
+<td>
+<p>Minimum default rate. Default is 0.01 or minimum 1 bad case for <code>y</code> 0/1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.groups</code></td>
+<td>
+<p>Maximum number of bins (groups) allowed for analyzed risk factor. If in the first two stages
+number of bins is less or equal to selected <code>max.groups</code> or if <code>max.groups</code> is
+default value (<code>NA</code>), no adjustment is performed. Otherwise, APA algorithm is applied
+which minimize information loss in further iterative process of bin merging.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>force.trend</code></td>
+<td>
+<p>Defines how initial summary table will be ordered. Possible options are:<br><code>"modalities"</code> and <code>"dr"</code>. If  <code>"modalities"</code> is selected, then merging will be
+performed forward based on alphabetic order of risk factor modalities. On the other hand,
+if <code>"dr"</code> is selected, then bins merging will be performed forward based on increasing order of
+default rate per modality. This direction of merging is applied in the all three stages.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The command <code>cat.bin</code> generates a list of two objects. The first object, data frame <code>summary.tbl</code>
+presents a summary table of final binning, while <code>x.trans</code> is a vector of new grouping values.
+</p>
+
+
+<h3>References</h3>
+
+<p>Anderson, R. (2007). The credit scoring toolkit: theory and practice for
+retail credit risk management and decision automation,
+Oxford University Press
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">suppressMessages(library(PDtoolkit))
+data(loans)
+#prepare risk factor Purpose for the analysis
+loans$Purpose &lt;- ifelse(nchar(loans$Purpose) == 2, loans$Purpose, paste0("0", loans$Purpose))
+#artificially add missing values in order to show functions' features
+loans$Purpose[1:6] &lt;- NA
+#run binning procedure
+res &lt;- cat.bin(x = loans$Purpose, 
+	   y = loans$Creditability, 
+	   sc = NA,
+	   sc.merge = "none",
+	   min.pct.obs = 0.05, 
+	   min.avg.rate = 0.05,
+	   max.groups = NA, 
+	   force.trend = "modalities")
+res[[1]]
+#check new risk factor against the original 
+table(loans$Purpose, res[[2]], useNA = "always")
+#repeat the same process with setting max.groups to 4 and force.trend to dr
+res &lt;- cat.bin(x = loans$Purpose, 
+	   y = loans$Creditability, 
+	   sc = NA,
+	   sc.merge = "none",
+	   min.pct.obs = 0.05, 
+	   min.avg.rate = 0.05,
+	   max.groups = 4, 
+	   force.trend = "dr")
+res[[1]]
+#check new risk factor against the original 
+table(loans$Purpose, res[[2]], useNA = "always")
+#example of shrinking number of groups for numeric risk factor
+#copy exisitng numeric risk factor to new called maturity
+loans$maturity &lt;- loans$"Duration of Credit (month)"
+#artificially add missing values in order to show functions' features
+loans$maturity[1:10] &lt;- NA
+#categorize maturity with MAPA algorithim from monobin package
+loans$maturity.bin &lt;- cum.bin(x = loans$maturity, 
+				y = loans$Creditability, g = 50)[[2]]
+table(loans$maturity.bin)
+#run binning procedure to decrease number of bins from the previous step
+res &lt;- cat.bin(x = loans$maturity.bin, 
+	   y = loans$Creditability, 
+	   sc = "SC",
+	   sc.merge = "closest",
+	   min.pct.obs = 0.05, 
+	   min.avg.rate = 0.01,
+	   max.groups = 5, 
+	   force.trend = "modalities")
+res[[1]]
+#check new risk factor against the original 
+table(loans$maturity.bin, res[[2]], useNA = "always")
+</code></pre>
+
+
+</div>

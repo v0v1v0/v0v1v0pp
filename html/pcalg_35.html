@@ -1,0 +1,257 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fciPlus</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate a PAG with the FCI+ Algorithm</h2>
+
+<h3>Description</h3>
+
+<p>Estimate a Partial Ancestral Graph (PAG) from observational data, using
+the FCI+ (Fast Causal Inference) algorithm, or from a combination of
+data from different (e.g., observational and interventional) contexts, 
+using the FCI+-JCI (Joint Causal Inference) extension.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fciPlus(suffStat, indepTest, alpha, labels, p, verbose=TRUE,
+	selectionBias = TRUE, jci = c("0","1","12","123"), contextVars = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>suffStat</code></td>
+<td>
+<p>sufficient statistics: A named <code>list</code>
+containing all necessary elements for the conditional independence
+decisions in the function <code>indepTest</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indepTest</code></td>
+<td>
+<p>a <code>function</code> for testing conditional
+independence.  The function is internally called as
+<code>indepTest(x,y, S, suffStat)</code>, and tests conditional independence
+of <code>x</code> and <code>y</code> given <code>S</code>.  Here, <code>x</code> and
+<code>y</code> are variables, and <code>S</code> is a (possibly empty) vector of
+variables (all variables are denoted by their column numbers
+in the adjacency matrix). <code>suffStat</code> is a list with all
+relevant information, see above.  The return value of
+<code>indepTest()</code> is the p-value of the test for conditional
+independence.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>numeric significance level (in <code class="reqn">(0, 1)</code>) for the
+individual conditional independence tests.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>labels</code></td>
+<td>
+<p>(optional) <code>character</code> vector of variable (or
+“node”) names.  Typically preferred to specifying <code>p</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>(optional) number of variables (or nodes).  May be specified
+if <code>labels</code> are not, in which case <code>labels</code> is set to
+<code>1:p</code>.</p>
+</td>
+</tr>
+</table>
+<table>
+<tr style="vertical-align: top;">
+<td><code>selectionBias</code></td>
+<td>
+<p>If <code>TRUE</code>, allow for selection bias. 
+If <code>FALSE</code>, selection bias is excluded by assumption and hence 
+rules R5-R7, as in Zhang (2008), are disabled.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>jci</code></td>
+<td>
+<p>String specifying the JCI assumptions that are used. 
+It can be one of:
+</p>
+
+<dl>
+<dt>"0"</dt>
+<dd>
+<p>No JCI assumption is made (default),</p>
+</dd>
+<dt>"1"</dt>
+<dd>
+<p>JCI assumption 1 (no system variable causes any context 
+variable),</p>
+</dd>
+<dt>"12"</dt>
+<dd>
+<p>JCI assumptions 1 and 2 (no system variable causes any 
+context variable, and no system variable is confounded with any 
+context variable),</p>
+</dd>
+<dt>"123"</dt>
+<dd>
+<p>JCI assumptions 1, 2 and 3 (no system variable causes
+any context variable, no system variable is confounded with any 
+context variable, and all context variables are confounded but 
+are not direct causes of each other).</p>
+</dd>
+</dl>
+<p>For more information, see Mooij et al. (2020).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contextVars</code></td>
+<td>
+<p>Subset of variable indices {1,...,p} that will be 
+treated as context variables in the JCI extension of FCI+.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical indicating if progress of the algorithm should
+be printed.  The default is true, which used to be hard coded previously.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>A (possibly much faster) variation of FCI (Fast Causal Inference).  
+For details, please see the references, and also <code>fci</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of <code>class</code> <code>fciAlgo</code> (see
+<code>fciAlgo</code>) containing the estimated graph
+(in the form of an adjacency matrix with various possible edge marks),
+the conditioning sets that lead to edge removals (sepset) and several other
+parameters.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Emilija Perkovic, Markus Kalisch (<a href="mailto:kalisch@stat.math.ethz.ch">kalisch@stat.math.ethz.ch</a>)
+and Joris Mooij.
+</p>
+
+
+<h3>References</h3>
+
+<p>T. Claassen, J. Mooij, and T. Heskes (2013).
+Learning Sparse Causal Models is not NP-hard.
+In <em>UAI 2013, Proceedings of the 29th Conference on Uncertainty in Artificial Intelligence</em>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>fci</code> for estimating a PAG using the FCI algorithm.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">##################################################
+## Example without latent variables
+##################################################
+
+## generate a random DAG ( p = 7 )
+set.seed(42)
+p &lt;- 7
+myDAG &lt;- randomDAG(p, prob = 0.4)
+
+## find PAG using the FCI+ algorithm on "Oracle"
+suffStat &lt;- list(C = cov2cor(trueCov(myDAG)), n = 10^9)
+m.fci &lt;- fciPlus(suffStat, indepTest=gaussCItest,
+                 alpha = 0.9999, p=p)
+summary(m.fci)
+
+if (require(Rgraphviz)) {
+  par(mfrow=c(1,2))
+plot(myDAG)
+plot(m.fci)
+}
+
+##################################################
+## Joint Causal Inference Example
+## Mooij et al. (2020), Fig. 43(a), p. 97
+##################################################
+
+# Encode MAG as adjacency matrix
+p &lt;- 8 # total number of variables
+V &lt;- c("Ca","Cb","Cc","X0","X1","X2","X3","X4") # 3 context variables, 5 system variables
+# amat[i,j] = 0 iff no edge btw i,j
+# amat[i,j] = 1 iff i *-o j
+# amat[i,j] = 2 iff i *-&gt; j
+# amat[i,j] = 3 iff i *-- j
+amat &lt;- rbind(c(0,2,2,2,0,0,0,0),
+              c(2,0,2,0,2,0,0,0),
+              c(2,2,0,0,2,2,0,0),
+              c(3,0,0,0,0,0,2,0),
+              c(0,3,3,0,0,3,0,2),
+              c(0,0,3,0,2,0,0,0),
+              c(0,0,0,3,0,0,0,2),
+              c(0,0,0,0,2,0,3,0))
+rownames(amat)&lt;-V
+colnames(amat)&lt;-V
+
+# Make use of d-separation oracle as "independence test"
+indepTest &lt;- dsepAMTest
+suffStat&lt;-list(g=amat,verbose=FALSE)
+
+# Derive PAG that represents the Markov equivalence class of the MAG with the FCI+ algorithm
+# (assuming no selection bias)
+# fci.pag &lt;- fciPlus(suffStat, indepTest, alpha = 0.5, labels = V,
+# selectionBias=FALSE,verbose=TRUE)
+
+# Derive PAG with FCI+-JCI, the Joint Causal Inference extension of FCI
+# (assuming no selection bias, and all three JCI assumptions)
+# fcijci.pag &lt;- fciPlus(suffStat, indepTest, alpha = 0.5, labels = V,
+# selectionBias=FALSE, contextVars=c(1,2,3), jci="123", verbose=TRUE)
+
+# Report results
+# cat('True MAG:\n')
+# print(amat)
+# cat('PAG output by FCI+:\n')
+# print(fci.pag@amat)
+# cat('PAG output by FCI+-JCI:\n')
+# print(fcijci.pag@amat)
+
+# Read off causal features from the FCI PAG
+#cat('Identified absence (-1) and presence (+1) of ancestral causal relations from FCI+ PAG:\n')
+#print(pag2anc(fci.pag@amat))
+#cat('Identified absence (-1) and presence (+1) of direct causal relations from FCI+ PAG:\n')
+#print(pag2edge(fci.pag@amat))
+#cat('Identified absence (-1) and presence (+1) of pairwise latent confounding from FCI+ PAG:\n')
+#print(pag2conf(fci.pag@amat))
+
+# Read off causal features from the FCI-JCI PAG
+#cat('Identified absence (-1) and presence (+1) of ancestral causal relations from FCI+-JCI PAG:\n')
+#print(pag2anc(fcijci.pag@amat))
+#cat('Identified absence (-1) and presence (+1) of direct causal relations from FCI+-JCI PAG:\n')
+#print(pag2edge(fcijci.pag@amat))
+#cat('Ident. absence (-1) and presence (+1) of pairwise latent confounding from FCI+-JCI PAG:\n')
+#print(pag2conf(fcijci.pag@amat))
+</code></pre>
+
+
+</div>

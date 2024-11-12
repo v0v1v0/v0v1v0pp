@@ -1,0 +1,229 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>insem</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Time to first insemination in dairy heifer cows 
+without time varying covariates</h2>
+
+<h3>Description</h3>
+
+<p>In a dairy farm, the calving interval (the time between two calvings) 
+should be optimally between 12 and 13 months. 
+One of the main factors determining the length of the calving interval 
+is the time from parturition to the time of first insemination. 
+</p>
+<p>The objective of this study is to look for cow factors that might predict 
+the time to first insemination, 
+so that actions can be taken based on these predictors. 
+As no inseminations take place in the first 29 days after calving, 
+we subtract 29 days (and not 30 days as the first event would then have 
+first insemination time zero) from the time to first insemination 
+since at risk time starts only then. 
+Cows which are culled without being inseminated are censored 
+at their culling time. 
+Furthermore, cows that are not yet inseminated 300 days after calving 
+are censored at that time. 
+</p>
+<p>The time to first insemination is studied in dairy cows 
+as a function of covariates that are fixed over time.   
+An example ofsuch a covariate is the parity of the cow, 
+corresponding to the number of calvings the cow has had already. 
+As we observe only one lactation period for each cow in the study, 
+it is indeed a constant cow characteristic 
+within the time framework of the study. 
+</p>
+<p>We dichotomise parity into primiparous cows or heifers
+(only one calving (<code>heifer=1</code>)) and multiparous cows
+(more than one calving (<code>heifer=0</code>)). 
+Other covariates that are used in the analysis are 
+the different milk constituents such as protein and 
+ureum concentration at parturition. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">data(insem)</code></pre>
+
+
+<h3>Format</h3>
+
+<p>A dataframe containing 10513 observations.
+</p>
+
+<dl>
+<dt>Cowid:</dt>
+<dd>
+<p>Cow's identifyier.</p>
+</dd>
+<dt>Time:</dt>
+<dd>
+<p>Time to first insemination (in days).</p>
+</dd>
+<dt>Status:</dt>
+<dd>
+<p>Censored (0) or observed (1) event time.</p>
+</dd>
+<dt>Herd:</dt>
+<dd>
+<p>The herd to which the cow belongs.</p>
+</dd>
+<dt>Urem:</dt>
+<dd>
+<p>Milk urem concentration (%)
+at the start of the lactation period.</p>
+</dd>
+<dt>Protein:</dt>
+<dd>
+<p>Protein concentration (%)
+at the start of the lactation period.</p>
+</dd>
+<dt>Parity:</dt>
+<dd>
+<p>The number of calvings.</p>
+</dd>
+<dt>Heifer:</dt>
+<dd>
+<p>Multiparous cow (0) or primiparous cow (1).</p>
+</dd>
+</dl>
+<h3>Note</h3>
+
+<p>These data simulated, with exactly
+the same structure as the real data used in the book,
+that could not be made publicly available.    
+</p>
+
+
+<h3>Source</h3>
+
+<p>Example 1.8 of Duchateau an Janssen (2008)</p>
+
+
+<h3>References</h3>
+
+<p>Duchateau L, Janssen P (2008). <em>The frailty model. Springer</em>.
+New York: Springer–Verlag.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(insem)
+head(insem)
+
+insem$TimeMonths &lt;- insem$Time * 12 / 365.25
+
+################################################################################
+#Example 2.1: The parametric proportional hazards frailty model for the time   #
+#to first insemination based on marginal likelihood maximisation               #
+#Duchateau and Janssen (2008, page 50)                                         #
+################################################################################
+pfm &lt;- parfm(Surv(TimeMonths, Status) ~ Heifer, cluster = "Herd", data = insem,
+             dist = "weibull", frailty = "gamma")
+pfm
+
+par(mfrow = c(2, 2))
+
+### - Hazard functions - ###
+# multiparous cows
+curve((365.25 / 12) ^ (-pfm["rho", 1]) *
+          pfm["lambda", 1] * pfm["rho", 1] * x ^ (pfm["rho", 1] - 1),
+      from = 0, to = 400, ylim = c(0, .14), 
+      main = "Multiparous cows",
+      ylab = "Hazard function", xlab = "Time to first insemination (days)")
+curve(qgamma(.95, shape = 1 / pfm["theta", 1],
+             scale = pfm["theta", 1]) * (365.25 / 12) ^ (-pfm["rho", 1]) *
+          pfm["lambda", 1] * pfm["rho", 1] * x ^ (pfm["rho", 1] - 1),
+      add = TRUE, lty = 4)
+curve(qgamma(.05, shape = 1 / pfm["theta", 1], 
+             scale = pfm["theta", 1]) * (365.25 / 12) ^ (-pfm["rho", 1]) *
+          pfm["lambda", 1] * pfm["rho", 1] * x ^ (pfm["rho", 1] - 1),
+      add = TRUE, lty = 4)
+
+# primiparous cows
+curve(exp(pfm["Heifer", 1]) * (365.25 / 12)^(-pfm["rho", 1]) *
+          pfm["lambda", 1] * pfm["rho", 1] * x^(pfm["rho", 1] - 1),
+      from = 0, to = 400, ylim = c(0, .14), 
+      main = "Primiparous cows", 
+      ylab = "Hazard function", xlab = "Time to first insemination (days)")
+curve(qgamma(.95, shape = 1 / pfm["theta", 1],
+             scale = pfm["theta", 1]) * exp(pfm["Heifer", 1]) * 
+          (365.25 / 12) ^ (-pfm["rho", 1]) * pfm["lambda", 1] * pfm["rho", 1] * 
+          x ^ (pfm["rho", 1] - 1),
+      add = TRUE, lty = 4)
+curve(qgamma(.05, shape = 1 / pfm["theta", 1], 
+             scale = pfm["theta", 1]) * exp(pfm["Heifer", 1]) * 
+          (365.25 / 12) ^ (-pfm["rho", 1]) * pfm["lambda", 1] * pfm["rho", 1] *
+          x ^ (pfm["rho", 1] - 1),
+      add = TRUE, lty = 4)
+
+
+### - Cumulative distribution functions - ###
+# multiparous cows
+curve(1 - exp(
+    -(365.25 / 12) ^ (-pfm["rho", 1]) * pfm["lambda", 1] * 
+        x ^ (pfm["rho", 1])),
+    from = 0, to = 400, ylim = c(0, 1), 
+    main = "Multiparous cows", 
+    ylab = "Cumulative distribution function", 
+    xlab = "Time to first insemination (days)")
+curve(1 - exp(
+    -qgamma(.95, shape = 1 / pfm["theta", 1],
+            scale = pfm["theta", 1]) * (365.25 / 12) ^ (-pfm["rho", 1]) *
+        pfm["lambda", 1] * x ^ (pfm["rho", 1])),
+    add = TRUE, lty = 4)
+curve(1 - exp(
+    -qgamma(.05, shape = 1 / pfm["theta", 1],
+            scale = pfm["theta", 1]) * (365.25 / 12) ^ (-pfm["rho", 1]) *
+        pfm["lambda", 1] * x ^ (pfm["rho", 1])),
+    add = TRUE, lty = 4)
+
+# primiparous cows
+curve(1 - exp(
+    -exp(pfm["Heifer", 1]) *  (365.25 / 12) ^ (-pfm["rho", 1]) *
+        pfm["lambda", 1] * x ^ (pfm["rho", 1])),
+    from = 0, to = 400, ylim = c(0, 1), 
+    main = "Primiparous cows", 
+    ylab = "Cumulative distribution function", 
+    xlab = "Time to first insemination (days)")
+curve(1 - exp(
+    -qgamma(.95, shape = 1 / pfm["theta", 1],
+            scale = pfm["theta", 1]) * exp(pfm["Heifer", 1]) * 
+        (365.25 / 12) ^ (-pfm["rho", 1]) * pfm["lambda", 1] * x ^ (pfm["rho", 1])),
+    add = TRUE, lty = 4)
+curve(1 - exp(
+    -qgamma(.05, shape = 1 / pfm["theta", 1],
+            scale=pfm["theta", 1]) * exp(pfm["Heifer", 1]) * 
+        (365.25 / 12) ^ (-pfm["rho", 1]) * pfm["lambda", 1] * x ^ (pfm["rho", 1])),
+    add = TRUE, lty = 4)
+
+
+### - Density of the median time - ###
+fM &lt;- function(x, heifer = 0) {
+    RHO &lt;- pfm["rho", 1]
+    LAMBDAd &lt;- (365.25 / 12) ^ (-pfm["rho", 1]) * pfm["lambda", 1]
+    THETA &lt;- pfm["theta", 1]
+    if (heifer) {
+        eBETA &lt;- exp(pfm["Heifer", 1])
+    } else eBETA &lt;- 1  
+    
+    RHO * (log(2) / (THETA * LAMBDAd * eBETA)) ^ (1 / THETA) *
+        x^(-1 - RHO / THETA) *
+        exp(-log(2) / (THETA * x^RHO * LAMBDAd * eBETA)) /
+        gamma(1 / THETA)
+}
+
+par(mfrow=c(1, 1))
+curve(fM, 0, 300, xlab = "Median time to first insemination (days)",
+      ylab = "Density function of the median")
+curve(fM(x, heifer = 1), add = TRUE, lty = 3)
+legend("topright", legend = c("Multiparous", "Primiparous"),
+       lty = c(1, 3), bty = "n")
+</code></pre>
+
+
+</div>

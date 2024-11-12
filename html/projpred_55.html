@@ -1,0 +1,565 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>refmodel-init-get</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Reference model and more general information</h2>
+
+<h3>Description</h3>
+
+<p>Function <code>get_refmodel()</code> is a generic function whose methods usually call
+<code>init_refmodel()</code> which is the underlying workhorse (and may also be used
+directly without a call to <code>get_refmodel()</code>).
+</p>
+<p>Both, <code>get_refmodel()</code> and <code>init_refmodel()</code>, create an object containing
+information needed for the projection predictive variable selection, namely
+about the reference model, the submodels, and how the projection should be
+carried out. For the sake of simplicity, the documentation may refer to the
+resulting object also as "reference model" or "reference model object", even
+though it also contains information about the submodels and the projection.
+</p>
+<p>A "typical" reference model object is created by <code>get_refmodel.stanreg()</code> and
+<code>brms::get_refmodel.brmsfit()</code>, either implicitly by a call to a top-level
+function such as <code>project()</code>, <code>varsel()</code>, and <code>cv_varsel()</code> or explicitly by
+a call to <code>get_refmodel()</code>. All non-"typical" reference model objects will be
+called "custom" reference model objects.
+</p>
+<p>Some arguments are for <code class="reqn">K</code>-fold cross-validation (<code class="reqn">K</code>-fold CV) only;
+see <code>cv_varsel()</code> for the use of <code class="reqn">K</code>-fold CV in <span class="pkg">projpred</span>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">get_refmodel(object, ...)
+
+## S3 method for class 'refmodel'
+get_refmodel(object, ...)
+
+## S3 method for class 'vsel'
+get_refmodel(object, ...)
+
+## S3 method for class 'projection'
+get_refmodel(object, ...)
+
+## Default S3 method:
+get_refmodel(object, family = NULL, ...)
+
+## S3 method for class 'stanreg'
+get_refmodel(object, latent = FALSE, dis = NULL, ...)
+
+init_refmodel(
+  object,
+  data,
+  formula,
+  family,
+  ref_predfun = NULL,
+  div_minimizer = NULL,
+  proj_predfun = NULL,
+  extract_model_data = NULL,
+  cvfun = NULL,
+  cvfits = NULL,
+  dis = NULL,
+  cvrefbuilder = NULL,
+  called_from_cvrefbuilder = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>For <code>init_refmodel()</code>, an object that the functions from
+arguments <code>extract_model_data</code> and <code>ref_predfun</code> can be applied to, with a
+<code>NULL</code> object being treated specially (see section "Value" below). For
+<code>get_refmodel.default()</code>, an object that function <code>family()</code> can be applied
+to in order to retrieve the family (if argument <code>family</code> is <code>NULL</code>),
+additionally to the properties required for <code>init_refmodel()</code>. For
+non-default methods of <code>get_refmodel()</code>, an object of the corresponding
+class.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>For <code>get_refmodel.default()</code> and <code>get_refmodel.stanreg()</code>:
+arguments passed to <code>init_refmodel()</code>. For the <code>get_refmodel()</code> generic:
+arguments passed to the appropriate method. For <code>init_refmodel()</code>:
+arguments passed to <code>extend_family()</code> (apart from <code>family</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>An object of class <code>family</code> representing the observation model
+(i.e., the distributional family for the response) of the <em>submodels</em>.
+(However, the link and the inverse-link function of this <code>family</code> are also
+used for quantities like predictions and fitted values related to the
+<em>reference model</em>.) May be <code>NULL</code> for <code>get_refmodel.default()</code> in which
+case the family is retrieved from <code>object</code>. For custom reference models,
+<code>family</code> does not have to coincide with the family of the reference model
+(if the reference model possesses a formal <code>family</code> at all). In typical
+reference models, however, these families do coincide. Furthermore, the
+latent projection is an exception where <code>family</code> is not the family of the
+submodels (in that case, the family of the submodels is the <code>gaussian()</code>
+family).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>latent</code></td>
+<td>
+<p>A single logical value indicating whether to use the latent
+projection (<code>TRUE</code>) or not (<code>FALSE</code>). Note that setting <code>latent = TRUE</code>
+causes all arguments starting with <code>augdat_</code> to be ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dis</code></td>
+<td>
+<p>A vector of posterior draws for the reference model's dispersion
+parameter or—more precisely—the posterior values for the reference
+model's parameter-conditional predictive variance (assuming that this
+variance is the same for all observations). May be <code>NULL</code> if the submodels
+have no dispersion parameter or if the submodels do have a dispersion
+parameter, but <code>object</code> is <code>NULL</code> (in which case <code>0</code> is used for <code>dis</code>).
+Note that for the <code>gaussian()</code> <code>family</code>, <code>dis</code> is the standard deviation,
+not the variance.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A <code>data.frame</code> containing the data to use for the projection
+predictive variable selection. Any <code>contrasts</code> attributes of the dataset's
+columns are silently removed. For custom reference models, the columns of
+<code>data</code> do not necessarily have to coincide with those of the dataset used
+for fitting the reference model, but keep in mind that a row-subset of
+<code>data</code> is used for argument <code>newdata</code> of <code>ref_predfun</code> during <code class="reqn">K</code>-fold
+CV.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>The full formula to use for the search procedure. For custom
+reference models, this does not necessarily coincide with the reference
+model's formula. For general information about formulas in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, see
+<code>formula</code>. For information about possible right-hand side (i.e.,
+predictor) terms in <code>formula</code> here, see the main vignette and section
+"Formula terms" below. For multilevel formulas, see also package <span class="pkg">lme4</span>
+(in particular, functions <code>lme4::lmer()</code> and <code>lme4::glmer()</code>). For additive
+formulas, see also packages <span class="pkg">mgcv</span> (in particular, function
+<code>mgcv::gam()</code>) and <span class="pkg">gamm4</span> (in particular, function <code>gamm4::gamm4()</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ref_predfun</code></td>
+<td>
+<p>Prediction function for the linear predictor of the
+reference model, including offsets (if existing). See also section
+"Arguments <code>ref_predfun</code>, <code>proj_predfun</code>, and <code>div_minimizer</code>" below. If
+<code>object</code> is <code>NULL</code>, <code>ref_predfun</code> is ignored and an internal default is
+used instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>div_minimizer</code></td>
+<td>
+<p>A function for minimizing the Kullback-Leibler (KL)
+divergence from the reference model to a submodel (i.e., for performing the
+projection of the reference model onto a submodel). The output of
+<code>div_minimizer</code> is used, e.g., by <code>proj_predfun</code>'s argument <code>fits</code>. See
+also section "Arguments <code>ref_predfun</code>, <code>proj_predfun</code>, and <code>div_minimizer</code>"
+below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>proj_predfun</code></td>
+<td>
+<p>Prediction function for the linear predictor of a
+submodel onto which the reference model is projected. See also section
+"Arguments <code>ref_predfun</code>, <code>proj_predfun</code>, and <code>div_minimizer</code>" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extract_model_data</code></td>
+<td>
+<p>A function for fetching some variables (response,
+observation weights, offsets) from the original dataset (supplied to
+argument <code>data</code>) or from a new dataset. May be <code>NULL</code> for using an internal
+default that essentially corresponds to <code>y_wobs_offs()</code>. See also section
+"Argument <code>extract_model_data</code>" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cvfun</code></td>
+<td>
+<p>For <code class="reqn">K</code>-fold CV only. A function that, given a fold indices
+vector, fits the reference model separately for each fold and returns the
+<code class="reqn">K</code> model fits as a <code>list</code>. If <code>object</code> is <code>NULL</code>, <code>cvfun</code> may be
+<code>NULL</code> for using an internal default. Only one of <code>cvfits</code> and <code>cvfun</code>
+needs to be provided (for <code class="reqn">K</code>-fold CV). Note that <code>cvfits</code> takes
+precedence over <code>cvfun</code>, i.e., if both are provided, <code>cvfits</code> is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cvfits</code></td>
+<td>
+<p>For <code class="reqn">K</code>-fold CV only. A <code>list</code> containing the <code class="reqn">K</code>
+reference model refits from which reference model objects are created. This
+<code>list</code> needs to have an attribute called <code>folds</code>, consisting of an integer
+vector giving the fold indices (one fold index per observation). Only one
+of <code>cvfits</code> and <code>cvfun</code> needs to be provided (for <code class="reqn">K</code>-fold CV). Note
+that <code>cvfits</code> takes precedence over <code>cvfun</code>, i.e., if both are provided,
+<code>cvfits</code> is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cvrefbuilder</code></td>
+<td>
+<p>For <code class="reqn">K</code>-fold CV only. A function that, given a
+reference model fit for fold <code class="reqn">k \in \{1, ..., K\}</code>,
+returns an object of the same type as <code>init_refmodel()</code> does. The reference
+model fit for fold <code class="reqn">k</code> is the <code class="reqn">k</code>-th element of the return value of
+<code>cvfun</code> or the <code class="reqn">k</code>-th element of the <code>list</code> supplied to <code>cvfits</code>
+(either here in <code>init_refmodel()</code> or in <code>cv_varsel.refmodel()</code>), extended
+by elements <code>omitted</code> (containing the indices of the left-out observations
+in that fold) and <code>projpred_k</code> (containing the integer <code class="reqn">k</code>) if that
+<code class="reqn">k</code>-th element is a <code>list</code> itself (otherwise, <code>omitted</code> and
+<code>projpred_k</code> are appended as attributes). Argument <code>cvrefbuilder</code> may be
+<code>NULL</code> for using an internal default: <code>get_refmodel()</code> if <code>object</code> is not
+<code>NULL</code> and a function calling <code>init_refmodel()</code> appropriately (with the
+assumption <code>dis = 0</code>) if <code>object</code> is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>called_from_cvrefbuilder</code></td>
+<td>
+<p>A single logical value indicating whether
+<code>init_refmodel()</code> is called from a <code>cvrefbuilder</code> function (<code>TRUE</code>) or not
+(<code>FALSE</code>). Currently, <code>TRUE</code> only causes some warnings to be suppressed
+(warnings which don't need to be thrown for each of the <code class="reqn">K</code> reference
+model objects because it is sufficient to throw them for the original
+reference model object only). This argument is mainly for internal use, but
+may also be helpful for users with a custom <code>cvrefbuilder</code> function.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An object that can be passed to all the functions that take the
+reference model fit as the first argument, such as <code>varsel()</code>,
+<code>cv_varsel()</code>, <code>project()</code>, <code>proj_linpred()</code>, and <code>proj_predict()</code>.
+Usually, the returned object is of class <code>refmodel</code>. However, if <code>object</code>
+is <code>NULL</code>, the returned object is of class <code>datafit</code> as well as of class
+<code>refmodel</code> (with <code>datafit</code> being first). Objects of class <code>datafit</code> are
+handled differently at several places throughout this package.
+</p>
+<p>The elements of the returned object are not meant to be accessed directly
+but instead via downstream functions (see the functions mentioned above as
+well as <code>predict.refmodel()</code>).
+</p>
+
+
+<h3>Formula terms</h3>
+
+<p>Although bad practice (in general), a reference model lacking an intercept
+can be used within <span class="pkg">projpred</span>. However, it will always be projected onto
+submodels which <em>include</em> an intercept. The reason is that even if the true
+intercept in the reference model is zero, this does not need to hold for the
+submodels.
+</p>
+<p>In multilevel (group-level) terms, function calls on the right-hand side of
+the <code>|</code> character (e.g., <code>(1 | gr(group_variable))</code>, which is possible in
+<span class="pkg">brms</span>) are currently not allowed in <span class="pkg">projpred</span>.
+</p>
+<p>For additive models (still an experimental feature), only <code>mgcv::s()</code> and
+<code>mgcv::t2()</code> are currently supported as smooth terms. Furthermore, these need
+to be called without any arguments apart from the predictor names (symbols).
+For example, for smoothing the effect of a predictor <code>x</code>, only <code>s(x)</code> or
+<code>t2(x)</code> are allowed. As another example, for smoothing the joint effect of
+two predictors <code>x</code> and <code>z</code>, only <code>s(x, z)</code> or <code>t2(x, z)</code> are allowed (and
+analogously for higher-order joint effects, e.g., of three predictors). Note
+that all smooth terms need to be included in <code>formula</code> (there is no <code>random</code>
+argument as in <code>rstanarm::stan_gamm4()</code>, for example).
+</p>
+
+
+<h3>Arguments <code>ref_predfun</code>, <code>proj_predfun</code>, and <code>div_minimizer</code>
+</h3>
+
+<p>Arguments <code>ref_predfun</code>, <code>proj_predfun</code>, and <code>div_minimizer</code> may be <code>NULL</code>
+for using an internal default (see projpred-package for the functions used
+by the default divergence minimizers). Otherwise, let <code class="reqn">N</code> denote the
+number of observations (in case of CV, these may be reduced to each fold),
+<code class="reqn">S_{\mathrm{ref}}</code> the number of posterior draws for the reference
+model's parameters, and <code class="reqn">S_{\mathrm{prj}}</code> the number of draws for
+the parameters of a submodel that the reference model has been projected onto
+(short: the number of projected draws). For the augmented-data projection,
+let <code class="reqn">C_{\mathrm{cat}}</code> denote the number of response categories,
+<code class="reqn">C_{\mathrm{lat}}</code> the number of latent response categories (which
+typically equals <code class="reqn">C_{\mathrm{cat}} - 1</code>), and define
+<code class="reqn">N_{\mathrm{augcat}} := N \cdot C_{\mathrm{cat}}</code>
+as well as <code class="reqn">N_{\mathrm{auglat}} := N \cdot C_{\mathrm{lat}}</code>. Then the functions supplied to these arguments need to have the
+following prototypes:
+</p>
+
+<ul>
+<li> <p><code>ref_predfun</code>: <code>ref_predfun(fit, newdata = NULL)</code> where:
+</p>
+
+<ul>
+<li> <p><code>fit</code> accepts the reference model fit as given in argument <code>object</code>
+(but possibly refitted to a subset of the observations, as done in
+<code class="reqn">K</code>-fold CV).
+</p>
+</li>
+<li> <p><code>newdata</code> accepts either <code>NULL</code> (for using the original dataset,
+typically stored in <code>fit</code>) or data for new observations (at least in the
+form of a <code>data.frame</code>).
+</p>
+</li>
+</ul>
+</li>
+<li> <p><code>proj_predfun</code>: <code>proj_predfun(fits, newdata)</code> where:
+</p>
+
+<ul>
+<li> <p><code>fits</code> accepts a <code>list</code> of length <code class="reqn">S_{\mathrm{prj}}</code>
+containing this number of submodel fits. This <code>list</code> is the same as that
+returned by <code>project()</code> in its output element <code>outdmin</code> (which in turn is
+the same as the return value of <code>div_minimizer</code>, except if <code>project()</code>
+was used with an <code>object</code> of class <code>vsel</code> based on an L1 search as well
+as with <code>refit_prj = FALSE</code>).
+</p>
+</li>
+<li> <p><code>newdata</code> accepts data for new observations (at least in the form of a
+<code>data.frame</code>).
+</p>
+</li>
+</ul>
+</li>
+<li> <p><code>div_minimizer</code> does not need to have a specific prototype, but it needs to
+be able to be called with the following arguments:
+</p>
+
+<ul>
+<li> <p><code>formula</code> accepts either a standard <code>formula</code> with a single response
+(if <code class="reqn">S_{\mathrm{prj}} = 1</code> or in case of the
+augmented-data projection) or a <code>formula</code> with <code class="reqn">S_{\mathrm{prj}} &gt;
+    1</code> response variables <code>cbind()</code>-ed on the left-hand side in
+which case the projection has to be performed for each of the response
+variables separately.
+</p>
+</li>
+<li> <p><code>data</code> accepts a <code>data.frame</code> to be used for the projection. In case of
+the traditional or the latent projection, this dataset has <code class="reqn">N</code> rows.
+In case of the augmented-data projection, this dataset has
+<code class="reqn">N_{\mathrm{augcat}}</code> rows.
+</p>
+</li>
+<li> <p><code>family</code> accepts an object of class <code>family</code>.
+</p>
+</li>
+<li> <p><code>weights</code> accepts either observation weights (at least in the form of a
+numeric vector) or <code>NULL</code> (for using a vector of ones as weights).
+</p>
+</li>
+<li> <p><code>projpred_var</code> accepts an <code class="reqn">N \times S_{\mathrm{prj}}</code>
+matrix of predictive variances (necessary for <span class="pkg">projpred</span>'s internal
+GLM fitter) in case of the traditional or the latent projection and an
+<code class="reqn">N_{\mathrm{augcat}} \times S_{\mathrm{prj}}</code>
+matrix (containing only <code>NA</code>s) in case of the augmented-data projection.
+</p>
+</li>
+<li> <p><code>projpred_ws_aug</code> accepts an <code class="reqn">N \times S_{\mathrm{prj}}</code>
+matrix of expected values for the response in case of the traditional or
+the latent projection and an <code class="reqn">N_{\mathrm{augcat}} \times
+    S_{\mathrm{prj}}</code> matrix of probabilities for the
+response categories in case of the augmented-data projection.
+</p>
+</li>
+<li> <p><code>...</code> accepts further arguments specified by the user (or by
+<span class="pkg">projpred</span>).
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>The return value of these functions needs to be:
+</p>
+
+<ul>
+<li> <p><code>ref_predfun</code>: for the traditional or the latent projection, an <code class="reqn">N
+\times S_{\mathrm{ref}}</code> matrix; for the augmented-data
+projection, an <code class="reqn">S_{\mathrm{ref}} \times N \times C_{\mathrm{lat}}</code> array (the only exception is the augmented-data projection for
+the <code>binomial()</code> family in which case <code>ref_predfun</code> needs to return an <code class="reqn">N
+\times S_{\mathrm{ref}}</code> matrix just like for the traditional
+projection because the array is constructed by an internal wrapper function).
+</p>
+</li>
+<li> <p><code>proj_predfun</code>: for the traditional or the latent projection, an <code class="reqn">N
+\times S_{\mathrm{prj}}</code> matrix; for the augmented-data
+projection, an <code class="reqn">N \times C_{\mathrm{lat}} \times S_{\mathrm{prj}}</code> array.
+</p>
+</li>
+<li> <p><code>div_minimizer</code>: a <code>list</code> of length <code class="reqn">S_{\mathrm{prj}}</code>
+containing this number of submodel fits.
+</p>
+</li>
+</ul>
+<h3>Argument <code>extract_model_data</code>
+</h3>
+
+<p>The function supplied to argument <code>extract_model_data</code> needs to have the
+prototype
+</p>
+<div class="sourceCode r"><pre>extract_model_data(object, newdata, wrhs = NULL, orhs = NULL,
+                   extract_y = TRUE)
+</pre></div>
+<p>where:
+</p>
+
+<ul>
+<li> <p><code>object</code> accepts the reference model fit as given in argument <code>object</code> (but
+possibly refitted to a subset of the observations, as done in <code class="reqn">K</code>-fold
+CV).
+</p>
+</li>
+<li> <p><code>newdata</code> accepts data for new observations (at least in the form of a
+<code>data.frame</code>).
+</p>
+</li>
+<li> <p><code>wrhs</code> accepts at least (i) a right-hand side formula consisting only of
+the variable in <code>newdata</code> containing the observation weights or (ii) <code>NULL</code>
+for using the observation weights corresponding to <code>newdata</code> (typically, the
+observation weights are stored in a column of <code>newdata</code>; if the model was
+fitted without observation weights, a vector of ones should be used).
+</p>
+</li>
+<li> <p><code>orhs</code> accepts at least (i) a right-hand side formula consisting only of
+the variable in <code>newdata</code> containing the offsets or (ii) <code>NULL</code> for using the
+offsets corresponding to <code>newdata</code> (typically, the offsets are stored in a
+column of <code>newdata</code>; if the model was fitted without offsets, a vector of
+zeros should be used).
+</p>
+</li>
+<li> <p><code>extract_y</code> accepts a single logical value indicating whether output
+element <code>y</code> (see below) shall be <code>NULL</code> (<code>TRUE</code>) or not (<code>FALSE</code>).
+</p>
+</li>
+</ul>
+<p>The return value of <code>extract_model_data</code> needs to be a <code>list</code> with elements
+<code>y</code>, <code>weights</code>, and <code>offset</code>, each being a numeric vector containing the data
+for the response, the observation weights, and the offsets, respectively. An
+exception is that <code>y</code> may also be <code>NULL</code> (depending on argument <code>extract_y</code>),
+a non-numeric vector, or a <code>factor</code>.
+</p>
+<p>The weights and offsets returned by <code>extract_model_data</code> will be assumed to
+hold for the reference model as well as for the submodels.
+</p>
+<p>Above, arguments <code>wrhs</code> and <code>orhs</code> were assumed to have defaults of <code>NULL</code>.
+It should be possible to use defaults other than <code>NULL</code>, but we strongly
+recommend to use <code>NULL</code>. If defaults other than <code>NULL</code> are used, they need to
+imply the behaviors described at items "(ii)" (see the descriptions of <code>wrhs</code>
+and <code>orhs</code>).
+</p>
+
+
+<h3>Augmented-data projection</h3>
+
+<p>If a custom reference model for an augmented-data projection is needed, see
+also <code>extend_family()</code>.
+</p>
+<p>For the augmented-data projection, the response vector resulting from
+<code>extract_model_data</code> is internally coerced to a <code>factor</code> (using
+<code>as.factor()</code>). The levels of this <code>factor</code> have to be identical to
+<code>family$cats</code> (<em>after</em> applying <code>extend_family()</code> internally; see
+<code>extend_family()</code>'s argument <code>augdat_y_unqs</code>).
+</p>
+<p>Note that response-specific offsets (i.e., one length-<code class="reqn">N</code> offset vector
+per response category) are not supported by <span class="pkg">projpred</span> yet. So far, only
+offsets which are the same across all response categories are supported. This
+is why in case of the <code>brms::categorical()</code> family, offsets are currently not
+supported at all.
+</p>
+<p>Currently, <code>object = NULL</code> (i.e., a <code>datafit</code>; see section "Value") is not
+supported in case of the augmented-data projection.
+</p>
+
+
+<h3>Latent projection</h3>
+
+<p>If a custom reference model for a latent projection is needed, see also
+<code>extend_family()</code>.
+</p>
+<p>For the latent projection, <code>family$cats</code> (<em>after</em> applying <code>extend_family()</code>
+internally; see <code>extend_family()</code>'s argument <code>latent_y_unqs</code>) currently must
+not be <code>NULL</code> if the original (i.e., non-latent) response is a <code>factor</code>.
+Conversely, if <code>family$cats</code> (<em>after</em> applying <code>extend_family()</code>) is
+non-<code>NULL</code>, the response vector resulting from <code>extract_model_data</code> is
+internally coerced to a <code>factor</code> (using <code>as.factor()</code>). The levels of this
+<code>factor</code> have to be identical to that non-<code>NULL</code> element <code>family$cats</code>.
+</p>
+<p>Currently, <code>object = NULL</code> (i.e., a <code>datafit</code>; see section "Value") is not
+supported in case of the latent projection.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Data:
+dat_gauss &lt;- data.frame(y = df_gaussian$y, df_gaussian$x)
+
+# The `stanreg` fit which will be used as the reference model (with small
+# values for `chains` and `iter`, but only for technical reasons in this
+# example; this is not recommended in general):
+fit &lt;- rstanarm::stan_glm(
+  y ~ X1 + X2 + X3 + X4 + X5, family = gaussian(), data = dat_gauss,
+  QR = TRUE, chains = 2, iter = 500, refresh = 0, seed = 9876
+)
+
+# Define the reference model object explicitly:
+ref &lt;- get_refmodel(fit)
+print(class(ref)) # gives `"refmodel"`
+# Now see, for example, `?varsel`, `?cv_varsel`, and `?project` for
+# possible post-processing functions. Most of the post-processing functions
+# call get_refmodel() internally at the beginning, so you will rarely need
+# to call get_refmodel() yourself.
+
+# A custom reference model object which may be used in a variable selection
+# where the candidate predictors are not a subset of those used for the
+# reference model's predictions:
+ref_cust &lt;- init_refmodel(
+  fit,
+  data = dat_gauss,
+  formula = y ~ X6 + X7,
+  family = gaussian(),
+  cvfun = function(folds) {
+    kfold(
+      fit, K = max(folds), save_fits = TRUE, folds = folds, cores = 1
+    )$fits[, "fit"]
+  },
+  dis = as.matrix(fit)[, "sigma"],
+  cvrefbuilder = function(cvfit) {
+    init_refmodel(cvfit,
+                  data = dat_gauss[-cvfit$omitted, , drop = FALSE],
+                  formula = y ~ X6 + X7,
+                  family = gaussian(),
+                  dis = as.matrix(cvfit)[, "sigma"],
+                  called_from_cvrefbuilder = TRUE)
+  }
+)
+# Now, the post-processing functions mentioned above (for example,
+# varsel(), cv_varsel(), and project()) may be applied to `ref_cust`.
+
+</code></pre>
+
+
+</div>

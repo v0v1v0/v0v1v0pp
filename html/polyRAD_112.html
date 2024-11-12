@@ -1,0 +1,334 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ExpectedHindHe</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Simulate Data to Get Expected Distribution of Hind/He
+</h2>
+
+<h3>Description</h3>
+
+<p>These functions were created to help users determine an appropriate cutoff for
+filtering loci based on <code class="reqn">H_{ind}/H_E</code> after running
+<code>HindHe</code> and <code>InbreedingFromHindHe</code>.
+<code>ExpectedHindHe</code> takes allele frequencies, sample size, and read depths from
+a <code>RADdata</code> object, simulates genotypes and allelic read depths from
+these assuming Mendelian inheritance, and then estimates
+<code class="reqn">H_{ind}/H_E</code> for each simulated locus.
+<code>ExpectedHindHeMapping</code> performs similar simulation and estimation, but
+in mapping populations based on parental genotypes and expected distribution
+of progeny genotypes.
+<code>SimGenotypes</code>, <code>SimGenotypesMapping</code>, and
+<code>SimAlleleDepth</code> are internal functions used by <code>ExpectedHindHe</code>
+and <code>ExpectedHindHeMapping</code>
+but are provided at the user level since they may be more broadly useful.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ExpectedHindHe(object, ploidy = object$possiblePloidies[[1]], inbreeding = 0,
+               overdispersion = 20, contamRate = 0, errorRate = 0.001,
+               reps = ceiling(5000/nLoci(object)),
+               quiet = FALSE, plot = TRUE)
+
+ExpectedHindHeMapping(object, ploidy = object$possiblePloidies[[1]],
+                      n.gen.backcrossing = 0, n.gen.selfing = 0,
+                      overdispersion = 20, contamRate = 0, errorRate = 0.001,
+                      freqAllowedDeviation = 0.05, 
+                      minLikelihoodRatio = 10, reps = ceiling(5000/nLoci(object)),
+                      quiet = FALSE, plot = TRUE)
+
+SimGenotypes(alleleFreq, alleles2loc, nsam, inbreeding, ploidy)
+
+SimGenotypesMapping(donorGen, recurGen, alleles2loc, nsam,
+                    ploidy.don, ploidy.rec,
+                    n.gen.backcrossing, n.gen.selfing)
+
+SimAlleleDepth(locDepth, genotypes, alleles2loc, overdispersion = 20,
+               contamRate = 0, errorRate = 0.001)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+
+<p>A <code>RADdata</code> object.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ploidy</code></td>
+<td>
+
+<p>A single integer indicating the ploidy to use for genotype simulation.
+For <code>ExpectedHindHe</code> and <code>ExpectedHindHeMapping</code>,
+this number will be multiplied by the values in <code>GetTaxaPloidy(object)</code>
+then divided by two to determine the ploidy of each individual for simulation.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inbreeding</code></td>
+<td>
+
+<p>A number ranging from 0 to 1 indicating the amount of inbreeding (<code class="reqn">F</code>).
+This represents inbreeding from all sources (population structure,
+self-fertilization, etc.) and can be estimated with <code>InbreedingFromHindHe</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overdispersion</code></td>
+<td>
+
+<p>Overdispersion parameter as described in <code>AddGenotypeLikelihood</code>.
+Lower values will cause allelic read depth distributions to deviate further from
+expectations based on allele copy number.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contamRate</code></td>
+<td>
+
+<p>Sample cross-contamination rate to simulate.  Although 0 is the default, 0.001
+is also reasonable.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>errorRate</code></td>
+<td>
+
+<p>Sequencing error rate to simulate. For Illumina reads, 0.001 is a reasonable
+value. An error is assumed to have an equal chance of converting an allele to
+any other allele at the locus, although this is somewhat of an
+oversimplification.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reps</code></td>
+<td>
+
+<p>The number of times to simulate the data and estimate <code class="reqn">H_{ind}/H_E</code>.
+This can generally be left at the default, but
+set it higher than 1 if you want to see within-locus variance in the estimate.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+
+<p>Boolean indicating whether to suppress messages and results printed to console.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+
+<p>Boolean indicating whether to plot a histogram of <code class="reqn">H_{ind}/H_E</code>
+values.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.gen.backcrossing</code></td>
+<td>
+
+<p>An integer indicating the number of generations of backcrossing.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.gen.selfing</code></td>
+<td>
+
+<p>An integer indicating the number of generations of self-fertilization.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>freqAllowedDeviation</code></td>
+<td>
+
+<p>The amount by which allele frequencies are allowed to deviate from expected
+allele frequencies.  See <code>AddAlleleFreqMapping</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minLikelihoodRatio</code></td>
+<td>
+
+<p>Minimum likelihood ratio for determining the most likely parental genotypes.
+See <code>GetLikelyGen</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alleleFreq</code></td>
+<td>
+
+<p>A vector of allele frequencies, as can be found in the <code>$alleleFreq</code> slot
+of a <code>RADdata</code> object after running <code>AddAlleleFreqHWE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alleles2loc</code></td>
+<td>
+
+<p>An integer vector assigning alleles to loci, as can be found in the
+<code>$alleles2loc</code> slot of a <code>RADdata</code> object.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsam</code></td>
+<td>
+
+<p>An integer indicating the number of samples (number of taxa) to simulate.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>donorGen</code></td>
+<td>
+
+<p>A vector indicating genotypes of the donor parent (which can be either parent
+if backcrossing was not performed), with one value for each allele in the
+dataset, and numbers indicating the copy number of each allele.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>recurGen</code></td>
+<td>
+
+<p>A vector indicating genotypes of the recurrent parent, as with <code>donorGen</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ploidy.don</code></td>
+<td>
+
+<p>A single integer indicating the ploidy of the donor parent.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ploidy.rec</code></td>
+<td>
+
+<p>A single integer indicating the ploidy of the recurrent parent.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>locDepth</code></td>
+<td>
+
+<p>An integer matrix indicating read depth at each taxon and locus.  Formatted as
+the <code>$locDepth</code> slot of a <code>RADdata</code> object, notably with columns
+named by locus number rather than locus name.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>genotypes</code></td>
+<td>
+
+<p>A numeric matrix, formatted as the output of <code>GetProbableGenotypes</code>
+or <code>SimGenotypes</code>, indicating genotypes as allele copy number.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>To prevent highly inflated values in the output, <code>ExpectedHindHe</code> filters
+loci with minor allele frequencies below five times the sequencing error rate.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>ExpectedHindHe</code> and <code>ExpectedHindHeMapping</code> invisibly return a
+matrix, with loci in rows and reps in
+columns, containing <code class="reqn">H_{ind}/H_E</code> from the simulated loci.
+</p>
+<p><code>SimGenotypes</code> and <code>SimGenotypesMapping</code> return a numeric matrix of
+allele copy number, with samples
+in rows and alleles in columns, similar to that produced by
+<code>GetProbableGenotypes</code>.
+</p>
+<p><code>SimAlleleDepth</code> returns an integer matrix of allelic read depth, with
+samples in rows and alleles in columns, similar to the <code>$alleleDepth</code>
+slot of a <code>RADdata</code> object.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>References</h3>
+
+<p>Clark, L. V., Mays, W., Lipka, A. E. and Sacks, E. J. (2022) A population-level
+statistic for assessing Mendelian behavior of genotyping-by-sequencing data
+from highly duplicated genomes. <em>BMC Bioinformatics</em> <b>23</b>, 101,
+doi:10.1186/s12859-022-04635-9.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Load dataset for the example
+data(exampleRAD)
+exampleRAD &lt;- AddAlleleFreqHWE(exampleRAD)
+
+# Simulate genotypes
+simgeno &lt;- SimGenotypes(exampleRAD$alleleFreq, exampleRAD$alleles2loc, 10, 0.2, 2)
+
+# Simulate reads
+simreads &lt;- SimAlleleDepth(exampleRAD$locDepth[1:10,], simgeno, exampleRAD$alleles2loc)
+
+# Get expected Hind/He distribution if all loci in exampleRAD were well-behaved
+ExpectedHindHe(exampleRAD, reps = 10)
+
+# Mapping population example
+data(exampleRAD_mapping)
+exampleRAD_mapping &lt;- SetDonorParent(exampleRAD_mapping, "parent1")
+exampleRAD_mapping &lt;- SetRecurrentParent(exampleRAD_mapping, "parent2")
+exampleRAD_mapping &lt;- AddAlleleFreqMapping(exampleRAD_mapping,
+                                           expectedFreqs = c(0.25, 0.75),
+                                           allowedDeviation = 0.08)
+exampleRAD_mapping &lt;- AddGenotypeLikelihood(exampleRAD_mapping)
+exampleRAD_mapping &lt;- EstimateParentalGenotypes(exampleRAD_mapping,
+                                                n.gen.backcrossing = 1)
+
+simgenomap &lt;- SimGenotypesMapping(exampleRAD_mapping$likelyGeno_donor[1,],
+                                  exampleRAD_mapping$likelyGeno_recurrent[1,],
+                                  exampleRAD_mapping$alleles2loc,
+                                  nsam = 10, ploidy.don = 2, ploidy.rec = 2,
+                                  n.gen.backcrossing = 1,
+                                  n.gen.selfing = 0)
+                                  
+ExpectedHindHeMapping(exampleRAD_mapping, n.gen.backcrossing = 1, reps = 10)
+</code></pre>
+
+
+</div>

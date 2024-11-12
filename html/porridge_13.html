@@ -1,0 +1,203 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ridgeGGMmixture</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Ridge penalized estimation of a mixture of GGMs.
+</h2>
+
+<h3>Description</h3>
+
+<p>Function that estimates a mixture of GGMs (Gaussian graphical models) through a ridge penalized EM (Expectation-Maximization) algorithm as described in Aflakparast <em>et al</em>. (2018).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ridgeGGMmixture(Y, K, lambda, target,                                    
+                iWeights=matrix(sample(seq(0+1/nrow(Y), 
+                                1-1/nrow(Y), by=1/(2*nrow(Y))), 
+                                nrow(Y)*K, replace=TRUE), 
+                                nrow=nrow(Y), ncol=K),
+                nInit=100, minSuccDiff=10^(-10),
+                minMixProp=0.01)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p> Data <code>matrix</code> with samples as rows and variates as columns. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p> A <code>numeric</code>, specifying the number of mixture components.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p> A positive <code>numeric</code> representing the ridge penalty parameter. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>target</code></td>
+<td>
+<p> A semi-positive definite target <code>matrix</code> towards which the estimate is shrunken. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iWeights</code></td>
+<td>
+<p> Sample-specific positive component weight <code>matrix</code>. Rows correspond to samples, while columns to components. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nInit</code></td>
+<td>
+<p> A <code>numeric</code> specifying the number of iterations. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minSuccDiff</code></td>
+<td>
+<p> A <code>numeric</code>: minimum successive difference (in terms of their penalized loglikelihood) between two succesive estimates to be achieved. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minMixProp</code></td>
+<td>
+<p> Smallest mixing probability tolerated. </p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The data are assumed to follow a mixture of <code class="reqn">K</code> Gaussian graphical models:
+</p>
+<p style="text-align: center;"><code class="reqn"> \mathbf{Y}_i \sim \sum\nolimits_{k=1}^K \theta_k \mathcal{N}(\boldsymbol{\mu}_k, \boldsymbol{\Omega}_k^{-1}), </code>
+</p>
+
+<p>where <code class="reqn">\theta_k = P(Z_i = k)</code> is the probability that the <code class="reqn">i</code>-th sample stems from the <code class="reqn">k</code>-the component. The model parameters are estimated by ridge penalized likelihood maximization:
+</p>
+<p style="text-align: center;"><code class="reqn"> \sum\nolimits_{i=1}^n \log [ \sum\nolimits_{k=1}^K \theta_k P(\mathbf{Y}_i \, | \, Z_i = k; \boldsymbol{\mu}_k, \boldsymbol{\Omega}_k) ] + \lambda \sum\nolimits_{k=1}^K \| \boldsymbol{\Omega}_k - \mathbf{T}_k \|_F^2, </code>
+</p>
+
+<p>where <code class="reqn">\lambda</code> is the penalty parameter and <code class="reqn">\mathbf{T}_k</code> is the shrinkage target of the <code class="reqn">k</code>-th component's precision matrix. This function yields the maximizer of this penalized loglikelihood, which is found by means of a penalized EM algorithm.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function returns a regularized inverse covariance <code>list</code>-object with slots:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p> A <code>matrix</code> with estimated mean vectors are rows. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>P</code></td>
+<td>
+<p> A <code>matrix</code> with estimated mixture precision matrices stacked on top of each other. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pi</code></td>
+<td>
+<p> A <code>numeric</code> wth estimated mixing probabilities.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p> A <code>matrix</code> wth estimated component memberships.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penLL</code></td>
+<td>
+<p> A <code>numeric</code> with the penalized loglikelihood of the estimated model. </p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>The elements of <code>iWeights</code> may be larger than one as they are rescaled internally to sum to one.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>W.N. van Wieringen, M. Aflakparast.
+</p>
+
+
+<h3>References</h3>
+
+<p>Aflakparast, M., de Gunst, M.C.M., van Wieringen, W.N. (2018), "Reconstruction of molecular network evolution from cross-sectional omics data", <em>Biometrical Journal</em>, 60(3), 547-563.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>optPenaltyGGMmixture.kCVauto</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># define mixing proportions
+pis &lt;- c(0.2, 0.3, 0.4)
+
+# set dimension and sample size
+p &lt;- 5
+n &lt;- 100
+
+# define population covariance matrices
+diags       &lt;- list(rep(1, p), 
+                    rep(0.5, p-1), 
+                    rep(0.25, p-2), 
+                    rep(0.1, p-3))
+Omega       &lt;- as.matrix(Matrix::bandSparse(p, 
+                                            k=-c(0:3), 
+                                            diag=c(diags), 
+                                            symm=TRUE))
+Sigma1      &lt;- solve(Omega)
+Omega       &lt;- matrix(0.3, p, p)
+diag(Omega) &lt;- 1
+Sigma2      &lt;- solve(Omega)
+Sigma3      &lt;- cov(matrix(rnorm(p*n), ncol=p))
+
+# mean vectors
+mean1 &lt;- rep(0,p)
+mean2 &lt;- rexp(p)
+mean3 &lt;- rnorm(p)
+
+# draw data data from GGM mixture
+Z &lt;- sort(sample(c(1:3), n, prob=pis, replace=TRUE))
+Y &lt;- rbind(mvtnorm::rmvnorm(sum(Z==1), mean=mean1, sigma=Sigma1),
+           mvtnorm::rmvnorm(sum(Z==2), mean=mean2, sigma=Sigma2),
+           mvtnorm::rmvnorm(sum(Z==3), mean=mean3, sigma=Sigma3))
+
+# find optimal penalty parameter
+optLambda &lt;- optPenaltyGGMmixture.kCVauto(Y,  K=3,          
+                                          0.00001, 100,     
+                                          10, fold=5,       
+                                          target=0*Sigma1)  
+
+# ridge penalized estimation of the GGM mixture
+ridgeGGMmixFit &lt;- ridgeGGMmixture(Y, 3, 1, target=0*Sigma1)
+</code></pre>
+
+
+</div>

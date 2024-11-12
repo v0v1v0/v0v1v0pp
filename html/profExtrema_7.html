@@ -1,0 +1,180 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>coordinateProfiles</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Coordinate profiles starting from a kriging model</h2>
+
+<h3>Description</h3>
+
+<p>The function coordinateProfiles computes the profile extrema functions for the posterior mean of a Gaussian process and its confidence bounds
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">coordinateProfiles(object, threshold, options_full = NULL,
+  options_approx = NULL, uq_computations = FALSE, plot_level = 0,
+  plot_options = NULL, CI_const = NULL, return_level = 1, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>either a km model or a list containing partial results. If <code>object</code> is a km model then all computations are carried out. If <code>object</code> is a list, then the function carries out all computations to complete the list results.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>the threshold of interest</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>options_full</code></td>
+<td>
+<p>an optional list of options for getAllMaxMin, see getAllMaxMin for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>options_approx</code></td>
+<td>
+<p>an optional list of options for approxMaxMin, see approxMaxMin for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>uq_computations</code></td>
+<td>
+<p>boolean, if TRUE the uq computations for the profile mean are computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot_level</code></td>
+<td>
+<p>an integer to select the plots to return (0=no plots, 1=basic plots, 2= all plots)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot_options</code></td>
+<td>
+<p>an optional list of parameters for plots. See setPlotOptions for currently available options.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CI_const</code></td>
+<td>
+<p>an optional vector containing the constants for the CI. If not NULL, then profiles extrema for <code class="reqn">m_n(x) \pm CI_const[i]*s_n(x,x)</code> are computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_level</code></td>
+<td>
+<p>an integer to select the amount of details returned</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional parameters to be passed to coordProf_UQ.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>If return_level=1 a list containing
+</p>
+
+<ul>
+<li>
+<p><code>profMean_full:</code>the results of <code>getAllMaxMin</code> for the posterior mean
+</p>
+</li>
+<li>
+<p><code>profMean_approx:</code>the results of <code>approxMaxMin</code> for the posterior mean
+</p>
+</li>
+<li>
+<p><code>res_UQ:</code>the results of <code>coordProf_UQ</code> for the posterior mean
+</p>
+</li>
+</ul>
+<p>if return_level=2 the same list as above but also including
+</p>
+
+<ul>
+<li>
+<p><code>abs_err:</code>the vector of maximum absolute approximation errors for the profile inf /sup on posterior mean for the chosen approximation
+</p>
+</li>
+<li>
+<p><code>times:</code>  a list containing
+</p>
+
+<ul>
+<li>
+<p><code>full:</code>computational time for the full computation of profile extrema
+</p>
+</li>
+<li>
+<p><code>approx:</code>computational time for the approximate computation of profile extrema
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Dario Azzimonti
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">if (!requireNamespace("DiceKriging", quietly = TRUE)) {
+stop("DiceKriging needed for this example to work. Please install it.",
+     call. = FALSE)
+}
+# Compute a kriging model from 50 evaluations of the Branin function
+# Define the function
+g=function(x){
+  return(-branin(x))
+}
+gp_des&lt;-lhs::maximinLHS(20,2)
+reals&lt;-apply(gp_des,1,g)
+kmModel&lt;-km(design = gp_des,response = reals,covtype = "matern3_2")
+
+threshold=-10
+
+# Compute coordinate profiles on the posterior mean
+# Increase multistart and size of designs for more precise results
+options_full&lt;-list(multistart=2,heavyReturn=TRUE, Design = replicate(2,seq(0,1,,50)))
+init_des&lt;-lhs::maximinLHS(12,2)
+options_approx&lt;- list(multistart=2,heavyReturn=TRUE,initDesign=init_des,fullDesignSize=50)
+cProfilesMean&lt;-coordinateProfiles(object=kmModel,threshold=threshold,options_full=options_full,
+                                  options_approx=options_approx,uq_computations=FALSE,
+                                  plot_level=3,plot_options=NULL,CI_const=NULL,return_level=2)
+## Not run: 
+# Coordinate profiles with UQ with approximate profiles
+plot_options&lt;-list(save=FALSE, titleProf = "Coordinate profiles",
+                   title2d = "Posterior mean",qq_fill=TRUE)
+cProfilesUQ&lt;-coordinateProfiles(object=cProfilesMean,threshold=threshold,options_full=options_full,
+                                  options_approx=options_approx,uq_computations=TRUE,
+                                  plot_level=3,plot_options=NULL,CI_const=NULL,return_level=2)
+
+# Coordinate profiles with UQ with fully optim profiles
+options_full_sims&lt;-list(multistart=4,heavyReturn=TRUE, Design = replicate(2,seq(0,1,,60)))
+cProfilesUQ&lt;-coordinateProfiles(object=cProfilesMean,threshold=threshold,options_full=options_full,
+                                  options_approx=options_approx,uq_computations=TRUE,
+                                  plot_level=3,plot_options=NULL,CI_const=NULL,return_level=2,
+                                  options_full_sims=options_full_sims)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

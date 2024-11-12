@@ -1,0 +1,105 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Iterator</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Making an Irregular Sequence Iterator</h2>
+
+<h3>Description</h3>
+
+<p>Create an Iterator object, where the user defines a sequence and a
+set of initial values, and then calls <code>yield_next()</code> to generate the
+next element of the sequence. <code>Iterator</code>s are R environments, which means
+they are modified in place, even when passed as arguments to functions.
+To make a copy of an Iterator that can be modified separately, see <code>clone()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">Iterator(result, initial, yield)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>result</code></td>
+<td>
+<p>R expression to run each time 'yield_next' is called</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initial</code></td>
+<td>
+<p>named list or vector; declare and initialize every variable that appears in 'result'</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yield</code></td>
+<td>
+<p>variable to yield when 'yield_next()' is called</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>An environment object of S3 type Iterator
+</p>
+
+
+<h3>Note</h3>
+
+<p>The expression to be evaluated can include constant values not defined in
+<code style="white-space: pre;">⁠$initial⁠</code> as long as they are defined in the enclosure <em>of where yield_next() is called</em>,
+not where the Iterator is created.
+These values will not vary from iteration to
+iteration (unless you do something strange in the code, like including &lt;&lt;- in <code style="white-space: pre;">⁠$result⁠</code>.)
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>yield_next()</code>, <code>yield_while()</code>, <code>current()</code> <code>rlang::qq_show()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#Create the Collatz sequence starting with 50 and print out the first 30 elements
+collatz &lt;- Iterator({
+            if (n %% 2 == 0) n &lt;- n / 2 else n &lt;- n*3 + 1
+           },
+           initial = c(n = 50),
+           yield = n)
+
+seq &lt;- yield_more(collatz, 30)
+
+# If you want to define the expression outside the Iterator, use [quote()] and `!!`:
+expr &lt;- quote(if (n %% 2 == 0) n &lt;- n / 2 else n &lt;- n*3 + 1)
+collatz &lt;- Iterator(!!expr,
+                    c(n = 50),
+                    n)
+
+# using objects defined outside `$initial`:
+# Note that `n` in `$initial` overrides the global `n`
+m &lt;- 100
+n &lt;- 10
+it &lt;- Iterator({out &lt;- n + m},
+               initial = c(n = -10),
+               yield = out)
+
+yield_next(it)
+
+# environments are modified in place, so be aware:
+it &lt;- Iterator({m &lt;- m + 1}, c(m = 0), m)
+other &lt;- it
+yield_next(it)
+current(other)
+
+</code></pre>
+
+
+</div>

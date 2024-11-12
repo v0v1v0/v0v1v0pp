@@ -1,0 +1,139 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>maskPed</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Mask and unmask pedigree datasets</h2>
+
+<h3>Description</h3>
+
+<p>The <code>maskPed()</code> function replaces the individual IDs, marker names and allele
+names with generic labels, and randomly changes their internal order. For
+markers with stepwise mutation models, the allelic ladder is simply
+translated to start at 1, thereby preserving the intra-allelic differences.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">maskPed(
+  x,
+  ids = NULL,
+  markerNames = NULL,
+  markerShuffle = TRUE,
+  alleleLabels = NULL,
+  alleleShuffle = TRUE,
+  seed = NULL
+)
+
+unmaskPed(x, keys)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A <code>ped</code> object or a list of such.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ids</code></td>
+<td>
+<p>(Optional) A named character with the new IDs, written as <code>c(old = new, ...)</code>. By default: 1, 2, ... .</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>markerNames</code></td>
+<td>
+<p>(Optional) A named character with the new marker names
+(and order), written as <code>c(old = new, ...)</code>. By default: M1, M2, ... .</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>markerShuffle</code></td>
+<td>
+<p>A logical: Randomly reorder the markers? (Default: TRUE)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alleleLabels</code></td>
+<td>
+<p>(Optional) A list of character vectors. The list names
+should be the original marker names. Each vector gives the new allele
+labels, as <code>c(old = new, ...)</code>. By default, each marker gets alleles 1, 2,
+... .</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alleleShuffle</code></td>
+<td>
+<p>A logical: Randomly reorder the alleles? (Default: TRUE)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>An optional seed for the random number generator.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keys</code></td>
+<td>
+<p>A list with entries <code>ids</code>, <code>markerNames</code>, <code>alleleLabels</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Note that in order to preserve likelihoods, the allele frequencies are not
+modified. Thus, if the data uses a publicly available frequency databases,
+the result cannot be considered to be fully anonymised, since one could (at
+least in theory) deduce the original marker names and alleles from the
+frequencies.)
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object similar to <code>x</code> but with replaced ID labels, marker names
+and allele labels.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">x = nuclearPed(father = "fa", mother = "mo", children = "ch") |&gt;
+  addMarker(name = "myMarker", ch = "b/c", afreq = c(a=0.2, b=0.3, c=0.5)) |&gt;
+  setMutmod(model = "proportional", rate = 0.01)
+
+# Mask
+y = maskPed(x, seed = 1729)
+
+# Unmask
+z = unmaskPed(y$maskedPed, keys = y$keys)
+stopifnot(identical(x, z))
+
+# With stepwise model
+x2 = x |&gt;
+  addMarker(name = "mySTR", ch = "7.2/8.2",
+            alleles = c("7", "7.2", "8", "8.2")) |&gt;
+  setMutmod(marker = 2, model = "stepwise", rate = 0.1, rate2 = 1e-6,
+            range = 0.1)
+
+y2 = maskPed(x2, seed = 1729)
+
+z2 = unmaskPed(y2$maskedPed, keys = y2$keys)
+
+stopifnot(identical(x2, z2))
+
+# Check likelihoods with pedprobr:
+# stopifnot(setequal(likelihood(x2), likelihood(y2$maskedPed)))
+
+</code></pre>
+
+
+</div>

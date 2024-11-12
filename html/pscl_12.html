@@ -1,0 +1,201 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>constrain.legis</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>constrain legislators' ideal points in analysis of roll call data</h2>
+
+<h3>Description</h3>
+
+<p>Sets constraints on specified legislators for ideal
+point estimation by generating appropriate priors and start values.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">constrain.legis(obj, dropList = list(codes = "notInLegis", lop = 0),
+                 x, d = 1)
+
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>obj</code></td>
+<td>
+<p>an object of class <code>rollcall</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dropList</code></td>
+<td>
+<p>a <code>list</code> (or <code>alist</code>)
+indicating which voting decisions, legislators and/or roll calls are
+to be excluded from the subsequent analysis; see
+<code>dropRollCall</code> for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a <code>list</code> containing elements with names partially
+matching legislators found in <code>dimnames(object$votes)[[1]]</code> (but after
+any sub-setting specified by <code>dropList</code>).  Each element must be a
+vector containing <code>d</code> elements, specifying the value to which
+the ideal point should be constrained in each of <code>d</code>
+dimensions. <code>x</code> must have at least <code>d+1</code> components; i.e.,
+supplying a necessary (but not sufficient) set of constraints for
+global identification of the parameters of a <code>d</code>-dimensional
+item-response model, see Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>the number of dimensions for which to set up the priors and
+start values.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>constrain.items</code> and its cousin,
+<code>constrain.legis</code> are usefully thought of as
+“pre-processor” functions, implementing identification
+constraints for the ideal point model by generating priors <em>and</em> start
+values for both the item parameters and the ideal points.
+</p>
+<p>For the legislators specified in <code>x</code>, the prior mean for each
+dimension is set to the specified value and the prior precision for
+each dimension is set to <code>1e12</code> (i.e., a near-degenerate
+“spike” prior, and, for all practical purposes, constraining
+that parameter to a fixed value).  For the other legislators, the
+priors on their ideal points are set to a mean of 0 and a small
+precision of .01, corresponding to a prior variance of 100, or a prior
+95 percent confidence interval of -20 to 20.  All of the item
+parameter priors are set to mean 0, precision 0.01.
+</p>
+<p>Start values are also generated for both ideal points and item
+parameters.  The start values for the legislators named in
+<code>x</code> are set to the values specified in <code>x</code>.  The list
+resulting from <code>constrain.legis</code> can then be given as the value
+for the parameters <code>priors</code> and <code>startvals</code> when
+<code>ideal</code> is run. <code>constrain.legis</code> requires that
+<code>d+1</code> constraints be specified; if the constrained ideal points
+points are linearly independent, then the parameters of the
+item-response model are (at least locally) identified.  For instance,
+when fitting a 1 dimensional model, constraining the ideal points of
+two legislators is sufficient to globally identify the model
+parameters.
+</p>
+<p><code>dropRollCall</code> is first called to generate the desired
+roll call matrix.  The entries of the roll call matrix are mapped to
+<code>c(0,1,NA)</code> using the <code>codes</code> component of the
+<code>rollcall</code> <code>object</code>.  See the discussion in the
+documentation of <code>ideal</code> for details on the generation of
+start values.
+</p>
+
+
+<h3>Value</h3>
+
+<p> a list with elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>xp</code></td>
+<td>
+<p>prior means for ideal points.  A matrix of dimensions number
+of legislators in <code>rc</code> by <code>d</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xpv</code></td>
+<td>
+<p>prior meansprecisions for ideal points.  A matrix of
+dimensions number of legislators in <code>rc</code> by <code>d</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bp</code></td>
+<td>
+<p>prior means for item parameters.  A matrix of
+dimensions number of items or votes in <code>rc</code> by <code>d+1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bpv</code></td>
+<td>
+<p>prior meansprecisions for item parameters.  A matrix of
+dimensions number of items or votes in <code>rc</code> by <code>d+1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>start values for ideal points.  A matrix of dimensions
+number of legislators in <code>rc</code> by <code>d</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>start values for ideal points.  A matrix of dimensions
+number of items or votes in <code>rc</code> by <code>d+1</code>.</p>
+</td>
+</tr>
+</table>
+<h3>See Also</h3>
+
+<p><code>rollcall</code>, <code>ideal</code>,
+<code>constrain.items</code>.
+See <code>pmatch</code> on how supplied names are matched against the
+names in the <code>rollcall</code> object.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(s109)
+cl &lt;- constrain.legis(s109,
+                      x=list("KENNEDY"=-1,
+                        "ENZI"=1),
+                      d=1)
+
+## Not run: 
+## too long for examples
+id1Constrained &lt;- ideal(s109,
+                       d=1,
+                       priors=cl,      ## use cl
+                       startvals=cl,   ## use cl
+                       maxiter=5000,
+                       burnin=500,
+                       thin=25)
+summary(id1Constrained)
+
+cl2 &lt;- constrain.legis(s109,
+                       x=list("KENNEDY"=c(-1,0),
+                         "ENZI"=c(1,0),
+                         "CHAFEE"=c(0,-.5)),
+                       d=2)
+
+
+id2Constrained &lt;- ideal(s109,
+                        d=2,
+                        priors=cl2,      ## priors (w constraints)
+                        startvals=cl2,   ## start value (w constraints)
+                        store.item=TRUE,
+                        maxiter=5000,
+                        burnin=500,
+                        thin=25)
+summary(id2Constrained,include.items=TRUE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

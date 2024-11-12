@@ -1,0 +1,95 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rescale_popkin</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Rescale kinship matrix to set a given kinship value to zero.</h2>
+
+<h3>Description</h3>
+
+<p>If you already have a population kinship matrix, and you desire to estimate the kinship matrix in a subset of the individuals, you could do it the slow way (reestimating starting from the genotypes of the subset of individuals) or you can do it the fast way: first subset the kinship matrix to only contain the individuals of interest, then use this function to rescale this kinship matrix so that the minimum kinship is zero.
+This rescaling is required when subsetting results in a more recent Most Recent Common Ancestor (MRCA) population compared to the original dataset (for example, if the original data had individuals from across the world but the subset only contains individuals from a single continent).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rescale_popkin(kinship, subpops = NULL, min_kinship = NA)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>kinship</code></td>
+<td>
+<p>An <code>n</code>-by-<code>n</code> kinship matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subpops</code></td>
+<td>
+<p>The length-<code>n</code> vector of subpopulation assignments for each individual.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_kinship</code></td>
+<td>
+<p>A scalar kinship value to define the new zero kinship.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function rescales the input <code>kinship</code> matrix so that the value <code>min_kinship</code> in the original kinship matrix becomes zero, using the formula
+<code>kinship_rescaled = ( kinship - min_kinship ) / ( 1 - min_kinship )</code>.
+This is equivalent to changing the ancestral population of the data.
+If subpopulation labels <code>subpops</code> are provided (recommended), they are used to estimate <code>min_kinship</code> using the function <code>popkin_A_min_subpops()</code>, which is the recommended way to set the MRCA population correctly.
+If both <code>subpops</code> and <code>min_kinship</code> are provided, only <code>min_kinship</code> is used.
+If both <code>subpops</code> and <code>min_kinship</code> are omitted, the function sets <code>min_kinship = min( kinship )</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The rescaled <code>n</code>-by-<code>n</code> kinship matrix, with the desired level of relatedness set to zero.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Construct toy data
+X &lt;- matrix(c(0,1,2,1,0,1,1,0,2), nrow=3, byrow=TRUE) # genotype matrix
+subpops &lt;- c(1,1,2) # subpopulation assignments for individuals
+subpops2 &lt;- 1:3 # alternate labels treat every individual as a different subpop
+
+# NOTE: for BED-formatted input, use BEDMatrix!
+# "file" is path to BED file (excluding .bed extension)
+## library(BEDMatrix)
+## X &lt;- BEDMatrix(file) # load genotype matrix object
+
+# suppose we first estimate kinship without subpopulations, which will be more biased
+kinship &lt;- popkin(X) # calculate kinship from genotypes, WITHOUT subpops
+# then we visualize this matrix, figure out a reasonable subpopulation partition
+
+# now we can adjust the kinship matrix!
+kinship2 &lt;- rescale_popkin(kinship, subpops)
+# prev is faster but otherwise equivalent to re-estimating kinship from scratch with subpops:
+# kinship2 &lt;- popkin(X, subpops) 
+
+# can also manually set the level of relatedness min_kinship we want to be zero:
+min_kinship &lt;- min(kinship) # a naive choice for example
+kinship2 &lt;- rescale_popkin(kinship, min_kinship = min_kinship)
+
+# lastly, omiting both subpops and min_kinship sets the minimum value in kinship to zero
+kinship3 &lt;- rescale_popkin(kinship2)
+# equivalent to both of:
+# kinship3 &lt;- popkin(X)
+# kinship3 &lt;- rescale_popkin(kinship2, min_kinship = min(kinship))
+
+</code></pre>
+
+
+</div>

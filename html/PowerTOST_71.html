@@ -1,0 +1,293 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sampleN.RSABE</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Sample size estimation for BE decision via linearized scaled ABE criterion
+</h2>
+
+<h3>Description</h3>
+
+<p>This function performs the sample size estimation for the BE decision via 
+linearized scaled ABE criterion based on simulations.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sampleN.RSABE(alpha = 0.05, targetpower = 0.8, theta0, theta1, theta2, CV,
+              design = c("2x3x3", "2x2x4", "2x2x3"), regulator = c("FDA", "EMA"),
+              nsims = 1e+05, nstart, imax=100, print = TRUE,
+              details = TRUE, setseed=TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+
+<p>Type I error probability. Per convention mostly set to 0.05.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>targetpower</code></td>
+<td>
+
+<p>Power to achieve at least. Must be &gt;0 and &lt;1.<br>
+Typical values are 0.8 or 0.9.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta0</code></td>
+<td>
+
+<p>‘True’ or assumed T/R ratio. <br>
+Defaults to 0.90 according to the two Lászlós if not given explicitly.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta1</code></td>
+<td>
+
+<p>Conventional lower ABE limit to be applied in the mixed procedure if 
+<code>CVsWR &lt;= CVswitch</code>.<br>
+Also Lower limit for the point estimate constraint.<br>
+Defaults to 0.8 if not given explicitly.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta2</code></td>
+<td>
+
+<p>Conventional upper ABE limit to be applied in the mixed procedure if 
+<code>CVsWR &lt;= CVswitch</code>. Also upper limit for the point estimate constraint.<br>
+Defaults to 1.25 if not given explicitly.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>CV</code></td>
+<td>
+
+<p>Intra-subject coefficient(s) of variation as ratio (not percent).
+</p>
+
+<ul>
+<li>
+<p> If given as a scalar (<code>length(CV)==1</code>) the <em>same</em> CV of Test
+and Reference is assumed (homoscedasticity, <code>CVwT==CVwR</code>).
+</p>
+</li>
+<li>
+<p> If given as a vector (<code>length(CV)==2</code>), <em>i.e.</em>, assuming
+heteroscedasticity, the CV of the Test <strong>must</strong> be given in 
+<code>CV[1]</code> and the one of the Reference in the <code>CV[2]</code>.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>design</code></td>
+<td>
+
+<p>Design of the study to be planned.<br><code>"2x3x3"</code> is the partial replicate design.<br><code>"2x2x4"</code> is a full replicate design with 2 sequences and 4 periods.<br><code>"2x2x3"</code> is a full replicate design with 2 sequences and 3 periods.<br>
+Defaults to <code>design="2x3x3"</code>. Details are given the section about Designs.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>regulator</code></td>
+<td>
+
+<p>Regulatory body settings for the scaled ABE criterion.<br>
+Defaults to <code>design="FDA"</code>.<br>
+Also the scaled ABE criterion is usually calculated with the FDA constant<br><code>r_const=log(1.25)/0.25</code> you can override this behavior to use the EMA setting
+<code>r_const=0.76</code> to avoid the discontinuity at CV=30% and be more stringent.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsims</code></td>
+<td>
+
+<p>Number of simulations to be performed to obtain the (empirical) power.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nstart</code></td>
+<td>
+
+<p>Set this to a start for the sample size search if a previous run failed.<br>
+After reworking the start n in version 1.1-05 rarely needed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>imax</code></td>
+<td>
+
+<p>Maximum number of steps in sample size search. Defaults to 100.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>print</code></td>
+<td>
+
+<p>If <code>TRUE</code> (default) the function prints its results. If <code>FALSE</code> only the result data.frame will be returned. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>details</code></td>
+<td>
+
+<p>If set to <code>TRUE</code>, the default, the steps during sample size search are shown.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>setseed</code></td>
+<td>
+
+<p>Simulations are dependent on the starting point of the (pseudo) random number 
+generator. To avoid differences in power for different runs a <code>set.seed(123456)</code> 
+is issued if <code>setseed=TRUE</code>, the default. 
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The linearized scaled ABE criterion is calculated according to the SAS code
+given in the FDA progesterone guidance.<br><br>
+The simulations are done via the distributional properties of the statistical
+quantities necessary for deciding BE based on scaled ABE.<br>
+For more details see a document <code style="white-space: pre;">⁠Implementation_scaledABE_simsVx.yy.pdf⁠</code> in the <code>/doc</code> sub-directory of 
+the package.<br><br>
+If a CVcap is defined for the regulator, the BE decision is based on the inclusion
+of the CI in the capped widened acceptance limits in case of CVwR &gt; CVcap. This
+resembles method ‘Howe-EMA’ in Muñoz <em>et al.</em> and is the standard behavior now if
+<code>regulator="EMA"</code> is choosen.<br><br>
+The estimated sample size gives always the <em>total</em> number of subjects (not subject/sequence – like in some other software packages).
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a data.frame with the input and sample size results.<br>
+The <code>Sample size</code> column contains the total sample size.<br>
+The <code>nlast</code> column contains the last <code>n</code> value. May be useful for restarting.
+</p>
+
+
+<h3>Designs</h3>
+
+<p>Although some designs are more ‘popular’ than others, sample size estimations are valid for <em>all</em> of the following designs:
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+    <code>"2x2x4"</code> </td>
+<td style="text-align: left;"> TRTR | RTRT</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    </td>
+<td style="text-align: left;"> TRRT | RTTR</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    </td>
+<td style="text-align: left;"> TTRR | RRTT</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>"2x2x3"</code> </td>
+<td style="text-align: left;"> TRT | RTR</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    </td>
+<td style="text-align: left;"> TRR | RTT</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+    <code>"2x3x3"</code> </td>
+<td style="text-align: left;"> TRR | RTR | RRT
+  </td>
+</tr>
+</table>
+<h3>Warning </h3>
+
+<p>The sample size estimation for theta0 &gt;1.2 and &lt;0.85 may be very time consuming 
+and will eventually also fail since the start values chosen are not really 
+reasonable in that ranges. This is especially true in the range about CV = 0.3 
+and regulatory constant according to FDA.<br>
+If you really need sample sizes in that range be prepared to restart the sample 
+size estimation via the argument nstart.<br>
+Since the dependence of power from n is very flat in the mentioned region you 
+may also consider to adapt the number of simulations not to tap in the simulation 
+error trap.
+</p>
+
+
+<h3>Note</h3>
+
+<p>The sample size estimation is done only for balanced designs since the 
+break down of the total subject number in case of unbalanced sequence groups
+is not unique. Moreover the formulas used are only for balanced designs.<br>
+The minimum sample size is n=6, even if the power is higher than the intended 
+targetpower.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>D. Labes
+</p>
+
+
+<h3>References</h3>
+
+<p>Food and Drug Administration, Office of Generic Drugs (OGD). <em>Draft Guidance on Progesterone.</em> Recommended Apr 2010. Revised Feb 2011. <a href="https://www.accessdata.fda.gov/drugsatfda_docs/psg/Progesterone_caps_19781_RC02-11.pdf">download</a>
+</p>
+<p>Tóthfalusi, L, Endrényi, L. <em>Sample Sizes for Designing Bioequivalence Studies for Highly Variable Drugs.</em> J Pharm Pharmaceut Sci. 2011;15(1):73–84. 
+<a href="https://ejournals.library.ualberta.ca/index.php/JPPS/article/download/11612/9489">open access</a>
+</p>
+<p>Tóthfalusi L, Endrényi L, García Arieta A. <em>Evaluation of Bioequivalence for Highly Variable Drugs with Scaled Average Bioequivalence.</em> Clin Pharmacokin. 2009;48(11):725–43. <a href="https://doi.org/10.2165/11318040-000000000-00000">doi:10.2165/11318040-000000000-00000</a>
+</p>
+<p>Muñoz J, Alcaide D, Ocaña J. <em>Consumer’s risk in the EMA and FDA regulatory approaches for bioequivalence in highly variable drugs.</em> Stat Med. 2015;35(12):1933–43. <a href="https://doi.org/10.1002/sim.6834">doi:10.1002/sim.6834</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>power.RSABE</code>, <code>power.scABEL</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># using all the defaults:
+# design=2x3x3 (partial replicate design), theta0=0.90, 
+# ABE limits, PE constraint 0.8 - 1.25
+# targetpower=80%, alpha=0.05, 1E5 simulations
+sampleN.RSABE(CV = 0.3)
+# should result in a sample size n=45, power=0.80344
+</code></pre>
+
+
+</div>

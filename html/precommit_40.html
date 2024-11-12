@@ -1,0 +1,147 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>run_test</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Run a test</h2>
+
+<h3>Description</h3>
+
+<p>Tests for the executables used as pre-commit hooks via <code>entrypoint</code> in
+<code>.pre-commit-config.yaml</code>. Set's the env variable <code>R_PRECOMMIT_HOOK_ENV</code> to
+when running.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">run_test(
+  hook_name,
+  file_name = hook_name,
+  suffix = ".R",
+  std_err = NULL,
+  std_out = NULL,
+  cmd_args = NULL,
+  artifacts = NULL,
+  file_transformer = function(files) files,
+  env = character(),
+  expect_success = is.null(std_err),
+  read_only = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>hook_name</code></td>
+<td>
+<p>The name of the hook in <code style="white-space: pre;">⁠inst/hooks/exported/⁠</code>, without
+file extension.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>file_name</code></td>
+<td>
+<p>The file to test in <code style="white-space: pre;">⁠tests/in⁠</code> (without extension). Can be
+a named vector of length one where the name is the target location relative
+to the temporary location and the value is the source of the file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>suffix</code></td>
+<td>
+<p>The suffix of <code>file_name</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>std_err</code></td>
+<td>
+<p>An expected error message. If no error is expected, this
+can be <code>NULL</code>. In that case, the <code>comparator</code> is applied.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>std_out</code></td>
+<td>
+<p>The expected stdout message. If <code>NULL</code>, this check is omitted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cmd_args</code></td>
+<td>
+<p>More arguments passed to the file. Pre-commit handles it as
+described <a href="https://pre-commit.com/#arguments-pattern-in-hooks">here</a>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>artifacts</code></td>
+<td>
+<p>Path with artifact files to copy to the temp directory root where
+the test is run. If you don't target the root, this can be a named vector
+of length one where the name is the target location relative to the
+temporary location and the value is the source of the file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>file_transformer</code></td>
+<td>
+<p>A function that takes the file names as input and is
+ran right before the hook script is invoked, returning the path to the
+files, potentially modified (if renamed). This can be useful if you need to
+make in-place modifications to the file, e.g. to test hooks that operate on
+<code>.Rprofile</code>. You can't have different names for different tests on that
+file because it must be called <code>.Rprofile</code> all the time. And R CMD check
+seems to remove hidden files, so we must also rename it. The transformation
+is also applied to a temp copy of the reference file before a comparison is
+made.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>env</code></td>
+<td>
+<p>The environment variables to set with <code>base::system2()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expect_success</code></td>
+<td>
+<p>Whether or not an exit code 0 is expected. This can
+be derived from <code>std_err</code>, but sometimes, non-empty stderr does not mean
+error, but just a message.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>read_only</code></td>
+<td>
+<p>If <code>TRUE</code>, then assert that no new files were created.
+Additionally, if <code>artifacts</code> are not <code>NULL</code>, then assert that hook did not
+modify the artifacts.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Two potential outcomes of a hooks are pass or fail. This is reflected on the
+level of the executable: Fail means the executable fails or the file is
+changed. Pass means the executable succeeds and the file is unchanged.
+We check if the executable passes as follows:
+</p>
+
+<ul>
+<li>
+<p> If we expect success (by setting <code>std_err</code> to <code>NULL</code>), we make sure
+nothing was written to sterr and the file content does not change.
+</p>
+</li>
+<li>
+<p> If we expect failure, it can be due to changed file or due to failed
+executable. To check for failed executable, we set <code>std_err</code> to
+the message we expect. To check changed file content, we set <code>std_err</code> to
+<code>NA</code>.
+</p>
+</li>
+</ul>
+</div>

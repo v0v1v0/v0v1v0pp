@@ -1,0 +1,181 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>EstimationTask-class</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Class <code>"EstimationTask"</code>
+</h2>
+
+<h3>Description</h3>
+
+<p>This class of objects contains the information describing an
+estimation task.
+</p>
+
+
+<h3>Details</h3>
+
+<p>In case you are providing your own user-defined evaluator functions
+(through parameters <code>evaluator</code> anbd <code>evaluator.pars</code>) you
+need to follow some protocol in defining these functions so that the
+package may correctly call them during the execution of the estimation
+experiments. This protocol depends on the output of the workflows you 
+plan to evaluate with your use-defined function. Standard workflows 
+(<code>standardWF</code> or <code>timeseriesWF</code>) will return 
+at least a vector named <code>trues</code> with  the true values of the test 
+cases and the vector named <code>preds</code> with the respective predicted 
+values (in this order). This means that your evaluator function should 
+assume that it will be called with these two vectors as the first two 
+arguments. However, if you are not using the standard workflows, you 
+have more flexibility. In effect, user-defined workflows return whatever 
+the author wants them to return (unless they are going to be evaluated 
+using either <code>classificationMetrics</code> or 
+<code>regressionMetrics</code>, that require the vectors of true and 
+predicted values). This means that in the most flexible case where you 
+have your own user-defined workflow function and your user-defined evaluator 
+function, you can use whatever parameters you want. The only thing you need 
+to worry is to be aware that your user-defined evaluator function will 
+be called with whatever your user-defined workflow has returned as result 
+of its execution. Your user-defined evaluator function should calculate 
+whatever metrics are indicated through the parameter <code>stats</code> that 
+is a vector of strings. In case the slot <code>trainReq</code> is <code>TRUE</code> 
+then the user-defined evaluator function should also have a parameter
+named <code>train.y</code> that will "receive" the values of the
+target variable on the training set. The remaining parameters of the
+user-defined function can be freely defined by you and their values
+will be specified through the contents of the <code>evaluator.pars</code>
+list.
+</p>
+
+
+<h3>Objects from the Class</h3>
+
+<p>Objects can be created by calls of the form
+<code>EstimationTask(...)</code>
+providing the values for the class slots. These objects contain
+information on the metrics to be estimated, as well as on the estimation
+method to use to obtain the estimates. Moreover, in case you want to use
+metrics not currently implemented by this package you can also provide
+the name of a function (and its parameters) that will be called to
+calculate these metrics.
+</p>
+
+
+<h3>Slots</h3>
+
+
+<dl>
+<dt>
+<code>metrics</code>:</dt>
+<dd>
+<p>An optional vector of objects of class
+<code>character</code> containing the names of the metrics to be
+estimated. These can be any of the metrics provided by the
+functions <code>classificationMetrics</code> and
+<code>regressionMetrics</code> or "trTime", "tsTime" or "totTime" for
+training, testing and total time, respectively. You may also
+provide the name of any other metrics, but in that case you need
+to use the slots <code>evaluator</code> and <code>evaluator.pars</code> to
+indicate the function to be use to calculate them. If you do not supply 
+the name of any metric, all metrics of the used evaluator function will
+be calculated.</p>
+</dd>
+<dt>
+<code>method</code>:</dt>
+<dd>
+<p>Object of class <code>EstimationMethod</code>
+containing the estimation method and its settings to be used to
+obtain the estimates of the metrics (defaulting to <code>CV()</code>). </p>
+</dd>
+<dt>
+<code>evaluator</code>:</dt>
+<dd>
+<p>An optional object of class
+<code>character</code> containing the name of a function to be used to
+calculate the specified metrics. It will default to either
+<code>classificationMetrics</code> or
+<code>regressionMetrics</code> depending on the type of prediction
+task.</p>
+</dd>
+<dt>
+<code>evaluator.pars</code>:</dt>
+<dd>
+<p>An optional  list containing
+the parameters to be passed to the function calculating the metrics.</p>
+</dd>
+<dt>
+<code>trainReq</code>:</dt>
+<dd>
+<p>An optional  logical value indicating
+whether the metrics to be calculated require that the training
+data is supplied (defaulting to <code>FALSE</code>). Note that if the
+user selects any of the metrics "nmse", "nmae" or "theil" this
+will be set to <code>TRUE</code>.</p>
+</dd>
+</dl>
+<h3>Methods</h3>
+
+
+<dl>
+<dt>show</dt>
+<dd>
+<p><code>signature(object = "EstimationTask")</code>: method used to
+show the contents of a <code>EstimationTask</code> object. </p>
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p>Luis Torgo <a href="mailto:ltorgo@dcc.fc.up.pt">ltorgo@dcc.fc.up.pt</a> 
+</p>
+
+
+<h3>References</h3>
+
+<p>Torgo, L. (2014) <em>An Infra-Structure for Performance
+Estimation and Experimental Comparison of Predictive Models in R</em>. arXiv:1412.0436 [cs.MS]
+<a href="http://arxiv.org/abs/1412.0436">http://arxiv.org/abs/1412.0436</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>MonteCarlo</code>,
+<code>CV</code>,
+<code>LOOCV</code>,
+<code>Bootstrap</code>,
+<code>Holdout</code>,
+<code>EstimationMethod</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">showClass("EstimationTask")
+
+## Estimating Mean Squared Error using 10-fold cross validation
+et &lt;- EstimationTask(metrics="mse")
+et
+
+## Estimating Accuracy and Total Time (train+test times) using 3
+## repetitions of holdout with 20% of the cases used for testing. 
+EstimationTask(metrics=c("acc","totTime"),method=Holdout(nReps=3,hldSz=0.2))
+
+## An example with a user-defined metric: the average differences between true
+## predicted values raised to a certain power.
+
+## First we define the function that calculates this metric. It
+## needs to have 'trues' and 'preds' as the first two arguments if we
+## want it to be usable by standard workflows
+powErr &lt;- function(trues,preds,metrics,pow=3) {
+     if (metrics != "pow.err") stop("Unable to calculate that metric!")
+     c(pow.err = mean((trues-preds)^pow))
+}
+
+## Now the estimation task (10-fold cv in this example)
+EstimationTask(metrics="pow.err", method=CV(), 
+               evaluator="powErr", evaluator.pars=list(pow=4))
+</code></pre>
+
+
+</div>

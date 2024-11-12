@@ -1,0 +1,123 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pois_contour</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Checks the fit of a Poisson Distribution</h2>
+
+<h3>Description</h3>
+
+<p>Provides contours (for use in graphs) to show changes in Poisson counts in a pre vs post period.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pois_contour(
+  pre_crime,
+  post_crime,
+  lev = c(-3, 0, 3),
+  lr = 5,
+  hr = max(pre_crime) * 1.05,
+  steps = 1000
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pre_crime, </code></td>
+<td>
+<p>vector of crime counts in the pre period</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>post_crime, </code></td>
+<td>
+<p>vector of crime counts in the post period</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lev, </code></td>
+<td>
+<p>vector of Poisson Z-scores to draw the contours at, defaults to <code>c(-3,0,3)</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lr, </code></td>
+<td>
+<p>scaler lower limit for where to draw the contour lines, defaults to <code>5</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hr, </code></td>
+<td>
+<p>scaler upper limit for where to draw the contour lines, defaults to <code>max(pre_crime)*1.05</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>steps, </code></td>
+<td>
+<p>scaler how dense to make the lines, defaults to 1000 steps</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Provides a set of contour lines to show whether increases/decreases in Poisson counts between two periods
+are outside of those expected by chance according to the Poisson distribution based on the normal approximation.
+Meant to be used in subsequent graphs. Note the approximation breaks down at smaller N values, so below 5 is not
+typically recommended.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A dataframe with columns
+</p>
+
+<ul>
+<li> <p><code>x</code>, the integer value
+</p>
+</li>
+<li> <p><code>y</code>, the y-value in the graph for expected changes (will not be below 0)
+</p>
+</li>
+<li> <p><code>levels</code>, the associated Z-score level
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Drake, G., Wheeler, A., Kim, D.-Y., Phillips, S. W., &amp; Mendolera, K. (2021). <em>The Impact of COVID-19 on the Spatial Distribution of Shooting Violence in Buffalo, NY</em>. CrimRxiv. https://doi.org/10.21428/cb6ab371.e187aede
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Example use with NYC Shooting Data pre/post Covid lockdowns
+# Prepping the NYC shooting data
+data(nyc_shoot)
+begin_date &lt;- as.Date('03/01/2020', format="%m/%d/%Y")
+nyc_shoot$Pre &lt;- ifelse(nyc_shoot$OCCUR_DATE &lt; begin_date,1,0)
+nyc_shoot$Post &lt;- nyc_shoot$Pre*-1 + 1
+# Note being lazy, some of these PCTs have changed over time
+pct_tot &lt;- aggregate(cbind(Pre,Post) ~ PRECINCT, data=nyc_shoot@data, FUN=sum)
+cont_lines &lt;- pois_contour(pct_tot$Pre,pct_tot$Post)
+# Now making an ugly graph
+sp &lt;- split(cont_lines,cont_lines$levels)
+plot(pct_tot$Pre,pct_tot$Post)
+for (s in sp){
+  lines(s$x,s$y,lty=2)
+}
+# Can see it is slightly overdispersed, but pretty close!
+# See https://andrewpwheeler.com/2021/02/02/the-spatial-dispersion-of-nyc-shootings-in-2020/
+# For a nicer example using ggplot
+
+</code></pre>
+
+
+</div>

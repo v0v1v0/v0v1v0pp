@@ -1,0 +1,164 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pamr.surv.to.class2</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>A function to assign observations to categories, based on their survival
+times.</h2>
+
+<h3>Description</h3>
+
+<p>A function to assign observations to categories, based on their survival
+times.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pamr.surv.to.class2(
+  y,
+  icens,
+  cutoffs = NULL,
+  n.class = NULL,
+  class.names = NULL,
+  newy = y,
+  newic = icens
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>vector of survival times</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>icens</code></td>
+<td>
+<p>Vector of censorng status values: 1=died, 0=censored</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cutoffs</code></td>
+<td>
+<p>Survival time cutoffs for categories. Default NULL</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.class</code></td>
+<td>
+<p>Number of classes to create: if cutoffs is NULL, n.class
+equal classes are created.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>class.names</code></td>
+<td>
+<p>Character names for classes</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newy</code></td>
+<td>
+<p>New set of survival times, for which probabilities are computed
+(see below). Default is y</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newic</code></td>
+<td>
+<p>New set of censoring statuses, for which probabilities are
+computed (see below). Default is icens</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>pamr.pamr.surv.to.class2</code> splits observations into categories based on
+their survival times and the Kaplan-Meier estimates. For example if
+n.class=2, it makes two categories, one below the median survival, the other
+above. For each observation (newy, ic), it then computes the probability of
+that observation falling in each category. For an uncensored observation
+that probability is just 1 or 0 depending on when the death occurred. For a
+censored observation, the probabilities are based on the Kaplan Meier and
+are typically between 0 and 1.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>class</code></td>
+<td>
+<p>The category labels</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prob</code></td>
+<td>
+<p>The estimates class
+probabilities</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cutoffs</code></td>
+<td>
+<p>The cutoffs used</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Trevor Hastie, Robert Tibshirani, Balasubramanian Narasimhan, and
+Gilbert Chu
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+gendata&lt;-function(n=100, p=2000){
+  tim &lt;- 3*abs(rnorm(n))
+  u&lt;-runif(n,min(tim),max(tim))
+  y&lt;-pmin(tim,u)
+   ic&lt;-1*(tim&lt;u)
+m &lt;- median(tim)
+x&lt;-matrix(rnorm(p*n),ncol=n)
+  x[1:100, tim&gt;m] &lt;-  x[1:100, tim&gt;m]+3
+  return(list(x=x,y=y,ic=ic))
+}
+
+# generate training data; 2000 genes, 100 samples
+
+junk&lt;-gendata(n=100)
+y&lt;-junk$y
+ic&lt;-junk$ic
+x&lt;-junk$x
+d &lt;- list(x=x,survival.time=y, censoring.status=ic,
+geneid=as.character(1:nrow(x)), genenames=paste("g",as.character(1:nrow(x)),sep=
+""))
+
+# train model
+a3&lt;- pamr.train(d, ngroup.survival=2)
+
+# generate test data
+junkk&lt;- gendata(n=500)
+
+dd &lt;- list(x=junkk$x, survival.time=junkk$y, censoring.status=junkk$ic)
+
+# compute soft labels
+proby &lt;-  pamr.surv.to.class2(dd$survival.time, dd$censoring.status,
+             n.class=a3$ngroup.survival)$prob
+
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,242 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fitPM</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit periodic time series models</h2>
+
+<h3>Description</h3>
+
+<p>Generic function with methods for fitting periodic time series models.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fitPM( model, x, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>the time series.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a periodic model, see Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments to be passed on to individual methods.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This is a generic function.
+</p>
+<p><code>model</code> provides the specification of the model. In particular,
+the class of <code>model</code> determines what model is fitted.  Specific
+values of the parameters are generally ignored by non-iterative
+methods but some methods can handle more detailed specifications, see
+the individual methods.
+</p>
+
+
+<h3>Value</h3>
+
+<p>the fitted model,
+typically an object of class <code>class(model)</code>
+</p>
+
+
+<h3>Methods</h3>
+
+
+<dl>
+<dt><code>signature(model = "ANY", x = "ANY")</code></dt>
+<dd>
+<p>This is the default method. It simply exits with an error message
+stating that <code>fitPM</code> does not have a method for the model
+specified by <code>model</code>.
+</p>
+</dd>
+<dt><code>signature(model = "numeric", x = "ANY")</code></dt>
+<dd>
+<p>Fits a PAR model to <code>x</code>. <code>model</code> should be a vector of
+non-negative integers giving the PAR order. The length of this vector
+is taken to be the number of seasons.
+</p>
+<p>This is a convenience method. It constructs a PAR model and callls the
+method for <code>model = "PeriodicArModel"</code>.
+</p>
+</dd>
+<dt><code>signature(model = "PeriodicArModel", x = "ANY")</code></dt>
+<dd>
+<p>Fits a PAR model.
+</p>
+</dd>
+<dt><code>signature(model = "mcSpec", x = "ANY")</code></dt>
+<dd>
+<p>Fits a periodic model according to the specification given by
+<code>model</code>.
+</p>
+<p>Currently this method uses <code>mC.ss</code> to set up the
+optimisation environment and then calls one of the optimisation
+functions in that environment as specified by argument
+<code>optim.method</code>, see below.
+</p>
+<p>Additional arguments may be specified to control the optimisation.
+</p>
+<p>Argument <code>init</code> can be used to give initial values. It is
+passed on to <code>mC.ss</code> (and so has the format required by it).
+</p>
+<p><code>optim.method</code> is the name of an optimisation function in the
+environment returned by <code>mC.ss</code>. The default is
+<code>optim.method = "minim"</code>, which is based on the standard <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function
+<code>optim</code>.  Alternatives are "minimBB" or "minimBBLU". All this
+needs to be documented but see <code>mC.ss</code> and <code>xx.ss</code> for
+details.
+</p>
+<p>Further arguments are passed on to the optimisation method. A
+typical argument supported by most optimisation functions is
+<code>control</code>.
+</p>
+</dd>
+<dt><code>signature(model = "PiPeriodicArModel", x = "ANY")</code></dt>
+<dd>
+<p>Fits a periodically integrated PAR model using the parameters of
+<code>model</code> as initial values. Calls <code>pclspiar</code> to do the
+actual work.
+
+</p>
+</dd>
+<dt><code>signature(model = "SiPeriodicArModel", x = "ANY")</code></dt>
+<dd>
+<p>Fits a seasonally integrated PAR model.
+</p>
+
+</dd>
+<dt><code>signature(model = "PeriodicArModel", x = "PeriodicMTS")</code></dt>
+<dd>
+
+
+</dd>
+<dt><code>signature(model = "PeriodicArModel", x = "PeriodicTS")</code></dt>
+<dd>
+
+
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p>Georgi N. Boshnakov</p>
+
+
+<h3>References</h3>
+
+<p> (todo: to be completed properly later)
+</p>
+<p>Hipel KW, McLeod AI (1994).
+<em>Time series modelling of water resources and environmental systems</em>,  Developments in water science; 45.
+London; Amsterdam: Elsevier.
+</p>
+<p>Boshnakov GN, Iqelan BM (2009).
+“Generation of time series models with given spectral properties.”
+<em>J. Time Series Anal.</em>, <b>30</b>(3), 349–368.
+ISSN 0143-9782, <a href="https://doi.org/10.1111/j.1467-9892.2009.00617.x">doi:10.1111/j.1467-9892.2009.00617.x</a>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## newm1 &lt;- list(phi = matrix(1:12, nrow=4), p=rep(3,4), period=4, si2 = rep(1,4))
+## new_pfm1 &lt;- PeriodicFilterModel(newm1, intercept=0)
+
+## generate some data;
+set.seed(1234)
+simts1 &lt;- pcts(rnorm(1024), nseasons = 4)
+
+fitPM(c(3,3,3,3), simts1)
+fitPM(3, simts1)
+## the fit on the underlying data is equivalent.
+fitPM(c(3,3,3,3), as.numeric(simts1))
+
+## equivalently, use a PAR(3,3,3,3) model for argument 'model'
+## here the coefficients of pfm1 are ignored, since the estimation is linear.
+pfm1 &lt;- PeriodicArModel(matrix(1:12, nrow = 4), order = rep(3,4), sigma2 = 1)
+pfm1
+## these give same results as above
+fitPM(pfm1, simts1)
+fitPM(pfm1, as.numeric(simts1))
+
+fitPM(c(1,1,1,1), simts1)
+fitPM(c(3,2,2,1), simts1)
+fitPM(c(3,2,2,2), simts1)
+
+pdSafeParOrder(c(3,2,2,1))
+pdSafeParOrder(rev(c(3,2,2,1)))
+
+x &lt;- arima.sim(list(ar = 0.9), n = 960)
+pcx &lt;- pcts(x, nseasons = 4)
+mx &lt;- matrix(x, nrow = 4)
+
+##pc.acf(mx)
+##pc.acf(mx, maxlag=10)
+## TODO: avoid the warning when length ot the time series is not multiple
+autocovariances(t(mx), maxlag = 6, nseasons = 4)
+autocovariances(t(mx))
+
+##It is an error to have more columns than rows.
+## autocovariances(mx, maxlag = 6, nseasons = 4)
+## autocovariances(mx)
+
+num2pcpar(mx, c(1,1,1,1), period = 4)
+num2pcpar(mx, c(3,3,3,3), period = 4)
+
+sipfm1 &lt;- new("SiPeriodicArModel", iorder = 1, siorder = 1, pcmodel = pfm1)
+sipfm1
+fitPM(sipfm1, mx)
+pfm1
+
+
+## experiments and testing
+fit1    &lt;- fitPM(c(3,3,3,3), simts1)
+fit1_mf &lt;- new("MultiFilter", coef = fit1@ar@coef)
+vs      &lt;- mcompanion::mf_VSform(fit1_mf, form = "I")
+tmp &lt;- mcompanion::VAR2pcfilter(vs$Phi[ , -4],
+                                Phi0inv = vs$Phi0inv, D = fit1@sigma2, what = "")
+names(tmp) #  "pcfilter" "var"      "Uform"   
+tmp$var
+zapsmall(tmp$pcfilter)
+fit1@ar@coef
+all.equal(tmp$pcfilter[ , 1:3], fit1@ar@coef, check.attributes = FALSE) # TRUE
+tmp$Uform
+fit1@sigma2
+
+## both give the matrix Sigma for the "I" form
+identical(
+    vs$Phi0inv %*% diag(fit1@sigma2) %*% t(vs$Phi0inv)
+    ,
+    tmp$Uform$U0inv %*% diag(tmp$Uform$Sigma)  %*% t(tmp$Uform$U0inv)
+) # TRUE
+
+## no, this is a different matrix
+var1_mat &lt;- cbind(vs$Phi0, # identity matrix
+                  - vs$Phi) # drop trailing zero columns?
+var1_mat &lt;- mcompanion::mCompanion(var1_mat)
+var1_Sigma &lt;- vs$Phi0inv %*% diag(fit1@sigma2) %*% t(vs$Phi0inv)
+abs(eigen(diag(nrow(var1_mat)) - var1_mat)$values)
+</code></pre>
+
+
+</div>

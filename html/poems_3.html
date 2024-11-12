@@ -1,0 +1,529 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>DispersalGenerator</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>R6 class representing a dispersal generator.</h2>
+
+<h3>Description</h3>
+
+<p><code>R6</code> class functionality for modeling dispersals within a
+spatially-explicit population model. The model calculates dispersal rates between
+population model cells using a distance-based function: <em>p*exp(-distance/b)</em>
+for <em>distance &lt;= r</em> (otherwise zero), where <em>p</em> (proportion), <em>b</em>
+(breadth or average distance) and <em>r</em> (range or maximum distance) are
+configurable model attributes. The dispersal rates are adjusted to limit
+emigration from each cell to <em>p</em>. The model also generates data for
+constructing compacted dispersal matrices. It dynamically generates attributes
+defined as <em>outputs</em> (default: <em>dispersal_data</em>) given sampled
+<em>inputs</em> (default: <em>dispersal_proportion</em> and
+<em>dispersal_max_distance</em>). An optional <code>DispersalFriction</code> object
+may be utilized to modify (equivalent) distances given a (spatio-temporal) frictional
+landscape. When this landscape includes temporal changes, the generated
+<em>dispersal_data</em> will be a temporal list of changing dispersal rates.
+</p>
+
+
+<h3>Super classes</h3>
+
+<p><code>poems::GenericClass</code> -&gt; <code>poems::GenericModel</code> -&gt; <code>poems::SpatialModel</code> -&gt; <code>poems::Generator</code> -&gt; <code>DispersalGenerator</code>
+</p>
+
+
+<h3>Public fields</h3>
+
+<div class="r6-fields">
+
+<dl>
+<dt><code>attached</code></dt>
+<dd>
+<p>A list of dynamically attached attributes (name-value pairs).</p>
+</dd>
+</dl>
+</div>
+
+
+<h3>Active bindings</h3>
+
+<div class="r6-active-bindings">
+
+<dl>
+<dt><code>model_attributes</code></dt>
+<dd>
+<p>A vector of model attribute names.</p>
+</dd>
+<dt><code>region</code></dt>
+<dd>
+<p>A <code>Region</code> (or inherited class) object specifying the study region.</p>
+</dd>
+<dt><code>coordinates</code></dt>
+<dd>
+<p>Data frame (or matrix) of X-Y population (WGS84) coordinates in longitude (degrees West) and latitude (degrees North) (get and set), or distance-based coordinates dynamically returned by region raster (get only).</p>
+</dd>
+<dt><code>description</code></dt>
+<dd>
+<p>A brief description of what the generator generates.</p>
+</dd>
+<dt><code>inputs</code></dt>
+<dd>
+<p>An array of input attribute names for the generator.</p>
+</dd>
+<dt><code>outputs</code></dt>
+<dd>
+<p>An array of output attribute names for the generator.</p>
+</dd>
+<dt><code>file_templates</code></dt>
+<dd>
+<p>A nested list of file template attributes.</p>
+</dd>
+<dt><code>function_templates</code></dt>
+<dd>
+<p>A nested list of function template attributes.</p>
+</dd>
+<dt><code>distribution_templates</code></dt>
+<dd>
+<p>A list of distribution template attributes.</p>
+</dd>
+<dt><code>uses_correlations</code></dt>
+<dd>
+<p>A boolean to indicate that a <code>SpatialCorrelation</code> (or inherited class) object is used for generating correlated random deviates.</p>
+</dd>
+<dt><code>spatial_correlation</code></dt>
+<dd>
+<p>A <code>SpatialCorrelation</code> (or inherited class) object for generating correlated random deviates.</p>
+</dd>
+<dt><code>temporal_correlation</code></dt>
+<dd>
+<p>Absolute correlation coefficient between simulation time steps for all grid cells (0-1; default = 1).</p>
+</dd>
+<dt><code>time_steps</code></dt>
+<dd>
+<p>Number of simulation time steps.</p>
+</dd>
+<dt><code>decimals</code></dt>
+<dd>
+<p>Number of decimal places applied to generated data outputs (default: NULL = no rounding).</p>
+</dd>
+<dt><code>occupancy_mask</code></dt>
+<dd>
+<p>Optional binary mask array (matrix), data frame, or raster (stack) for generated (time-series) data outputs.</p>
+</dd>
+<dt><code>template_attached</code></dt>
+<dd>
+<p>A list of template-nested dynamically attached model attributes that are maintained via shallow or <em>new</em> cloning.</p>
+</dd>
+<dt><code>dispersal_friction</code></dt>
+<dd>
+<p>A <code>DispersalFriction</code> (or inherited class) object for dispersal distance multiplier data.</p>
+</dd>
+<dt><code>distance_classes</code></dt>
+<dd>
+<p>Vector of distance interval boundaries for calculating discrete dispersal rates.</p>
+</dd>
+<dt><code>max_distance_classes</code></dt>
+<dd>
+<p>The maximum number of distance classes when they are calculated automatically via the maximum distance (default: 1000).</p>
+</dd>
+<dt><code>distance_scale</code></dt>
+<dd>
+<p>Scale of distance values in meters (default = 1). Usage: set to 1 for values in meters, or to 1000 for values in kilometers.</p>
+</dd>
+<dt><code>distance_data</code></dt>
+<dd>
+<p>Data frame of distance classes including indices for the construction of compact matrices (columns: target_pop, source_pop, compact_row, distance_class).</p>
+</dd>
+<dt><code>dispersal_function_data</code></dt>
+<dd>
+<p>Data frame of discrete dispersal function values. Optional first column may provide distance intervals (non-inclusive lower bounds).</p>
+</dd>
+<dt><code>dispersal_proportion</code></dt>
+<dd>
+<p>Dispersal function: <em>p*exp(-distance/b)</em> <em>p</em> parameter. Represents the proportion and limit of dispersers between model cells.</p>
+</dd>
+<dt><code>dispersal_breadth</code></dt>
+<dd>
+<p>Dispersal function: <em>p*exp(-distance/b)</em> <em>b</em> parameter. Represents the breadth of the dispersal between model cells. Typically estimated via average migration distance.</p>
+</dd>
+<dt><code>dispersal_max_distance</code></dt>
+<dd>
+<p>Dispersal maximum distance or range (<em>r</em>) parameter limits the use of the dispersal function: <em>p*exp(-distance/b)</em>. The function is utilized when <em>distance &lt;= r</em> otherwise the dispersal rate is set to zero.</p>
+</dd>
+<dt><code>dispersal_index</code></dt>
+<dd>
+<p>Sampled index for the dispersal function data frame (to look-up dispersal function parameters).</p>
+</dd>
+<dt><code>dispersal_matrix</code></dt>
+<dd>
+<p>Dispersal matrix calculated via dispersal function.</p>
+</dd>
+<dt><code>dispersal_data</code></dt>
+<dd>
+<p>Data frame of non-zero dispersal rates including indices for the construction of compact matrices (columns: target_pop, source_pop, emigrant_row, immigrant_row, dispersal_rate).</p>
+</dd>
+<dt><code>attribute_aliases</code></dt>
+<dd>
+<p>A list of alternative alias names for model attributes (form: <code>alias = "attribute"</code>) to be used with the set and get attributes methods.</p>
+</dd>
+<dt><code>generative_template</code></dt>
+<dd>
+<p>A nested <code>DispersalTemplate</code> (or inherited class) object for model attributes that are maintained via shallow or <em>new</em> cloning.</p>
+</dd>
+<dt><code>generative_requirements</code></dt>
+<dd>
+<p>A list of attribute names and the template setting (<em>"file"</em>, <em>"function"</em>, or <em>"default"</em>) that is required to generate their values.</p>
+</dd>
+<dt><code>error_messages</code></dt>
+<dd>
+<p>A vector of error messages encountered when setting model attributes.</p>
+</dd>
+<dt><code>warning_messages</code></dt>
+<dd>
+<p>A vector of warning messages encountered when setting model attributes.</p>
+</dd>
+</dl>
+</div>
+
+
+<h3>Methods</h3>
+
+
+
+<h4>Public methods</h4>
+
+
+<ul>
+<li> <p><a href="#method-DispersalGenerator-new"><code>DispersalGenerator$new()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-DispersalGenerator-generative_requirements_satisfied"><code>DispersalGenerator$generative_requirements_satisfied()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-DispersalGenerator-set_distance_classes"><code>DispersalGenerator$set_distance_classes()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-DispersalGenerator-calculate_distance_matrix"><code>DispersalGenerator$calculate_distance_matrix()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-DispersalGenerator-calculate_distance_data"><code>DispersalGenerator$calculate_distance_data()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-DispersalGenerator-calculate_dispersals"><code>DispersalGenerator$calculate_dispersals()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-DispersalGenerator-clone"><code>DispersalGenerator$clone()</code></a>
+</p>
+</li>
+</ul>
+<details><summary>Inherited methods</summary><ul>
+<li><span class="pkg-link" data-pkg="poems" data-topic="GenericModel" data-id="get_attribute"><a href="../../poems/html/GenericModel.html#method-GenericModel-get_attribute"><code>poems::GenericModel$get_attribute()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="poems" data-topic="GenericModel" data-id="get_attribute_aliases"><a href="../../poems/html/GenericModel.html#method-GenericModel-get_attribute_aliases"><code>poems::GenericModel$get_attribute_aliases()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="poems" data-topic="GenericModel" data-id="get_attribute_names"><a href="../../poems/html/GenericModel.html#method-GenericModel-get_attribute_names"><code>poems::GenericModel$get_attribute_names()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="poems" data-topic="GenericModel" data-id="set_attributes"><a href="../../poems/html/GenericModel.html#method-GenericModel-set_attributes"><code>poems::GenericModel$set_attributes()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="poems" data-topic="Generator" data-id="add_distribution_template"><a href="../../poems/html/Generator.html#method-Generator-add_distribution_template"><code>poems::Generator$add_distribution_template()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="poems" data-topic="Generator" data-id="add_file_template"><a href="../../poems/html/Generator.html#method-Generator-add_file_template"><code>poems::Generator$add_file_template()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="poems" data-topic="Generator" data-id="add_function_template"><a href="../../poems/html/Generator.html#method-Generator-add_function_template"><code>poems::Generator$add_function_template()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="poems" data-topic="Generator" data-id="add_generative_requirements"><a href="../../poems/html/Generator.html#method-Generator-add_generative_requirements"><code>poems::Generator$add_generative_requirements()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="poems" data-topic="Generator" data-id="generate"><a href="../../poems/html/Generator.html#method-Generator-generate"><code>poems::Generator$generate()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="poems" data-topic="Generator" data-id="get_attributes"><a href="../../poems/html/Generator.html#method-Generator-get_attributes"><code>poems::Generator$get_attributes()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="poems" data-topic="Generator" data-id="new_clone"><a href="../../poems/html/Generator.html#method-Generator-new_clone"><code>poems::Generator$new_clone()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="poems" data-topic="Generator" data-id="read_file"><a href="../../poems/html/Generator.html#method-Generator-read_file"><code>poems::Generator$read_file()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="poems" data-topic="Generator" data-id="run_function"><a href="../../poems/html/Generator.html#method-Generator-run_function"><code>poems::Generator$run_function()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="poems" data-topic="Generator" data-id="sample_distribution"><a href="../../poems/html/Generator.html#method-Generator-sample_distribution"><code>poems::Generator$sample_distribution()</code></a></span></li>
+</ul></details><hr>
+<a id="method-DispersalGenerator-new"></a>
+
+
+
+<h4>Method <code>new()</code>
+</h4>
+
+<p>Initialization method sets the generative template and requirements, optionally the dispersal friction object, as well as any attributes passed via a <em>params</em> list or individually.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>DispersalGenerator$new(
+  generative_template = NULL,
+  generative_requirements = NULL,
+  dispersal_friction = NULL,
+  attribute_aliases = NULL,
+  ...
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>generative_template</code></dt>
+<dd>
+<p>Optional nested object for generative attributes that need to be maintained when a new clone object is generated for a sample simulation (usually a ).</p>
+</dd>
+<dt><code>generative_requirements</code></dt>
+<dd>
+<p>Optional list of attribute names and the template setting (<em>"file"</em> or <em>"function"</em>) that is required to generate their values (otherwise default functionality is used).</p>
+</dd>
+<dt><code>dispersal_friction</code></dt>
+<dd>
+<p>Optional <code>DispersalFriction</code> (or inherited class) object for dispersal distance multiplier data.</p>
+</dd>
+<dt><code>attribute_aliases</code></dt>
+<dd>
+<p>Optional list of extra alias names for model attributes (form: <code>alias = "attribute"</code>) to be used with the set and get attributes methods.</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Parameters passed via a <em>params</em> list or individually.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-DispersalGenerator-generative_requirements_satisfied"></a>
+
+
+
+<h4>Method <code>generative_requirements_satisfied()</code>
+</h4>
+
+<p>Returns a boolean to indicate that all the default, file and/or function template settings that are required for attribute generation are present.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>DispersalGenerator$generative_requirements_satisfied()</pre></div>
+
+
+
+<h5>Returns</h5>
+
+<p>Boolean to indicate that the required settings for attribute generation are present.
+</p>
+
+
+<hr>
+<a id="method-DispersalGenerator-set_distance_classes"></a>
+
+
+
+<h4>Method <code>set_distance_classes()</code>
+</h4>
+
+<p>Sets the distance classes to a sequence of values from minimum to maximum in steps of interval size.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>DispersalGenerator$set_distance_classes(
+  minimum = 1,
+  maximum = 10,
+  interval = 1
+)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>minimum</code></dt>
+<dd>
+<p>Minimum or first distance class sequence value (default = 1).</p>
+</dd>
+<dt><code>maximum</code></dt>
+<dd>
+<p>Maximum or last distance class value (default = 10).</p>
+</dd>
+<dt><code>interval</code></dt>
+<dd>
+<p>Interval or distance class sequence step size  (default = 1).</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-DispersalGenerator-calculate_distance_matrix"></a>
+
+
+
+<h4>Method <code>calculate_distance_matrix()</code>
+</h4>
+
+<p>Returns a matrix with the calculated distance (in meters by default) between each pair of region cells.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>DispersalGenerator$calculate_distance_matrix(use_longlat = NULL)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>use_longlat</code></dt>
+<dd>
+<p>Optional boolean indicating use of (WGS84) coordinates in longitude (degrees West) and latitude (degrees North).</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>Matrix with distances between region cells.
+</p>
+
+
+<hr>
+<a id="method-DispersalGenerator-calculate_distance_data"></a>
+
+
+
+<h4>Method <code>calculate_distance_data()</code>
+</h4>
+
+<p>Calculates the distance class for within-range populations using the set/provided distance classes. Also calculates indices for constructing compact matrices.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>DispersalGenerator$calculate_distance_data(distance_matrix = NULL, ...)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>distance_matrix</code></dt>
+<dd>
+<p>Optional pre-calculated matrix with distances between population cells (population rows by population columns).</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Parameters passed via a <em>params</em> list or individually.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-DispersalGenerator-calculate_dispersals"></a>
+
+
+
+<h4>Method <code>calculate_dispersals()</code>
+</h4>
+
+<p>Calculates, using the conditional dispersal limiting function for a simulation sample, a dispersal matrix, or a list of data frames of non-zero dispersal rates and indices for constructing a compact dispersal matrix (default), and optional changing rates over time (via <code>DispersalFriction</code> object).
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>DispersalGenerator$calculate_dispersals(type = "data")</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>type</code></dt>
+<dd>
+<p>Optional type selector (<em>"data"</em> or <em>"matrix"</em>) to determine whether to calculate a dispersal matrix or data frame (default).</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>Returns character string message when calculation prerequisites are not met (for simulation logging).
+</p>
+
+
+<hr>
+<a id="method-DispersalGenerator-clone"></a>
+
+
+
+<h4>Method <code>clone()</code>
+</h4>
+
+<p>The objects of this class are cloneable with this method.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>DispersalGenerator$clone(deep = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>deep</code></dt>
+<dd>
+<p>Whether to make a deep clone.</p>
+</dd>
+</dl>
+</div>
+
+
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># U Island example region
+coordinates &lt;- data.frame(
+  x = rep(seq(177.01, 177.05, 0.01), 5),
+  y = rep(seq(-18.01, -18.05, -0.01), each = 5)
+)
+template_raster &lt;- Region$new(coordinates = coordinates)$region_raster # full extent
+template_raster[][-c(7, 9, 12, 14, 17:19)] &lt;- NA # make U Island
+region &lt;- Region$new(template_raster = template_raster)
+raster::plot(region$region_raster,
+  main = "Example region (indices)",
+  xlab = "Longitude (degrees)", ylab = "Latitude (degrees)",
+  colNA = "blue"
+)
+
+# Distance-based dispersal generator
+dispersal_gen &lt;- DispersalGenerator$new(
+  region = region,
+  dispersal_max_distance = 3000, # in m
+  inputs = c("dispersal_p", "dispersal_b"),
+  decimals = 5
+)
+dispersal_gen$calculate_distance_data() # pre-calculate
+dispersal_gen$generate(input_values = list(
+  dispersal_p = 0.5,
+  dispersal_b = 700
+))
+
+</code></pre>
+
+
+</div>

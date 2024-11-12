@@ -1,0 +1,346 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>prolific_prescreener</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Prolific prescreening requirement</h2>
+
+<h3>Description</h3>
+
+<p>Class that represents prescreening requirements to characterize the participants to be selected for a certain <code>study on Prolific</code>,
+i.e. the persons to be recruited via Prolific.
+<code>prolific_prescreener objects</code> are therefore mainly used in the
+<code>eligibility_requirements</code> field of <code>prolific_studys</code>.<br><em>The fields and methods are available as in RefClass or S4 objects (see examples).</em>
+</p>
+<p>The section <em>'Setting up prescreeners for Prolific'</em> below provides an overview and examples of how to specify prescreening requirements.
+</p>
+
+
+<h3>Fields</h3>
+
+
+<dl>
+<dt><code>title</code></dt>
+<dd>
+<p>(<code>character</code>):<br>
+A <em>valid</em> title for a single prescreener that is available on the Prolific platform.
+To be valid, this title <em>must</em> appear in the list of prescreeners obtainable from the <a href="https://docs.prolific.co/docs/api-docs/public/">Prolific API</a>.<br>
+See the section <em>'Setting up prescreeners for Prolific'</em> as well as the <a href="../doc/prolificapi-package.html">prolific.api package vignette</a>.</p>
+</dd>
+<dt><code>constraints</code></dt>
+<dd>
+<p>(<code>list</code>):<br>
+The <em>valid</em> constraints for this particular prescreener.<br>
+When creating a <code>prolific_prescreener object</code>,
+an arbitrary number of constraints can be specified using <code>named or unnamed custom arguments</code>.
+In the <strong>named</strong> case,
+</p>
+<pre>       name_1 = value_1,...,name_i = value_i,</pre>
+<p><code>name = value</code> pairs are used to set the constraints and values.
+Using the <strong>unnamed</strong> case
+</p>
+<pre>       name_1,...,name_i</pre>
+<p>allows to ommit the values for prescreeners where <code>value_1 = ... = value_i = TRUE</code>. In that way, users can simply provide the names of the groups to be recruited.
+See the section <em>'Setting up prescreeners for Prolific'</em> as well as the <em>examples</em> and <a href="../doc/prolificapi-package.html">prolific.api package vignette</a>.</p>
+</dd>
+</dl>
+<h3>Setting up prescreeners for Prolific</h3>
+
+<p>Prescreeners are used to select participants for a <code>prolific_study</code> that meet certain characteristics.
+In most cases, this selection is done with regard to the answers the participants gave in a survey conducted by Prolific across all its members.
+</p>
+
+
+<h4>Choosing a prescreening variable</h4>
+
+<p>At the moment, there are <code>265</code> variables which can be used to recruit specific subgroups from Prolific.
+To obtain a list of all available prescreening variables, use
+</p>
+<pre>
+          table_of_prescreeners &lt;-
+                    prescreeners(prolific_api_access)
+</pre>
+<p>where <code>prolific_api_access</code> is an <code>api_access object</code> with a valid <code>api_token</code>.
+</p>
+<p>A prescreening variable is determined by the <code>title</code> field of the <code>prolific_prescreener object</code>.
+To be valid, this <code>title</code> <strong>must</strong> appear in the <code>title</code> column
+of the resulting <code>table_of_prescreeners</code>.
+</p>
+
+
+
+<h4>Setting constraints for a particular prescreening variable</h4>
+
+<p>The constraints are specified in the form
+</p>
+<pre>
+         name_1 = value_1,
+         ...,
+         name_n = value_n
+</pre>
+<p>or
+</p>
+<pre>
+         name_1,
+         ...,
+         name_n
+</pre>
+<p>For most prescreeners, the values
+<code>value_1</code> ... <code>value_n</code>
+are <code>logical</code> values to select participants that gave a certain answer in some pre-screening question.
+In this case, specifying
+</p>
+<pre>
+         name_i = TRUE
+</pre>
+<p>for the prescreener means that participants who gave answer <code>name_i</code> are eligible for the study.
+However, keep in mind there are some prescreeners that work in the opposite way, e.g. to specify a list of participants to be exluded
+(see the sections <em>'Ex- or include a list of specific participants'</em> and <em>'Ex- or include all participants from previous studies'</em> below).
+</p>
+<p>For all cases where the values
+<code>value_1</code> ... <code>value_n</code>
+are <code>logical</code>,
+</p>
+<pre>
+         name_1,
+         ...,
+         name_n
+</pre>
+<p>is an equivalent shortcut for
+</p>
+<pre>
+         name_1 = TRUE,
+         ...,
+         name_n = TRUE
+</pre>
+<p>.
+</p>
+<p>Yet, the constraint values are not always of type <code>logical</code>.
+In particular, there are prescreeners that allow to select participants lying within a certain range of a <code>numerical variable</code>.
+For example, this is the case when selecting participants who are in a certain age bracket, where lower and upper boundary for a person's age are specified in the constraints.
+In this case,
+<code>value_1</code>, ..., <code>value_n</code>
+in the above specification need to be numeric as well, and <b>must be named</b> e.g. as in
+</p>
+<pre>
+         min_age = 50,
+         max_age = 60
+</pre>
+<p>for selecting participants between age 50 and 60 for the study.
+</p>
+<p>The names
+<code>name_1</code>, ..., <code>name_n</code>
+are always taken literally. This means that they are not automatically evaluated.
+Enclosing a name in an <code>eval()</code> command forces it to be evaluated rather than taken literally.
+This is important for example in cases where the categories are stored in a list
+(see the section <em>'Examples for prolific_prescreeners'</em> for an example).
+</p>
+<p>To obtain the list of possible constraints for a particular prescreener with a <em>valid</em> title <code>"the_title"</code> as described above, use
+</p>
+<pre>
+     table_of_constraints &lt;-
+               prescreeners(prolific_api_access,
+                            filter=expression(title==c("the_title")),
+                            show_full=TRUE)
+</pre>
+<p>The names
+<code>name_1</code>, ..., <code>name_n</code>
+of the <code>constraints</code> list should come from a single (typically the <em>name</em>) column of the resulting <code>table_of_constraints</code>,
+the respective list elements represent the values that participants have to meet.
+</p>
+<p>To make this a bit clearer, the following section provides examples for setting up prescreening requirements.
+</p>
+
+
+
+<h4>Examples for <code>prolific_prescreeners</code>
+</h4>
+
+
+<dl>
+<dt>Nationality requirements</dt>
+<dd>
+<p>For example, a study can be set to exclusively target participants who currently live in the UK or the USA by using
+</p>
+<pre>
+          residential_prescreener &lt;- prolific_prescreener(
+              title = "Current Country of Residence",
+              "United Kingdom", "United States"
+           )
+</pre>
+<p>or equivalently
+</p>
+<pre>
+         list_of_countries &lt;- list(
+             country_1="United Kingdom",
+             country_2="United States")
+
+         residential_prescreener &lt;- prolific_prescreener(
+             title = "Current Country of Residence",
+             eval(list_of_countries$country_1),
+             eval(list_of_countries$country_2)
+         )
+</pre>
+<p>Note that <code>"Current Country of Residence"</code> appears in the <em>title</em> column of <code>table_of_prescreeners</code>, and
+<code>"United Kingdom"</code> as well as <code>"United States"</code> appear in the <em>name</em> column
+of the resulting <code>table_of_constraints</code> described in the previous sections.
+Furthermore, note the use of <code>eval()</code> to force evaluation of <code>list_of_countries$country_1</code> and <code>list_of_countries$country_2</code>.
+</p>
+</dd>
+<dt>Age requirements</dt>
+<dd>
+<p>Similarly, selecting participants who fall in the age range between 50 and 60 can be achieved through
+</p>
+<pre>
+          age_prescreener &lt;- prolific_prescreener(
+              title = "Age",
+              "min_age" = 50,
+              "max_age" = 60
+          )
+</pre>
+</dd>
+<dt>Ex- or include a list of specific participants</dt>
+<dd>
+<p>Specific participants can be in- or excluded from a study, for example if they participated in previous studies.
+This can be done in form of black- or whitelists.
+</p>
+<p>Consider two fictional participants
+with Prolific id's
+<code>111</code> and <code>222</code>.
+These can be specifically excluded by using the exclusion list defined by
+</p>
+<pre>
+          exclude_list_participants &lt;- prolific_prescreener(
+              title = "Custom Blacklist",
+              "111","222"
+          )
+</pre>
+<p>To exclusively recruit exactly these two participanty, use the include list defined by
+</p>
+<pre>
+          include_list_participants &lt;- prolific_prescreener(
+              title = "Custom Whitelist",
+              "111","222"
+          )
+</pre>
+</dd>
+</dl>
+<p><strong>Note:</strong> The IDs for these constraints need to be valid Prolific IDs when creating a study. The above example for fictional IDs <code>111</code> and <code>222</code> will therefore always fail.
+</p>
+<dl>
+<dt>Ex- or include all participants from previous studies</dt>
+<dd>
+<p>You can not only blacklist single participants, but also the group(s) of participants who
+participated in of one or multiple of your previous studies.
+</p>
+<p>To exclude all participants from two fictional studies with IDs <code>ABC</code> and <code>DEF</code>, specify the prescreener
+</p>
+<pre>
+          exclude_list_studies &lt;- prolific_prescreener(
+              title = "Exclude participants from previous studies",
+              "ABC","DEF"
+          )
+</pre>
+<p>To exclusively recruit participants from these studies, use
+</p>
+<pre>
+          include_list_studies &lt;- prolific_prescreener(
+              title = "Include participants from previous studies",
+              "ABC","DEF"
+          )
+</pre>
+</dd>
+</dl>
+<p><strong>Note:</strong> The IDs for these constraints need to be valid Study IDs when creating a study. The above example for fictional IDs <code>ABC</code> and <code>DEF</code> will therefore always fail.
+</p>
+
+
+
+<h3>Methods</h3>
+
+
+
+<h4><code>validity_check</code></h4>
+
+<p>Check whether the prescreener is valid in terms of the <a href="https://docs.prolific.co/docs/api-docs/public/">Prolific API</a>.<br><strong>Note:</strong> For checking a prescreener's validity, an <code>api_access object</code> that passes <code>check_authorization()</code> needs to be available.
+It suffices if any such <code>api_access object</code> is specified, since the reference to it is determined automatically.
+</p>
+
+
+<h5><strong>Return Value</strong></h5>
+
+
+<ul>
+<li>
+<p>If the prescreener is valid: A <code>logical</code> value indicating that the study is valid
+</p>
+</li>
+<li>
+<p>If the prescreener is not valid: A <code>character</code> vector that lists the prescreener's issues.
+</p>
+</li>
+</ul>
+<h5><strong>Usage</strong></h5>
+
+<pre>
+     prescreener$validity_check()
+</pre>
+
+
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library("prolific.api")
+
+prolific_api_access &lt;- api_access(api_token = "&lt;api_token&gt;")
+
+# Create a new study with two of the prescreening constraints
+#    from the help section 'Examples for prolific_prescreeners'
+#    in this package's documentation.
+fancy_new_study_with_prescreeners &lt;- prolific_study(
+    name = "A fancy study on Prolific",
+    description = "Fancy description",
+    external_study_url = "https://www.my_fancy_study_url.com",
+    completion_code = "123ab456cd78",
+    estimated_completion_time = 1,
+    reward = 1,
+    total_available_places = 1,
+    eligibility_requirements = list(
+        # Include only persons who live in the UK or the US
+        prolific_prescreener(
+            title = "Current Country of Residence",
+            "United Kingdom", "United States"
+        ),
+        # Include participants only if they are between
+        #    50 and 60 years old
+        prolific_prescreener(
+            title = "Age",
+            "min_age" = 50,
+            "max_age" = 60
+        )
+    )
+)
+
+# Note: For the following code to work,
+# you have to replace &lt;api_token&gt; in the code above by the actual API token
+## Not run: 
+# Post the 'fancy_new_study_with_prescreeners' to Prolific,
+#    i.e. create it as a draft study on the platform
+prolific_api_access$access(
+    endpoint = "studies",
+    method = "post",
+    data = fancy_new_study_with_prescreeners
+)
+
+# Success: fancy_new_study_with_prescreeners got an ID - it is now a draft study on Prolific!
+# You can also inspect the study and requirements in the Prolific Web UI now.
+fancy_new_study_with_prescreeners$id
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

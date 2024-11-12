@@ -1,0 +1,417 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>getMinMSE</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simple Orthogonal Term Selection Regression</h2>
+
+<h3>Description</h3>
+
+<p>A simple orthogonal term selection regression function for minimizing out of
+the sample mean squared error (MSE).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">getMinMSE(U, y, Up, yy, complete = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>U</code></td>
+<td>
+<p>A matrix of spatial eigenvectors to be used as training data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>A numeric vector containing a single response variable to be used as
+training labels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Up</code></td>
+<td>
+<p>A numeric matrix of spatial eigenvector scores to be used as
+testing data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yy</code></td>
+<td>
+<p>A numeric vector containing a single response variable to be used
+as testing labels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>complete</code></td>
+<td>
+<p>A boolean specifying whether to return the complete data of
+the selection procedure (<code>complete=TRUE</code>; the default) or only the
+resulting mean square error and beta threshold (<code>complete=FALSE</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function allows one to calculate a simple model, involving only
+the spatial eigenvectors and a single response variable. The coefficients
+are estimated on a training data set; the ones that are retained are chosen
+on the basis of minimizing the mean squared error on the testing data set. As
+such, both a training and a testing data set are mandatory for this procedure
+to be carried on. The procedure goes as follows:
+</p>
+
+<ol>
+<li>
+<p> The regression coefficients are calculated as the cross-product
+<code>b = t(U)y</code> and are sorted in decreasing order of their absolute
+values. 
+</p>
+</li>
+<li>
+<p> The mean of the training labels is calculated, then the residuals
+training labels are calculated, and the null MSE is calculated from the
+testing labels. 
+</p>
+</li>
+<li>
+<p> For each regression coefficient, the partial predicted value is
+calculated and subtracted from the testing labels, and the new MSE value is
+calculated. 
+</p>
+</li>
+<li>
+<p> The minimum MSE value is identified. 
+</p>
+</li>
+<li>
+<p> The regression coefficients are standardized ans squared and the
+results are returned. 
+</p>
+</li>
+</ol>
+<p>For this procedure, the training data must be are orthonormal, a condition
+met design by spatial eigenvectors.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>complete = TRUE</code>, a list with the following members:
+</p>
+
+<dl>
+<dt> betasq </dt>
+<dd>
+<p> The squared standardized regression coefficients. </p>
+</dd>
+<dt> nullmse </dt>
+<dd>
+<p> The null MSE value: the mean squared out of the sample
+error using only the mean of the training labels as the prediction. </p>
+</dd>
+<dt> mse </dt>
+<dd>
+<p> The mean squared error of each incremental model. </p>
+</dd>
+<dt> ord </dt>
+<dd>
+<p> The order of the squared standardized regression
+coefficients. </p>
+</dd>
+<dt> wh </dt>
+<dd>
+<p> The index of the model with the smallest mean squared error. 
+The value 0 means that the smallest MSE is the null MSE. </p>
+</dd>
+</dl>
+<p>If <code>complete = FALSE</code> a two element list with the following members:
+</p>
+
+<dl>
+<dt> betasq </dt>
+<dd>
+<p> The squared standardized regression coefficient
+associated with the minimum means squared error value. </p>
+</dd>
+<dt> mse </dt>
+<dd>
+<p> The minimum means squared error value. </p>
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p>Guillaume Guénard [aut, cre] (ORCID:
+    &lt;https://orcid.org/0000-0003-0761-3072&gt;),
+  Pierre Legendre [ctb] (ORCID: &lt;https://orcid.org/0000-0002-3838-3305&gt;)
+</p>
+<p>Maintainer: Guillaume Guénard &lt;guillaume.guenard@umontreal.ca&gt;
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Loading the 'salmon' dataset
+data("salmon")
+seq(1,nrow(salmon),3) -&gt; test      # Indices of the testing set.
+(1:nrow(salmon))[-test] -&gt; train   # Indices of the training set.
+
+## A set of locations located 1 m apart:
+xx &lt;- seq(min(salmon$Position) - 20, max(salmon$Position) + 20, 1)
+
+## Lists to contain the results:
+mseRes &lt;- list()
+sel &lt;- list()
+lm &lt;- list()
+prd &lt;- list()
+
+## Generate the spatial eigenfunctions:
+genSEF(
+  x = salmon$Position[train],
+  m = genDistMetric(),
+  f = genDWF("Gaussian",40)
+) -&gt; sefTrain
+
+## Spatially-explicit modelling of the channel depth:
+
+## Calculate the minimum MSE model:
+getMinMSE(
+  U = as.matrix(sefTrain),
+  y = salmon$Depth[train],
+  Up = predict(sefTrain, salmon$Position[test]),
+  yy = salmon$Depth[test]
+) -&gt; mseRes[["Depth"]]
+
+## This is the coefficient of prediction:
+1 - mseRes$Depth$mse[mseRes$Depth$wh]/mseRes$Depth$nullmse
+
+## Storing graphical parameters:
+tmp &lt;- par(no.readonly = TRUE)
+
+## Changing the graphical margins:
+par(mar=c(4,4,2,2))
+
+## Plot of the MSE values:
+plot(mseRes$Depth$mse, type="l", ylab="MSE", xlab="order", axes=FALSE,
+     ylim=c(0.005,0.025))
+points(x=1:length(mseRes$Depth$mse), y=mseRes$Depth$mse, pch=21, bg="black")
+axis(1)
+axis(2, las=1)
+abline(h=mseRes$Depth$nullmse, lty=3)  # Dotted line: the null MSE
+
+## A list of the selected spatial eigenfunctions:
+sel[["Depth"]] &lt;- sort(mseRes$Depth$ord[1:mseRes$Depth$wh])
+
+## A linear model build using the selected spatial eigenfunctions:
+lm(
+  formula = y~.,
+  data = cbind(
+    y = salmon$Depth[train],
+    as.data.frame(sefTrain, wh=sel$Depth)
+  )
+) -&gt; lm[["Depth"]]
+
+## Calculating predictions of depth at each 1 m intervals:
+predict(
+  lm$Depth,
+  newdata = as.data.frame(
+    predict(
+      object = sefTrain,
+      newdata = xx,
+      wh = sel$Depth
+    )
+  )
+) -&gt; prd[["Depth"]]
+
+## Plot of the predicted depth (solid line), and observed depth for the
+## training set (black markers) and testing set (red markers):
+plot(x=xx, y=prd$Depth, type="l", ylim=range(salmon$Depth, prd$Depth), las=1,
+     ylab="Depth (m)", xlab="Location along the transect (m)")
+points(x = salmon$Position[train], y = salmon$Depth[train], pch=21,
+       bg="black")
+points(x = salmon$Position[test], y = salmon$Depth[test], pch=21, bg="red")
+
+## Spatially-explicit modelling of the water velocity:
+
+## Calculate the minimum MSE model:
+getMinMSE(
+  U = as.matrix(sefTrain),
+  y = salmon$Velocity[train],
+  Up = predict(sefTrain, salmon$Position[test]),
+  yy = salmon$Velocity[test]
+) -&gt; mseRes[["Velocity"]]
+
+## This is the coefficient of prediction:
+1 - mseRes$Velocity$mse[mseRes$Velocity$wh]/mseRes$Velocity$nullmse
+
+## Plot of the MSE values:
+plot(mseRes$Velocity$mse, type="l", ylab="MSE", xlab="order", axes=FALSE,
+     ylim=c(0.010,0.030))
+points(x=1:length(mseRes$Velocity$mse), y=mseRes$Velocity$mse, pch=21,
+       bg="black")
+axis(1)
+axis(2, las=1)
+abline(h=mseRes$Velocity$nullmse, lty=3)
+
+## A list of the selected spatial eigenfunctions:
+sel[["Velocity"]] &lt;- sort(mseRes$Velocity$ord[1:mseRes$Velocity$wh])
+
+## A linear model build using the selected spatial eigenfunctions:
+lm(
+  formula = y~.,
+  data = cbind(
+    y = salmon$Velocity[train],
+    as.data.frame(sefTrain, wh=sel$Velocity)
+  )
+) -&gt; lm[["Velocity"]]
+
+## Calculating predictions of velocity at each 1 m intervals:
+predict(
+  lm$Velocity,
+  newdata = as.data.frame(
+    predict(
+      object = sefTrain,
+      newdata = xx,
+      wh = sel$Velocity
+    )
+  )
+) -&gt; prd[["Velocity"]]
+
+## Plot of the predicted velocity (solid line), and observed velocity for the
+## training set (black markers) and testing set (red markers):
+plot(x=xx, y=prd$Velocity, type="l",
+     ylim=range(salmon$Velocity, prd$Velocity),
+     las=1, ylab="Velocity (m/s)", xlab="Location along the transect (m)")
+points(x = salmon$Position[train], y = salmon$Velocity[train], pch=21,
+       bg="black")
+points(x = salmon$Position[test], y = salmon$Velocity[test], pch=21,
+       bg="red")
+
+## Spatially-explicit modelling of the mean substrate size (D50):
+
+## Calculate the minimum MSE model:
+getMinMSE(
+  U = as.matrix(sefTrain),
+  y = salmon$Substrate[train],
+  Up = predict(sefTrain, salmon$Position[test]),
+  yy = salmon$Substrate[test]
+) -&gt; mseRes[["Substrate"]]
+
+## This is the coefficient of prediction:
+1 - mseRes$Substrate$mse[mseRes$Substrate$wh]/mseRes$Substrate$nullmse
+
+## Plot of the MSE values:
+plot(mseRes$Substrate$mse, type="l", ylab="MSE", xlab="order", axes=FALSE,
+     ylim=c(1000,6000))
+points(x=1:length(mseRes$Substrate$mse), y=mseRes$Substrate$mse, pch=21,
+       bg="black")
+axis(1)
+axis(2, las=1)
+abline(h=mseRes$Substrate$nullmse, lty=3)
+
+## A list of the selected spatial eigenfunctions:
+sel[["Substrate"]] &lt;- sort(mseRes$Substrate$ord[1:mseRes$Substrate$wh])
+
+## A linear model build using the selected spatial eigenfunctions:
+lm(
+  formula = y~.,
+  data = cbind(
+    y = salmon$Substrate[train],
+    as.data.frame(sefTrain, wh=sel$Substrate)
+  )
+) -&gt; lm[["Substrate"]]
+
+## Calculating predictions of D50 at each 1 m intervals:
+predict(
+  lm$Substrate,
+  newdata = as.data.frame(
+    predict(
+      object = sefTrain,
+      newdata = xx,
+      wh = sel$Substrate
+    )
+  )
+) -&gt; prd[["Substrate"]]
+
+## Plot of the predicted D50 (solid line), and observed D50 for the training
+## set (black markers) and testing set (red markers):
+plot(x=xx, y=prd$Substrate, type="l",
+     ylim=range(salmon$Substrate, prd$Substrate), las=1, ylab="D50 (mm)",
+     xlab="Location along the transect (m)")
+points(x = salmon$Position[train], y = salmon$Substrate[train], pch=21,
+       bg="black")
+points(x = salmon$Position[test], y = salmon$Substrate[test], pch=21,
+       bg="red")
+
+## Spatially-explicit modelling of Atlantic salmon parr abundance using
+## x=channel depth + water velocity + D50 + pMEM:
+
+## Requires suggested package glmnet to perform elasticnet regression:
+library(glmnet)
+
+## Calculation of the elastic net model (cross-validated):
+cv.glmnet(
+  y = salmon$Abundance[train],
+  x = cbind(
+    Depth = salmon$Depth[train],
+    Velocity = salmon$Velocity[train],
+    Substrate = salmon$Substrate[train],
+    as.matrix(sefTrain)
+  ),
+  family = "poisson"
+) -&gt; cvglm
+
+## Calculating predictions for the test data:
+predict(
+  cvglm,
+  newx = cbind(
+    Depth = salmon$Depth[test],
+    Velocity = salmon$Velocity[test],
+    Substrate = salmon$Substrate[test],
+    predict(sefTrain, salmon$Position[test])
+  ),
+  s="lambda.min",
+  type = "response"
+) -&gt; yhatTest
+
+## Calculating predictions for the transect (1 m seperated data):
+predict(
+  cvglm,
+  newx = cbind(
+    Depth = prd$Depth,
+    Velocity = prd$Velocity,
+    Substrate = prd$Substrate,
+    predict(sefTrain, xx)
+  ),
+  s = "lambda.min",
+  type = "response"
+) -&gt; yhatTransect
+
+## Plot of the predicted Atlantic salmon parr abundance (solid line, with the
+## depth, velocity, and D50 also predicted using spatially-explicit
+## submodels), the observed abundances for the training set (black markers),
+## the observed abundances for the testing set (red markers), and the
+## predicted abundances for the testing set calculated on the basis of
+## observed depth, velocity, and D50:
+plot(x=xx, y=yhatTransect, type="l",
+     ylim=range(salmon$Abundance,yhatTransect), las=1,
+     ylab="Abundance (fish)", xlab="Location along the transect (m)")
+points(x=salmon$Position[train], y=salmon$Abundance[train], pch=21,
+       bg="black")
+points(x=salmon$Position[test], y=salmon$Abundance[test], pch=21, bg="red")
+points(x=salmon$Position[test], y=yhatTest, pch=21, bg="green")
+
+## Restoring previous graphical parameters:
+par(tmp)
+
+</code></pre>
+
+
+</div>

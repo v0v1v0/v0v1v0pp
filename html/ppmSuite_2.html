@@ -1,0 +1,225 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ccp_ppm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Function that fits a multivariate correlated product partition change
+point model</h2>
+
+<h3>Description</h3>
+
+<p><code>ccp_ppm</code> is a function that fits a Bayesian product partition change
+point model, where the set of change point indicators between time series are correlated.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ccp_ppm(ydata, model=1,
+         nu0, mu0, sigma0,
+         mltypes, thetas,
+         devs,
+         nburn, nskip, nsave,
+         verbose = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>ydata</code></td>
+<td>
+<p>An <code class="reqn">L \times n</code> data matrix, where <code class="reqn">L</code> is the number of
+time series and <code class="reqn">n</code>, the number of time points.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>Determines of model fit is such that there are p_its (model=1) or
+only p_t (model=2)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nu0</code></td>
+<td>
+<p>Degrees of freedom of the multivariate Student's
+t-distribution (see section Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu0</code></td>
+<td>
+<p>Location vector of dimension <code class="reqn">L</code> (see section Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma0</code></td>
+<td>
+<p>Positive definite scale matrix of order <code class="reqn">L \times L</code> (see
+section Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mltypes</code></td>
+<td>
+<p>Type of marginal likelihood. Currently only available is:
+</p>
+
+<ul><li>
+<p><code>mltypes = 1</code>. Observations within a block are conditionally
+independent <code class="reqn">Normal(\mu, \sigma^2)</code> variates with mean <code class="reqn">\mu</code> and
+variance <code class="reqn">\sigma^2</code>. The desired marginal likelihood is obtained after
+integrating <code class="reqn">(\mu, \sigma^2)</code> with respect to a
+<code class="reqn">Normal-Inverse-Gamma(\mu_{0}, \kappa_{0}, \alpha_{0}, \beta_{0})</code>
+prior.
+</p>
+</li></ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thetas</code></td>
+<td>
+<p>An <code class="reqn">L \times q</code> matrix containing hyperparameters associated
+with the marginal likelihood. The number of rows <code class="reqn">(L)</code> corresponds to the
+number of series. The number of columns <code class="reqn">(q)</code> depend on the marginal
+likelihood:
+</p>
+
+<ul><li>
+<p>  If <code>mltypes = 1</code>, then <code class="reqn">q = 4</code> and <code>thetas</code> equals
+the hyperparameter <code class="reqn">(\mu_{0}, \kappa_{0}, \alpha_{0}, \beta_{0})</code> of
+the Normal-Inverse-Gamma prior.
+</p>
+</li></ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>devs</code></td>
+<td>
+<p>An <code class="reqn">L \times (n - 1)</code> matrix containing the standard deviations
+of the candidate density associated with the random walk Metropolis-Hastings
+steps for updating change point probabilities.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nburn</code></td>
+<td>
+<p>The number of initial MCMC iterates to be discarded as burn-in.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nskip</code></td>
+<td>
+<p>The amount to thinning that should be applied to the MCMC chain.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsave</code></td>
+<td>
+<p>Then number of MCMC iterates to be stored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical indicating whether to print to screen the MCMC progression. The default value is <code>verbose = FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>As described in Quinlan et al. (add cite), for each time series
+<code class="reqn">\boldsymbol{y}_{i} = (y_{i,1}, \ldots , y_{i,n})'</code>:
+</p>
+<p style="text-align: center;"><code class="reqn">\boldsymbol{y}_{i} \mid \rho_{i} \sim
+\prod_{j = 1}^{b_{i}}\mathcal{F}(\boldsymbol{y}_{i,j} \mid
+\boldsymbol{\theta}_{i})</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\rho_{i} \mid (p_{i,1}, \ldots , p_{i,n-1})' \sim
+\prod_{t \in T_{i}}p_{i,t} \prod_{t \notin T_{i}}(1 - p_{i,t}) :
+T_{i} = \{\tau_{i,1}, \ldots, \tau_{i,b_{i} - 1}\}</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">(p_{1,t}, \ldots , p_{L,t})' \sim logit-t(\nu_{0}, \boldsymbol{\mu}_{0},
+\boldsymbol{\Sigma}_{0}).</code>
+</p>
+
+<p>Here, <code class="reqn">\rho_{i} = \{S_{i,1}, \ldots , S_{i,b_{i}}\}</code> is a partition of
+the set <code class="reqn">\{1, \ldots , n\}</code> into <code class="reqn">b_{i}</code> contiguous blocks, and
+<code class="reqn">\boldsymbol{y}_{i,j} = (y_{i,t} : t \in S_{i,j})'</code>. Also,
+<code class="reqn">\tau_{i,j} = \max(S_{i,j})</code> and
+<code class="reqn">\mathcal{F}( \cdot \mid \boldsymbol{\theta}_{i})</code> is a marginal
+likelihood function which depends on the nature of <code class="reqn">\boldsymbol{y}_{i}</code>,
+indexed by a hyperparameter <code class="reqn">\boldsymbol{\theta}_{i}</code>. In addition,
+<code class="reqn">logit-t(\nu_{0}, \boldsymbol{\mu}_{0}, \boldsymbol{\Sigma}_{0})</code>
+is the logit of a multivariate Student's t-distribution with degrees of
+freedom <code class="reqn">\nu_{0}</code>, location vector <code class="reqn">\boldsymbol{\mu}_{0}</code> and scale
+matrix <code class="reqn">\boldsymbol{\Sigma}_{0}</code>.</p>
+
+
+<h3>Value</h3>
+
+<p>The function returns a list containing arrays filled with MCMC iterates
+corresponding to model parameters. In order to provide more detail, in what
+follows let <code class="reqn">M</code> be the number of MCMC iterates collected. The output list
+contains the following:
+</p>
+
+<ul>
+<li>
+<p>C. An <code class="reqn">M \times \{L(n - 1)\}</code> matrix containing MCMC iterates
+associated with each series indicators of a change point. The <code class="reqn">m</code>th
+row in <code>C</code> is divided into <code class="reqn">L</code> blocks; the first <code class="reqn">(n - 1)</code>
+change point indicators for time series 1, the next <code class="reqn">(n - 1)</code> change
+point indicators for time series 2, and so on.
+</p>
+</li>
+<li>
+<p>P. An <code class="reqn">M \times \{L(n - 1)\}</code> matrix containing MCMC iterates
+associated with each series probability of a change point. The <code class="reqn">m</code>th
+row in <code>P</code> is divided into <code class="reqn">L</code> blocks; the first <code class="reqn">(n - 1)</code>
+change point probabilities for time series 1, the next <code class="reqn">(n - 1)</code> change
+point probabilities for time series 2, and so on.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Generate data that has two series, each with 100 observations
+y1 &lt;- replicate(25, rnorm(4, c(-1, 0, 1, 2), c(0.1, 0.25, 0.5, 0.75)))
+y2 &lt;- replicate(25, rnorm(4, c(2, 1, 0, -2), c(0.1, 0.25, 0.5, 0.75)))
+y &lt;- rbind(c(t(y1)), c(t(y2)))
+
+# Marginal likelihood parameters
+thetas &lt;- matrix(1, nrow = 2,ncol = 4)
+thetas[1,] &lt;- c(0, 1, 2, 1)
+thetas[2,] &lt;- c(0, 1, 2, 1)
+
+# M-H candidate density standard deviations
+devs = matrix(0.1, nrow = 2, ncol = (dim(y)[2] - 1))
+
+# Prior parameters for logit-t distribution
+L &lt;- nrow(y)
+pivar &lt;- 10
+picorr &lt;- 0.9
+pimu &lt;- rep(-6, L) # mean associated with logit of p_i
+piSigma &lt;- pivar*picorr*(rep(1, L) %*% t(rep(1, L))) +
+           pivar*(1 - picorr)*diag(L)
+nu0 = 3
+mu0 = pimu
+sigma0 = piSigma
+
+# Fit the bayesian ppm change point model
+fit &lt;- ccp_ppm(nburn = 1000, nskip = 1, nsave = 1000, ydata = y, nu0 = nu0,
+               mu0 = mu0, sigma0 = sigma0, mltypes = c(1, 1), thetas = thetas,
+               devs = devs)
+
+</code></pre>
+
+
+</div>

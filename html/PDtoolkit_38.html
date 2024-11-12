@@ -1,0 +1,103 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>segment.vld</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Model segment validation</h2>
+
+<h3>Description</h3>
+
+<p><code>segment.vld</code> performs model segment validation based on residuals.
+The main goal of this procedure is to identify segments where model in use overestimates or
+underestimates the observed default rate. The procedure consists of a few steps. The first step is to
+calculate the model residuals (observed default indicator minus estimated probability).
+Then, on obtained residuals, the regression tree is fitted for segment identification.
+Finally, one proportion test is applied in order to test overestimation or underestimation
+of the observed default rate within these segments. Results of this validation can indicate
+omission of some important risk factor(s) or some specific sub-portfolio for which model performs
+worse than for the rest of the portfolio.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">segment.vld(model, db, min.leaf = 0.03, alpha = 0.05)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>Model in use, an object of class inheriting from <code>"glm"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>db</code></td>
+<td>
+<p>Modeling data with risk factors and target variable. Risk factors used for <code>model</code> development
+have to be of the same type (if WoE coding is used it has to be numeric with WoE values).
+Additionally, the rest of the risk factors (these that are supplied in <code>db</code>, but not used
+for <code>model</code> development) will be used for segment validation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.leaf</code></td>
+<td>
+<p>Minimum percentage of observations per leaf. Default is 0.03.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Significance level of p-value for one proportion test. Default is 0.05.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The command <code>segment.vld</code> returns a list of three objects.<br>
+The first object (<code>segment.model</code>), returns regression tree results (<code>rpart</code> object).<br>
+The second object (<code>segment.testing</code>), is the data frame with segment overview and testing results.<br>
+The third object (<code>segment.rules</code>), is the data frame with average residual
+rate and rules for segment identification. This elements is returned, only if the segments are
+identified, otherwise it is<code>NULL</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">suppressMessages(library(PDtoolkit))
+library(rpart)
+data(loans)
+#run stepMIV
+res &lt;- stepFWD(start.model = Creditability ~ 1, 
+              p.value = 0.05,
+	   coding = "WoE",
+	   db = loans)
+#check output elements
+names(res)
+#extract the final model
+final.model &lt;- res$model
+#print coefficients
+summary(final.model)$coefficients
+#run segment validation procedure
+seg.analysis &lt;- segment.vld(model = final.model, 
+				db = res$dev.db,
+				min.leaf = 0.03,
+				alpha = 0.05)
+#check output elements
+names(seg.analysis)
+#print segment model - regression tree
+seg.analysis$segment.model
+#print segment summary and statistical testing
+seg.analysis$segment.testing
+#print segment identification rules
+seg.analysis$segment.rules
+</code></pre>
+
+
+</div>

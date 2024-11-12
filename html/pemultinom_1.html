@@ -1,0 +1,217 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cv.pemultinom</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit a multinomial regression model with Lasso penalty.</h2>
+
+<h3>Description</h3>
+
+<p>Fit a multinomial regression model with Lasso penalty. This function implements the l1-penalized multinomial regression model (parameterized with a reference level). A cross-validation procedure is applied to choose the tuning parameter. See Tian et al. (2023) for details.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cv.pemultinom(
+  x,
+  y,
+  ref = NULL,
+  nfolds = 5,
+  nlambda = 100,
+  max_iter = 200,
+  tol = 0.001,
+  ncores = 1,
+  standardized = TRUE,
+  weights = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>the design/predictor matrix, each row of which is an observation vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>the response variable. Can be of one type from factor/integer/character.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ref</code></td>
+<td>
+<p>the reference level. Default = NULL, which sets the reference level to the last category (sorted by alphabetical order)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nfolds</code></td>
+<td>
+<p>the number of cross-validation folds to use. Default = 5.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlambda</code></td>
+<td>
+<p>the number of penalty parameter candidates. Default = 100.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_iter</code></td>
+<td>
+<p>the maximum iteration rounds in each iteration of the coordinate descent algorithm. Default = 200.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>convergence threshold (tolerance level) for coordinate descent. Default = 1e-3.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+<p>the number of cores to use for parallel computing. Default = 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardized</code></td>
+<td>
+<p>logical flag for x variable standardization, prior to fitting the model sequence. Default = TRUE. Note that the fitting results will be translated to the original scale before output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>observation weights. Should be a vector of non-negative numbers of length n (the number of observations). Default = NULL, which sets equal weights for all observations.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list with the following components.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>beta.list</code></td>
+<td>
+<p>the estimates of coefficients. It is a list of which the k-th component is the contrast coefficient between class k and the reference class corresponding to different lambda values. The j-th column of each list component corresponds to the j-th lambda value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta.1se</code></td>
+<td>
+<p>the coefficient estimate corresponding to lambda.1se. It is a matrix, and the k-th column is the contrast coefficient between class k and the reference class.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta.min</code></td>
+<td>
+<p>the coefficient estimate corresponding to lambda.min. It is a matrix, and the k-th column is the contrast coefficient between class k and the reference class.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.1se</code></td>
+<td>
+<p>the largest value of lambda such that error is within 1 standard error of the minimum. See Chapter 2.3 of Hastie et al. (2015) for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.min</code></td>
+<td>
+<p>the value of lambda that gives minimum cvm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cvm</code></td>
+<td>
+<p>the weights in objective function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cvsd</code></td>
+<td>
+<p>the estimated marginal probability for each class.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>lambda values considered in the cross-validation process.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Hastie, T., Tibshirani, R., &amp; Wainwright, M. (2015). Statistical learning with sparsity. Monographs on statistics and applied probability, 143.
+</p>
+<p>Tian, Y., Rusinek, H., Masurkar, A. V., &amp; Feng, Y. (2023). L1-penalized Multinomial Regression: Estimation, inference, and prediction, with an application to risk factor identification for different dementia subtypes. arXiv preprint arXiv:2302.02310.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>debiased_lasso</code>, <code>predict_pemultinom</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># generate data from Model 1 in Tian et al. (2023) with n = 50 and p = 50
+set.seed(0, kind = "L'Ecuyer-CMRG")
+n &lt;- 50
+p &lt;- 50
+K &lt;- 3
+
+Sigma &lt;- outer(1:p, 1:p, function(x,y) {
+  0.9^(abs(x-y))
+})
+R &lt;- chol(Sigma)
+s &lt;- 3
+beta_coef &lt;- matrix(0, nrow = p+1, ncol = K-1)
+beta_coef[1+1:s, 1] &lt;- c(1.5, 1.5, 1.5)
+beta_coef[1+1:s+s, 2] &lt;- c(1.5, 1.5, 1.5)
+
+x &lt;- matrix(rnorm(n*p), ncol = p) %*% R
+y &lt;- sapply(1:n, function(j){
+  prob_i &lt;- c(sapply(1:(K-1), function(k){
+    exp(sum(x[j, ]*beta_coef[-1, k]))
+  }), 1)
+  prob_i &lt;- prob_i/sum(prob_i)
+  sample(1:K, size = 1, replace = TRUE, prob = prob_i)
+})
+
+# fit the l1-penalized multinomial regression model
+fit &lt;- cv.pemultinom(x, y, ncores = 2)
+beta &lt;- fit$beta.min
+
+# generate test data from the same model
+x.test &lt;- matrix(rnorm(n*p), ncol = p) %*% R
+y.test &lt;- sapply(1:n, function(j){
+  prob_i &lt;- c(sapply(1:(K-1), function(k){
+    exp(sum(x.test[j, ]*beta_coef[-1, k]))
+  }), 1)
+  prob_i &lt;- prob_i/sum(prob_i)
+  sample(1:K, size = 1, replace = TRUE, prob = prob_i)
+})
+
+# predict labels of test data and calculate the misclassification error rate (using beta.min)
+ypred.min &lt;- predict_pemultinom(fit$beta.min, ref = 3, xnew = x.test, type = "class")
+mean(ypred.min != y.test)
+
+# predict labels of test data and calculate the misclassification error rate (using beta.1se)
+ypred.1se &lt;- predict_pemultinom(fit$beta.1se, ref = 3, xnew = x.test, type = "class")
+mean(ypred.1se != y.test)
+
+# predict posterior probabilities of test data
+ypred.prob &lt;- predict_pemultinom(fit$beta.min, ref = 3, xnew = x.test, type = "prob")
+</code></pre>
+
+
+</div>

@@ -1,0 +1,554 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>catecvcount</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Cross-validation of the conditional average treatment effect (CATE) score
+for count outcomes</h2>
+
+<h3>Description</h3>
+
+<p>Provides doubly robust estimation of the average treatment effect (ATE) in
+nested and mutually exclusive subgroups of patients defined by an estimated
+conditional average treatment effect (CATE) score via cross-validation (CV).
+The CATE score can be estimated with up to 5 methods among the following:
+Poisson regression, boosting, two regressions, contrast regression, and
+negative binomial (see <code>score.method</code>).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">catecvcount(
+  data,
+  score.method,
+  cate.model,
+  ps.model,
+  ps.method = "glm",
+  initial.predictor.method = "boosting",
+  minPS = 0.01,
+  maxPS = 0.99,
+  higher.y = TRUE,
+  prop.cutoff = seq(0.5, 1, length = 6),
+  prop.multi = c(0, 1/3, 2/3, 1),
+  abc = TRUE,
+  train.prop = 3/4,
+  cv.n = 10,
+  error.max = 0.1,
+  max.iter = 5000,
+  xvar.smooth = NULL,
+  tree.depth = 2,
+  n.trees.boosting = 200,
+  B = 3,
+  Kfold = 5,
+  error.maxNR = 0.001,
+  max.iterNR = 150,
+  tune = c(0.5, 2),
+  seed = NULL,
+  plot.gbmperf = TRUE,
+  verbose = 0,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame containing the variables in the outcome and
+propensity score model; a data frame with <code>n</code> rows (1 row per
+observation).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>score.method</code></td>
+<td>
+<p>A vector of one or multiple methods to estimate the CATE
+score. Allowed values are: <code>'boosting'</code>, <code>'poisson'</code>,
+<code>'twoReg'</code>, <code>'contrastReg'</code>, and <code>'negBin'</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cate.model</code></td>
+<td>
+<p>A formula describing the outcome model to be fitted.
+The outcome must appear on the left-hand side.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ps.model</code></td>
+<td>
+<p>A formula describing the propensity score model to be fitted.
+The treatment must appear on the left-hand side. The treatment must be a
+numeric vector coded as 0 or 1. If data are from a randomized trial, specify
+<code>ps.model</code> as an intercept-only model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ps.method</code></td>
+<td>
+<p>A character value for the method to estimate the propensity
+score. Allowed values include one of: <code>'glm'</code> for logistic regression
+with main effects only (default), or <code>'lasso'</code> for a logistic regression
+with main effects and LASSO penalization on two-way interactions (added to
+the model if interactions are not specified in <code>ps.model</code>). Relevant
+only when <code>ps.model</code> has more than one variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initial.predictor.method</code></td>
+<td>
+<p>A character vector for the method used to get
+initial outcome predictions conditional on the covariates in
+<code>cate.model</code>. Only applies when <code>score.method</code> includes
+<code>'twoReg'</code> or <code>'contrastReg'</code>. Allowed values include one of
+<code>'poisson'</code> (fastest), <code>'boosting'</code> and <code>'gam'</code>. Default is
+<code>'boosting'</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minPS</code></td>
+<td>
+<p>A numerical value between 0 and 1 below which estimated
+propensity scores should be truncated. Default is <code>0.01</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxPS</code></td>
+<td>
+<p>A numerical value between 0 and 1 above which estimated
+propensity scores should be truncated. Must be strictly greater than
+<code>minPS</code>. Default is <code>0.99</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>higher.y</code></td>
+<td>
+<p>A logical value indicating whether higher (<code>TRUE</code>) or
+lower (<code>FALSE</code>) values of the outcome are more desirable. Default is
+<code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prop.cutoff</code></td>
+<td>
+<p>A vector of numerical values between 0 and 1 specifying
+percentiles of the estimated log CATE scores to define nested subgroups. Each
+element represents the cutoff to separate observations in nested subgroups
+(below vs above cutoff). The length of <code>prop.cutoff</code> is the number of
+nested subgroups. An equally-spaced sequence of proportions ending with 1 is
+recommended. Default is <code>seq(0.5, 1, length = 6)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prop.multi</code></td>
+<td>
+<p>A vector of numerical values between 0 and 1 specifying
+percentiles of the estimated log CATE scores to define mutually exclusive
+subgroups. It should start with 0, end with 1, and be of
+<code>length(prop.multi) &gt; 2</code>. Each element represents the cutoff to separate
+the observations into <code>length(prop.multi) - 1</code> mutually exclusive
+subgroups. Default is <code>c(0, 1/3, 2/3, 1)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>abc</code></td>
+<td>
+<p>A logical value indicating whether the area between curves (ABC)
+should be calculated at each cross-validation iterations, for each
+<code>score.method</code>. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>train.prop</code></td>
+<td>
+<p>A numerical value between 0 and 1 indicating the proportion
+of total data used for training. Default is <code>3/4</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv.n</code></td>
+<td>
+<p>A positive integer value indicating the number of
+cross-validation iterations. Default is <code>10</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>error.max</code></td>
+<td>
+<p>A numerical value &gt; 0 indicating the tolerance (maximum
+value of error) for the largest standardized absolute difference in the
+covariate distributions or in the doubly robust estimated rate ratios between
+the training and validation sets. This is used to define a balanced
+training-validation splitting. Default is <code>0.1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.iter</code></td>
+<td>
+<p>A positive integer value indicating the maximum number of
+iterations when searching for a balanced training-validation split. Default
+is <code>5,000</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xvar.smooth</code></td>
+<td>
+<p>A vector of characters indicating the name of the variables used as
+the smooth terms if <code>initial.predictor.method = 'gam'</code>. The variables must be selected
+from the variables listed in <code>cate.model</code>.
+Default is <code>NULL</code>, which uses all variables in <code>cate.model</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tree.depth</code></td>
+<td>
+<p>A positive integer specifying the depth of individual trees in boosting
+(usually 2-3). Used only if <code>score.method = 'boosting'</code> or
+if <code>initial.predictor.method = 'boosting'</code> with <code>score.method = 'twoReg'</code> or
+<code>'contrastReg'</code>. Default is 2.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.trees.boosting</code></td>
+<td>
+<p>A positive integer specifying the maximum number of trees in boosting
+(usually 100-1000). Used if <code>score.method = 'boosting'</code> or
+if <code>initial.predictor.method = 'boosting'</code> with <code>score.method = 'twoReg'</code> or
+<code>'contrastReg'</code>. Default is <code>200</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>A positive integer specifying the number of time cross-fitting is repeated in
+<code>score.method = 'twoReg'</code> and <code>'contrastReg'</code>. Default is <code>3</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Kfold</code></td>
+<td>
+<p>A positive integer specifying the number of folds used in cross-fitting
+to partition the data in <code>score.method = 'twoReg'</code> and <code>'contrastReg'</code>.
+Default is <code>5</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>error.maxNR</code></td>
+<td>
+<p>A numerical value &gt; 0 indicating the minimum value of the mean absolute
+error in Newton Raphson algorithm. Used only if <code>score.method = 'contrastReg'</code>.
+Default is <code>0.001</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.iterNR</code></td>
+<td>
+<p>A positive integer indicating the maximum number of iterations in the
+Newton Raphson algorithm. Used only if <code>score.method = 'contrastReg'</code>.
+Default is <code>150</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tune</code></td>
+<td>
+<p>A vector of 2 numerical values &gt; 0 specifying tuning parameters for the
+Newton Raphson algorithm. <code>tune[1]</code> is the step size, <code>tune[2]</code> specifies a
+quantity to be added to diagonal of the slope matrix to prevent singularity.
+Used only if <code>score.method = 'contrastReg'</code>. Default is <code>c(0.5, 2)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>An optional integer specifying an initial randomization seed for reproducibility.
+Default is <code>NULL</code>, corresponding to no seed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.gbmperf</code></td>
+<td>
+<p>A logical value indicating whether to plot the performance measures in
+boosting. Used only if <code>score.method = 'boosting'</code> or if <code>score.method = 'twoReg'</code>
+or <code>'contrastReg'</code> and <code>initial.predictor.method = 'boosting'</code>. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>An integer value indicating what kind of intermediate progress messages should
+be printed. <code>0</code> means no outputs. <code>1</code> means only progress bar and run time.
+<code>2</code> means progress bar, run time, and all errors and warnings. Default is <code>0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments for <code>gbm()</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The CATE score represents an individual-level treatment effect expressed as a
+rate ratio for count outcomes. It can be estimated with boosting, Poisson regression,
+negative binomial regression, and the doubly robust estimator two regressions (Yadlowsky,
+2020) applied separately by treatment group or with the other doubly robust estimator
+contrast regression (Yadlowsky, 2020) applied to the entire data set.
+</p>
+<p>Internal CV is applied to reduce optimism in choosing the CATE estimation method that
+captures the most treatment effect heterogeneity. The CV is applied by repeating the
+following steps <code>cv.n</code> times:
+</p>
+
+<ol>
+<li>
+<p> Split the data into a training and validation set according to <code>train.prop</code>.
+The training and validation sets must be balanced with respect to covariate distributions
+and doubly robust rate ratio estimates (see <code>error.max</code>).
+</p>
+</li>
+<li>
+<p> Estimate the CATE score in the training set with the specified scoring method.
+</p>
+</li>
+<li>
+<p> Predict the CATE score in the validation set using the scoring model fitted from
+the training set.
+</p>
+</li>
+<li>
+<p> Build nested subgroups of treatment responders in the training and validation sets,
+separately, and estimate the ATE within each nested subgroup. For each element i of
+<code>prop.cutoff</code> (e.g., <code>prop.cutoff[i]</code> = 0.6), take the following steps:
+</p>
+
+<ol>
+<li>
+<p> Identify high responders as observations with the 60%
+(i.e., <code>prop.cutoff[i]</code>x100%) highest (if <code>higher.y = TRUE</code>) or
+lowest (if <code>higher.y = FALSE</code>) estimated CATE scores.
+</p>
+</li>
+<li>
+<p> Estimate the ATE in the subgroup of high responders using a doubly robust estimator.
+</p>
+</li>
+<li>
+<p> Conversely, identify low responders as observations with the 40%
+(i.e., 1 - <code>prop.cutoff[i]</code>x100%) lowest (if <code>higher.y</code> = TRUE) or
+highest (if <code>higher.y</code> = FALSE) estimated CATE scores.
+</p>
+</li>
+<li>
+<p> Estimate the ATE in the subgroup of low responders using a doubly robust estimator.
+</p>
+</li>
+</ol>
+</li>
+<li>
+<p> If <code>abc</code> = TRUE, calculate the area between the ATE and the series of ATEs in
+nested subgroups of high responders in the validation set.
+</p>
+</li>
+<li>
+<p> Build mutually exclusive subgroups of treatment responders in the training and
+validation sets, separately, and estimate the ATE within each subgroup. Mutually exclusive
+subgroups are built by splitting the estimated CATE scores according to <code>prop.multi</code>.
+</p>
+</li>
+</ol>
+<h3>Value</h3>
+
+<p>Returns a list containing the following components saved as a <code>"precmed"</code> object:
+</p>
+
+<ul>
+<li>
+<p><code>ate.poisson</code>: A list of results output if <code>score.method</code> includes
+<code>'poisson'</code>:
+</p>
+
+<ul>
+<li>
+<p><code>ate.est.train.high.cv</code>: A matrix of numerical values with
+<code>length(prop.cutoff)</code> rows and <code>cv.n</code> columns.
+The ith row/jth column cell contains the estimated ATE in the nested subgroup of high responders
+defined by CATE score above (if <code>higher.y = TRUE</code>) or below (if <code>higher.y = FALSE</code>) the
+<code>prop.cutoff[i]</code>x100% percentile of the estimated CATE score in the training set in the jth
+cross-validation iteration.
+</p>
+</li>
+<li>
+<p><code>ate.est.train.low.cv</code>: A matrix of numerical values with
+<code>length(prop.cutoff) - 1</code> rows and <code>cv.n</code> columns.
+The ith row/jth column cell contains the estimated ATE in the nested subgroup of low responders
+defined by CATE score below (if <code>higher.y = TRUE</code>) or above (if <code>higher.y = FALSE</code>) the
+<code>prop.cutoff[i]</code>x100% percentile of the estimated CATE score in the training set in the jth
+cross-validation iteration.
+</p>
+</li>
+<li>
+<p><code>ate.est.valid.high.cv</code>: Same as <code>ate.est.train.high.cv</code>,
+but in the validation set.
+</p>
+</li>
+<li>
+<p><code>ate.est.valid.low.cv</code>: Same as <code>ate.est.train.low.cv</code>,
+but in the validation set.
+</p>
+</li>
+<li>
+<p><code>ate.est.train.group.cv</code>: A matrix of numerical values with
+<code>length(prop.multi) - 1</code> rows and <code>cv.n</code> columns.
+The jth column contains the estimated ATE in <code>length(prop.multi) - 1</code>
+mutually exclusive subgroups defined by <code>prop.multi</code> in the training set in jth
+cross-validation iteration.
+</p>
+</li>
+<li>
+<p><code>ate.est.valid.group.cv</code>: Same as <code>ate.est.train.group.cv</code>, but in the
+validation set.
+</p>
+</li>
+<li>
+<p><code>abc.valid</code>: A vector of numerical values of length <code>cv.n</code>.
+The ith element returns the ABC of the validation curve in the ith cross-validation
+iteration. Only returned if <code>abc = TRUE</code>.
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p><code>ate.boosting</code>: A list of results similar to <code>ate.poisson</code> output
+if <code>score.method</code> includes <code>'boosting'</code>.
+</p>
+</li>
+<li>
+<p><code>ate.twoReg</code>: A list of results similar to <code>ate.poisson</code> output
+if <code>score.method</code> includes <code>'twoReg'</code>.
+</p>
+</li>
+<li>
+<p><code>ate.contrastReg</code>: A list of results similar to <code>ate.poisson</code> output
+if <code>score.method</code> includes <code>'contrastReg'</code>.
+This method has an additional element in the list of results:
+</p>
+
+<ul><li>
+<p><code>converge.contrastReg.cv</code>: A vector of logical value of length <code>cv.n</code>.
+The ith element indicates whether the algorithm converged in the ith cross-validation
+iteration.
+</p>
+</li></ul>
+</li>
+<li>
+<p><code>ate.negBin</code>: A list of results similar to <code>ate.poisson</code> output
+if <code>score.method</code> includes <code>'negBin'</code>.
+</p>
+</li>
+<li>
+<p><code>props</code>: A list of 3 elements:
+</p>
+
+<ul>
+<li>
+<p><code>prop.onlyhigh</code>: The original argument <code>prop.cutoff</code>,
+reformatted as necessary.
+</p>
+</li>
+<li>
+<p><code>prop.bi</code>: The original argument <code>prop.cutoff</code>,
+similar to <code>prop.onlyhigh</code> but reformatted to exclude 1.
+</p>
+</li>
+<li>
+<p><code>prop.multi</code>: The original argument <code>prop.multi</code>,
+reformatted as necessary to include 0 and 1.
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p><code>overall.ate.valid</code>: A vector of numerical values of length <code>cv.n</code>.
+The ith element contains the ATE in the validation set of the ith cross-validation
+iteration, estimated with the doubly robust estimator.
+</p>
+</li>
+<li>
+<p><code>overall.ate.train</code>: A vector of numerical values of length <code>cv.n</code>.
+The ith element contains the ATE in the training set of the ith cross-validation
+iteration, estimated with the doubly robust estimator.
+</p>
+</li>
+<li>
+<p><code>fgam</code>: The formula used in GAM if <code>initial.predictor.method = 'gam'</code>.
+</p>
+</li>
+<li>
+<p><code>higher.y</code>: The original <code>higher.y</code> argument.
+</p>
+</li>
+<li>
+<p><code>abc</code>: The original <code>abc</code> argument.
+</p>
+</li>
+<li>
+<p><code>cv.n</code>: The original <code>cv.n</code> argument.
+</p>
+</li>
+<li>
+<p><code>response</code>: The type of response. Always 'count' for this function.
+</p>
+</li>
+<li>
+<p><code>formulas</code>:A list of 3 elements: (1) <code>cate.model</code> argument,
+(2) <code>ps.model</code> argument and (3) original labels of the left-hand side variable in
+<code>ps.model</code> (treatment) if it was not 0/1.
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Yadlowsky, S., Pellegrini, F., Lionetto, F., Braune, S., &amp; Tian, L. (2020).
+<em>Estimation and validation of ratio-based conditional average treatment
+effects using observational data. Journal of the American Statistical
+Association, 1-18.</em>. DOI: 10.1080/01621459.2020.1772080.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>plot.precmed()</code>, <code>boxplot.precmed()</code>,
+<code>abc()</code> methods for <code>"precmed"</code> objects,
+and <code>catefitcount()</code> function.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+catecv &lt;- catecvcount(data = countExample,
+                      score.method = "poisson",
+                      cate.model = y ~ age + female + previous_treatment +
+                                   previous_cost + previous_number_relapses +
+                                   offset(log(years)),
+                      ps.model = trt ~ age + previous_treatment,
+                      higher.y = FALSE,
+                      cv.n = 5,
+                      seed = 999,
+                      plot.gbmperf = FALSE,
+                      verbose = 1)
+
+plot(catecv, ylab = "Rate ratio of drug1 vs drug0 in each subgroup")
+boxplot(catecv, ylab = "Rate ratio of drug1 vs drug0 in each subgroup")
+abc(catecv)
+
+</code></pre>
+
+
+</div>

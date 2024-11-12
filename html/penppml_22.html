@@ -1,0 +1,209 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mlfitppml</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>General Penalized PPML Estimation</h2>
+
+<h3>Description</h3>
+
+<p><code>mlfitppml</code> is a general-purpose wrapper function for penalized PPML estimation. This is a
+flexible tool that allows users to select:
+</p>
+
+<ul>
+<li>
+<p> Penalty type: either lasso or ridge.
+</p>
+</li>
+<li>
+<p> Penalty parameter: users can provide a single global value for lambda (a single regression
+is estimated), a vector of lambda values (the function estimates the regression using each of them,
+sequentially) or even coefficient-specific penalty weights.
+</p>
+</li>
+<li>
+<p> Method: plugin lasso estimates can be obtained directly from this function too.
+</p>
+</li>
+<li>
+<p> Cross-validation: if this option is enabled, the function uses IDs provided by the user
+to perform k-fold cross-validation and reports the resulting RMSE for all lambda values.
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">mlfitppml(
+  data,
+  dep = 1,
+  indep = NULL,
+  fixed = NULL,
+  cluster = NULL,
+  selectobs = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame containing all relevant variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dep</code></td>
+<td>
+<p>A string with the name of the independent variable or a column number.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indep</code></td>
+<td>
+<p>A vector with the names or column numbers of the regressors. If left unspecified,
+all remaining variables (excluding fixed effects) are included in the regressor matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixed</code></td>
+<td>
+<p>A vector with the names or column numbers of factor variables identifying the fixed effects,
+or a list with the desired interactions between variables in <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cluster</code></td>
+<td>
+<p>Optional. A string with the name of the clustering variable or a column number.
+It's also possible to input a vector with several variables, in which case the interaction of
+all of them is taken as the clustering variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>selectobs</code></td>
+<td>
+<p>Optional. A vector indicating which observations to use (either a logical vector
+or a numeric vector with row numbers, as usual when subsetting in R).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments, including:
+</p>
+
+<ul>
+<li> <p><code>penalty</code>: A string indicating the penalty type. Currently supported: "lasso" and "ridge".
+</p>
+</li>
+<li> <p><code>method</code>: The user can set this equal to "plugin" to perform the plugin algorithm with
+coefficient-specific penalty weights (see details). Otherwise, a single global penalty is used.
+</p>
+</li>
+<li> <p><code>post</code>: Logical. If <code>TRUE</code>, estimates a post-penalty regression with the
+selected variables.
+</p>
+</li>
+<li> <p><code>xval</code>: Logical. If <code>TRUE</code>, cross-validation is performed using the IDs provided
+in the <code>IDs</code> argument as folds. Note that, by default, observations are assigned
+individual IDs, which makes the cross-validation algorithm very time-consuming.
+</p>
+</li>
+</ul>
+<p>For a full list of options, see mlfitppml_int.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is a thin wrapper around <code>mlfitppml_int</code>, providing a more convenient interface for
+data frames. Whereas the internal function requires some preliminary handling of data sets (<code>y</code>
+must be a vector, <code>x</code> must be a matrix and <code>fes</code> must be provided in a list), the wrapper
+takes a full data frame in the <code>data</code> argument, and users can simply specify which variables
+correspond to y, x and the fixed effects, using either variable names or column numbers.
+</p>
+<p>For technical details on the algorithms used, see hdfeppml (post-lasso regression),
+penhdfeppml (standard penalized regression), penhdfeppml_cluster (plugin lasso),
+and xvalidate (cross-validation).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with the following elements:
+</p>
+
+<ul>
+<li> <p><code>beta</code>: if <code>post = FALSE</code>, a <code>length(lambdas)</code> x <code>ncol(x)</code> matrix with
+coefficient (beta) estimates from the penalized regressions. If <code>post = TRUE</code>, this is
+the matrix of coefficients from the post-penalty regressions.
+</p>
+</li>
+<li> <p><code>beta_pre</code>: if <code>post = TRUE</code>, a <code>length(lambdas)</code> x <code>ncol(x)</code> matrix with
+coefficient (beta) estimates from the penalized regressions.
+</p>
+</li>
+<li> <p><code>bic</code>: Bayesian Information Criterion.
+</p>
+</li>
+<li> <p><code>lambdas</code>: vector of penalty parameters.
+</p>
+</li>
+<li> <p><code>ses</code>: standard errors of the coefficients of the post-penalty regression. Note that
+these are only provided when <code>post = TRUE</code>.
+</p>
+</li>
+<li> <p><code>rmse</code>: if <code>xval = TRUE</code>, a matrix with the root mean squared error (RMSE - column 2)
+for each value of lambda (column 1), obtained by cross-validation.
+</p>
+</li>
+<li> <p><code>phi</code>: coefficient-specific penalty weights (only if <code>method == "plugin"</code>).
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Breinlich, H., Corradi, V., Rocha, N., Ruta, M., Santos Silva, J.M.C. and T. Zylkin (2021).
+"Machine Learning in International Trade Research: Evaluating the Impact of Trade Agreements",
+Policy Research Working Paper; No. 9629. World Bank, Washington, DC.
+</p>
+<p>Correia, S., P. Guimaraes and T. Zylkin (2020). "Fast Poisson estimation with high dimensional
+fixed effects", <em>STATA Journal</em>, 20, 90-115.
+</p>
+<p>Gaure, S (2013). "OLS with multiple high dimensional category variables",
+<em>Computational Statistics &amp; Data Analysis</em>, 66, 8-18.
+</p>
+<p>Friedman, J., T. Hastie, and R. Tibshirani (2010). "Regularization paths for generalized linear
+models via coordinate descent", <em>Journal of Statistical Software</em>, 33, 1-22.
+</p>
+<p>Belloni, A., V. Chernozhukov, C. Hansen and D. Kozbur (2016). "Inference in high dimensional panel
+models with an application to gun control", <em>Journal of Business &amp; Economic Statistics</em>, 34, 590-605.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# To reduce run time, we keep only countries in the Americas:
+americas &lt;- countries$iso[countries$region == "Americas"]
+# Now we can use our main functions on the reduced trade data set:
+test &lt;- mlfitppml(data = trade[, -(5:6)],
+                    dep = "export",
+                    fixed = list(c("exp", "time"),
+                                 c("imp", "time"),
+                                 c("exp", "imp")),
+                    selectobs = (trade$imp %in% americas) &amp; (trade$exp %in% americas),
+                    lambdas = c(0.01, 0.001),
+                    tol = 1e-6, hdfetol = 1e-2)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

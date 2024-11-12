@@ -1,0 +1,312 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>VCF2RADdata</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Create a RADdata Object from a VCF File
+</h2>
+
+<h3>Description</h3>
+
+<p>This function reads a Variant Call Format (VCF) file containing allelic read depth
+and SNP alignment positions, such as can be produced by TASSEL or GATK, and 
+generates a <code>RADdata</code> dataset to be used for genotype calling in
+<span class="pkg">polyRAD</span>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">VCF2RADdata(file, phaseSNPs = TRUE, tagsize = 80, refgenome = NULL, 
+            tol = 0.01, al.depth.field = "AD", min.ind.with.reads = 200, 
+            min.ind.with.minor.allele = 10, possiblePloidies = list(2), 
+            taxaPloidy = 2L, contamRate = 0.001, 
+            samples = VariantAnnotation::samples(VariantAnnotation::scanVcfHeader(file)),
+            svparam = VariantAnnotation::ScanVcfParam(fixed = "ALT", info = NA,
+                                                      geno = al.depth.field,
+                                                      samples = samples), 
+            yieldSize = 5000, expectedAlleles = 5e+05, expectedLoci = 1e+05,
+            maxLoci = NA)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+
+<p>The path to a VCF file to be read.  This can be uncompressed, bgzipped using
+Samtools or Bioconductor, or a <code>TabixFile</code> object from Bioconductor.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phaseSNPs</code></td>
+<td>
+
+<p>If <code>TRUE</code>, markers that appear to have come from the same set of reads
+will be phased and grouped into haplotypes.  Otherwise, each row of the file
+will be kept as a distinct marker.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tagsize</code></td>
+<td>
+
+<p>The read length, minus any barcode sequence, that was used for genotyping.  In TASSEL,
+this is the same as the kmerLength option.  This argument is used for grouping
+SNPs into haplotypes and is ignored if <code>phaseSNPs = FALSE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refgenome</code></td>
+<td>
+
+<p>Optional.  The name of a FASTA file, or an <code>FaFile</code> object, containing
+the reference genome.  When grouping SNPs into haplotypes, if provided this 
+reference genome is used to insert non-variable nucleotides between the variable
+nucleotides in the <code>alleleNucleotides</code> slot of the <code>RADdata</code> output.
+Ignored if <code>phaseSNPs = FALSE</code>.  Useful if exact SNP positions need to be
+retained for downstream analysis after genotype calling in <span class="pkg">polyRAD</span>.
+In particular this argument is necessary if you plan to export genotype calls
+back to VCF.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+
+<p>The proportion by which two SNPs can differ in read depth and still be merged
+into one group for phasing.  Ignored if <code>phaseSNPs = FALSE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>al.depth.field</code></td>
+<td>
+
+<p>The name of the genotype field in the VCF file that contains read depth at 
+each allele.  This should be "AD" unless your format is very unusual.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.ind.with.reads</code></td>
+<td>
+
+<p>Integer used for filtering SNPs.  To be retained, a SNP must have at least
+this many samples with reads.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.ind.with.minor.allele</code></td>
+<td>
+
+<p>Integer used for filtering SNPs.  To be retained, a SNP must have at least
+this many samples with the minor allele.  When there are more than two
+alleles, at least two alleles must have at least this many samples with
+reads for the SNP to be retained.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>possiblePloidies</code></td>
+<td>
+
+<p>A list indicating inheritance modes that might be encountered in the 
+dataset.  See <code>RADdata</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>taxaPloidy</code></td>
+<td>
+
+<p>A single integer, or an integer vector with one value per taxon, indicating
+ploidy.  See <code>RADdata</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contamRate</code></td>
+<td>
+
+<p>A number indicating the expected sample cross-contamination rate.  See
+<code>RADdata</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>samples</code></td>
+<td>
+
+<p>A character vector containing the names of samples from the file to 
+export to the <code>RADdata</code> object.  The default is all samples.
+If a subset is provided, filtering with <code>min.ind.with.reads</code> and
+<code>min.ind.with.minor.allele</code> is performed within that subset.  Ignored
+if a different <code>samples</code> argument is provided within <code>svparam</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>svparam</code></td>
+<td>
+
+<p>A <code>ScanVcfParam</code> object to be
+used with <code>readVcf</code>.  The primary
+reasons to change this from the default would be 1) if you want additional
+FIXED or INFO fields from the file to be exported to the <code>locTable</code>
+slot of the <code>RADdata</code> object, and/or 2) if you only want to import
+particular regions of the genome, as specified with the <code>which</code>
+argument of <code>ScanVcfParam</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>yieldSize</code></td>
+<td>
+
+<p>An integer indicating the number of lines of the file to read at once.
+Increasing this number will make the function faster but consume more RAM.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expectedAlleles</code></td>
+<td>
+
+<p>An integer indicating the approximate number of alleles that are expected
+to be imported after filtering and phasing.  If this number is too low,
+the function may slow down considerably.  Increasing this number 
+increases the amount of RAM used by the function.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expectedLoci</code></td>
+<td>
+
+<p>An integer indicating the approximate number of loci that are expected
+to be imported after filtering and phasing.  If this number is too low,
+the function may slow down considerably.  Increasing this number 
+increases the amount of RAM used by the function.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxLoci</code></td>
+<td>
+
+<p>An integer indicating the approximate maximum number of loci to return.  If
+provided, the function will stop reading the file once it has found at least
+this many loci that pass filtering and phasing.  This argument is intended to
+be used for generating small <code>RADdata</code> objects for testing purposes, and
+should be left <code>NA</code> under normal circumstances.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function requires the BioConductor package <span class="pkg">VariantAnnotation</span>.
+See <a href="https://bioconductor.org/packages/release/bioc/html/VariantAnnotation.html">https://bioconductor.org/packages/release/bioc/html/VariantAnnotation.html</a>
+for installation instructions.
+</p>
+<p>If you anticipate running <code>VCF2RADdata</code> on the same file more than once,
+it is recommended to run <code>bgzip</code> and <code>indexTabix</code> from the package
+<span class="pkg">Rsamtools</span> once before running <code>VCF2RADdata</code>.  See examples.
+</p>
+<p><code>min.ind.with.minor.allele</code> is used for filtering SNPs as the VCF file is
+read.  Additionally, because phasing SNPs into haplotypes can cause some 
+haplotypes to fail to pass this threshold, <code>VCF2RADdata</code> internally runs
+<code>MergeRareHaplotypes</code> with 
+<code>min.ind.with.haplotype = min.ind.with.minor.allele</code>, then
+<code>RemoveMonomorphicLoci</code>, before returning the
+final <code>RADdata</code> object.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>RADdata</code> object.
+</p>
+
+
+<h3>Note</h3>
+
+<p>In the <code>python</code> directory of the <span class="pkg">polyRAD</span> installation, there is a
+script called <code>tassel_vcf_tags.py</code> that can identify the full tag
+sequence(s) for every allele imported by <code>VCF2RADdata</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>References</h3>
+
+<p>Variant Call Format specification: <a href="http://samtools.github.io/hts-specs/">http://samtools.github.io/hts-specs/</a>
+</p>
+<p>TASSEL GBSv2 pipeline: <a href="https://bitbucket.org/tasseladmin/tassel-5-source/wiki/Tassel5GBSv2Pipeline">https://bitbucket.org/tasseladmin/tassel-5-source/wiki/Tassel5GBSv2Pipeline</a>
+</p>
+<p>GATK: <a href="https://gatk.broadinstitute.org/hc/en-us">https://gatk.broadinstitute.org/hc/en-us</a>
+</p>
+<p>Tassel4-Poly: <a href="https://github.com/guilherme-pereira/tassel4-poly">https://github.com/guilherme-pereira/tassel4-poly</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>MakeTasselVcfFilter</code> for filtering to a smaller VCF file before
+reading with <code>VCF2RADdata</code>.
+</p>
+<p>To export to VCF: <code>RADdata2VCF</code>
+</p>
+<p>Other data import functions:  <code>readStacks</code>, <code>readHMC</code>,
+<code>readTagDigger</code>, <code>readTASSELGBSv2</code>,
+<code>readProcessIsoloci</code>, <code>readDArTag</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># get the example VCF installed with polyRAD
+exampleVCF &lt;- system.file("extdata", "Msi01genes.vcf", package = "polyRAD")
+
+
+# loading VariantAnnotation namespace takes &gt;10s,
+# so is excluded from CRAN checks
+
+require(VariantAnnotation)
+
+# Compress and index the VCF before reading, if not already done
+if(!file.exists(paste(exampleVCF, "bgz", sep = "."))){
+  vcfBG &lt;- bgzip(exampleVCF)
+  indexTabix(vcfBG, "vcf")
+}
+
+# Read into RADdata object
+myRAD &lt;- VCF2RADdata(exampleVCF, expectedLoci = 100, expectedAlleles = 500)
+
+# Example of subsetting by genomic region (first 200 kb on Chr01)
+mysv &lt;- ScanVcfParam(fixed = "ALT", info = NA, geno = "AD",
+                     samples = samples(scanVcfHeader(exampleVCF)),
+                     which = GRanges("01", IRanges(1, 200000)))
+myRAD2 &lt;- VCF2RADdata(exampleVCF, expectedLoci = 100, expectedAlleles = 500,
+                      svparam = mysv, yieldSize = NA_integer_)
+
+</code></pre>
+
+
+</div>

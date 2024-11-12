@@ -1,0 +1,110 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>coef.PSGD</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Coefficients for PSGD Object</h2>
+
+<h3>Description</h3>
+
+<p><code>coef.PSGD</code> returns the coefficients for a PSGD object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'PSGD'
+coef(object, group_index = NULL, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>An object of class PSGD.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group_index</code></td>
+<td>
+<p>Groups included in the ensemble. Default setting includes all the groups.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments for compatibility.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The coefficients for the PSGD object.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Anthony-Alexander Christidis, <a href="mailto:anthony.christidis@stat.ubc.ca">anthony.christidis@stat.ubc.ca</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>PSGD</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Required Libraries
+library(mvnfast)
+
+# Setting the parameters
+p &lt;- 100
+n &lt;- 40
+n.test &lt;- 1000
+sparsity &lt;- 0.2
+rho &lt;- 0.5
+SNR &lt;- 3
+
+# Generating the coefficient
+p.active &lt;- floor(p*sparsity)
+a &lt;- 4*log(n)/sqrt(n)
+neg.prob &lt;- 0.2
+nonzero.betas &lt;- (-1)^(rbinom(p.active, 1, neg.prob))*(a + abs(rnorm(p.active)))
+
+# Correlation structure
+Sigma &lt;- matrix(0, p, p)
+Sigma[1:p.active, 1:p.active] &lt;- rho
+diag(Sigma) &lt;- 1
+true.beta &lt;- c(nonzero.betas, rep(0 , p - p.active))
+
+# Computing the noise parameter for target SNR
+sigma.epsilon &lt;- as.numeric(sqrt((t(true.beta) %*% Sigma %*% true.beta)/SNR))
+
+# Simulate some data
+set.seed(1)
+x.train &lt;- mvnfast::rmvn(n, mu=rep(0,p), sigma=Sigma)
+y.train &lt;- 1 + x.train %*% true.beta + rnorm(n=n, mean=0, sd=sigma.epsilon)
+x.test &lt;- mvnfast::rmvn(n.test, mu=rep(0,p), sigma=Sigma)
+y.test &lt;- 1 + x.test %*% true.beta + rnorm(n.test, sd=sigma.epsilon)
+
+# PSGD Ensemble
+output &lt;- PSGD(x = x.train, y = y.train, n_models = 5,
+               model_type = c("Linear", "Logistic")[1], include_intercept = TRUE, 
+               split = 3, size = 10, 
+               max_iter = 20,
+               cycling_iter = 0)
+psgd.coef &lt;- coef(output, group_index = 1:output$n_models)
+psgd.predictions &lt;- predict(output, newx = x.test, group_index = 1:output$n_models)
+mean((y.test - psgd.predictions)^2)/sigma.epsilon^2
+
+</code></pre>
+
+
+</div>

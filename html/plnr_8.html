@@ -1,0 +1,1613 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Plan</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>R6 Class representing a Plan</h2>
+
+<h3>Description</h3>
+
+<p>We work within the mental model where we have one (or more) datasets and we want to run multiple analyses on these datasets.
+</p>
+<p>By demanding that all analyses use the same data sources we can:
+</p>
+
+<ul>
+<li>
+<p> Be efficient with requiring the minimal amount of data-pulling (this only happens once at the start).
+</p>
+</li>
+<li>
+<p> Better enforce the concept that data-cleaning and analysis should be completely separate.
+</p>
+</li>
+</ul>
+<p>By demanding that all analysis functions only use two arguments (data and argset) we can:
+</p>
+
+<ul>
+<li>
+<p> Reduce mental fatigue by working within the same mental model for each analysis.
+</p>
+</li>
+<li>
+<p> Make it easier for analyses to be exchanged with each other and iterated on.
+</p>
+</li>
+<li>
+<p> Easily schedule the running of each analysis.
+</p>
+</li>
+</ul>
+<p>By including all of this in one <code>Plan</code> class, we can easily maintain a good overview of all the analyses (i.e. outputs) that need to be run.
+</p>
+
+
+<h3>Details</h3>
+
+<p>An argset is:
+</p>
+
+<ul><li>
+<p> a set of arguments
+</p>
+</li></ul>
+<p>An analysis is:
+</p>
+
+<ul>
+<li>
+<p> one argset
+</p>
+</li>
+<li>
+<p> one (action) function
+</p>
+</li>
+</ul>
+<p>A plan is:
+</p>
+
+<ul>
+<li>
+<p> one data pull
+</p>
+</li>
+<li>
+<p> a list of analyses
+</p>
+</li>
+</ul>
+<h3>Public fields</h3>
+
+<div class="r6-fields">
+
+<dl>
+<dt><code>analyses</code></dt>
+<dd>
+<p>List of analyses.</p>
+</dd>
+</dl>
+</div>
+
+
+<h3>Methods</h3>
+
+
+
+<h4>Public methods</h4>
+
+
+<ul>
+<li> <p><a href="#method-new"><code>Plan$new()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-add_data"><code>Plan$add_data()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-add_argset"><code>Plan$add_argset()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-add_argset_from_df"><code>Plan$add_argset_from_df()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-add_argset_from_list"><code>Plan$add_argset_from_list()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-add_analysis"><code>Plan$add_analysis()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-add_analysis_from_df"><code>Plan$add_analysis_from_df()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-add_analysis_from_list"><code>Plan$add_analysis_from_list()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-apply_action_fn_to_all_argsets"><code>Plan$apply_action_fn_to_all_argsets()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-apply_analysis_fn_to_all"><code>Plan$apply_analysis_fn_to_all()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-x_length"><code>Plan$x_length()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-x_seq_along"><code>Plan$x_seq_along()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-set_progress"><code>Plan$set_progress()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-set_progressor"><code>Plan$set_progressor()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-set_verbose"><code>Plan$set_verbose()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-set_use_foreach"><code>Plan$set_use_foreach()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-get_data"><code>Plan$get_data()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-get_analysis"><code>Plan$get_analysis()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-get_argset"><code>Plan$get_argset()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-get_argsets_as_dt"><code>Plan$get_argsets_as_dt()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-run_one_with_data"><code>Plan$run_one_with_data()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-run_one"><code>Plan$run_one()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-run_all_with_data"><code>Plan$run_all_with_data()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-run_all"><code>Plan$run_all()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-run_all_progress"><code>Plan$run_all_progress()</code></a>
+</p>
+</li>
+<li> <p><a href="#method-clone"><code>Plan$clone()</code></a>
+</p>
+</li>
+</ul>
+<hr>
+<a id="method-new"></a>
+
+
+
+<h4>Method <code>new()</code>
+</h4>
+
+<p>Create a new Plan instance.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$new(verbose = interactive() | config$force_verbose, use_foreach = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>verbose</code></dt>
+<dd>
+<p>Should this plan be verbose?</p>
+</dd>
+<dt><code>use_foreach</code></dt>
+<dd>
+<p>???</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-add_data"></a>
+
+
+
+<h4>Method <code>add_data()</code>
+</h4>
+
+<p>Add a new data set.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$add_data(name, fn = NULL, fn_name = NULL, direct = NULL)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>name</code></dt>
+<dd>
+<p>Name of the data set.</p>
+</dd>
+<dt><code>fn</code></dt>
+<dd>
+<p>A function that returns the data set.</p>
+</dd>
+<dt><code>fn_name</code></dt>
+<dd>
+<p>A character string containing the name of a function that returns the data set.</p>
+</dd>
+<dt><code>direct</code></dt>
+<dd>
+<p>A direct data set.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>p &lt;- plnr::Plan$new()
+data_fn &lt;- function(){return(plnr::nor_covid19_cases_by_time_location)}
+p$add_data("data_1", fn = data_fn)
+p$add_data("data_2", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+p$add_data("data_3", direct = plnr::nor_covid19_cases_by_time_location)
+p$get_data()
+</pre>
+</div>
+
+
+<hr>
+<a id="method-add_argset"></a>
+
+
+
+<h4>Method <code>add_argset()</code>
+</h4>
+
+<p>Add a new argset.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$add_argset(name = uuid::UUIDgenerate(), ...)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>name</code></dt>
+<dd>
+<p>Name of the (eventual) analysis that this argset will be connected to.</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Named arguments that will comprise the argset.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>p &lt;- plnr::Plan$new()
+p$add_argset("argset_1", var_1 = 3, var_b = "hello")
+p$add_argset("argset_2", var_1 = 8, var_c = "hello2")
+p$get_argsets_as_dt()
+</pre>
+</div>
+
+
+<hr>
+<a id="method-add_argset_from_df"></a>
+
+
+
+<h4>Method <code>add_argset_from_df()</code>
+</h4>
+
+<p>Add a batch of argsets from a data.frame.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$add_argset_from_df(df)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>df</code></dt>
+<dd>
+<p>A data.frame where each row is a new argset, and each column will be a named element in the argset.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>p &lt;- plnr::Plan$new()
+batch_argset_df &lt;- data.frame(name = c("a", "b", "c"), var_1 = c(1, 2, 3), var_2 = c("i", "j", "k"))
+p$add_argset_from_df(batch_argset_df)
+p$get_argsets_as_dt()
+</pre>
+</div>
+
+
+<hr>
+<a id="method-add_argset_from_list"></a>
+
+
+
+<h4>Method <code>add_argset_from_list()</code>
+</h4>
+
+<p>Add a batch of argsets from a list.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$add_argset_from_list(l)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>l</code></dt>
+<dd>
+<p>A list of lists with named elements where each outermost element is a new argset, and each internal named element named element in the argset.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>p &lt;- plnr::Plan$new()
+batch_argset_list &lt;- list(
+  list(name = "a", var_1 = 1, var_2 = "i"),
+  list(name = "b", var_1 = 2, var_2 = "j"),
+  list(name = "c", var_1 = 3, var_2 = "k")
+)
+p$add_argset_from_list(batch_argset_list)
+p$get_argsets_as_dt()
+</pre>
+</div>
+
+
+<hr>
+<a id="method-add_analysis"></a>
+
+
+
+<h4>Method <code>add_analysis()</code>
+</h4>
+
+<p>Add a new analysis.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$add_analysis(name = uuid::UUIDgenerate(), fn = NULL, fn_name = NULL, ...)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>name</code></dt>
+<dd>
+<p>Name of the analysis.</p>
+</dd>
+<dt><code>fn</code></dt>
+<dd>
+<p>Action function.</p>
+</dd>
+<dt><code>fn_name</code></dt>
+<dd>
+<p>Action function name.</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Named arguments to be added to the argset.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+p$add_analysis(
+  name = "analysis_1",
+  fn_name = "plnr::example_action_fn"
+)
+p$get_argsets_as_dt()
+p$run_one("analysis_1")
+</pre>
+</div>
+
+
+<hr>
+<a id="method-add_analysis_from_df"></a>
+
+
+
+<h4>Method <code>add_analysis_from_df()</code>
+</h4>
+
+<p>Add a batch of analyses from a data.frame.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$add_analysis_from_df(fn = NULL, fn_name = NULL, df)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>fn</code></dt>
+<dd>
+<p>Action function.</p>
+</dd>
+<dt><code>fn_name</code></dt>
+<dd>
+<p>Action function name.</p>
+</dd>
+<dt><code>df</code></dt>
+<dd>
+<p>A data.frame where each row is a new argset, and each column will be a named element in the argset.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_df &lt;- data.frame(name = c("a", "b", "c"), var_1 = c(1, 2, 3), var_2 = c("i", "j", "k"))
+p$add_analysis_from_df(
+  fn_name = "plnr::example_action_fn",
+  df = batch_argset_df
+ )
+p$get_argsets_as_dt()
+p$run_one(1)
+</pre>
+</div>
+
+
+<hr>
+<a id="method-add_analysis_from_list"></a>
+
+
+
+<h4>Method <code>add_analysis_from_list()</code>
+</h4>
+
+<p>Add a batch of argsets from a list.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$add_analysis_from_list(fn = NULL, fn_name = NULL, l)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>fn</code></dt>
+<dd>
+<p>Action function.</p>
+</dd>
+<dt><code>fn_name</code></dt>
+<dd>
+<p>Action function name.</p>
+</dd>
+<dt><code>l</code></dt>
+<dd>
+<p>A list of lists with named elements where each outermost element is a new argset, and each internal named element named element in the argset.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+  list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+  list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+  list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_analysis_from_list(
+  fn_name = "plnr::example_action_fn",
+  l = batch_argset_list
+)
+p$get_argsets_as_dt()
+p$run_one("analysis_1")
+</pre>
+</div>
+
+
+<hr>
+<a id="method-apply_action_fn_to_all_argsets"></a>
+
+
+
+<h4>Method <code>apply_action_fn_to_all_argsets()</code>
+</h4>
+
+<p>Applies an action function to all the argsets
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$apply_action_fn_to_all_argsets(fn = NULL, fn_name = NULL)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>fn</code></dt>
+<dd>
+<p>Action function.</p>
+</dd>
+<dt><code>fn_name</code></dt>
+<dd>
+<p>Action function name.
+p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_argset_from_list(
+fn_name = "plnr::example_action_fn",
+l = batch_argset_list
+)
+p$get_argsets_as_dt()
+p$apply_action_fn_to_all_argsets(fn_name = "plnr::example_action_fn")
+p$run_one("analysis_1")</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-apply_analysis_fn_to_all"></a>
+
+
+
+<h4>Method <code>apply_analysis_fn_to_all()</code>
+</h4>
+
+<p>Deprecated. Use apply_action_fn_to_all_argsets.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$apply_analysis_fn_to_all(fn = NULL, fn_name = NULL)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>fn</code></dt>
+<dd>
+<p>Action function.</p>
+</dd>
+<dt><code>fn_name</code></dt>
+<dd>
+<p>Action function name.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-x_length"></a>
+
+
+
+<h4>Method <code>x_length()</code>
+</h4>
+
+<p>Number of analyses in the plan.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$x_length()</pre></div>
+
+
+<hr>
+<a id="method-x_seq_along"></a>
+
+
+
+<h4>Method <code>x_seq_along()</code>
+</h4>
+
+<p>Generate a regular sequence from 1 to the length of the analyses in the plan.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$x_seq_along()</pre></div>
+
+
+<hr>
+<a id="method-set_progress"></a>
+
+
+
+<h4>Method <code>set_progress()</code>
+</h4>
+
+<p>Set an internal progress bar
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$set_progress(pb)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>pb</code></dt>
+<dd>
+<p>Progress bar.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-set_progressor"></a>
+
+
+
+<h4>Method <code>set_progressor()</code>
+</h4>
+
+<p>Set an internal progressor progress bar
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$set_progressor(pb)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>pb</code></dt>
+<dd>
+<p>progressor progress bar.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-set_verbose"></a>
+
+
+
+<h4>Method <code>set_verbose()</code>
+</h4>
+
+<p>Set verbose flag
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$set_verbose(x)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>x</code></dt>
+<dd>
+<p>Boolean.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-set_use_foreach"></a>
+
+
+
+<h4>Method <code>set_use_foreach()</code>
+</h4>
+
+<p>Set use_foreach flag
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$set_use_foreach(x)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>x</code></dt>
+<dd>
+<p>Boolean.</p>
+</dd>
+</dl>
+</div>
+
+
+<hr>
+<a id="method-get_data"></a>
+
+
+
+<h4>Method <code>get_data()</code>
+</h4>
+
+<p>Extracts the data provided via 'add_data' and returns it as a named list.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$get_data()</pre></div>
+
+
+
+<h5>Returns</h5>
+
+<p>Named list, where most elements have been added via <code>add_data</code>.
+</p>
+<p>One extra named element is called 'hash'. 'hash' contains the data hashes of particular datasets/variables, as calculated using the 'spookyhash' algorithm via digest::digest.
+'hash' contains two named elements:
+</p>
+
+<ul>
+<li>
+<p> current (the hash of the entire named list)
+</p>
+</li>
+<li>
+<p> current_elements (the hash of the named elements within the named list)
+</p>
+</li>
+</ul>
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+p$get_data()
+</pre>
+</div>
+
+
+<hr>
+<a id="method-get_analysis"></a>
+
+
+
+<h4>Method <code>get_analysis()</code>
+</h4>
+
+<p>Extracts an analysis from the plan.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$get_analysis(index_analysis)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>index_analysis</code></dt>
+<dd>
+<p>Either an integer (1:length(analyses)) or a character string representing the name of the analysis.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>An analysis.
+</p>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+  list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+  list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+  list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_analysis_from_list(
+  fn_name = "plnr::example_action_fn",
+  l = batch_argset_list
+)
+p$get_analysis("analysis_1")
+</pre>
+</div>
+
+
+<hr>
+<a id="method-get_argset"></a>
+
+
+
+<h4>Method <code>get_argset()</code>
+</h4>
+
+<p>Extracts an argset from the plan.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$get_argset(index_analysis)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>index_analysis</code></dt>
+<dd>
+<p>Either an integer (1:length(analyses)) or a character string representing the name of the analysis.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>An argset
+</p>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+  list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+  list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+  list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_analysis_from_list(
+  fn_name = "plnr::example_action_fn",
+  l = batch_argset_list
+)
+p$get_argset("analysis_1")
+</pre>
+</div>
+
+
+<hr>
+<a id="method-get_argsets_as_dt"></a>
+
+
+
+<h4>Method <code>get_argsets_as_dt()</code>
+</h4>
+
+<p>Gets all argsets and presents them as a data.table.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$get_argsets_as_dt()</pre></div>
+
+
+
+<h5>Returns</h5>
+
+<p>Data.table that contains all the argsets within a plan.
+</p>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+  list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+  list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+  list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_analysis_from_list(
+  fn_name = "plnr::example_action_fn",
+  l = batch_argset_list
+)
+p$get_argsets_as_dt()
+</pre>
+</div>
+
+
+<hr>
+<a id="method-run_one_with_data"></a>
+
+
+
+<h4>Method <code>run_one_with_data()</code>
+</h4>
+
+<p>Run one analysis (data is provided by user).
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$run_one_with_data(index_analysis, data, ...)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>index_analysis</code></dt>
+<dd>
+<p>Either an integer (1:length(analyses)) or a character string representing the name of the analysis.</p>
+</dd>
+<dt><code>data</code></dt>
+<dd>
+<p>Named list (generally obtained from p$get_data()).</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Not used.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>Returned value from the action function.
+</p>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+  list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+  list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+  list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_analysis_from_list(
+  fn_name = "plnr::example_action_fn",
+  l = batch_argset_list
+)
+data &lt;- p$get_data()
+p$run_one_with_data("analysis_1", data)
+</pre>
+</div>
+
+
+<hr>
+<a id="method-run_one"></a>
+
+
+
+<h4>Method <code>run_one()</code>
+</h4>
+
+<p>Run one analysis (data is obtained automatically from self$get_data()).
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$run_one(index_analysis, ...)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>index_analysis</code></dt>
+<dd>
+<p>Either an integer (1:length(analyses)) or a character string representing the name of the analysis.</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Not used.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>Returned value from the action function.
+</p>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+  list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+  list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+  list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_analysis_from_list(
+  fn_name = "plnr::example_action_fn",
+  l = batch_argset_list
+)
+p$run_one("analysis_1")
+</pre>
+</div>
+
+
+<hr>
+<a id="method-run_all_with_data"></a>
+
+
+
+<h4>Method <code>run_all_with_data()</code>
+</h4>
+
+<p>Run all analyses (data is provided by user).
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$run_all_with_data(data, ...)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>data</code></dt>
+<dd>
+<p>Named list (generally obtained from p$get_data()).</p>
+</dd>
+<dt><code>...</code></dt>
+<dd>
+<p>Not used.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>List where each element contains the returned value from the action function.
+</p>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+  list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+  list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+  list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_analysis_from_list(
+  fn_name = "plnr::example_action_fn",
+  l = batch_argset_list
+)
+data &lt;- p$get_data()
+p$run_all_with_data(data)
+</pre>
+</div>
+
+
+<hr>
+<a id="method-run_all"></a>
+
+
+
+<h4>Method <code>run_all()</code>
+</h4>
+
+<p>Run all analyses (data is obtained automatically from self$get_data()).
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$run_all(...)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>...</code></dt>
+<dd>
+<p>Not used.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>List where each element contains the returned value from the action function.
+</p>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+  list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+  list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+  list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_analysis_from_list(
+  fn_name = "plnr::example_action_fn",
+  l = batch_argset_list
+)
+p$run_all()
+</pre>
+</div>
+
+
+<hr>
+<a id="method-run_all_progress"></a>
+
+
+
+<h4>Method <code>run_all_progress()</code>
+</h4>
+
+<p>Run all analyses with a progress bar (data is obtained automatically from self$get_data()).
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$run_all_progress(...)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>...</code></dt>
+<dd>
+<p>Not used.</p>
+</dd>
+</dl>
+</div>
+
+
+
+<h5>Returns</h5>
+
+<p>List where each element contains the returned value from the action function.
+</p>
+
+
+
+<h5>Examples</h5>
+
+<div class="r example copy">
+<pre>p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+  list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+  list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+  list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_analysis_from_list(
+  fn_name = "plnr::example_action_fn",
+  l = batch_argset_list
+)
+p$run_all_progress()
+</pre>
+</div>
+
+
+<hr>
+<a id="method-clone"></a>
+
+
+
+<h4>Method <code>clone()</code>
+</h4>
+
+<p>The objects of this class are cloneable with this method.
+</p>
+
+
+<h5>Usage</h5>
+
+<div class="r"><pre>Plan$clone(deep = FALSE)</pre></div>
+
+
+
+<h5>Arguments</h5>
+
+<div class="arguments">
+
+<dl>
+<dt><code>deep</code></dt>
+<dd>
+<p>Whether to make a deep clone.</p>
+</dd>
+</dl>
+</div>
+
+
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## ------------------------------------------------
+## Method `Plan$add_data`
+## ------------------------------------------------
+
+p &lt;- plnr::Plan$new()
+data_fn &lt;- function(){return(plnr::nor_covid19_cases_by_time_location)}
+p$add_data("data_1", fn = data_fn)
+p$add_data("data_2", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+p$add_data("data_3", direct = plnr::nor_covid19_cases_by_time_location)
+p$get_data()
+
+## ------------------------------------------------
+## Method `Plan$add_argset`
+## ------------------------------------------------
+
+p &lt;- plnr::Plan$new()
+p$add_argset("argset_1", var_1 = 3, var_b = "hello")
+p$add_argset("argset_2", var_1 = 8, var_c = "hello2")
+p$get_argsets_as_dt()
+
+## ------------------------------------------------
+## Method `Plan$add_argset_from_df`
+## ------------------------------------------------
+
+p &lt;- plnr::Plan$new()
+batch_argset_df &lt;- data.frame(name = c("a", "b", "c"), var_1 = c(1, 2, 3), var_2 = c("i", "j", "k"))
+p$add_argset_from_df(batch_argset_df)
+p$get_argsets_as_dt()
+
+## ------------------------------------------------
+## Method `Plan$add_argset_from_list`
+## ------------------------------------------------
+
+p &lt;- plnr::Plan$new()
+batch_argset_list &lt;- list(
+  list(name = "a", var_1 = 1, var_2 = "i"),
+  list(name = "b", var_1 = 2, var_2 = "j"),
+  list(name = "c", var_1 = 3, var_2 = "k")
+)
+p$add_argset_from_list(batch_argset_list)
+p$get_argsets_as_dt()
+
+## ------------------------------------------------
+## Method `Plan$add_analysis`
+## ------------------------------------------------
+
+p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+p$add_analysis(
+  name = "analysis_1",
+  fn_name = "plnr::example_action_fn"
+)
+p$get_argsets_as_dt()
+p$run_one("analysis_1")
+
+## ------------------------------------------------
+## Method `Plan$add_analysis_from_df`
+## ------------------------------------------------
+
+p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_df &lt;- data.frame(name = c("a", "b", "c"), var_1 = c(1, 2, 3), var_2 = c("i", "j", "k"))
+p$add_analysis_from_df(
+  fn_name = "plnr::example_action_fn",
+  df = batch_argset_df
+ )
+p$get_argsets_as_dt()
+p$run_one(1)
+
+## ------------------------------------------------
+## Method `Plan$add_analysis_from_list`
+## ------------------------------------------------
+
+p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+  list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+  list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+  list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_analysis_from_list(
+  fn_name = "plnr::example_action_fn",
+  l = batch_argset_list
+)
+p$get_argsets_as_dt()
+p$run_one("analysis_1")
+
+## ------------------------------------------------
+## Method `Plan$get_data`
+## ------------------------------------------------
+
+p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+p$get_data()
+
+## ------------------------------------------------
+## Method `Plan$get_analysis`
+## ------------------------------------------------
+
+p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+  list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+  list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+  list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_analysis_from_list(
+  fn_name = "plnr::example_action_fn",
+  l = batch_argset_list
+)
+p$get_analysis("analysis_1")
+
+## ------------------------------------------------
+## Method `Plan$get_argset`
+## ------------------------------------------------
+
+p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+  list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+  list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+  list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_analysis_from_list(
+  fn_name = "plnr::example_action_fn",
+  l = batch_argset_list
+)
+p$get_argset("analysis_1")
+
+## ------------------------------------------------
+## Method `Plan$get_argsets_as_dt`
+## ------------------------------------------------
+
+p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+  list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+  list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+  list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_analysis_from_list(
+  fn_name = "plnr::example_action_fn",
+  l = batch_argset_list
+)
+p$get_argsets_as_dt()
+
+## ------------------------------------------------
+## Method `Plan$run_one_with_data`
+## ------------------------------------------------
+
+p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+  list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+  list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+  list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_analysis_from_list(
+  fn_name = "plnr::example_action_fn",
+  l = batch_argset_list
+)
+data &lt;- p$get_data()
+p$run_one_with_data("analysis_1", data)
+
+## ------------------------------------------------
+## Method `Plan$run_one`
+## ------------------------------------------------
+
+p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+  list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+  list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+  list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_analysis_from_list(
+  fn_name = "plnr::example_action_fn",
+  l = batch_argset_list
+)
+p$run_one("analysis_1")
+
+## ------------------------------------------------
+## Method `Plan$run_all_with_data`
+## ------------------------------------------------
+
+p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+  list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+  list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+  list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_analysis_from_list(
+  fn_name = "plnr::example_action_fn",
+  l = batch_argset_list
+)
+data &lt;- p$get_data()
+p$run_all_with_data(data)
+
+## ------------------------------------------------
+## Method `Plan$run_all`
+## ------------------------------------------------
+
+p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+  list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+  list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+  list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_analysis_from_list(
+  fn_name = "plnr::example_action_fn",
+  l = batch_argset_list
+)
+p$run_all()
+
+## ------------------------------------------------
+## Method `Plan$run_all_progress`
+## ------------------------------------------------
+
+p &lt;- plnr::Plan$new()
+p$add_data("covid_data", fn_name = "plnr::example_data_fn_nor_covid19_cases_by_time_location")
+batch_argset_list &lt;- list(
+  list(name = "analysis_1", var_1 = 1, var_2 = "i"),
+  list(name = "analysis_2", var_1 = 2, var_2 = "j"),
+  list(name = "analysis_3", var_1 = 3, var_2 = "k")
+)
+p$add_analysis_from_list(
+  fn_name = "plnr::example_action_fn",
+  l = batch_argset_list
+)
+p$run_all_progress()
+</code></pre>
+
+
+</div>

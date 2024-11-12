@@ -1,0 +1,174 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>simulate_phenotype_on_tree</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Simulate a stochastic process on top of a phylogeny.
+</h2>
+
+<h3>Description</h3>
+
+<p>The function simulates phenotypic dataset under user defined models trait 
+evolution. The phenotype evolves on top of a fixed phylogeny.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">simulate_phenotype_on_tree(phyltree, fsimulphenotype, simul.params, X0, step)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>phyltree</code></td>
+<td>
+
+<p>The phylogeny in <code>phylo</code> format. The tree can be obtained from e.g. a <code>nexus</code> file 
+by the <code>read.nexus()</code> function from the <span class="pkg">ape</span> package. The "standard" <span class="pkg">ape</span> node
+indexing is assumed: for a tree with <code class="reqn">n</code> tips, the tips should have indices <code>1:n</code> 
+and the root index <code>n+1</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fsimulphenotype</code></td>
+<td>
+
+<p>The name of a function to simulate the phenotype over a period of time. 
+The function has to have four parameters (in the following order not by name):
+<code>time</code>, <code>params</code>, <code>X0</code> and <code>step</code>.
+The parameter <code>time</code> is the duration of the simulation, i.e. the length
+of the branch. The parameter <code>params</code> is a list of
+the parameters governing the simulation, what will be passed here
+is the list <br><code>phenotype.model.params</code>, without the fields
+<code>fixed</code>, <code>abstepsd</code> and <br><code>positivevars</code>. It is up
+to the function in <code>phenotype.model</code> to interpret the 
+provided parameters. <code>X0</code> stands for the value at the start of the branch
+and <code>step</code> is a control parameter governing the time 
+step size of the simulation. The <span class="pkg">pcmabc</span> package has inbuilt support for 
+simulating the trait as as stochastic differential equation by the <span class="pkg">yuima</span> 
+package with the function <code>simulate_sde_on_branch()</code>. However
+the user needs to write the <code>phenotype.model</code> function that translates
+the vector of parameters into an object that is understandable by <span class="pkg">yuima</span>
+and then call <code>simulate_sde_on_branch()</code>, see the Example.
+</p>
+<p>The phenotype is simulated prior to the simulation of the speciation/extinction
+events on a lineage. Hence, it is not possible (at the moment) 
+to include some special event (e.g. a cladogenetic jump) at branching. Such
+dynamics are only possible at the start of the lineage, i.e. when the new lineage
+is separated from the main lineage. Hence, cladogenetic change can only be 
+included as an event connected with a lineage (subpopulation) breaking off.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simul.params</code></td>
+<td>
+
+<p>The parameters of the stochastic model to simulate the phenotype. 
+They should be passed as a named list.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X0</code></td>
+<td>
+
+<p>The value of the ancestral state at the start of the tree.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>step</code></td>
+<td>
+
+<p>The time step size for simulating the phenotype. If not provided,
+then calculated as <code>min(0.001,tree.height/1000)</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tree</code></td>
+<td>
+<p>The simulated tree in <code>phylo</code> format.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phenotype</code></td>
+<td>
+<p>A list of the trajectory of the simulated phenotype. 
+Each entry corresponds to a lineage that started at some point of the tree.
+Each entry is a matrix with first row equalling time (relative to start of 
+the lineage, hence if absolute time since tree's origin is needed it
+needs to be recalculated, see <code>draw_phylproc()</code>'s code) and the next 
+rows correspond to the trait value(s).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>root.branch.phenotype</code></td>
+<td>
+<p>The simulation on the root branch.
+A matrix with first row being time and next rows the simulated trait(s).</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Krzysztof Bartoszek</p>
+
+
+<h3>References</h3>
+
+<p>Bartoszek, K. and Lio', P (2019). 
+Modelling trait dependent speciation with Approximate Bayesian Computation.
+Acta Physica Polonica B Proceedings Supplement 12(1):25-47.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>simulate_phylproc</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## simulate 3d OUBM model
+## This example requires the R package ape
+## (to generate the tree in phylo format).
+set.seed(12345)
+
+phyltree&lt;-ape::rphylo(n=5,birth=1,death=0)
+simulate_mvsl_sde&lt;-function(time,params,X0,step){
+    A &lt;- c(paste("(-",params$a11,")*(x1-(",params$psi1,"))
+    -(",params$a12,")*(x2-(",params$psi2,"))-(",params$b11,")*x3",sep=""),
+    paste("(-",params$a21,")*(x1-(",params$psi1,"))
+    -(",params$a22,")*(x2-(",params$psi2,"))-(",params$b21,")*x3",sep=""),0)
+    S &lt;- matrix( c( params$s11, params$s12, 0, 0, params$s22 
+    , 0, 0, 0, params$s33), 3, 3,byrow=TRUE)
+    yuima.3d &lt;- yuima::setModel(drift = A, diffusion = S,
+    state.variable=c("x1","x2","x3"),solve.variable=c("x1","x2","x3") )
+    simulate_sde_on_branch(time,yuima.3d,X0,step)
+}
+
+birth.params&lt;-list(scale=1,maxval=10000)
+
+sde.params&lt;-list(a11=2.569531,a12=0,a21=0,a22=28.2608,b11=-5.482939,
+b21=-34.806936,s11=0.5513215,s12=1.059831,s22=1.247302,s33=1.181376,
+psi1=-2.4590422,psi2=-0.6197838)
+X0&lt;-c(5.723548,4.103157,3.834698)
+step&lt;-0.5 ## for keeping example's running time short &lt;5s as CRAN policy, 
+          ## in reality should be much smaller e.g. step&lt;-0.001                      
+simres&lt;-simulate_phenotype_on_tree(phyltree, simulate_mvsl_sde, sde.params, X0, step)
+</code></pre>
+
+
+</div>

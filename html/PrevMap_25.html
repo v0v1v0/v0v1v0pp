@@ -1,0 +1,169 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>linear.model.Bayes</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Bayesian estimation for the geostatistical linear Gaussian model</h2>
+
+<h3>Description</h3>
+
+<p>This function performs Bayesian estimation for the geostatistical linear Gaussian model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">linear.model.Bayes(
+  formula,
+  coords,
+  data,
+  kappa,
+  control.mcmc,
+  control.prior,
+  low.rank = FALSE,
+  knots = NULL,
+  messages = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>an object of class "<code>formula</code>" (or one that can be coerced to that class): a symbolic description of the model to be fitted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coords</code></td>
+<td>
+<p>an object of class <code>formula</code> indicating the geographic coordinates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a data frame containing the variables in the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kappa</code></td>
+<td>
+<p>shape parameter of the Matern covariance function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control.mcmc</code></td>
+<td>
+<p>output from <code>control.mcmc.Bayes</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control.prior</code></td>
+<td>
+<p>output from <code>control.prior</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>low.rank</code></td>
+<td>
+<p>logical; if <code>low.rank=TRUE</code> a low-rank approximation is fitted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>knots</code></td>
+<td>
+<p>if <code>low.rank=TRUE</code>, <code>knots</code> is a matrix of spatial knots used in the low-rank approximation. Default is <code>knots=NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>messages</code></td>
+<td>
+<p>logical; if <code>messages=TRUE</code> then status messages are printed on the screen (or output device) while the function is running. Default is <code>messages=TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function performs Bayesian estimation for the geostatistical linear Gaussian model, specified as
+</p>
+<p style="text-align: center;"><code class="reqn">Y = d'\beta + S(x) + Z,</code>
+</p>
+
+<p>where <code class="reqn">Y</code> is the measured outcome, <code class="reqn">d</code> is a vector of coavariates, <code class="reqn">\beta</code> is a vector of regression coefficients, <code class="reqn">S(x)</code> is a stationary Gaussian spatial process and <code class="reqn">Z</code> are independent zero-mean Gaussian variables with variance <code>tau2</code>. More specifically, <code class="reqn">S(x)</code> has an isotropic Matern covariance function with variance <code>sigma2</code>, scale parameter <code>phi</code> and shape parameter <code>kappa</code>. The shape parameter <code>kappa</code> is treated as fixed.
+</p>
+<p><b>Priors definition.</b> Priors can be defined through the function <code>control.prior</code>. The hierarchical structure of the priors is the following. Let <code class="reqn">\theta</code> be the vector of the covariance parameters <code class="reqn">(\sigma^2,\phi,\tau^2)</code>; then each component of <code class="reqn">\theta</code> can have independent priors freely defined by the user. However, uniform and log-normal priors are also available as default priors for each of the covariance parameters. To remove the nugget effect <code class="reqn">Z</code>, no prior should be defined for <code>tau2</code>. Conditionally on <code>sigma2</code>, the vector of regression coefficients <code>beta</code> has a multivariate Gaussian prior with mean <code>beta.mean</code> and covariance matrix <code>sigma2*beta.covar</code>, while in the low-rank approximation the covariance matrix is simply <code>beta.covar</code>.
+</p>
+<p><b>Updating the covariance parameters using a Metropolis-Hastings algorithm.</b> In the MCMC algorithm implemented in <code>linear.model.Bayes</code>, the transformed parameters </p>
+<p style="text-align: center;"><code class="reqn">(\theta_{1}, \theta_{2}, \theta_{3})=(\log(\sigma^2)/2,\log(\sigma^2/\phi^{2 \kappa}), \log(\tau^2))</code>
+</p>
+<p> are independently updated using a Metropolis Hastings algorithm. At the <code class="reqn">i</code>-th iteration, a new value is proposed for each from a univariate Gaussian distrubion with variance, say <code class="reqn">h_{i}^2</code>, tuned according the following adaptive scheme </p>
+<p style="text-align: center;"><code class="reqn">h_{i} = h_{i-1}+c_{1}i^{-c_{2}}(\alpha_{i}-0.45),</code>
+</p>
+<p> where <code class="reqn">\alpha_{i}</code> is the acceptance rate at the <code class="reqn">i</code>-th iteration (0.45 is the optimal acceptance rate for a univariate Gaussian distribution) whilst <code class="reqn">c_{1} &gt; 0</code> and <code class="reqn">0 &lt; c_{2} &lt; 1</code> are pre-defined constants. The starting values <code class="reqn">h_{1}</code> for each of the parameters <code class="reqn">\theta_{1}</code>, <code class="reqn">\theta_{2}</code> and <code class="reqn">\theta_{3}</code> can be set using the function <code>control.mcmc.Bayes</code> through the arguments <code>h.theta1</code>, <code>h.theta2</code> and <code>h.theta3</code>. To define values for <code class="reqn">c_{1}</code> and <code class="reqn">c_{2}</code>, see the documentation of <code>control.mcmc.Bayes</code>.
+</p>
+<p><b>Low-rank approximation.</b>
+In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process <code class="reqn">S(x)</code> might be computationally beneficial. Let <code class="reqn">(x_{1},\dots,x_{m})</code> and <code class="reqn">(t_{1},\dots,t_{m})</code> denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then <code class="reqn">S(x)</code> is approximated as <code class="reqn">\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}</code>, where <code class="reqn">U_{i}</code> are zero-mean mutually independent Gaussian variables with variance <code>sigma2</code> and <code class="reqn">K(.;\phi, \kappa)</code> is the isotropic Matern kernel (see <code>matern.kernel</code>). Since the resulting approximation is no longer a stationary process (but only approximately), <code>sigma2</code> may take very different values from the actual variance of the Gaussian process to approximate. The function <code>adjust.sigma2</code> can then be used to (approximately) explore the range for <code>sigma2</code>. For example if the variance of the Gaussian process is <code>0.5</code>, then an approximate value for <code>sigma2</code> is <code>0.5/const.sigma2</code>, where <code>const.sigma2</code> is the value obtained with <code>adjust.sigma2</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class "Bayes.PrevMap".
+The function <code>summary.Bayes.PrevMap</code> is used to print a summary of the fitted model.
+The object is a list with the following components:
+</p>
+<p><code>estimate</code>: matrix of the posterior samples for each of the model parameters.
+</p>
+<p><code>S</code>: matrix of the posterior samplesfor each component of the random effect. This is only returned for the low-rank approximation.
+</p>
+<p><code>y</code>: response variable.
+</p>
+<p><code>D</code>: matrix of covariarates.
+</p>
+<p><code>coords</code>: matrix of the observed sampling locations.
+</p>
+<p><code>kappa</code>: vaues of the shape parameter of the Matern function.
+</p>
+<p><code>knots</code>: matrix of spatial knots used in the low-rank approximation.
+</p>
+<p><code>const.sigma2</code>: vector of the values of the multiplicative factor used to adjust the <code>sigma2</code> in the low-rank approximation.
+</p>
+<p><code>h1</code>: vector of values taken by the tuning parameter <code>h.theta1</code> at each iteration.
+</p>
+<p><code>h2</code>: vector of values taken by the tuning parameter <code>h.theta2</code> at each iteration.
+</p>
+<p><code>h3</code>: vector of values taken by the tuning parameter <code>h.theta3</code> at each iteration.
+</p>
+<p><code>call</code>: the matched call.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Emanuele Giorgi <a href="mailto:e.giorgi@lancaster.ac.uk">e.giorgi@lancaster.ac.uk</a>
+</p>
+<p>Peter J. Diggle <a href="mailto:p.diggle@lancaster.ac.uk">p.diggle@lancaster.ac.uk</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Diggle, P.J., Giorgi, E. (2019). <em>Model-based Geostatistics for Global Public Health.</em> CRC/Chapman &amp; Hall.
+</p>
+<p>Giorgi, E., Diggle, P.J. (2017). <em>PrevMap: an R package for prevalence mapping.</em> Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
+</p>
+<p>Higdon, D. (1998). <em>A process-convolution approach to modeling temperatures in the North Atlantic Ocean.</em> Environmental and Ecological Statistics 5, 173-190.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>control.prior</code>, <code>control.mcmc.Bayes</code>, <code>shape.matern</code>, <code>summary.Bayes.PrevMap</code>, <code>autocor.plot</code>, <code>trace.plot</code>, <code>dens.plot</code>, <code>matern</code>, <code>matern.kernel</code>, <code>adjust.sigma2</code>.
+</p>
+
+
+</div>

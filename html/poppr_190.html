@@ -1,0 +1,168 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>win.ia</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate windows of the index of association for genlight objects.</h2>
+
+<h3>Description</h3>
+
+<p>Genlight objects can contain millions of loci. Since it does not make much
+sense to calculate the index of association over that many loci, this
+function will scan windows across the loci positions and calculate the index
+of association.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">win.ia(
+  x,
+  window = 100L,
+  min.snps = 3L,
+  threads = 1L,
+  quiet = FALSE,
+  name_window = TRUE,
+  chromosome_buffer = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a genlight or snpclone object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>window</code></td>
+<td>
+<p>an integer specifying the size of the window.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.snps</code></td>
+<td>
+<p>an integer specifying the minimum number of snps allowed per
+window. If a window does not meet this criteria, the value will return as
+<code>NA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threads</code></td>
+<td>
+<p>The maximum number of parallel threads to be used within this
+function. Defaults to 1 thread, in which the function will run serially. A
+value of 0 will attempt to use as many threads as there are available
+cores/CPUs. In most cases this is ideal for speed. Note: this option is
+passed to <code>bitwise.ia()</code> and does not parallelize the windowization process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p>if <code>FALSE</code> (default), a progress bar will be printed to the screen.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name_window</code></td>
+<td>
+<p>if <code>TRUE</code> (default), the result vector will be named with
+the terminal position of the window. In the case where several chromosomes
+are represented, the position will be appended using a period/full stop.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chromosome_buffer</code></td>
+<td>
+<p><em>DEPRECATED</em> if <code>TRUE</code> (default), buffers will be placed
+between adjacent chromosomal positions to prevent windows from spanning two
+chromosomes.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A value of the standardized index of association for all windows in
+each chromosome.
+</p>
+
+
+<h3>Note</h3>
+
+<p>this will calculate the standardized index of association from Agapow
+and Burt, 2001. See <code>ia()</code> for details.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Zhian N. Kamvar, Jonah C. Brooks
+</p>
+
+
+<h3>See Also</h3>
+
+<p>genlight, snpclone, <code>ia()</code>, <code>samp.ia()</code>, <code>bitwise.dist()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# with structured snps assuming 1e4 positions
+set.seed(999)
+x &lt;- glSim(n.ind = 10, n.snp.nonstruc = 5e2, n.snp.struc = 5e2, ploidy = 2)
+position(x) &lt;- sort(sample(1e4, 1e3))
+res &lt;- win.ia(x, window = 300L) # Calculate for windows of size 300
+plot(res, type = "l")
+
+## Not run: 
+
+# unstructured snps
+set.seed(999)
+x &lt;- glSim(n.ind = 10, n.snp.nonstruc = 1e3, ploidy = 2)
+position(x) &lt;- sort(sample(1e4, 1e3))
+res &lt;- win.ia(x, window = 300L) # Calculate for windows of size 300
+plot(res, type = "l")
+
+# Accounting for chromosome coordinates
+set.seed(999)
+x &lt;- glSim(n.ind = 10, n.snp.nonstruc = 5e2, n.snp.struc = 5e2, ploidy = 2)
+position(x) &lt;- as.vector(vapply(1:10, function(x) sort(sample(1e3, 100)), integer(100)))
+chromosome(x) &lt;- rep(1:10, each = 100)
+res &lt;- win.ia(x, window = 100L)
+plot(res, type = "l")
+
+# Converting chromosomal coordinates to tidy data
+library("dplyr")
+library("tidyr")
+res_tidy &lt;- res %&gt;% 
+  tibble(rd = ., chromosome = names(.)) %&gt;% # create two column data frame
+  separate(chromosome, into = c("chromosome", "position")) %&gt;% # get the position info
+  mutate(position = as.integer(position)) %&gt;% # force position as integers
+  mutate(chromosome = factor(chromosome, unique(chromosome))) # force order chromosomes
+res_tidy
+
+# Plotting with ggplot2
+library("ggplot2")
+ggplot(res_tidy, aes(x = position, y = rd, color = chromosome)) +
+  geom_line() +
+  facet_wrap(~chromosome, nrow = 1) +
+  ylab(expression(bar(r)[d])) +
+  xlab("terminal position of sliding window") +
+  labs(caption = "window size: 100bp") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(legend.position = "top")
+
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

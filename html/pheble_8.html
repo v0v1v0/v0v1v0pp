@@ -1,0 +1,78 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ph_eval</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Evaluate a phenotype classification model.</h2>
+
+<h3>Description</h3>
+
+<p>The <code>ph_eval</code> function generates a confusion matrix for binary or multi-class classification; for the multi-class case, the results are averaged across all class levels.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ph_eval(pred, obs)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pred</code></td>
+<td>
+<p>A <code>factor</code> value of predicted classes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obs</code></td>
+<td>
+<p>A <code>factor</code> value of the observed or actual classes.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>data.frame</code> of confusion matrix evaluation results; for the multi-class case, the results are averaged across all class levels.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Import data.
+data(ph_crocs)
+
+## Remove anomalies with autoencoder.
+rm_outs &lt;- ph_anomaly(df = ph_crocs, ids_col = "Biosample",
+                      class_col = "Species", method = "ae")
+## Preprocess anomaly-free data frame into train, validation, and test sets
+## with PCs as predictors.
+pc_dfs &lt;- ph_prep(df = rm_outs$df, ids_col = "Biosample",
+                  class_col = "Species", vali_pct = 0.15,
+                  test_pct = 0.15, method = "pca")
+## Echo control object for train function.
+ctrl &lt;- ph_ctrl(ph_crocs$Species, resample_method = "boot")
+## Train a few models for ensemble, although more is preferable.
+## Note: Increasing n_cores will dramatically reduce train time.
+train_models &lt;- ph_train(train_df = pc_dfs$train_df,
+                         vali_df = pc_dfs$vali_df,
+                         test_df = pc_dfs$test_df,
+                         class_col = "Species",
+                         ctrl = ctrl,
+                         task = "multi",
+                         methods = c("lda", "mda",
+                         "nnet", "pda", "sparseLDA"),
+                         tune_length = 5,
+                         quiet = FALSE)
+## Evaluate e.g. the first model.
+test_pred &lt;- predict(train_models$train_models[[1]], pc_dfs$test_df)
+test_obs &lt;- as.factor(pc_dfs$test_df$Species)
+test_cm &lt;- ph_eval(pred = test_pred, obs = test_obs)
+
+</code></pre>
+
+
+</div>

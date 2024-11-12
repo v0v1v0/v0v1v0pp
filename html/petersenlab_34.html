@@ -1,0 +1,135 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>make_esem_model</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Make ESEM Model.</h2>
+
+<h3>Description</h3>
+
+<p>Make <code>lavaan</code> syntax for exploratory structural equation model (ESEM).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">make_esem_model(loadings, anchors)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>loadings</code></td>
+<td>
+<p>Dataframe with three columns from exploratory factor
+analysis (EFA):
+</p>
+
+<ul>
+<li> <p><code>latent</code> = name of the latent factor(s)
+</p>
+</li>
+<li> <p><code>item</code> = name of the item(s)/indicator(s)
+</p>
+</li>
+<li> <p><code>loading</code> = parameter estimate of the factor loading item
+factor loading on the latent factor
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>anchors</code></td>
+<td>
+<p>Dataframe whose names are the latent factors and whose values
+are the names of the anchor item for each latent factor.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Makes syntax for exploratory structural equation model (ESEM) to be fit in
+<code>lavaan</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>lavaan</code> model syntax.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><a href="https://msilvestrin.me/post/esem/">https://msilvestrin.me/post/esem/</a>
+</p>
+<p>Other structural equation modeling: 
+<code>equiv_chi()</code>,
+<code>puc()</code>,
+<code>satorraBentlerScaledChiSquareDifferenceTestStatistic()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Prepare Data
+data("HolzingerSwineford1939", package = "lavaan")
+
+# Specify EFA Syntax
+efa_syntax &lt;- '
+  # EFA Factor Loadings
+  efa("efa1")*f1 +
+  efa("efa1")*f2 +
+  efa("efa1")*f3 =~ x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9
+'
+
+# Fit EFA Model
+mplusRotationArgs &lt;- list(rstarts = 30,
+  row.weights = "none",
+  algorithm = "gpa",
+  orthogonal = FALSE,
+  jac.init.rot = TRUE,
+  std.ov = TRUE, # row standard = correlation
+  geomin.epsilon = 0.0001)
+
+efa_fit &lt;- lavaan::sem(
+  efa_syntax,
+  data = HolzingerSwineford1939,
+  information = "observed",
+  missing = "ML",
+  estimator = "MLR",
+  rotation = "geomin",
+  # mimic Mplus
+  meanstructure = TRUE,
+  rotation.args = mplusRotationArgs)
+
+# Extract Factor Loadings
+esem_loadings &lt;- lavaan::parameterEstimates(
+  efa_fit,
+  standardized = TRUE
+) |&gt;
+  dplyr::filter(efa == "efa1") |&gt;
+  dplyr::select(lhs, rhs, est) |&gt;
+  dplyr::rename(item = rhs, latent = lhs, loading = est)
+
+# Specify Anchor Item for Each Latent Factor
+anchors &lt;- c(f1 = "x3", f2 = "x5", f3 = "x7")
+
+# Generate ESEM Syntax
+esemModel_syntax &lt;- make_esem_model(esem_loadings, anchors)
+
+# Fit ESEM Model
+lavaan::sem(
+  esemModel_syntax,
+  data = HolzingerSwineford1939,
+  missing = "ML",
+  estimator = "MLR")
+
+</code></pre>
+
+
+</div>

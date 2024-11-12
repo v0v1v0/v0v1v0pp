@@ -1,0 +1,528 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>profileModel</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Get the profiles of arbitrary objectives for arbitrary ‘glm’-like
+models</h2>
+
+<h3>Description</h3>
+
+<p>Calculates the profiles of <b>arbitrary</b> objectives (inference functions
+in the terminology of Lindsay and Qu, 2003) for the parameters of
+<b>arbitrary</b> <code>glm</code>-like models with linear
+predictor. It provides a variety of options such as profiling over a
+pre-specified grid, profiling until the profile of the objective
+reaches the values of a quantile, calculating the profile traces along
+with the profiled objectives, and others.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">profileModel(fitted, gridsize = 20, stdn = 5, stepsize = 0.5,
+             grid.bounds = NULL, quantile = NULL,
+             objective = stop("'objective' is missing."),
+             agreement = TRUE, verbose = TRUE, trace.prelim = FALSE,
+             which = 1:length(coef(fitted)), profTraces = TRUE,
+             zero.bound = 1e-08, scale = FALSE,
+             stdErrors = NULL, ...)
+
+prelim.profiling(fitted, quantile = qchisq(0.95, 1),
+                 objective = stop("'objective' is missing."),
+                 verbose = TRUE, which = 1:length(coef(fitted)),
+                 stepsize = 0.5, stdn = 5, agreement = TRUE,
+                 trace.prelim = FALSE,
+                 stdErrors = NULL, ...)
+
+profiling(fitted, grid.bounds, gridsize = 20, verbose = TRUE,
+          objective = stop("'objective' is missing."),
+          agreement = TRUE, which = 1:length(coef(fitted)),
+          profTraces = TRUE, zero.bound = 1e-08, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>fitted</code></td>
+<td>
+<p>a <code>glm</code>-like fitted object with <b>linear
+predictor</b> (see Details for the methods that have to be supported
+by <code>fitted</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>which</code></td>
+<td>
+<p>which parameters should be profiled? Has to be a vector
+of integers for <code>profiling</code> and <code>prelim.profiling</code> but for
+<code>profileModel</code> it  could also be a vector of parameter
+names. The default is <code>1:length(coef(fitted))</code>, i.e. all the
+parameters estimated in <code>fitted</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grid.bounds</code></td>
+<td>
+<p>a matrix of dimension <code>length(which)</code> by <code>2</code> or a
+<code>2*length(which)</code> vector that specifies the range of values in which
+profiling takes place for each parameter. It has to be set for
+<code>profiling</code> and the default is <code>NULL</code> for <code>profileModel</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gridsize</code></td>
+<td>
+<p>The number of equidistant parameter values to be taken
+between the values specified in the entries of <code>grid.bounds</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stepsize</code></td>
+<td>
+<p>a positive integer that is used in
+<code>prelim.profiling</code> to penalize the size of the steps taken to the left
+and to the right of the estimate. The default value is 0.5.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stdn</code></td>
+<td>
+<p>in <code>profileModel</code>, the number of estimated standard
+deviations to move left or right from the estimated parameter
+value, when both <code>quantile</code> and <code>grid.bounds</code> are <code>NULL</code>. In
+<code>prelim.profiling</code>, <code>stdn/stepsize</code> is the maximum number of
+steps that are taken to the left and to the right of the estimate. The
+default value of <code>stdn</code> is 5 (see Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quantile</code></td>
+<td>
+<p>a quantile, indicating the range that the profile must
+cover. The default value in <code>profileModel</code> is <code>NULL</code> and in
+<code>prelim.profiling</code>, <code>qchisq(0.95,1)</code> (see Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>objective</code></td>
+<td>
+<p>the function to be profiled. It is a function of the
+<b>restricted</b> fitted object and other arguments (see
+<code>objectives</code>). It should be of class <code>function</code> for
+<code>profiling</code> and <code>prelim.profiling</code> but it could also be a
+character string to be matched for <code>profileModel</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>agreement</code></td>
+<td>
+<p>logical indicating whether the fitting method used
+for <code>fitting</code> agrees  with the specified objective, i.e. whether
+the objective is minimized at <code>coef(fitted)</code>. The default is
+<code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical. If <code>TRUE</code> (default) progress indicators
+are printed during  the profiling progress.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace.prelim</code></td>
+<td>
+<p>logical. If <code>TRUE</code> the preliminary iteration is
+traced. The default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>profTraces</code></td>
+<td>
+<p>logical indicating whether the profile traces should
+be returned. The default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zero.bound</code></td>
+<td>
+<p>a small positive constant. The difference of the
+objective at the <b>restricted</b> fit from the objective at
+<code>fitted</code> takes value zero if it is smaller than
+<code>zero.bound</code>. <code>zero.bound</code> is only used when
+<code>agreement=TRUE</code> and the default value is <code>1e-08</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>logical. The
+default is <code>FALSE</code>. Currently has no effect. Only available in <code>profileModel</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stdErrors</code></td>
+<td>
+<p>The vector estimated asymptotic standard errors reported
+from the fitting procedure. The default is <code>NULL</code> (see Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments passed to the specified objective.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>fitted</code> has to be an object which supports the method
+
+<code>coef</code> and which has <code>fitted$terms</code> with the same
+meaning as, for example, in <code>lm</code> and
+<code>glm</code> (see also <code>terms</code>). <code>coef(fitted)</code>
+has to be a <b>vector</b> of coefficients with each component
+corresponding to a column of the model matrix returned by
+</p>
+<p><code>mf &lt;- model.frame(fitted$terms,data=eval(fitted$call$data)) ;
+  model.matrix(fitted$terms,mf,contrasts = fitted$contrasts)</code>
+</p>
+<p>(or just <code>model.matrix(fitted)</code>, for <code>fitted</code> objects that
+support the <code>model.matrix</code> method.)
+</p>
+<p>Exception to this are objects returned by <code>BTm</code> of the
+<span class="pkg">BradleyTerry</span> package, where some special handling of the required
+objects takes place.
+</p>
+<p>Note that any or both of <code>data</code> and <code>contrasts</code> could be
+<code>NULL</code>. This depends whether the <code>data</code> argument has been
+supplied to the procedure and whether <code>fitted$contrast</code> exists.
+
+
+
+</p>
+<p>The fitting procedure that resulted <code>fitted</code> has to support
+<code>offset</code> in <code>formula</code>.
+
+
+
+Also, <code>fitted$call</code> has to be the call that generated <code>fitted</code>.
+</p>
+<p>If the fitting procedure that resulted <code>fitted</code>  supports an
+<code>etastart</code> argument (see <code>glm</code>) and
+<code>fitted$linear.predictor</code> contains the estimated linear
+predictors then during profiling, the appropriate starting values
+are supplied to the fitting procedure. In this way, the iteration is
+accelerated and is more stable, numerically. However, it is not necessary
+that <code>etastart</code> is supported. In the latter case no starting
+values are supplied to the fitting procedure during profiling.
+</p>
+<p>Support for a <code>summary</code> method is
+optional. <code>summary</code> is only used for obtaining the
+estimated asymptotic standard errors associated to the coefficients in
+<code>fitted</code>. If <code>stdErrors=NULL</code> the standard errors are taken
+to be <code>summary(fitted)$coefficients[,2]</code> which is the place where
+the estimated asymptotic standard errors usually are for
+<code>glm</code>-like objects. If this this is not the case then
+<code>stdErrors</code> should be set appropriately. <br><br></p>
+<p><code>profiling</code> is the workhorse function that does the basic operation of
+profiling objectives over a user-specified grid of values. For a given
+parameter <code class="reqn">\beta</code>, the <b>restricted</b> fit
+<code class="reqn">F_{\beta=b}</code> is calculated by constraining
+<code class="reqn">\beta</code> to a point <code class="reqn">b</code> of the grid. Then the difference
+</p>
+<p style="text-align: center;"><code class="reqn">D(F_{\beta=b}) = P(F_{\beta=b}) - P(F_0),</code>
+</p>
+
+<p>is calculated, where <code class="reqn">P</code> is the objective specified by the user
+and <code class="reqn">G</code> is the original fit (<code>fitted</code>). For convex
+objectives that are minimized at the estimates of <code class="reqn">G</code> (see
+<code>agreement</code>), <code class="reqn">D(G)=0</code>.
+</p>
+<p><code>prelim.profiling</code> refers only to convex objectives and searches for
+and returns the grid bounds (<code>grid.bounds</code>) for each
+profiled parameter that should be used in order the profile to cover
+<code>quantile</code>. For a given parameter <code class="reqn">\beta</code>,
+<code>prelim.profiling</code> also checks whether  such enclosure can be
+found and returns a logical matrix <code>intersects</code> of dimension
+<code>length(which)</code> by <code>2</code> that indicates if the profile covers the
+quantile to the left and to the right of the estimate in
+<code>fitted</code>. At step <code>i</code> of the search a value <code class="reqn">b_i</code> is
+proposed for <code class="reqn">\beta</code> and <code class="reqn">D(F_{\beta=b_i})</code> is calculated. If
+<code class="reqn">D(F_{\beta=b_i})&lt;q</code>, where <code class="reqn">q</code> is <code>quantile</code>, the next
+proposed value is
+</p>
+<p style="text-align: center;"><code class="reqn">b_{i+1} = b_{i} \pm (i+1) C \min(s,30)/|L| ,</code>
+</p>
+
+<p>where <code class="reqn">C</code> is <code>stepsize</code>, <code class="reqn">s</code> is the
+estimated asymptotic standard error of <code class="reqn">\beta</code> from <code class="reqn">G</code> and
+<code class="reqn">L</code> is the slope of the line segment connecting the points
+<code class="reqn">(b_i, D(F_{\beta=b_i}))</code> and
+<code class="reqn">(b_{i-1}, D(F_{\beta=b_{i-1}}))</code>. <code class="reqn">\pm</code> is <code class="reqn">+</code> if the search is on the
+right of the estimate of <code class="reqn">\beta</code> and <code class="reqn">-</code> on the left. If an
+increase of <code class="reqn">D</code> is expected then the step slows down. If
+<code class="reqn">|L|&lt;1</code> then <code class="reqn">|L|</code> is set to 1 and if
+<code class="reqn">|L|&gt;500</code> then <code class="reqn">|L|</code>  is set to 500. In
+this way the iteration is conservative by avoiding very small steps
+but not over-conservative by avoiding very large steps.
+</p>
+<p>If the maximum number of steps <code>stdn/stepsize</code> (call this <code class="reqn">M</code>)
+was taken and the quantile was not covered by the profile but the three
+last absolute slopes where  positive then the iteration is restarted
+form <code class="reqn">b_{M-1}</code> with <code class="reqn">2C</code> instead of <code class="reqn">C</code> in the step
+calculation. If the three last slopes were less than <code>1e-8</code> in
+absolute value then the iteration stops and it is considered that
+<code class="reqn">D</code> has an asymptote at the corresponding direction (left or right).
+Note that when the latter takes place the iteration has already moved
+<code class="reqn">6 C\min(s,30)</code> units on the scale of <code class="reqn">\beta</code>,
+since the first value of <code class="reqn">b</code> were a slope of 1e-8 in absolute value
+was detected. Thus we could safely say that an asymptote has been
+detected and avoid calculation of <code class="reqn">F_{beta=b}</code> for
+extremely large <code class="reqn">b</code>'s.
+</p>
+<p>Very small values of <code>stepsize</code> make <code>prelim.profiling</code> take
+very small steps with the effect of slowing down the execution
+time. Large values of <code>stepsize</code> are only recommended when the
+estimated asymptotic standard errors are very small in <code>fitted</code>.
+</p>
+<p><code>profileModel</code> is a wrapper function that collects and combines
+the capabilities of <code>profiling</code> and <code>prelim.profiling</code> by
+providing a unified interface for their functions, as well as appropriateness
+checks on the arguments. When both <code>quantile</code>  and
+<code>grid.bounds</code> are <code>NULL</code> then <code>profiling</code> is called and
+profiling takes place for <code>stdn</code> estimated asymptotic standard
+errors on the left and on the right of the estimates in
+<code>fitted</code>. This could be used for taking a quick look of the
+profiles around the estimate. With only the <code>quantile</code> being
+<code>NULL</code>, profiling is performed on the the specified grid of
+values. When <code>quantile</code> is specified and <code>grid.bounds</code> is
+<code>NULL</code>, <code>prelim.profiling</code> is  called and its result is
+passed to <code>profiling</code>. If both <code>quantile</code> and
+<code>grid.bounds</code> then <code>grid.bounds</code> prevails and profiling is
+performed on the specified grid.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>profiling</code> returns a list of profiles, with one named component
+for each parameter profiled. Each component of
+the list contains the profiled parameter values and the corresponding
+differences of the objective at the <b>restricted</b> fit from the
+objective at <code>fitted</code>. When <code>profTraces=TRUE</code> the corresponding
+profile traces are <code>cbind</code>'ed to each component of the
+list.
+</p>
+<p><code>prelim.profiling</code> returns a list with components
+<code>intersects</code> and <code>grid.bounds</code>.
+</p>
+<p><code>profileModel</code> returns an object of class <code>"profileModel"</code>
+that has the attribute <code>includes.traces</code> corresponding to the
+value of the <code>profTraces</code> argument. The <code>"profileModel"</code>
+object is a  list of the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>profiles</code></td>
+<td>
+<p>the result of <code>profiling</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>the <code>fitted</code> object that was passed to
+<code>profileModel</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quantile</code></td>
+<td>
+<p>the <code>quantile</code> that was passed to
+<code>profileModel</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gridsize</code></td>
+<td>
+<p>the <code>gridsize</code> that was passed to
+<code>profileModel</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intersects</code></td>
+<td>
+<p>if <code>quantile=NULL</code> then
+<code>intersects=NULL</code> else <code>intersects</code> is as for
+<code>prelim.profiling</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>profiled.parameters</code></td>
+<td>
+<p>a vector of integers indicating which
+parameters were profiled.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>profiled.objective</code></td>
+<td>
+<p>the profiled objective with any additional
+arguments passed through <code>...</code> evaluated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>isNA</code></td>
+<td>
+<p>a logical vector indicating which of the parameters in
+<code>which</code> were <code>NA</code> in <code>fitted</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>agreement</code></td>
+<td>
+<p>the <code>agreement</code> that was passed to
+<code>profileModel</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zero.bound</code></td>
+<td>
+<p>the <code>zero.bound</code> that was passed to
+<code>profileModel</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grid.bounds</code></td>
+<td>
+<p>the grid bounds that were used for profiling.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>the matched call.</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>Methods specific to objects of class <code>"profileModel"</code> are
+</p>
+
+<ul>
+<li> <p><code>print</code>, see <code>print.profileModel</code>.
+</p>
+</li>
+<li> <p><code>signedSquareRoots</code>, see <code>signedSquareRoots</code>.
+</p>
+</li>
+<li> <p><code>profConfint</code>, see <code>profConfint</code>.
+</p>
+</li>
+<li> <p><code>plot</code>, see <code>plot.profileModel</code>.
+</p>
+</li>
+<li> <p><code>pairs</code>, see <code>pairs.profileModel</code>.
+</p>
+</li>
+</ul>
+<p><code>profileModel</code> has been tested and is known to work for fitted
+objects resulting from  <code>lm</code>, <code>glm</code>,
+<code>polr</code>, <code>gee</code>, <code>geeglm</code>, <code>brglm</code> and <code>BTm</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Ioannis Kosmidis &lt;email: ioannis.kosmidis@warwick.ac.uk&gt;</p>
+
+
+<h3>References</h3>
+
+<p>Lindsay, B. G. and Qu, A. (2003). Inference functions and quadratic
+score tests. <em>Statistical Science</em> <b>18</b>, 394–410.
+</p>
+<p>Chambers, J. M. and Hastie, T. J. (1992) <em>Statistical Models in
+S</em>. Chapman \&amp; Hall/CRC.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>confintModel</code>, <code>plot.profileModel</code>.</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Begin Example 1
+library(MASS)
+m1 &lt;- glm(Claims ~ District + Group + Age + offset(log(Holders)),
+          data = Insurance, family = poisson)
+# profile deviance +-5 estimated standard errors from the estimate
+prof0 &lt;- profileModel(m1, objective = "ordinaryDeviance")
+# profile deviance over a grid of values
+gridd &lt;- rep(c(-1,1), length(coef(m1)))
+prof1 &lt;- profileModel(m1, grid.bounds = gridd,
+                      objective = "ordinaryDeviance")
+# profile deviance until the profile reaches qchisq(0.95,1)
+prof2 &lt;- profileModel(m1, quantile = qchisq(0.95,1) ,
+                      objective = "ordinaryDeviance")
+# plot the profiles of the deviance
+plot(prof2)
+# quite quadratic in shape. Just to make sure:
+plot(prof2, signed = TRUE)
+# Ok straight lines. So we expect first order asymptotics to work well;
+## Not run: 
+# plot the profiles of the Rao score statistic
+# profile Rao's score statistic
+prof3 &lt;- update(prof2, objective = "RaoScoreStatistic",
+                X = model.matrix(m1))
+plot(prof3)
+# The 95% confidence intervals based on prof2 and prof3 and the simple Wald
+# confidence intervals:
+profConfint(prof2)
+profConfint(prof3)
+stdErrors &lt;- coef(summary(m1))[,2]
+coef(m1)+ qnorm(0.975) * cbind(-stdErrors,stdErrors)
+# They are all quite similar in value. The result of a quadratic likelihood.
+## End Example
+
+## End(Not run)
+## Begin Example 2: Monotone likelihood; data separation;
+library(MASS)
+y &lt;- c(0, 0, 1, 0)
+tots &lt;- c(2, 2, 5, 2)
+x1 &lt;- c(1, 0, 1, 0)
+x2 &lt;- c(1, 1, 0, 0)
+m2 &lt;- glm(y/tots ~ x1 + x2, weights = tots,
+          family = binomial)
+prof &lt;- profileModel(m2, quantile=qchisq(0.95,1),
+                     objective = "ordinaryDeviance")
+plot(prof)
+profConfint(prof)
+# profile.glm fails to detect the finite endpoints
+confint(m2)
+## End Example
+## Not run: 
+## Begin Example 3: polr
+library(MASS)
+options(contrasts = c("contr.treatment", "contr.poly"))
+house.plr &lt;- polr(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
+prof.plr0 &lt;- profileModel(house.plr, objective = function(fm) fm$deviance)
+plot(prof.plr0)
+# do it with a quantile
+prof.plr1 &lt;- update(prof.plr0, quantile = qchisq(0.95, 1))
+plot(prof.plr1)
+## End Example
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,329 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mpin_ecm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>MPIN model estimation via an ECM algorithm</h2>
+
+<h3>Description</h3>
+
+<p>Estimates the multilayer probability of informed trading
+(<code>MPIN</code>) using an Expectation Conditional Maximization algorithm, as in
+Ghachem and Ersan (2022a).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mpin_ecm(data, layers = NULL, xtraclusters = 4, initialsets = NULL,
+                      ..., verbose = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A dataframe with 2 variables: the first
+corresponds to buyer-initiated trades (buys), and the second corresponds
+to seller-initiated trades (sells).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>layers</code></td>
+<td>
+<p>An integer referring to the assumed number of
+information layers in the data. If the argument <code>layers</code> is given, then
+the ECM algorithm will use the number of layers provided. If <code>layers</code> is
+omitted, the function <code>mpin_ecm()</code> will simultaneously optimize the number
+of layers as well as the parameters of the <code>MPIN</code> model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xtraclusters</code></td>
+<td>
+<p>An integer used to divide trading days into
+<code>#(1 + layers + xtraclusters)</code> clusters, thereby resulting in
+<code>#comb((layers + xtraclusters, layers)</code> initial parameter sets in line
+with Ersan and Alici (2016), and
+Ersan (2016). The default value is <code>4</code>
+as chosen in Ersan (2016).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initialsets</code></td>
+<td>
+<p>A dataframe containing initial parameter
+sets for estimation of the <code>MPIN</code> model. The default value is <code>NULL</code>.
+If <code>initialsets</code> is <code>NULL</code>, the initial parameter sets are provided by
+the function <code>initials_mpin()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed on to the function <code>mpin_ecm</code>. The
+recognized arguments are <code>hyperparams</code>, and <code>is_parallel</code>.
+</p>
+
+<ul>
+<li> <p><code>hyperparams</code> is a list containing the hyperparameters of the ECM
+algorithm. When not empty, it contains one or more  of the following
+elements: <code>minalpha</code>, <code>maxeval</code>, <code>tolerance</code>, <code>criterion</code>, and <code>maxlayers</code>.
+More about these elements are in the details section.
+</p>
+</li>
+<li>  <p><code>is_parallel</code> is a logical variable that specifies whether
+the computation is performed using parallel or sequential processing. The
+default value is <code>FALSE</code>. For more details, please refer to the
+vignette 'Parallel processing' in the package, or
+<a href="https://pinstimation.com/articles/parallel_processing.html">online</a>.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>(<code>logical</code>) a binary variable that determines whether detailed
+information about the steps of the estimation of the MPIN model is displayed.
+No output is produced when <code>verbose</code> is set to <code>FALSE</code>. The default
+value is <code>TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The argument 'data' should be a numeric dataframe, and contain
+at least two variables. Only the first two variables will be considered:
+The first variable is assumed to correspond to the total number of
+buyer-initiated trades, while the second variable is assumed to
+correspond to the total number of seller-initiated trades. Each row or
+observation correspond to a trading day. <code>NA</code> values will be ignored.
+</p>
+<p>The initial parameters for the expectation-conditional maximization
+algorithm are computed using the function <code>initials_mpin()</code>  with
+default settings. The factorization of the <code>MPIN</code> likelihood function
+used is developed by Ersan (2016), and
+is implemented in <code>fact_mpin()</code>.<br><br>
+The argument <code>hyperparams</code> contains the hyperparameters of the ECM algorithm.
+It is either empty or contains one or more of the following elements:
+</p>
+
+<ul>
+<li> <p><code>minalpha</code> (<code>numeric</code>) It stands for the minimum share of days
+belonging  to a given layer, i.e., layers falling below this threshold are
+removed during the iteration, and the model is estimated with a lower number
+of layers. When missing, <code>minalpha</code> takes the default value of <code>0.001</code>.
+</p>
+</li>
+<li> <p><code>maxeval</code>: (<code>integer</code>) It stands for maximum number of iterations of
+the ECM  algorithm for each initial parameter set. When missing, <code>maxeval</code>
+takes the default value of <code>100</code>.
+</p>
+</li>
+<li> <p><code>tolerance</code> (<code>numeric</code>) The ECM algorithm is stopped when the
+(relative) change of log-likelihood is  smaller than tolerance. When
+missing, <code>tolerance</code> takes the default value of <code>0.001</code>.
+</p>
+</li>
+<li> <p><code>criterion</code> (<code>character</code>) It is the model selection criterion used to
+find the optimal estimate  for the <code>MPIN</code> model. It take one of these values
+<code>"BIC"</code>, <code>"AIC"</code> and <code>"AWE"</code>; which stand for Bayesian Information
+Criterion,  Akaike Information Criterion and Approximate Weight of Evidence,
+respectively (Akogul and Erisoglu 2016). When missing,
+<code>criterion</code> takes  the default value of <code>"BIC"</code>.
+</p>
+</li>
+<li> <p><code>maxlayers</code> (<code>integer</code>) It is the upper limit of number of layers used
+for estimation in the ECM algorithm.  If the argument <code>layers</code> is missing,
+the ECM algorithm will estimate <code>MPIN</code> models for all layers in the integer
+set from <code>1</code> to <code>maxlayers</code>. When missing, <code>maxlayers</code> takes the default
+value of <code>8</code>.
+</p>
+</li>
+<li> <p><code>maxinit</code> (<code>integer</code>) It is the maximum number of initial sets used
+for each individual estimation in the ECM algorithm. When missing, <code>maxinit</code>
+takes the default value of <code>100</code>.
+</p>
+</li>
+</ul>
+<p>If the argument <code>layers</code> is given, then the Expectation Conditional
+Maximization algorithm will use the number of  layers provided. If
+<code>layers</code> is omitted, the function <code>mpin_ecm()</code> will simultaneously
+optimize the number of layers as well as the parameters of the <code>MPIN</code> model.
+Practically, the function <code>mpin_ecm()</code> uses the ECM algorithm to optimize
+the <code>MPIN</code> model parameters for each number of layers within the integer
+set from <code>1</code> to <code>8</code> (or to <code>maxlayers</code> if specified in the argument
+<code>hyperparams</code>); and returns the optimal model with the lowest Bayesian
+information  criterion (BIC) (or the lowest information criterion
+<code>criterion</code> if specified in the argument <code>hyperparams</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns an object of class <code>estimate.mpin.ecm</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Akogul S, Erisoglu M (2016).
+“A comparison of information criteria in clustering based on mixture of multivariate normal distributions.”
+<em>Mathematical and Computational Applications</em>, <b>21</b>(3), 34.<br><br> Ersan O (2016).
+“Multilayer Probability of Informed Trading.”
+<em>Available at SSRN 2874420</em>.<br><br> Ersan O, Alici A (2016).
+“An unbiased computation methodology for estimating the probability of informed trading (PIN).”
+<em>Journal of International Financial Markets, Institutions and Money</em>, <b>43</b>, 74–94.
+ISSN 10424431.<br><br> Ghachem M, Ersan O (2022a).
+“Estimation of the probability of informed trading models via an expectation-conditional maximization algorithm.”
+<em>Available at SSRN 4117952</em>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># There is a preloaded quarterly dataset called 'dailytrades' with 60
+# observations. Each observation corresponds to a day and contains the
+# total number of buyer-initiated trades ('B') and seller-initiated
+# trades ('S') on that day. To know more, type ?dailytrades
+
+xdata &lt;- dailytrades
+
+# Estimate the MPIN model using the expectation-conditional maximization
+# (ECM) algorithm.
+
+# ------------------------------------------------------------------------ #
+# Estimate the MPIN model, assuming that there exists 2 information layers #
+# in the dataset                                                           #
+# ------------------------------------------------------------------------ #
+
+estimate &lt;- mpin_ecm(xdata, layers = 2, verbose = FALSE)
+
+# Show the estimation output
+
+show(estimate)
+
+# Display the optimal parameters from the Expectation Conditional
+# Maximization algorithm
+
+show(estimate@parameters)
+
+# Display the global multilayer probability of informed trading
+
+show(estimate@mpin)
+
+# Display the multilayer probability of informed trading per layer
+
+show(estimate@mpinJ)
+
+# Display the first five rows of the initial parameter sets used in the
+# expectation-conditional maximization estimation
+
+show(round(head(estimate@initialsets, 5), 4))
+
+# ------------------------------------------------------------------------ #
+# Omit the argument 'layers', so the ECM algorithm optimizes both the      #
+# number of layers and the MPIN model parameters.                          #
+# ------------------------------------------------------------------------ #
+
+estimate &lt;- mpin_ecm(xdata, verbose = FALSE)
+
+# Show the estimation output
+
+show(estimate)
+
+# Display the optimal parameters from the estimation of the MPIN model using
+# the expectation-conditional maximization (ECM) algorithm
+
+show(estimate@parameters)
+
+# Display the multilayer probability of informed trading
+
+show(estimate@mpin)
+
+# Display the multilayer probability of informed trading per layer
+
+show(estimate@mpinJ)
+
+# Display the first five rows of the initial parameter sets used in the
+# expectation-conditional maximization estimation.
+
+show(round(head(estimate@initialsets, 5), 4))
+
+# ------------------------------------------------------------------------ #
+# Tweak in the hyperparameters of the ECM algorithm                        #
+# ------------------------------------------------------------------------ #
+
+# Create a variable ecm.params containing the hyperparameters of the ECM
+# algorithm. This will surely make the ECM algorithm take more time to give
+# results
+
+ecm.params &lt;- list(tolerance = 0.0000001)
+
+# If we suspect that the data contains more than eight information layers, we
+# can raise the number of models to be estimated to 10 as an example, i.e.,
+# maxlayers = 10.
+
+ecm.params$maxlayers &lt;- 10
+
+# We can also choose Approximate Weight of Evidence (AWE) for model
+# selection instead of the default Bayesian Information Criterion (BIC)
+
+ecm.params$criterion &lt;- 'AWE'
+
+# We can also increase the maximum number of initial sets to 200, in
+# order to obtain higher level of accuracy for models with high number of
+# layers.  We set the sub-argument 'maxinit' to `200`. Remember that its
+# default value is `100`.
+
+ecm.params$maxinit &lt;- 200
+
+estimate &lt;- mpin_ecm(xdata, xtraclusters = 2, hyperparams = ecm.params,
+                                                      verbose = FALSE)
+
+# We can change the model selection criterion by calling selectModel()
+
+estimate &lt;- selectModel(estimate, "AIC")
+
+# We get the mpin_ecm estimation results for the MPIN model with 2 layers
+# using the slot models. We then show the first five rows of the
+# corresponding slot details.
+
+models &lt;- estimate@models
+show(round(head(models[[2]]@details, 5), 4))
+
+# We can also use the function getSummary to get an idea about the change in
+# the estimation parameters as a function of the number of layers in the
+# MPIN model. The function getSummary returns a dataframe that contains,
+# among others, the number of layers of the model, the number of layers in
+# the optimal model,the MPIN value, and the values of the different
+# information criteria, namely AIC, BIC and AWE.
+
+summary &lt;- getSummary(estimate)
+
+# We can plot the MPIN value and the layers at the optimal model as a
+# function of the number of layers to see whether additional layers in the
+# model actually contribute to a better precision in the probability of
+# informed trading. Remember that the hyperparameter 'minalpha' is
+# responsible for dropping layers with "frequency" lower than 'minalpha'.
+
+plot(summary$layers, summary$MPIN,
+   type = "o", col = "red",
+   xlab = "MPIN model layers", ylab = "MPIN value"
+ )
+
+plot(summary$layers, summary$em.layers,
+   type = "o", col = "blue",
+   xlab = "MPIN model layers", ylab = "layers at the optimal model"
+)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,236 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PeakSegFPOP_dir</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>PeakSeg penalized solver with caching</h2>
+
+<h3>Description</h3>
+
+<p>Main function/interface for the PeakSegDisk package.
+Run the low-level solver, <code>PeakSegFPOP_file</code>,
+on one genomic segmentation problem
+directory, and read the result files into R. Actually, this
+function will first check if the result files are already present
+(and consistent), and if so, it will simply read them into R
+(without running <code>PeakSegFPOP_file</code>) – this is a caching mechanism
+that can save a lot of time.
+To run the algo on an integer vector, use <code>PeakSegFPOP_vec</code>;
+for a data.frame, use <code>PeakSegFPOP_df</code>.
+To compute the optimal model for a given number of peaks,
+use <code>sequentialSearch_dir</code>.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PeakSegFPOP_dir(problem.dir, 
+    penalty.param, db.file = NULL)</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>problem.dir</code></td>
+<td>
+<p>Path to a directory like sampleID/problems/chrXX-start-end which
+contains a coverage.bedGraph file with the aligned read counts for
+one genomic segmentation problem. This must be a plain text file
+with the following four columns: chrom (character chromosome
+name), chromStart (integer start position), chromEnd (integer end
+position), count (integer aligned read count on chrom from
+chromStart+1 to chromEnd); see also
+https://genome.ucsc.edu/goldenPath/help/bedgraph.html. Note that
+the standard coverage.bedGraph file name is required; for full
+flexibility the user can run the algo on an arbitrarily named file
+via <code>PeakSegFPOP_file</code> (see that man page for an explanation of how
+storage on disk happens).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalty.param</code></td>
+<td>
+<p>non-negative numeric penalty parameter (larger values for fewer
+peaks), or character scalar which can be interpreted as such. 0
+means max peaks, Inf means no peaks.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>db.file</code></td>
+<td>
+<p>character scalar: file for writing temporary cost function
+database – there will be a lot of disk writing to this
+file. Default NULL means to write the same disk where the input
+bedGraph file is stored; another option is tempfile() which may
+result in speedups if the input bedGraph file is on a slow network
+disk and the temporary storage is a fast local disk.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Finds the optimal change-points using the Poisson loss
+and the PeakSeg constraint (changes in mean alternate between
+non-decreasing and non-increasing). For <code class="reqn">N</code> data points, the
+functional pruning algorithm is <code class="reqn">O(\log N)</code> memory. It is
+<code class="reqn">O(N \log N)</code> time and disk space. It computes the
+exact solution to the optimization problem in
+<code>vignette("Examples", package="PeakSegDisk")</code>.</p>
+
+
+<h3>Value</h3>
+
+<p>Named list of two data.tables:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>segments</code></td>
+<td>
+<p>has one row for every segment in the optimal model,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loss</code></td>
+<td>
+<p>has one row and contains the following columns:</p>
+</td>
+</tr>
+</table>
+<dl>
+<dt>penalty</dt>
+<dd>
+<p>same as input parameter</p>
+</dd>
+<dt>segments</dt>
+<dd>
+<p>number of segments in optimal model</p>
+</dd>
+<dt>peaks</dt>
+<dd>
+<p>number of peaks in optimal model</p>
+</dd>
+<dt>bases</dt>
+<dd>
+<p>number of positions described in bedGraph file</p>
+</dd>
+<dt>bedGraph.lines</dt>
+<dd>
+<p>number of lines in bedGraph file</p>
+</dd>
+<dt>total.loss</dt>
+<dd>
+<p>total Poisson loss
+= <code class="reqn">\sum_i m_i-z_i*\log(m_i)</code> =
+mean.pen.cost*bases-penalty*peaks</p>
+</dd>
+<dt>mean.pen.cost</dt>
+<dd>
+<p>mean penalized cost = (total.loss+penalty*peaks)/bases</p>
+</dd>
+<dt>equality.constraints</dt>
+<dd>
+<p>number of adjacent segment means that have
+equal values in the optimal solution</p>
+</dd>
+<dt>mean.intervals</dt>
+<dd>
+<p>mean number of intervals/candidate
+changepoints stored in optimal cost functions – useful for
+characterizing the computational complexity of the algorithm</p>
+</dd>
+<dt>max.intervals</dt>
+<dd>
+<p>maximum number of intervals</p>
+</dd>
+<dt>megabytes</dt>
+<dd>
+<p>disk usage of *.db file</p>
+</dd>
+<dt>seconds</dt>
+<dd>
+<p>timing of PeakSegFPOP_file</p>
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p>Toby Dylan Hocking &lt;toby.hocking@r-project.org&gt; [aut, cre]</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(Mono27ac, package="PeakSegDisk", envir=environment())
+data.dir &lt;- file.path(
+  tempfile(),
+  "H3K27ac-H3K4me3_TDHAM_BP",
+  "samples",
+  "Mono1_H3K27ac",
+  "S001YW_NCMLS",
+  "problems",
+  "chr11-60000-580000")
+dir.create(data.dir, recursive=TRUE, showWarnings=FALSE)
+write.table(
+  Mono27ac$coverage, file.path(data.dir, "coverage.bedGraph"),
+  col.names=FALSE, row.names=FALSE, quote=FALSE, sep="\t")
+
+## Compute one model with penalty=1952.6
+(fit &lt;- PeakSegDisk::PeakSegFPOP_dir(data.dir, 1952.6))
+summary(fit)#same as fit$loss
+
+## Visualize that model.
+ann.colors &lt;- c(
+  noPeaks="#f6f4bf",
+  peakStart="#ffafaf",
+  peakEnd="#ff4c4c",
+  peaks="#a445ee")
+if(require(ggplot2)){
+  lab.min &lt;- Mono27ac$labels[1, chromStart]
+  lab.max &lt;- Mono27ac$labels[.N, chromEnd]
+  plist &lt;- coef(fit)
+  gg &lt;- ggplot()+
+    theme_bw()+
+    geom_rect(aes(
+      xmin=chromStart/1e3, xmax=chromEnd/1e3,
+      ymin=-Inf, ymax=Inf,
+      fill=annotation),
+      color="grey",
+      alpha=0.5,
+      data=Mono27ac$labels)+
+    scale_fill_manual("label", values=ann.colors)+
+    geom_step(aes(
+      chromStart/1e3, count),
+      color="grey50",
+      data=Mono27ac$coverage)+
+    geom_segment(aes(
+      chromStart/1e3, mean,
+      xend=chromEnd/1e3, yend=mean),
+      color="green",
+      size=1,
+      data=plist$segments)+
+    geom_vline(aes(
+      xintercept=chromEnd/1e3, linetype=constraint),
+      color="green",
+      data=plist$changes)+
+    scale_linetype_manual(
+      values=c(
+        inequality="dotted",
+        equality="solid"))
+  print(gg)
+  print(gg+coord_cartesian(xlim=c(lab.min, lab.max)/1e3, ylim=c(0, 10)))
+  ## Default plotting method only shows model.
+  print(gg &lt;- plot(fit))
+  ## Data can be added on top of model.
+  print(
+    gg+
+      geom_step(aes(
+        chromStart, count),
+        color="grey50",
+        data=Mono27ac$coverage)
+  )
+}
+
+</code></pre>
+
+
+</div>

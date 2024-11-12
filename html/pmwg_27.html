@@ -1,0 +1,115 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pmwgs</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a PMwG sampler and return the created object</h2>
+
+<h3>Description</h3>
+
+<p>This function takes a few necessary elements for creating a PMwG sampler.
+Each pmwgs object is required to have a dataset, a list of parameter names,
+a log likelihood function and optionally a prior for the model parameters.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pmwgs(data, pars, ll_func, prior = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame containing empirical data to be modelled. Assumed
+to contain at least one column called subject whose elements are unique
+identifiers for each subject. Can be any of <code>data.frame</code>,
+<code>data.table</code> or <code>tibble</code>, or any other data frame like object
+that can have subsets created in an identical way.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pars</code></td>
+<td>
+<p>The list of parameter names to be used in the model</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ll_func</code></td>
+<td>
+<p>A log likelihood function that given a list of parameter
+values and a data frame (or other data store) containing subject data will
+return the log likelihood of <code>data</code> given <code>x</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior</code></td>
+<td>
+<p>Specification of the prior distribution for the model
+parameters. It should be a list with two elements, <code>theta_mu_mean</code> and
+<code>theta_mu_var</code> which fully specify the prior distribution. If left as
+the default (NULL) then the <code>theta_mu_mean</code> will be all zeroes and
+<code>theta_mu_var</code> will be 1 on the diagonal and zero elsewhere.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A pmwgs object that is ready to be initialised and sampled.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Specify the log likelihood function
+lba_loglike &lt;- function(x, data) {
+  x &lt;- exp(x)
+  if (any(data$rt &lt; x["t0"])) {
+    return(-1e10)
+  }
+  # This is faster than "paste".
+  bs &lt;- x["A"] + x[c("b1", "b2", "b3")][data$condition]
+
+  out &lt;- rtdists::dLBA(
+    rt = data$rt, # nolint
+    response = data$stim,
+    A = x["A"],
+    b = bs,
+    t0 = x["t0"],
+    mean_v = x[c("v1", "v2")],
+    sd_v = c(1, 1),
+    distribution = "norm",
+    silent = TRUE
+  )
+  bad &lt;- (out &lt; 1e-10) | (!is.finite(out))
+  out[bad] &lt;- 1e-10
+  out &lt;- sum(log(out))
+  out
+}
+
+# Specify parameter names and priors
+pars &lt;- c("b1", "b2", "b3", "A", "v1", "v2", "t0")
+priors &lt;- list(
+  theta_mu_mean = rep(0, length(pars)),
+  theta_mu_var = diag(rep(1, length(pars)))
+)
+
+# Create the Particle Metropolis within Gibbs sampler object
+sampler &lt;- pmwgs(
+  data = forstmann,
+  pars = pars,
+  ll_func = lba_loglike,
+  prior = priors
+)
+
+sampler = init(sampler, particles=10)
+sampler = run_stage(sampler, stage="burn", iter=10, particles=10)
+</code></pre>
+
+
+</div>

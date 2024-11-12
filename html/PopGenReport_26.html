@@ -1,0 +1,160 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>run.popgensim</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Run a time-forward popgen simulation</h2>
+
+<h3>Description</h3>
+
+<p>performs a time-forward, agent-based and spatiallly explicit genetic population simulation
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">run.popgensim(
+  simpops,
+  steps,
+  cost.mat,
+  n.offspring,
+  n.ind,
+  mig.rate,
+  disp.max,
+  disp.rate,
+  n.allels,
+  mut.rate,
+  n.cov = 3,
+  rec = "none",
+  emi.table = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>simpops</code></td>
+<td>
+<p>pops object (a list of pop)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>steps</code></td>
+<td>
+<p>the number of steps (generations)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cost.mat</code></td>
+<td>
+<p>a cost matrix (e.g. calculated via costDistance)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.offspring</code></td>
+<td>
+<p>number of offsprings per female</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.ind</code></td>
+<td>
+<p>number of individuals</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mig.rate</code></td>
+<td>
+<p>migration rate</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>disp.max</code></td>
+<td>
+<p>dispersal distance of disp.rate individuals</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>disp.rate</code></td>
+<td>
+<p>percentage of individuals achieving disp.max</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.allels</code></td>
+<td>
+<p>number of maximal alleles at a loci</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mut.rate</code></td>
+<td>
+<p>mutation rate</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.cov</code></td>
+<td>
+<p>number of covariates (defaults to 3)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rec</code></td>
+<td>
+<p>switch if emigration matrix should be recorded, either "none" or "emi"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>emi.table</code></td>
+<td>
+<p>a emigration matrix, if provide a fixed number of migration events will take place otherwise based on disp.max, mig.rate and disp.rate,</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>A pops object created via <code>init.popgensim</code> is used as input. The function simulates time forward individual-based spatially explicit population dynamics. Subpopulations are linked by dispersal that can be specified via a pairwise distance matrix between subpopulations [cost.mat]. Distances are converted to a probability. Currenlty the function used is the p2p function, where dispersal is modeled using an exponential function, that can be specified via disp.max and disp.rate. disp.max specifies the maximal distance that are achieved by the proportion of disp.rate individuals in a subpopulation. The number of dispersers per generation is set to round(mig.rate * n.ind). A simple mutation rate can be specified (the probability of a mutation per loci) using mut.rate. The maximal allowed number of alleles per loci need to be specified. Currently the mutation model is a simple Kmax-allele model [n.alleles]. As before n.cov is the number if covariates in the data.frame (currenlty fixed to n.cov=3). To track emigration events between subpopulations (be aware output is then a list instead of a simple pops object) rec can be set to "emi", which provides a matrix that shows the actual emigrations between subpopulations during the simulation. Emigration can also be determistic (instead of using disp.max and disp.rate) to a specified number of dispersal events per subpopulations. Over each generation events are occuring in that order: 1. dispersal, 2. reproduction, 3. mutation. For convinience the simulation can be run a specified number of generations [steps]. In case extra dynamics need to be modelled (e.g. one population is increased in number be a managment action or population are affected by environmental factors) simulations can also run only in single time steps [steps=1]. See example.
+</p>
+
+
+<h3>Value</h3>
+
+<p>an updated pops object after steps time steps or a list that includes the pops object and the emigration matrix [rec="emi"].
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>init.popgensim</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(raster)
+set.seed(1)
+locs &lt;- cbind(x=round(runif(5,5,45)), y=round(runif(5,5,45)) )
+cm &lt;- as.matrix(dist(locs))
+pops &lt;- init.popgensim(n.pops = 5, n.ind=20, sex.ratio = 0.25, n.loci = 5, n.allels = 10, n.cov = 3)
+#run pops
+pops &lt;- run.popgensim(pops, steps = 200, cost.mat= cm, n.offspring = 2, n.ind = 20,
+mig.rate = 0.125, disp.max = 30, disp.rate =0.1, n.allels = 10, mut.rate = 0)
+#convert to genind object
+pops.gi &lt;-pops2genind(pops)
+#calculate pairwise fsts using pairwise.fstb
+fsts &lt;- pairwise.fstb(pops.gi)
+#plot
+plot(locs, xlim=c(0,50), ylim=c(0,50), pch=16,cex=4, col="darkgrey")
+for (i in 1:4)
+for (ii in (i+1):5)
+lines(c(locs[i,1], locs[ii,1]), c(locs[i,2], locs[ii,2]), lwd=fsts[i,ii]*30, col="darkgreen")
+text(locs+0.5, labels=1:5, col="white", font=2)
+
+</code></pre>
+
+
+</div>

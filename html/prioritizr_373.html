@@ -1,0 +1,114 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>run_calculations</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Run calculations</h2>
+
+<h3>Description</h3>
+
+<p>Execute preliminary calculations in a conservation problem and store the
+results for later use. This function is useful when creating slightly
+different versions of the same conservation planning problem that involve
+the same pre-processing steps (e.g., calculating boundary data), because
+means that the same calculations will not be run multiple times.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">run_calculations(x)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>problem()</code> object.</p>
+</td>
+</tr></table>
+<h3>Details</h3>
+
+<p>This function is used for the effect of modifying the input
+<code>ConservationProblem</code> object. As such, it does not return
+anything. To use this function with <code>pipe()</code> operators, use the
+<code style="white-space: pre;">⁠%T&gt;%⁠</code> operator and not the <code style="white-space: pre;">⁠%&gt;%⁠</code> operator.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An invisible <code>TRUE</code> indicating success.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# load data
+sim_pu_raster &lt;- get_sim_pu_raster()
+sim_features &lt;- get_sim_features()
+
+# let us imagine a scenario where we wanted to understand the effect of
+# setting different targets on our solution.
+
+# create a conservation problem with no targets
+p &lt;-
+  problem(sim_pu_raster, sim_features) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_boundary_penalties(10, 0.5) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# create a copies of p and add targets
+p1 &lt;- p %&gt;% add_relative_targets(0.1)
+p2 &lt;- p %&gt;% add_relative_targets(0.2)
+p3 &lt;- p %&gt;% add_relative_targets(0.3)
+
+# now solve each of the different problems and record the time spent
+# solving them
+s1 &lt;- system.time({solve(p1); solve(p2); solve(p3)})
+
+# This approach is inefficient. Since these problems all share the same
+# planning units it is actually performing the same calculations three times.
+# To avoid this, we can use the "run_calculations" function before creating
+# the copies. Normally, R runs the calculations just before solving the
+# problem
+
+# recreate a conservation problem with no targets and tell R run the
+# preliminary calculations. Note how we use the %T&gt;% operator here.
+p &lt;-
+  problem(sim_pu_raster, sim_features) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_boundary_penalties(10, 0.5) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE) %T&gt;%
+  run_calculations()
+
+# create a copies of p and add targets just like before
+p1 &lt;- p %&gt;% add_relative_targets(0.1)
+p2 &lt;- p %&gt;% add_relative_targets(0.2)
+p3 &lt;- p %&gt;% add_relative_targets(0.3)
+
+# solve each of the different problems and record the time spent
+# solving them
+s2 &lt;- system.time({solve(p1); solve(p2); solve(p3)})
+
+# now lets compare the times
+print(s1) # time spent without running preliminary calculations
+print(s2) # time spent after running preliminary calculations
+
+# As we can see, we can save time by running the preliminary
+# calculations before making copies of the problem with slightly
+# different constraints. Although the time saved in this example
+# is rather small, this is because the example data are very small.
+# We would expect larger time savings for larger datasets.
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,292 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Cooccurrences,corpus-method</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Get all cooccurrences in corpus/partition.</h2>
+
+<h3>Description</h3>
+
+<p>Obtain all cooccurrences in a corpus, or a <code>partition</code>. The result is a
+<code>Cooccurrences</code>-class object which includes a <code>data.table</code> with
+counts of cooccurrences. See the documentation entry for the
+<code>Cooccurrences</code>-class for methods to process <code>Cooccurrences</code>-class
+objects.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S4 method for signature 'corpus'
+Cooccurrences(
+  .Object,
+  p_attribute,
+  left,
+  right,
+  stoplist = NULL,
+  mc = getOption("polmineR.mc"),
+  verbose = FALSE,
+  progress = FALSE
+)
+
+## S4 method for signature 'character'
+Cooccurrences(
+  .Object,
+  p_attribute,
+  left,
+  right,
+  stoplist = NULL,
+  mc = getOption("polmineR.mc"),
+  verbose = FALSE,
+  progress = FALSE
+)
+
+## S4 method for signature 'slice'
+Cooccurrences(
+  .Object,
+  p_attribute,
+  left,
+  right,
+  stoplist = NULL,
+  mc = getOption("polmineR.mc"),
+  verbose = FALSE,
+  progress = FALSE
+)
+
+## S4 method for signature 'partition'
+Cooccurrences(
+  .Object,
+  p_attribute,
+  left,
+  right,
+  stoplist = NULL,
+  mc = getOption("polmineR.mc"),
+  verbose = FALSE,
+  progress = FALSE
+)
+
+## S4 method for signature 'subcorpus'
+Cooccurrences(
+  .Object,
+  p_attribute,
+  left,
+  right,
+  stoplist = NULL,
+  mc = getOption("polmineR.mc"),
+  verbose = FALSE,
+  progress = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>.Object</code></td>
+<td>
+<p>A length-one character vector indicating a corpus, or a
+<code>partition</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p_attribute</code></td>
+<td>
+<p>Positional attributes to evaluate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>left</code></td>
+<td>
+<p>A scalar <code>integer</code> value, size of left context.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>right</code></td>
+<td>
+<p>A scalar <code>integer</code> value, size of right context.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stoplist</code></td>
+<td>
+<p>Tokens to exclude from the analysis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mc</code></td>
+<td>
+<p>Logical value, whether to use multiple cores.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical value, whether to output messages.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progress</code></td>
+<td>
+<p>Logical value, whether to display a progress bar.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The implementation uses a <code>data.table</code> to store information and makes
+heavy use of the reference logic of the <code>data.table</code> package, to avoid
+copying potentially large objects, and to be parsimonious with limited
+memory. The behaviour resulting from in-place changes may be uncommon, see
+examples.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>To learn about methods available for the object that is returned,
+see the documentation of the <code>Cooccurrences-class</code>. See the
+<code>cooccurrences</code>-method (starting with a lower case c) to get
+the cooccurrences for the match for a query, which may also be a CQP query.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# In a first scenario, we get all cooccurrences for the REUTERS corpus,
+# excluding stopwords
+
+stopwords &lt;- unname(unlist(
+  noise(
+    terms("REUTERS", p_attribute = "word"),
+    stopwordsLanguage = "en"
+    )
+  ))
+r &lt;- Cooccurrences(
+  .Object = "REUTERS", p_attribute = "word",
+  left = 5L, right = 5L, stoplist = stopwords
+)
+ll(r) # note that the table in the stat slot is augmented in-place
+decode(r) # in-place modification, again
+r &lt;- subset(r, ll &gt; 11.83 &amp; ab_count &gt;= 5)
+data.table::setorderv(r@stat, cols = "ll", order = -1L)
+head(r, 25)
+
+if (requireNamespace("igraph", quietly = TRUE)){
+  r@partition &lt;- enrich(r@partition, p_attribute = "word")
+  g &lt;- as_igraph(r, as.undirected = TRUE)
+  plot(g)
+}
+
+# The next scenario is a cross-check that extracting cooccurrences from
+# from a Cooccurrences-class object with all cooccurrences and the result
+# for getting cooccurrences for a single object are identical
+
+a &lt;- cooccurrences(r, query = "oil")
+a &lt;- data.table::as.data.table(a)
+
+b &lt;- cooccurrences("REUTERS", query = "oil", left = 5, right = 5, p_attribute = "word")
+b &lt;- data.table::as.data.table(b)
+b &lt;- b[!word %in% stopwords]
+
+all(b[["word"]][1:5] == a[["word"]][1:5]) # needs to be identical!
+
+
+stopwords &lt;- unlist(noise(
+  terms("GERMAPARLMINI", p_attribute = "word"),
+  stopwordsLanguage = "german"
+  )
+)
+
+# We now filter cooccurrences by keeping only the statistically 
+# significant cooccurrens, identified by comparison with cooccurrences
+# derived from a reference corpus
+
+plpr_partition &lt;- partition(
+  "GERMAPARLMINI", date = "2009-11-10", interjection = "speech",
+  p_attribute = "word"
+)
+plpr_cooc &lt;- Cooccurrences(
+  plpr_partition, p_attribute = "word",
+  left = 3L, right = 3L,
+  stoplist = stopwords,
+  verbose = TRUE
+)
+decode(plpr_cooc)
+ll(plpr_cooc)
+
+merkel &lt;- partition(
+  "GERMAPARLMINI", speaker = "Merkel", date = "2009-11-10", interjection = "speech",
+  regex = TRUE,
+  p_attribute = "word"
+)
+merkel_cooc &lt;- Cooccurrences(
+  merkel, p_attribute = "word",
+  left = 3L, right = 3L,
+  stoplist = stopwords, 
+  verbose = TRUE
+)
+decode(merkel_cooc)
+ll(merkel_cooc)
+
+merkel_min &lt;- subset(
+  merkel_cooc,
+  by = subset(features(merkel_cooc, plpr_cooc), rank_ll &lt;= 50)
+  )
+  
+# Esentially the same procedure as in the previous example, but with 
+# two positional attributes, so that part-of-speech annotation is 
+# used for additional filtering.
+   
+         
+protocol &lt;- partition(
+  "GERMAPARLMINI",
+  date = "2009-11-10",
+  p_attribute = c("word", "pos"),
+  interjection = "speech"
+)
+protocol_cooc &lt;- Cooccurrences(
+  protocol,
+  p_attribute = c("word", "pos"),
+  left = 3L, right = 3L
+  )
+ll(protocol_cooc)
+decode(protocol_cooc)
+
+merkel &lt;- partition(
+  "GERMAPARLMINI",
+  speaker = "Merkel",
+  date = "2009-11-10",
+  interjection = "speech",
+  regex = TRUE,
+  p_attribute = c("word", "pos")
+)
+merkel_cooc &lt;- Cooccurrences(
+  merkel,
+  p_attribute = c("word", "pos"),
+  left = 3L, right = 3L,
+  verbose = TRUE
+)
+ll(merkel_cooc)
+decode(merkel_cooc)
+
+f &lt;- features(merkel_cooc, protocol_cooc)
+f &lt;- subset(f, a_pos %in% c("NN", "ADJA"))
+f &lt;- subset(f, b_pos %in% c("NN", "ADJA"))
+f &lt;- subset(f, c(rep(TRUE, times = 50), rep(FALSE, times = nrow(f) - 50)))
+
+merkel_min &lt;- subset(merkel_cooc, by = f)
+
+if (requireNamespace("igraph", quietly = TRUE)){
+  g &lt;- as_igraph(merkel_min, as.undirected = TRUE)
+  plot(g)
+}
+
+
+## End(Not run)
+</code></pre>
+
+
+</div>

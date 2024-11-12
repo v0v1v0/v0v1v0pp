@@ -1,0 +1,106 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PeakSegPDPAInf</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>PeakSegPDPAInf</h2>
+
+<h3>Description</h3>
+
+<p>Find the optimal change-points using the Poisson loss and the
+PeakSeg constraint. This function is an interface to the C++ code
+which always uses -Inf for the first interval's lower limit and
+Inf for the last interval's upper limit – it is for testing the
+number of intervals between the two implementations.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PeakSegPDPAInf(count.vec, 
+    weight.vec = rep(1, 
+        length(count.vec)), 
+    max.segments = NULL)</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>count.vec</code></td>
+<td>
+<p>integer vector of count data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weight.vec</code></td>
+<td>
+<p>numeric vector (same length as <code>count.vec</code>) of positive weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.segments</code></td>
+<td>
+<p>integer of length 1: maximum number of segments (must be &gt;= 2).</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>List of model parameters. <code>count.vec</code>, <code>weight.vec</code>, n.data,
+<code>max.segments</code> (input parameters), cost.mat (optimal Poisson loss),
+ends.mat (optimal position of segment ends, 1-indexed), mean.mat
+(optimal segment means), intervals.mat (number of intervals stored
+by the functional pruning algorithm). To recover the solution in
+terms of (M,C) variables, see the example.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Toby Dylan Hocking &lt;toby.hocking@r-project.org&gt; [aut, cre]</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Use the algo to compute the solution list.
+library(PeakSegOptimal)
+data("H3K4me3_XJ_immune_chunk1", envir=environment())
+by.sample &lt;-
+  split(H3K4me3_XJ_immune_chunk1, H3K4me3_XJ_immune_chunk1$sample.id)
+n.data.vec &lt;- sapply(by.sample, nrow)
+one &lt;- by.sample[[1]]
+count.vec &lt;- one$coverage
+weight.vec &lt;- with(one, chromEnd-chromStart)
+max.segments &lt;- 19L
+
+library(data.table)
+ic.list &lt;- list()
+for(fun.name in c("PeakSegPDPA", "PeakSegPDPAInf")){
+  fun &lt;- get(fun.name)
+  fit &lt;- fun(count.vec, weight.vec, max.segments)
+  ic.list[[fun.name]] &lt;- data.table(
+    fun.name,
+    segments=as.numeric(row(fit$intervals.mat)),
+    data=as.numeric(col(fit$intervals.mat)),
+    cost=as.numeric(fit$cost.mat),
+    intervals=as.numeric(fit$intervals.mat))
+}
+ic &lt;- do.call(rbind, ic.list)[0 &lt; intervals]
+intervals &lt;- dcast(ic, data + segments ~ fun.name, value.var="intervals")
+cost &lt;- dcast(ic, data + segments ~ fun.name, value.var="cost")
+not.equal &lt;- cost[PeakSegPDPA != PeakSegPDPAInf]
+stopifnot(nrow(not.equal)==0)
+
+intervals[, increase := PeakSegPDPAInf-PeakSegPDPA]
+table(intervals$increase)
+quantile(intervals$increase)
+ic[, list(
+  mean=mean(intervals),
+  max=max(intervals)
+  ), by=list(fun.name)]
+
+</code></pre>
+
+
+</div>

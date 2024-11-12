@@ -1,0 +1,140 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>boundary_matrix</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Boundary matrix</h2>
+
+<h3>Description</h3>
+
+<p>Generate a matrix describing the amount of shared boundary length
+between different planning units, and the total amount of boundary length
+for each planning unit.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">boundary_matrix(x, ...)
+
+## S3 method for class 'Raster'
+boundary_matrix(x, ...)
+
+## S3 method for class 'SpatRaster'
+boundary_matrix(x, ...)
+
+## S3 method for class 'SpatialPolygons'
+boundary_matrix(x, ...)
+
+## S3 method for class 'SpatialLines'
+boundary_matrix(x, ...)
+
+## S3 method for class 'SpatialPoints'
+boundary_matrix(x, ...)
+
+## S3 method for class 'sf'
+boundary_matrix(x, ...)
+
+## Default S3 method:
+boundary_matrix(x, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>terra::rast()</code> or <code>sf::sf()</code> object representing planning units.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>not used.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function assumes the data are in a coordinate
+system where Euclidean distances accurately describe the proximity
+between two points on the earth. Thus spatial data in a
+longitude/latitude coordinate system (i.e.,
+<a href="https://spatialreference.org/ref/epsg/4326/">WGS84</a>)
+should be reprojected to another coordinate system before using this
+function. Note that for <code>terra::rast()</code> objects
+boundaries are missing for cells that have  missing (<code>NA</code>) values in all
+cells.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>dsCMatrix</code> symmetric sparse matrix object.
+Each row and column represents a planning unit.
+Cell values indicate the shared boundary length between different pairs
+of planning units. Values along the matrix diagonal indicate the
+total perimeter associated with each planning unit.
+</p>
+
+
+<h3>Notes</h3>
+
+<p>In earlier versions, this function had an extra <code>str_tree</code> parameter
+that could be used to leverage STR query trees to speed up processing
+for planning units in vector format.
+Although this functionality improved performance, it was not
+enabled by default because the underlying function
+(i.e., <code>rgeos:gUnarySTRtreeQuery()</code>) was documented as experimental.
+The <code>boundary_matrix()</code> function has since been updated so that it will
+use STR query trees to speed up processing for planning units in vector
+format (using <code>terra::sharedPaths()</code>).
+</p>
+<p>Also, note that in previous versions, cell values along the matrix
+diagonal indicated the perimeter associated with planning units
+that did not contain any neighbors. This has now changed such
+that values along the diagonal now correspond to the total
+perimeter associated with each planning unit.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Boundary matrix data might need rescaling to improve optimization
+performance, see <code>rescale_matrix()</code> to perform these calculations.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# load data
+sim_pu_raster &lt;- get_sim_pu_raster()
+sim_pu_polygons &lt;- get_sim_pu_polygons()
+
+# subset data to reduce processing time
+r &lt;- terra::crop(sim_pu_raster, c(0, 0.3, 0, 0.3))
+ply &lt;- sim_pu_polygons[c(1:3, 11:13, 20:22), ]
+
+# create boundary matrix using raster data
+bm_raster &lt;- boundary_matrix(r)
+
+# create boundary matrix using polygon data
+bm_ply &lt;- boundary_matrix(ply)
+
+# plot raster and boundary matrix
+plot(r, main = "raster", axes = FALSE)
+Matrix::image(bm_raster, main = "boundary matrix")
+
+# plot polygons and boundary matrices
+plot(ply[, 1], main = "polygons", axes = FALSE)
+Matrix::image(bm_ply, main = "boundary matrix")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

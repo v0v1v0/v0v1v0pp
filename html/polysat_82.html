@@ -1,0 +1,212 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>meandistance.matrix</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Mean Pairwise Distance Matrix</h2>
+
+<h3>Description</h3>
+
+<p>Given a <code>genambig</code> object, <code>meandistance.matrix</code>
+produces a symmetrical matrix of
+pairwise distances between samples, averaged across all loci.  An
+array of all distances prior to averaging may also be produced.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">meandistance.matrix(object, samples = Samples(object),
+                    loci = Loci(object), all.distances=FALSE,
+                    distmetric = Bruvo.distance, progress = TRUE,
+                    ...)
+meandistance.matrix2(object, samples = Samples(object),
+                     loci = Loci(object),
+                     freq = simpleFreq(object, samples, loci), self = 0,
+                     all.distances = FALSE, distmetric = Bruvo.distance,
+                     progress = TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A <code>genambig</code> object containing the genotypes to be
+analyzed.  If <code>distmetric = Bruvo.distance</code>, the <code>Usatnts</code>
+slot should be filled in.  For <code>meandistance.matrix2</code>,
+<code>Ploidies</code> and <code>PopInfo</code> are also required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>samples</code></td>
+<td>
+<p>A character vector of samples to be analyzed.  These
+should be all or a subset of the sample names used in <code>object</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loci</code></td>
+<td>
+<p>A character vector of loci to be analyzed.  These should
+be all or a subset of the loci names used in <code>object</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>freq</code></td>
+<td>
+<p>A data frame of allele frequencies such as that produced
+by <code>simpleFreq</code> or <code>deSilvaFreq</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>self</code></td>
+<td>
+<p>A number ranging from 0 to 1, indicating the rate of selfing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>all.distances</code></td>
+<td>
+<p>If <code>FALSE</code>, only the mean distance matrix will be
+returned.  If <code>TRUE</code>, a list will be returned containing an array of
+all distances by locus and sample as well as the mean distance matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distmetric</code></td>
+<td>
+<p>The function to be used to calculate distances
+between genotypes.  <code>Bruvo.distance</code>, <code>Lynch.distance</code>, or
+a distance function written by the user.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progress</code></td>
+<td>
+<p>If <code>TRUE</code>, loci and samples will be printed to
+the console as distances are calculated, so that the user can
+monitor the progress of the computation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments (such as <code>maxl</code>, <code>add</code>, and
+<code>loss</code>) to pass to <code>distmetric</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Each distance for the three-dimensional array is calculated only once,
+to save computation time.  Since the array (and resulting mean matrix)
+is symmetrical, the distance is written to two positions in the array
+at once.
+</p>
+<p><code>meandistance.matrix</code> uses ambiguous genotypes exactly as they
+are, whereas <code>meandistance.matrix2</code> uses
+<code>genotypeProbs</code> to calculate all possible unambiguous
+genotypes and their probabilities under random mating or partial
+selfing.  The distance
+between each possible pair of unambiguous genotypes for the two
+samples is calculated with <code>distmetric</code> and weighted by the
+product of the probabilities of the two gentoypes.  As you might
+expect, <code>meandistance.matrix2</code> takes longer to process a given
+<code>"genambig"</code> object than <code>meandistance.matrix</code> does.
+Additionally, the distance between two identical ambiguous genotypes
+will be zero when calculated with <code>meandistance.matrix</code>, and
+greater than zero when calculated with <code>meandistance.matrix2</code>,
+due to potential differences in copy number of the alleles.
+</p>
+<p>When <code>Bruvo.distance</code> is used,
+<code>meandistance.matrix2</code> exaggerates distances between individuals
+of different ploidy as compared to <code>meandistance.matrix</code>.  The
+use of <code>Bruvo2.distance</code> with <code>meandistance.matrix2</code>
+allows individuals with different ploidies to have similar
+inter-individual distances to those between individuals of the same ploidy.
+In general, it will be desirable to use <code>Bruvo.distance</code> with
+<code>meandistance.matrix</code> for complex datasets with high ploidy
+levels, or <code>Bruvo.distance2</code> with <code>meandistance.matrix2</code> for
+hexaploid or lower datasets (based on how long it takes my personal
+computer to perform these calculations) where changes in ploidy are
+due to genome doubling or genome loss.  If all individuals have the
+same ploidy, <code>Bruvo.distance</code> and <code>Bruvo2.distance</code> will
+give identical results regardless of whether
+<code>meandistance.matrix</code> or <code>meandistance.matrix2</code> is used.
+</p>
+<p><code>meandistance.matrix2</code> does not allow a genotype to have more
+alleles than the ploidy of the individual (as listed in the
+<code>Ploidies</code> slot).  Additionally, if <code>self</code> is greater than
+zero, each population may only have one ploidy at each locus.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A symmetrical matrix containing pairwise distances between all
+samples, averaged across all loci.  Row and column names of the matrix
+will be the sample names provided in the <code>samples</code> argument.  If
+<code>all.distances=TRUE</code>, a list will be produced containing the above
+matrix as well as a three-dimensional array containing all distances
+by locus and sample.  The array is the first item in the list, and the
+mean matrix is the second.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark</p>
+
+
+<h3>See Also</h3>
+
+<p><code>Bruvo.distance</code>, <code>Bruvo2.distance</code>,
+<code>Lynch.distance</code>, <code>meandist.from.array</code>,
+<code>GENLIST</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># create a list of genotype data
+mygendata &lt;- new("genambig", samples = c("ind1","ind2","ind3","ind4"),
+                 loci = c("locus1","locus2","locus3","locus4"))
+Genotypes(mygendata) &lt;-
+  array(list(c(124,128,138),c(122,130,140,142),c(122,132,136),c(122,134,140),
+             c(203,212,218),c(197,206,221),c(215),c(200,218),
+             c(140,144,148,150),c(-9),c(146,150),c(152,154,158),
+             c(233,236,280),c(-9),c(-9),c(-9)))
+Usatnts(mygendata) &lt;- c(2,3,2,1)
+
+# make index vectors of data to use
+myloci &lt;- c("locus1","locus2","locus3")
+mysamples &lt;- c("ind1","ind2","ind4")
+
+# calculate array and matrix
+mymat &lt;- meandistance.matrix(mygendata, mysamples, myloci,
+                             all.distances=TRUE)
+# view the results
+mymat[[1]]["locus1",,]
+mymat[[1]]["locus2",,]
+mymat[[1]]["locus3",,]
+mymat[[2]]
+
+# add addtional info needed for meandistance.matrix2
+mygendata &lt;- reformatPloidies(mygendata, output="one")
+Ploidies(mygendata) &lt;- 4
+PopInfo(mygendata) &lt;- c(1,1,1,1)
+
+# calculate distances taking allele freqs into account
+mymat2 &lt;- meandistance.matrix2(mygendata, mysamples, myloci)
+mymat2
+# now do the same under selfing
+mymat3 &lt;- meandistance.matrix2(mygendata, mysamples, myloci, self=0.3)
+mymat3
+</code></pre>
+
+
+</div>

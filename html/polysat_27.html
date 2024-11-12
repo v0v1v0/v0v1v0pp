@@ -1,0 +1,274 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>deSilvaFreq</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Estimate Allele Frequencies with EM Algorithm
+</h2>
+
+<h3>Description</h3>
+
+<p>This function uses the method of De Silva <em>et al.</em> (2005) to
+estimate allele frequencies under polysomic inheritance with a known
+selfing rate.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">deSilvaFreq(object, self, samples = Samples(object),
+            loci = Loci(object), initNull = 0.15,
+            initFreq = simpleFreq(object[samples, loci]),
+            tol = 1e-08, maxiter = 1e4)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+
+<p>A <code>"genambig"</code> or <code>"genbinary"</code>
+object containing the dataset of
+interest.  All ploidies for <code>samples</code> and <code>loci</code> should be the
+same, and this should be an
+even number.  <code>PopInfo</code> must also be filled in for <code>samples</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>self</code></td>
+<td>
+
+<p>A number between 1 and 0, indicating the rate of selfing.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>samples</code></td>
+<td>
+
+<p>An optional character vector indicating a subset of samples to use in
+the calculation.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loci</code></td>
+<td>
+
+<p>An optional character vector indicating a subset of loci for which to
+calculate allele frequencies.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initNull</code></td>
+<td>
+
+<p>A single value or numeric vector indicating initial frequencies to use
+for the null allele at each locus.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>initFreq</code></td>
+<td>
+
+<p>A data frame containing allele frequencies (for non-null loci) to use
+for initialization.  This needs to be in the same format as the output
+of <code>simpleFreq</code> with a single “Genomes” column
+(similarly to the format of the
+output of <code>deSilvaFreq</code>).  By default, the function will do a quick
+estimation of allele frequencies using <code>simpleFreq</code> and then
+initialize the EM algorithm at these frequencies.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+
+<p>The tolerance level for determining when the results have converged.
+Where <code>p2</code> and <code>p1</code> are the current and previous vectors of allele
+frequencies, respectively, the EM algorithm stops if
+<code>sum(abs(p2-p1)/(p2+p1)) &lt;= tol</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxiter</code></td>
+<td>
+
+<p>The maximum number of iterations that will be performed for each locus and 
+population.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Most of the SAS code from the supplementary material of De Silva
+<em>et al.</em>
+(2005) is translated directly into the R code for this function.  The
+SIMSAMPLE (or CreateRandomSample in the SAS code) function is omitted
+so that the actual allelic phenotypes from the dataset can be used
+instead of simulated phenotypes.  <code>deSilvaFreq</code>
+loops through each locus and population, and in each loop tallies the
+number of alleles and sets up matrices using GENLIST, PHENLIST, RANMUL, SELFMAT,
+and CONVMAT as described in the paper.
+Frequencies of each allelic phenotype are then tallied
+across all samples in that population with non-missing data at the
+locus.  Initial allele
+frequencies for that population and locus are then extraced from
+<code>initFreq</code> and adjusted according to <code>initNull</code>.  The EM
+iteration then begins for that population and locus, as described in the
+paper (EXPECTATION, GPROBS, and MAXIMISATION).
+</p>
+<p>Each repetition of the EM algorithm includes an expectation and
+maximization step.  The expectation step uses allele frequencies and the
+selfing rate to
+calculate expected genotype frequencies, then uses observed phenotype
+frequencies and expected genotype frequencies to estimate genotype
+frequencies for the population.  The maximization step uses the
+estimated genotype frequencies to calculate a new set of allele
+frequencies.  The process is repeated until allele frequencies
+converge.
+</p>
+<p>In addition to returning a data frame of allele frequencies,
+<code>deSilvaFreq</code> also prints to the console the number of EM
+repetitions used for each population and locus.  When each locus and
+each population is begun, a message is printed to the console so that
+the user can monitor the progress of the computation.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data frame containing the estimated allele frequencies.  The row names
+are population names from <code>PopNames(object)</code>.  The first column
+shows how many genomes each population has.  All other columns represent
+alleles (including one null allele per locus).  These column names are
+the locus name and allele name separated by a period.
+</p>
+
+
+<h3>Note</h3>
+
+<p>It is possible to exceed memory limits for R if a locus has too many
+alleles in a population (e.g. 15 alleles in a tetraploid if the memory
+limit is 1535 Mb, see <code>memory.limit</code>).
+</p>
+<p>De Silva <em>et al.</em> mention that their estimation method could be
+extended to the case of disomic inheritence.  A method for disomic
+inheritence is not implemented here, as it would require knowledge of
+which alleles belong to which isoloci.
+</p>
+<p>De Silva <em>et al.</em> also suggest a means of
+estimating the selfing rate with a least-squares method.  Using the
+notation in the source code, this would be:
+</p>
+<p><code>lsq &lt;- smatt %*% EP - rvec</code>
+</p>
+<p><code>self &lt;- as.vector((t(EP - rvec) %*% lsq)/(t(lsq) %*% lsq))</code>
+</p>
+<p>However, in my experimentation with this calculation, it sometimes
+yields selfing rates greater than one.  For this reason,
+it is not implemented here.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>References</h3>
+
+<p>De Silva, H. N., Hall, A. J., Rikkerink, E., and Fraser, L. G. (2005)
+Estimation of allele frequencies in polyploids under
+certain patterns of inheritance.  <em>Heredity</em> <b>95</b>, 327–334
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>simpleFreq</code>, <code>write.freq.SPAGeDi</code>,
+<code>GENLIST</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+## An example with a long run time due to the number of alleles
+
+# create a dataset for this example
+mygen &lt;- new("genambig", samples=c(paste("A", 1:100, sep=""),
+                                   paste("B", 1:100, sep="")),
+             loci=c("loc1", "loc2"))
+PopNames(mygen) &lt;- c("PopA", "PopB")
+PopInfo(mygen) &lt;- c(rep(1, 100), rep(2, 100))
+mygen &lt;- reformatPloidies(mygen, output="one")
+Ploidies(mygen) &lt;- 4
+Usatnts(mygen) &lt;- c(2, 2)
+Description(mygen) &lt;- "An example for allele frequency calculation."
+
+# create some genotypes at random for this example
+for(s in Samples(mygen)){
+    Genotype(mygen, s, "loc1") &lt;- sample(seq(120, 140, by=2),
+                                         sample(1:4, 1))
+}
+for(s in Samples(mygen)){
+    Genotype(mygen, s, "loc2") &lt;- sample(seq(130, 156, by=2),
+                                         sample(1:4, 1))
+}
+# make one genotype missing
+Genotype(mygen, "B4", "loc2") &lt;- Missing(mygen)
+
+# view the dataset
+summary(mygen)
+viewGenotypes(mygen)
+
+# calculate the allele frequencies if the rate of selfing is 0.2
+myfrequencies &lt;- deSilvaFreq(mygen, self=0.2)
+
+# view the results
+myfrequencies
+
+## End(Not run)
+
+## An example with a shorter run time, for checking that the funciton
+## is working.  Genotype simulation is also a bit more realistic here.
+
+# Create a dataset for the example.
+mygen &lt;- new("genambig", samples=paste("A", 1:100, sep=""), loci="loc1")
+PopNames(mygen) &lt;- "PopA"
+PopInfo(mygen) &lt;- rep(1, 100)
+mygen &lt;- reformatPloidies(mygen, output="one")
+Ploidies(mygen) &lt;- 4
+Usatnts(mygen) &lt;- 2
+for(s in Samples(mygen)){
+    alleles &lt;- unique(sample(c(122,124,126,0), 4, replace=TRUE,
+                             prob = c(0.3, 0.2, 0.4, 0.1)))
+    Genotype(mygen, s, "loc1") &lt;- alleles[alleles != 0]
+    if(length(Genotype(mygen, s, "loc1"))==0)
+        Genotype(mygen, s, "loc1") &lt;- Missing(mygen)
+}
+
+# We have created a random mating populations with four alleles
+# including one null.  The allele frequencies are given in the
+# 'prob' argument.
+
+# Estimate allele frequencies
+myfreq &lt;- deSilvaFreq(mygen, self=0.01)
+myfreq
+</code></pre>
+
+
+</div>

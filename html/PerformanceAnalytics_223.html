@@ -1,0 +1,162 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>SmoothingIndex</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>calculate Normalized Getmansky Smoothing Index</h2>
+
+<h3>Description</h3>
+
+<p>Proposed by Getmansky et al to provide a normalized measure of "liquidity
+risk."
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">SmoothingIndex(R, neg.thetas = FALSE, MAorder = 2, verbose = FALSE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+<p>an xts, vector, matrix, data frame, timeSeries or zoo object of
+asset returns</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>neg.thetas</code></td>
+<td>
+<p>if FALSE, function removes negative coefficients (thetas)
+when calculating the index</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>MAorder</code></td>
+<td>
+<p>specify the number of periods used to calculate the moving
+average, defaults to 2</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>if TRUE, return a list containing the Thetas in addition to
+the smoothing index/</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>any other passthru parameters</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>To measure the effects of smoothing, Getmansky, Lo, et al (2004) define a
+"smoothing profile" as a vector of coefficients for an MLE fit on returns
+using a two-period moving-average process.
+</p>
+<p>The moving-average process of order <code class="reqn">k=2</code> (specified using
+<code>MAorder</code>) gives <code class="reqn">R_t = \theta_{0} R_{t} + \theta_1 R_{t -1} +
+\theta_2 R_{t-2}</code>, under the constraint that the sum of the coefficients is
+equal to 1. In , the <code>arima</code> function allows us to create an MA(2)
+model using an "ARIMA(p,d,q)" model, where <code class="reqn">p</code> is the number of
+autoregressive terms (AR), <code class="reqn">d</code> is the degree of differencing, and
+<code class="reqn">q</code> is the number of lagged forecast errors (MA) in the prediction
+equation.  The <code>order</code> parameter allows us to specify the three
+components <code class="reqn">(p, d, q)</code> as an argument, e.g., <code>order = c(0, 0, 2)</code>.
+The <code>method</code> specifies how to fit the model, in this case using maximum
+likelihood estimation (MLE) in a fashion similar to the estimation of
+standard moving-average time series models, using:
+</p>
+<p><code>arima(ra, order=c(0,0,2), method="ML", transform.pars=TRUE,
+include.mean=FALSE)</code>
+</p>
+<p><code>include.mean</code>: Getmansky, et al. (2004) p 555 "By applying the above
+procedure to observed de-meaned returns...", so we set that parameter to
+'FALSE'.
+</p>
+<p><code>transform.pars</code>: ibid, "we impose the additional restriction that the
+estimated MA(k) process be invertible," so we set the parameter to 'TRUE'.
+</p>
+<p>The coefficients, <code class="reqn">\theta_{j}</code>, are then normalized to sum to
+interpreted as a "weighted average of the fund's true returns over the most
+recent <code class="reqn">k + 1</code> periods, including the current period."
+</p>
+<p>If these weights are disproportionately centered on a small number of lags,
+relatively little serial correlation will be induced. However, if the
+weights are evenly distributed among many lags, this would show higher
+serial correlation.
+</p>
+<p>The paper notes that because <code class="reqn">\theta_j \in [0, 1]</code>, <code class="reqn">\xi</code> is also
+confined to the unit interval, and is minimized when all the
+<code class="reqn">\theta_j</code>'s are identical.  That implies a value of <code class="reqn">1/(k + 1)</code> for
+<code class="reqn">\xi</code>, and a maximum value of <code class="reqn">\xi = 1</code> when one coefficient is 1
+and the rest are 0.  In the context of smoothed returns, a lower value of
+<code class="reqn">\xi</code> implies more smoothing, and the upper bound of 1 implies no
+smoothing.
+</p>
+<p>The "smoothing index", represented as <code class="reqn">\xi</code>, is calculated the same way
+the Herfindahl index.  The Herfindal measure is well known in the industrial
+organization literature as a measure of the concentration of firms in a
+given industry where <code class="reqn">y_j</code> represents the market share of firm <code class="reqn">j</code>.
+</p>
+<p>This method (as well as the implementation described in the paper), does not
+enforce <code class="reqn">\theta_j \in [0, 1]</code>, so <code class="reqn">\xi</code> is not limited to that range
+either.  All we can say is that lower values are "less liquid" and higher
+values are "more liquid" or mis-specified.  In this function, setting the
+parameter neg.thetas = FALSE does enforce the limitation, eliminating
+negative autocorrelation coefficients from the calculation (the papers below
+do not make an economic case for eliminating negative autocorrelation,
+however).
+</p>
+<p>Interpretation of the resulting value is difficult.  All we can say is that
+lower values appear to have autocorrelation structure like we might expect
+of "less liquid" instruments.  Higher values appear "more liquid" or are
+poorly fit or mis-specified.
+</p>
+
+
+<h3>Acknowledgments</h3>
+
+<p>Thanks to Dr. Stefan Albrecht, CFA, for invaluable
+input.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Peter Carl
+</p>
+
+
+<h3>References</h3>
+
+<p>Chan, Nicholas, Mila Getmansky, Shane M. Haas, and Andrew W. Lo.
+2005. Systemic Risk and Hedge Funds. NBER Working Paper Series (11200).
+Getmansky, Mila, Andrew W. Lo, and Igor Makarov. 2004. An Econometric Model
+of Serial Correlation and Illiquidity in Hedge Fund Returns. Journal of
+Financial Economics (74): 529-609.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(managers)
+data(edhec)
+SmoothingIndex(managers[,1,drop=FALSE])
+SmoothingIndex(managers[,1:8])
+SmoothingIndex(edhec)
+
+</code></pre>
+
+
+</div>

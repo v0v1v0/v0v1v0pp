@@ -1,0 +1,285 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>optimize.portfolio.rebalancing</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Portfolio Optimization with Rebalancing Periods</h2>
+
+<h3>Description</h3>
+
+<p>Portfolio optimization with support for rebalancing periods for 
+out-of-sample testing (i.e. backtesting)
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">optimize.portfolio.rebalancing_v1(
+  R,
+  constraints,
+  optimize_method = c("DEoptim", "random", "ROI"),
+  search_size = 20000,
+  trace = FALSE,
+  ...,
+  rp = NULL,
+  rebalance_on = NULL,
+  training_period = NULL,
+  rolling_window = NULL
+)
+
+optimize.portfolio.rebalancing(
+  R,
+  portfolio = NULL,
+  constraints = NULL,
+  objectives = NULL,
+  optimize_method = c("DEoptim", "random", "ROI", "CVXR"),
+  search_size = 20000,
+  trace = FALSE,
+  ...,
+  rp = NULL,
+  rebalance_on = NULL,
+  training_period = NULL,
+  rolling_window = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>R</code></td>
+<td>
+<p>an xts, vector, matrix, data frame, timeSeries or zoo object of asset returns</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>constraints</code></td>
+<td>
+<p>default NULL, a list of constraint objects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimize_method</code></td>
+<td>
+<p>one of "DEoptim", "random", "pso", "GenSA", or "ROI"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>search_size</code></td>
+<td>
+<p>integer, how many portfolios to test, default 20,000</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace</code></td>
+<td>
+<p>TRUE/FALSE if TRUE will attempt to return additional 
+information on the path or portfolios searched</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>any other passthru parameters to <code>optimize.portfolio</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rp</code></td>
+<td>
+<p>a set of random portfolios passed into the function to prevent recalculation</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rebalance_on</code></td>
+<td>
+<p>character string of period to rebalance on. See 
+<code>endpoints</code> for valid names.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>training_period</code></td>
+<td>
+<p>an integer of the number of periods to use as 
+a training data in the front of the returns data</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rolling_window</code></td>
+<td>
+<p>an integer of the width (i.e. number of periods)
+of the rolling window, the default of NULL will run the optimization 
+using the data from inception.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>portfolio</code></td>
+<td>
+<p>an object of type "portfolio" specifying the constraints 
+and objectives for the optimization</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>objectives</code></td>
+<td>
+<p>default NULL, a list of objective objects</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Run portfolio optimization with periodic rebalancing at specified time periods. 
+Running the portfolio optimization with periodic rebalancing can help 
+refine the constraints and objectives by evaluating the out of sample
+performance of the portfolio based on historical data.
+</p>
+<p>If both <code>training_period</code> and <code>rolling_window</code> are <code>NULL</code>, 
+then <code>training_period</code> is set to a default value of 36. 
+</p>
+<p>If <code>training_period</code> is <code>NULL</code> and a <code>rolling_window</code> is 
+specified, then <code>training_period</code> is set to the value of 
+<code>rolling_window</code>.
+</p>
+<p>The user should be aware of the following behavior when both 
+<code>training_period</code> and <code>rolling_window</code> are specified and have 
+different values
+</p>
+
+<dl>
+<dt>
+<code>training_period &lt; rolling_window</code>: </dt>
+<dd>
+<p>For example, if you have 
+<code>rolling_window=60</code>, <code>training_period=50</code>, and the periodicity 
+of the data is the same as the rebalance frequency (i.e. monthly data with 
+<code>rebalance_on="months")</code> then the returns data used in the optimization 
+at each iteration are as follows:
+</p>
+
+<ul>
+<li>
+<p> 1: R[1:50,]
+</p>
+</li>
+<li>
+<p> 2: R[1:51,]
+</p>
+</li>
+<li>
+<p> ...
+</p>
+</li>
+<li>
+<p> 11: R[1:60,]
+</p>
+</li>
+<li>
+<p> 12: R[1:61,]
+</p>
+</li>
+<li>
+<p> 13: R[2:62,]
+</p>
+</li>
+<li>
+<p> ...
+</p>
+</li>
+</ul>
+<p>This results in a growing window for several optimizations initially while
+the endpoint iterator (i.e. <code>[50, 51, ...]</code>) is less than the 
+rolling window width.</p>
+</dd>
+<dt>
+<code>training_period &gt; rolling_window</code>: </dt>
+<dd>
+<p>The data used in the initial 
+optimization is <code>R[(training_period - rolling_window):training_period,]</code>. 
+This results in some of the data being "thrown away", i.e. periods 1 to 
+<code>(training_period - rolling_window - 1)</code> are not used in the optimization.</p>
+</dd>
+</dl>
+<p>This function is a essentially a wrapper around <code>optimize.portfolio</code> 
+and thus the discussion in the Details section of the 
+<code>optimize.portfolio</code> help file is valid here as well.
+</p>
+<p>This function is massively parallel and requires the 'foreach' package. It
+is suggested to register a parallel backend.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a list containing the following elements
+</p>
+
+<dl>
+<dt>
+<code>portfolio</code>:</dt>
+<dd>
+<p> The portfolio object.</p>
+</dd>
+<dt>
+<code>R</code>:</dt>
+<dd>
+<p> The asset returns.</p>
+</dd>
+<dt>
+<code>call</code>:</dt>
+<dd>
+<p> The function call.</p>
+</dd>
+<dt><code>elapsed_time:</code></dt>
+<dd>
+<p> The amount of time that elapses while the 
+optimization is run.</p>
+</dd>
+<dt><code>opt_rebalancing:</code></dt>
+<dd>
+<p> A list of <code>optimize.portfolio</code> 
+objects computed at each rebalancing period.</p>
+</dd>
+</dl>
+<h3>Author(s)</h3>
+
+<p>Kris Boudt, Peter Carl, Brian G. Peterson
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>portfolio.spec</code> <code>optimize.portfolio</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+data(edhec)
+R &lt;- edhec[,1:4]
+funds &lt;- colnames(R)
+
+portf &lt;- portfolio.spec(funds)
+portf &lt;- add.constraint(portf, type="full_investment")
+portf &lt;- add.constraint(portf, type="long_only")
+portf &lt;- add.objective(portf, type="risk", name="StdDev")
+
+# Quarterly rebalancing with 5 year training period
+bt.opt1 &lt;- optimize.portfolio.rebalancing(R, portf,
+optimize_method="ROI",
+rebalance_on="quarters",
+training_period=60)
+
+# Monthly rebalancing with 5 year training period and 4 year rolling window
+bt.opt2 &lt;- optimize.portfolio.rebalancing(R, portf,
+optimize_method="ROI",
+rebalance_on="months",
+training_period=60,
+rolling_window=48)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

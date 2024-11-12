@@ -1,0 +1,330 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pred-projection</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Predictions from a submodel (after projection)</h2>
+
+<h3>Description</h3>
+
+<p>After the projection of the reference model onto a submodel, the linear
+predictors (for the original or a new dataset) based on that submodel can be
+calculated by <code>proj_linpred()</code>. These linear predictors can also be
+transformed to response scale and averaged across the projected parameter
+draws. Furthermore, <code>proj_linpred()</code> returns the corresponding log predictive
+density values if the (original or new) dataset contains response values. The
+<code>proj_predict()</code> function draws from the predictive distributions (there is
+one such distribution for each observation from the original or new dataset)
+of the submodel that the reference model has been projected onto. If the
+projection has not been performed yet, both functions call <code>project()</code>
+internally to perform the projection. Both functions can also handle multiple
+submodels at once (for <code>object</code>s of class <code>vsel</code> or <code>object</code>s returned by a
+<code>project()</code> call to an object of class <code>vsel</code>; see <code>project()</code>).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">proj_linpred(
+  object,
+  newdata = NULL,
+  offsetnew = NULL,
+  weightsnew = NULL,
+  filter_nterms = NULL,
+  transform = FALSE,
+  integrated = FALSE,
+  allow_nonconst_wdraws_prj = return_draws_matrix,
+  return_draws_matrix = FALSE,
+  .seed = NA,
+  ...
+)
+
+proj_predict(
+  object,
+  newdata = NULL,
+  offsetnew = NULL,
+  weightsnew = NULL,
+  filter_nterms = NULL,
+  nresample_clusters = 1000,
+  return_draws_matrix = FALSE,
+  .seed = NA,
+  resp_oscale = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>An object returned by <code>project()</code> or an object that can be
+passed to argument <code>object</code> of <code>project()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>newdata</code></td>
+<td>
+<p>Passed to argument <code>newdata</code> of the reference model's
+<code>extract_model_data</code> function (see <code>init_refmodel()</code>). Provides the
+predictor (and possibly also the response) data for the new (or old)
+observations. May also be <code>NULL</code> for using the original dataset. If not
+<code>NULL</code>, any <code>NA</code>s will trigger an error.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>offsetnew</code></td>
+<td>
+<p>Passed to argument <code>orhs</code> of the reference model's
+<code>extract_model_data</code> function (see <code>init_refmodel()</code>). Used to get the
+offsets for the new (or old) observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weightsnew</code></td>
+<td>
+<p>Passed to argument <code>wrhs</code> of the reference model's
+<code>extract_model_data</code> function (see <code>init_refmodel()</code>). Used to get the
+weights for the new (or old) observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>filter_nterms</code></td>
+<td>
+<p>Only applies if <code>object</code> is an object returned by
+<code>project()</code>. In that case, <code>filter_nterms</code> can be used to filter <code>object</code>
+for only those elements (submodels) with a number of predictor terms in
+<code>filter_nterms</code>. Therefore, needs to be a numeric vector or <code>NULL</code>. If
+<code>NULL</code>, use all submodels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transform</code></td>
+<td>
+<p>For <code>proj_linpred()</code> only. A single logical value indicating
+whether the linear predictor should be transformed to response scale using
+the inverse-link function (<code>TRUE</code>) or not (<code>FALSE</code>). In case of the latent
+projection, argument <code>transform</code> is similar in spirit to argument
+<code>resp_oscale</code> from other functions and affects the scale of both output
+elements <code>pred</code> and <code>lpd</code> (see sections "Details" and "Value" below).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>integrated</code></td>
+<td>
+<p>For <code>proj_linpred()</code> only. A single logical value
+indicating whether the output should be averaged across the projected
+posterior draws (<code>TRUE</code>) or not (<code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allow_nonconst_wdraws_prj</code></td>
+<td>
+<p>Only relevant for <code>proj_linpred()</code> and only
+if <code>integrated</code> is <code>FALSE</code>. A single logical value indicating whether to
+allow projected draws with different (i.e., nonconstant) weights (<code>TRUE</code>)
+or not (<code>FALSE</code>). If <code>return_draws_matrix</code> is <code>TRUE</code>,
+<code>allow_nonconst_wdraws_prj</code> is internally set to <code>TRUE</code> as well.
+<strong>CAUTION</strong>: Expert use only because if set to <code>TRUE</code>, the weights of the
+projected draws are stored in attributes <code>wdraws_prj</code> and handling these
+attributes requires special care (e.g., when subsetting the returned
+matrices).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_draws_matrix</code></td>
+<td>
+<p>A single logical value indicating whether to
+return an object (in case of <code>proj_predict()</code>) or objects (in case of
+<code>proj_linpred()</code>) of class <code>draws_matrix</code> (see
+<code>posterior::draws_matrix()</code>). In case of <code>proj_linpred()</code> and projected
+draws with nonconstant weights (as well as <code>integrated</code> being <code>FALSE</code>),
+<code>posterior::weight_draws()</code> is applied internally.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.seed</code></td>
+<td>
+<p>Pseudorandom number generation (PRNG) seed by which the same
+results can be obtained again if needed. Passed to argument <code>seed</code> of
+<code>set.seed()</code>, but can also be <code>NA</code> to not call <code>set.seed()</code> at all. If not
+<code>NA</code>, then the PRNG state is reset (to the state before calling
+<code>proj_linpred()</code> or <code>proj_predict()</code>) upon exiting <code>proj_linpred()</code> or
+<code>proj_predict()</code>. Here, <code>.seed</code> is used for drawing new group-level effects
+in case of a multilevel submodel (however, not yet in case of a GAMM) and
+for drawing from the predictive distributions of the submodel(s) in case of
+<code>proj_predict()</code>. If a clustered projection was performed, then in
+<code>proj_predict()</code>, <code>.seed</code> is also used for drawing from the set of
+projected clusters of posterior draws (see argument <code>nresample_clusters</code>).
+If <code>project()</code> is called internally with <code>seed = NA</code> (or with <code>seed</code> being
+a lazily evaluated expression that uses the PRNG), then <code>.seed</code> also
+affects the PRNG usage there.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments passed to <code>project()</code> if <code>object</code> is not already an
+object returned by <code>project()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nresample_clusters</code></td>
+<td>
+<p>For <code>proj_predict()</code> with clustered projection (and
+nonconstant weights for the projected draws) only. Number of draws to
+return from the predictive distributions of the submodel(s). Not to be
+confused with argument <code>nclusters</code> of <code>project()</code>: <code>nresample_clusters</code>
+gives the number of draws (<em>with</em> replacement) from the set of clustered
+posterior draws after projection (with this set being determined by
+argument <code>nclusters</code> of <code>project()</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resp_oscale</code></td>
+<td>
+<p>Only relevant for the latent projection. A single logical
+value indicating whether to draw from the posterior-projection predictive
+distributions on the original response scale (<code>TRUE</code>) or on latent scale
+(<code>FALSE</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Currently, <code>proj_predict()</code> ignores observation weights that are not
+equal to <code>1</code>. A corresponding warning is thrown if this is the case.
+</p>
+<p>In case of the latent projection and <code>transform = FALSE</code>:
+</p>
+
+<ul>
+<li>
+<p> Output element <code>pred</code> contains the linear predictors without any
+modifications that may be due to the original response distribution (e.g.,
+for a <code>brms::cumulative()</code> model, the ordered thresholds are not taken into
+account).
+</p>
+</li>
+<li>
+<p> Output element <code>lpd</code> contains the <em>latent</em> log predictive density values,
+i.e., those corresponding to the latent Gaussian distribution. If <code>newdata</code>
+is not <code>NULL</code>, this requires the latent response values to be supplied in a
+column called <code style="white-space: pre;">⁠.&lt;response_name&gt;⁠</code> of <code>newdata</code> where <code style="white-space: pre;">⁠&lt;response_name&gt;⁠</code> needs
+to be replaced by the name of the original response variable (if
+<code style="white-space: pre;">⁠&lt;response_name&gt;⁠</code> contained parentheses, these have been stripped off by
+<code>init_refmodel()</code>; see the left-hand side of <code style="white-space: pre;">⁠formula(&lt;refmodel&gt;)⁠</code>). For
+technical reasons, the existence of column <code style="white-space: pre;">⁠&lt;response_name&gt;⁠</code> in <code>newdata</code>
+is another requirement (even though <code style="white-space: pre;">⁠.&lt;response_name&gt;⁠</code> is actually used).
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>In the following, <code class="reqn">S_{\mathrm{prj}}</code>, <code class="reqn">N</code>,
+<code class="reqn">C_{\mathrm{cat}}</code>, and <code class="reqn">C_{\mathrm{lat}}</code> from help
+topic refmodel-init-get are used. (For <code>proj_linpred()</code> with <code>integrated = TRUE</code>, we have <code class="reqn">S_{\mathrm{prj}} = 1</code>.) Furthermore, let
+<code class="reqn">C</code> denote either <code class="reqn">C_{\mathrm{cat}}</code> (if <code>transform = TRUE</code>)
+or <code class="reqn">C_{\mathrm{lat}}</code> (if <code>transform = FALSE</code>). Then, if the
+prediction is done for one submodel only (i.e., <code>length(nterms) == 1 || !is.null(predictor_terms)</code> in the explicit or implicit call to <code>project()</code>,
+see argument <code>object</code>):
+</p>
+
+<ul>
+<li> <p><code>proj_linpred()</code> returns a <code>list</code> with the following elements:
+</p>
+
+<ul>
+<li>
+<p> Element <code>pred</code> contains the actual predictions, i.e., the linear
+predictors, possibly transformed to response scale (depending on
+argument <code>transform</code>).
+</p>
+</li>
+<li>
+<p> Element <code>lpd</code> is non-<code>NULL</code> only if <code>newdata</code> is <code>NULL</code> or if
+<code>newdata</code> contains response values in the corresponding column. In that
+case, it contains the log predictive density values (conditional on
+each of the projected parameter draws if <code>integrated = FALSE</code> and
+averaged across the projected parameter draws if <code>integrated = TRUE</code>).
+</p>
+</li>
+</ul>
+<p>In case of (i) the traditional projection, (ii) the latent projection
+with <code>transform = FALSE</code>, or (iii) the latent projection with
+<code>transform = TRUE</code> and <code style="white-space: pre;">⁠&lt;refmodel&gt;$family$cats⁠</code> (where <code style="white-space: pre;">⁠&lt;refmodel&gt;⁠</code> is
+an object resulting from <code>init_refmodel()</code>; see also
+<code>extend_family()</code>'s argument <code>latent_y_unqs</code>) being <code>NULL</code>, both
+elements are <code class="reqn">S_{\mathrm{prj}} \times N</code> matrices
+(converted to a—possibly weighted—<code>draws_matrix</code> if argument
+<code>return_draws_matrix</code> is <code>TRUE</code>, see the description of this argument).
+In case of (i) the augmented-data projection or (ii) the latent
+projection with <code>transform = TRUE</code> and <code style="white-space: pre;">⁠&lt;refmodel&gt;$family$cats⁠</code> being
+not <code>NULL</code>, <code>pred</code> is an <code class="reqn">S_{\mathrm{prj}} \times N \times C</code> array (if argument <code>return_draws_matrix</code> is <code>TRUE</code>, this array
+is "compressed" to an <code class="reqn">S_{\mathrm{prj}} \times (N \cdot C)</code> matrix—with the columns consisting of <code class="reqn">C</code> blocks of
+<code class="reqn">N</code> rows—and then converted to a—possibly
+weighted—<code>draws_matrix</code>) and <code>lpd</code> is an <code class="reqn">S_{\mathrm{prj}} \times
+      N</code> matrix (converted to a—possibly
+weighted—<code>draws_matrix</code> if argument <code>return_draws_matrix</code> is <code>TRUE</code>).
+If <code>return_draws_matrix</code> is <code>FALSE</code> and <code>allow_nonconst_wdraws_prj</code> is
+<code>TRUE</code> and <code>integrated</code> is <code>FALSE</code> and the projected draws have
+nonconstant weights, then both <code>list</code> elements have the weights of
+these draws stored in an attribute <code>wdraws_prj</code>. (If
+<code>return_draws_matrix</code>, <code>allow_nonconst_wdraws_prj</code>, and <code>integrated</code>
+are all <code>FALSE</code>, then projected draws with nonconstant weights cause an
+error.)
+</p>
+</li>
+<li> <p><code>proj_predict()</code> returns an <code class="reqn">S_{\mathrm{prj}} \times N</code>
+matrix of predictions where <code class="reqn">S_{\mathrm{prj}}</code> denotes
+<code>nresample_clusters</code> in case of clustered projection (or, more generally,
+in case of projected draws with nonconstant weights). If argument
+<code>return_draws_matrix</code> is <code>TRUE</code>, the returned matrix is converted to a
+<code>draws_matrix</code> (see <code>posterior::draws_matrix()</code>). In case of (i) the
+augmented-data projection or (ii) the latent projection with <code>resp_oscale =   TRUE</code> and <code style="white-space: pre;">⁠&lt;refmodel&gt;$family$cats⁠</code> being not <code>NULL</code>, the returned matrix
+(or <code>draws_matrix</code>) has an attribute called <code>cats</code> (the character vector of
+response categories) and the values of the matrix (or <code>draws_matrix</code>) are
+the predicted indices of the response categories (these indices refer to
+the order of the response categories from attribute <code>cats</code>).
+</p>
+</li>
+</ul>
+<p>If the prediction is done for more than one submodel, the output from above
+is returned for each submodel, giving a named <code>list</code> with one element for
+each submodel (the names of this <code>list</code> being the numbers of predictor
+terms of the submodels when counting the intercept, too).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Data:
+dat_gauss &lt;- data.frame(y = df_gaussian$y, df_gaussian$x)
+
+# The `stanreg` fit which will be used as the reference model (with small
+# values for `chains` and `iter`, but only for technical reasons in this
+# example; this is not recommended in general):
+fit &lt;- rstanarm::stan_glm(
+  y ~ X1 + X2 + X3 + X4 + X5, family = gaussian(), data = dat_gauss,
+  QR = TRUE, chains = 2, iter = 500, refresh = 0, seed = 9876
+)
+
+# Projection onto an arbitrary combination of predictor terms (with a small
+# value for `ndraws`, but only for the sake of speed in this example; this
+# is not recommended in general):
+prj &lt;- project(fit, predictor_terms = c("X1", "X3", "X5"), ndraws = 21,
+               seed = 9182)
+
+# Predictions (at the training points) from the submodel onto which the
+# reference model was projected:
+prjl &lt;- proj_linpred(prj)
+prjp &lt;- proj_predict(prj, .seed = 7364)
+
+</code></pre>
+
+
+</div>

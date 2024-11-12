@@ -1,0 +1,192 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>add_loglinear_targets</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add targets using log-linear scaling</h2>
+
+<h3>Description</h3>
+
+<p>Add targets to a conservation planning problem by log-linearly
+interpolating the targets between thresholds based on the total amount of
+each feature in the study area (Rodrigues <em>et al.</em> 2004). Additionally,
+caps can be applied to targets to prevent features with massive
+distributions from being over-represented
+in solutions (Butchart <em>et al.</em> 2015).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">add_loglinear_targets(
+  x,
+  lower_bound_amount,
+  lower_bound_target,
+  upper_bound_amount,
+  upper_bound_target,
+  cap_amount = NULL,
+  cap_target = NULL,
+  abundances = feature_abundances(x, na.rm = FALSE)$absolute_abundance
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>problem()</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower_bound_amount</code></td>
+<td>
+<p><code>numeric</code> threshold.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lower_bound_target</code></td>
+<td>
+<p><code>numeric</code> relative target that should be
+applied to features with a total amount that is less
+than or equal to <code>lower_bound_amount</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper_bound_amount</code></td>
+<td>
+<p><code>numeric</code> threshold.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upper_bound_target</code></td>
+<td>
+<p><code>numeric</code> relative target that should be
+applied to features with a total amount that is greater
+than or equal to <code>upper_bound_amount</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cap_amount</code></td>
+<td>
+<p><code>numeric</code> total amount at which targets should be
+capped. Defaults to <code>NULL</code> so that targets are not capped.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cap_target</code></td>
+<td>
+<p><code>numeric</code> amount-based target to apply to features
+which have a total amount greater than argument to <code>cap_amount</code>.
+Defaults to <code>NULL</code> so that targets are not capped.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>abundances</code></td>
+<td>
+<p><code>numeric</code> total amount of each feature to
+use when calculating the targets. Defaults to the feature abundances in the
+study area (calculated using the <code>feature_abundances()</code>) function.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Targets are used to specify the minimum amount or proportion of a
+feature's distribution that needs to be protected. All conservation
+planning problems require adding targets with the exception of the maximum
+cover problem (see <code>add_max_cover_objective()</code>), which maximizes
+all features in the solution and therefore does not require targets.
+</p>
+<p>Seven parameters are used to calculate the targets:
+<code>lower_bound_amount</code> specifies the first range size threshold,
+<code>lower_bound_target</code> specifies the relative target required for
+species with a range size equal to or less than the first threshold,
+<code>upper_bound_amount</code> specifies the second range size threshold,
+<code>upper_bound_target</code> specifies the relative target required for
+species with a range size equal to or greater than the second threshold,
+<code>cap_amount</code> specifies the third range size threshold,
+<code>cap_target</code> specifies the absolute target that is uniformly applied
+to species with a range size larger than that third threshold, and finally
+<code>abundances</code> specifies the range size for each feature
+that should be used when calculating the targets.
+</p>
+<p>The target calculations do not account for the
+size of each planning unit. Therefore, the feature data should account for
+the size of each planning unit if this is important (e.g., pixel values in
+the argument to <code>features</code> in the function <code>problem()</code> could
+correspond to amount of land occupied by the feature in <code class="reqn">km^2</code> units).
+Additionally, the function can only be applied to
+<code>problem()</code> objects that are associated with a
+single zone.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An updated <code>problem()</code> object with the targets added to it.
+</p>
+
+
+<h3>Notes</h3>
+
+<p>Early versions (&lt; 5.0.2.4) used different equations for calculating
+targets.
+</p>
+
+
+<h3>References</h3>
+
+<p>Rodrigues ASL, Akcakaya HR, Andelman SJ, Bakarr MI, Boitani L, Brooks TM,
+Chanson JS, Fishpool LDC, da Fonseca GAB, Gaston KJ, and others (2004)
+Global gap analysis: priority regions for expanding the global
+protected-area network. <em>BioScience</em>, 54: 1092–1100.
+</p>
+<p>Butchart SHM, Clarke M, Smith RJ, Sykes RE, Scharlemann JPW, Harfoot M,
+Buchanan, GM, Angulo A, Balmford A, Bertzky B, and others (2015) Shortfalls
+and solutions for meeting national and global conservation area targets.
+<em>Conservation Letters</em>, 8: 329–337.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See targets for an overview of all functions for adding targets.
+</p>
+<p>Other targets: 
+<code>add_absolute_targets()</code>,
+<code>add_manual_targets()</code>,
+<code>add_relative_targets()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# load data
+sim_pu_raster &lt;- get_sim_pu_raster()
+sim_features &lt;- get_sim_features()
+
+# create problem using loglinear targets
+p &lt;-
+  problem(sim_pu_raster, sim_features) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_loglinear_targets(10, 0.9, 100, 0.2) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve problem
+s &lt;- solve(p)
+
+# plot solution
+plot(s, main = "solution", axes = FALSE)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

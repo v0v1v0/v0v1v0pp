@@ -1,0 +1,157 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>get_scores</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculates principal scores for Poisson-noise corrected PCA
+
+</h2>
+
+<h3>Description</h3>
+
+<p>This function is based on principal component analysis of a
+transformation of latent Poisson means of a sample. Given the
+estimated principal components of the latent Poisson means, this
+function estimates scores using a combination of likelihood and mean
+squared error.
+
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">get_scores(X,V,d,k,transformation,mu)
+get_scores_log(X,V,d,k,mu)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>The data matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>V</code></td>
+<td>
+<p>Vector of all principal components of the transformed latent means</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>Eigenvalues corresponding to the principal components</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>Number of principal components to project onto</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transformation</code></td>
+<td>
+<p>The transformation to be applied to the latent means</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>The mean of the transformed latent means</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function estimates the latent transformed Poisson means in order
+to minimise a combination of the log-likelihood plus the squared
+residuals of the projection of these latent means onto the first k
+principal components. Note that for transformed Poisson PCA, the
+scores are not nested, so the choice of k will have an impact on the
+projection. The <code>get_scores_log</code> function deals with the special
+case where the transformation is the log function.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>scores</code></td>
+<td>
+<p>The principal scores</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>means</code></td>
+<td>
+<p>The corresponding estimated latent Poisson means</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Toby Kenney <a href="mailto:tkenney@mathstat.dal.ca">tkenney@mathstat.dal.ca</a> and Tianshu Huang </p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+n&lt;-20  #20 observations
+p&lt;-5   #5 dimensions
+r&lt;-2   #rank 2
+
+mean&lt;-10*c(1,3,2,1,1)
+
+set.seed(12345)
+
+Z&lt;-rnorm(n*r)
+dim(Z)&lt;-c(n,r)
+U&lt;-rnorm(p*r)
+dim(U)&lt;-c(r,p)
+
+Latent&lt;-Z%*%U+rep(1,n)%*%t(mean)
+
+X&lt;-rpois(n*p,as.vector(Latent))
+dim(X)&lt;-c(n,p)
+
+Sigma&lt;-LinearCorrectedVariance(X[-n,])
+
+eig&lt;-eigen(Sigma)
+
+
+get_scores(X[n,],eig$vectors,eig$values,r,"linear",colMeans(X[-n,]))
+
+Xlog&lt;-rpois(n*p,exp(as.vector(Latent)+3))
+dim(Xlog)&lt;-c(n,p)
+
+logtrans&lt;-makelogtransformation(3,4)
+
+Sigmalog&lt;-TransformedVarianceECV(X[-n,],logtrans$g,logtrans$ECVar)
+
+eiglog&lt;-eigen(Sigmalog)
+
+gX&lt;-X[-n,]
+
+if(!is.null(logtrans)){
+    for(i in 1:(n-1)){
+        for(j in 1:p){
+            gX[i,j]&lt;-logtrans$g(X[i,j])
+        }
+    }
+}                    
+
+mu&lt;-colMeans(gX)        
+
+
+get_scores_log(X[n,],eiglog$vectors,eiglog$values,r,mu)
+
+</code></pre>
+
+
+</div>

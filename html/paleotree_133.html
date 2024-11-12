@@ -1,0 +1,529 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plotPhyloPicTree</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Plot a Phylogeny with Organismal Silhouettes from PhyloPic, Called Via the Paleobiology Database API</h2>
+
+<h3>Description</h3>
+
+<p>This function will take a phylogeny, preferably a taxonomy-tree
+created from classification information and/or parent-child taxon
+information pulled from the Paleobiology Database via function
+<code>makePBDBtaxonTree</code>, and use the
+Paleobiology Database's API to plot silhouettes of each given tip taxon
+in replacement of their normal tip labels.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">plotPhyloPicTree(
+  tree,
+  taxaDataPBDB = tree$taxaDataPBDB,
+  maxAgeDepth = NULL,
+  depthAxisPhylo = FALSE,
+  colorAxisPhylo = "black",
+  addTaxonStratDurations = FALSE,
+  taxaStratRanges = tree$tipTaxonFourDateRanges,
+  stratDurationBoxWidth = 0.7,
+  sizeScale = 0.9,
+  removeSurroundingMargin = TRUE,
+  orientation = "rightwards",
+  resetGrPar = TRUE,
+  taxaColor = NULL,
+  transparency = 1,
+  cacheDir = "cachedPhyloPicPNGs",
+  cacheImage = TRUE,
+  noiseThreshold = 0.1,
+  rescalePNG = TRUE,
+  trimPNG = TRUE,
+  colorGradient = "original",
+  failIfNoInternet = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tree</code></td>
+<td>
+<p>A phylogeny of class <code>phylo</code> which will be
+plotted, with the terminal tip taxa replaced by silhouettes.
+The tree will be plotted with edge lengths.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>taxaDataPBDB</code></td>
+<td>
+<p>A <code>data.frame</code> of taxonomic data from
+the Paleobiology Database containing an <code>$image_no</code> variable,
+as returned when <code>show = "img"</code> is used. See <em>Details</em>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxAgeDepth</code></td>
+<td>
+<p>The maximum tree depth displayed for a tree given with
+branch lengths (age depth for a dated tree). The portion of the phylogeny
+older than this date will not be shown. <code>NULL</code> by default. If provided,
+the input tree must have branch lengths in <code>tree$edge.length</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>depthAxisPhylo</code></td>
+<td>
+<p>If <code>TRUE</code>, the <code>ape</code> function
+<code>axisPhylo</code> is run to add an axis of the tree depth to
+the tree, which must have branch lengths. <code>FALSE</code> by default.
+If <code>removeSurroundingMargin = TRUE</code>, which removes extraneous margins,
+the margins of the plot will be adjusted to make room for the plotted axis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colorAxisPhylo</code></td>
+<td>
+<p>A color in which the axis for the phylogenetic's depth
+(generally a time-scale) will be plotted in, for both the axis, its
+tickmarks, and the labels for the tickmarks.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>addTaxonStratDurations</code></td>
+<td>
+<p>If <code>TRUE</code>, solid color boxes are
+plotted on the tree to indicated known taxon ranges, from the oldest 
+possible for the oldest known observation of that taxon, to the youngest 
+possible age for the youngest known observation of that taxon. This 
+information needs to be supplied as input, see argument <code>taxaStratRanges</code>.
+If <code>FALSE</code> (the default), nothing happens.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>taxaStratRanges</code></td>
+<td>
+<p>A matrix of four-date range information, as is often
+used when converting Paleobiology Database taxon data to a dated tree. By
+default, this is expected to be located at <code>tree$tipTaxonFourDateRanges</code>,
+which is where such data is placed by default by the function
+<code>dateTaxonTreePBDB</code>. If <code>addTaxonStratDurations = FALSE</code>
+(the default), this data is not checked for.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stratDurationBoxWidth</code></td>
+<td>
+<p>The width of the stratigraphic duration boxes
+plotted for taxa on the tree. By default, this is 0.7 units. If
+<code>addTaxonStratDurations = FALSE</code> (the default), this argument affects nothing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sizeScale</code></td>
+<td>
+<p>The default is <code>sizeScale = 0.9</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>removeSurroundingMargin</code></td>
+<td>
+<p>This argument controls the <code>no.margin</code> argument
+in the function <code>plot.phylo</code>, which controls whether a (very large) margin is 
+placed around the plotted tree, or not. By default, <code>plotPhyloPicTree</code> will
+suppress that margin, so that the plotted tree goes (very nearly) to the edges
+of the plotting area.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>orientation</code></td>
+<td>
+<p>Controls the direction the phylogeny is plotted
+in - can be either "rightwards" or "upwards".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resetGrPar</code></td>
+<td>
+<p>If <code>TRUE</code> (the default), the graphic parameters are
+reset, so that choices of margins and coordinate system manipulation done
+as part of this function do not impact the next plot made in this graphic
+device. If you need to add additional elements to the plot after running
+this function within R, you should set this argument to <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>taxaColor</code></td>
+<td>
+<p>Controls the color of plotted PhyloPics. Can either be <code>NULL</code>
+(the default, all taxa will be plotted as black), or a character vector that is either
+length 1, or the same length as the number of taxa. If <code>taxaColor</code> is length 1,
+then the value is either interpreted as matching a tip label (in which case, the
+named taxon will be highlighted in bright red), or as a color, which all PhyloPics
+will then be plotted as that color. If the vector is the same length as the number
+of taxa on <code>tree</code>, each value should be a character value of a
+named color in base R, allowing user control over each PhyloPic
+individually. All PhyloPics expressed in colors other than the default
+black are transformed as under the argument <code>colorGradient = "trueMonochrome"</code>,
+so that the PhyloPic is expressed with no intermediate gray-scale values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>transparency</code></td>
+<td>
+<p>A numeric value between 0 and 1, either length 1, or the same
+length as the number of tips on <code>tree</code>. This indicates the transparency of
+either all the plotted PhyloPics, or allows user control over each PhyloPic
+individually. The default is 1, which represents maximum opaqueness,
+applied to all PhyloPics.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cacheDir</code></td>
+<td>
+<p>If not <code>NULL</code>, this value is used as 
+the name of a sub-directory of the working directory for which to look for
+(or store) cached versions of PhyloPic PNGs to save on processing speed
+and the need to pull the images from an external PNG.
+If <code>NULL</code>, then cached images will not be checked for, and images downloaded will not be cached.
+The default is</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cacheImage</code></td>
+<td>
+<p>If <code>TRUE</code> (the default), images downloaded from the Paleobiology
+Database and/or the PhyloPic Database will be cached to save on processing speed
+and avoid the need to pull the images from an external PNG.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>noiseThreshold</code></td>
+<td>
+<p>A threshold for noise in the PNG from PhyloPic
+to be treated as meaningless noise (i.e. a color that is effectively
+whitespace) and thus can be trimmed as empty margin which can be
+trimmed before the silhouette is plotted. The units for this argument
+are on a scale from 0 to 1, with 0 being true white space, and values
+between 0 and 0.5 representing colors closer to whitespace than true
+black. The default is <code>noiseThreshold = 0.1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rescalePNG</code></td>
+<td>
+<p>If <code>TRUE</code> (the default), the downloaded PhyloPic 
+has its color values rebalanced to go from the most extreme white
+to the most extreme black. Some (especially PBDB's versions) have varying
+levels of gray compression-related artifacts and may not be properly
+on a black-to-white scale.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trimPNG</code></td>
+<td>
+<p>If <code>TRUE</code> (the default), the PhyloPic PNG is trimmed 
+to remove extraneous whitespace from the top and bottom, before rescaling 
+of the color values of the PNG.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colorGradient</code></td>
+<td>
+<p>Controls the depth gradient of color for the PhyloPics.
+For typical plotting in black color, this means adjusting
+the grayscale (and possibly removing any gray scale). 
+Most of the silhouettes are binary black-and-white already but some
+aren't, but those gray-scale values (sometimes?) seem
+to exist to indicate very fine features. However, maybe an image
+is far too much gray-scale, in which case users can apply this argument.
+If <code>colorGradient = "original"</code> (the default), then nothing is adjusted.
+If <code>colorGradient = "trueMonochrome"</code>, the entire image's gradients are
+simplified to a duality: either fully colored or fully transparent.
+If <code>colorGradient = "increaseDisparity"</code>, then a slightly less
+extreme option is applied, with values transformed to greatly remove
+in-between gray-scale value, shifting them toward color or
+not-color without making the silhouette purely monochrome.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>failIfNoInternet</code></td>
+<td>
+<p>If the Paleobiology Database or another 
+needed internet resource cannot be accessed, perhaps because of
+no internet connection, should the function fail (with an error)
+or should the function return <code>NULL</code> and return an
+informative message instead, thus meeting the CRAN policy
+that such functionalities must 'fail gracefully'?
+The default is <code>TRUE</code> but all examples that might be auto-run
+use <code>FALSE</code> so they do not fail during R CHECK.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments, passed to
+<code>plot.phylo</code> for plotting of the tree. These
+additional arguments may be passed to <code>plot</code>,
+and from there to <code>plot</code>. 
+Some arguments are reserved and cannot be passed,
+particularly: <code>direction</code>, <code>show.tip.label</code>,
+<code>no.margin</code>, <code>plot</code>, <code>xlim</code>, and<code>ylim</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function preferably will pull the identifiers for which images are to
+be associated with the tip taxa from <code>taxaDataPBDB$image_no</code>. By default,
+<code>taxaDataPBDB</code> itself is assumed to be an element of <code>tree</code> named
+<code>tree$taxaData</code>, as the PBDB data table used to construct the tree is
+appended to the output tree when <code>makePBDBtaxonTree</code> is used to
+construct a taxonomy-tree. If the functions listed in <code>getDataPBDB</code>
+are used to obtain the taxonomic data, this table will include the <code>image_no</code>
+variable, which is the image identifier numbers needed to call PNGs from the
+Paleobiology Database API. If <code>taxaDataPBDB</code> isn't provided, either by
+the user directly, or as an element of <code>tree</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>This function silently returns the positions for elements in the
+tree (.e. the environmental information obtained about the
+previous plotting environment of the tree as plotted), along
+with a saved set of the graphic parameters as they were
+at the end of the function's run.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David W. Bapst
+</p>
+
+
+<h3>References</h3>
+
+<p>Peters, S. E., and M. McClennen. 2015. The Paleobiology Database
+application programming interface. <em>Paleobiology</em> 42(1):1-7.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See <code>getDataPBDB</code>, <code>makePBDBtaxonTree</code>,
+and <code>plotPhyloPicTree</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Note that some examples here use argument 
+    # failIfNoInternet = FALSE so that functions do
+    # not error out but simply return NULL if internet
+    # connection is not available, and thus
+    # fail gracefully rather than error out (required by CRAN).
+# Remove this argument or set to TRUE so functions DO fail
+    # when internet resources (paleobiodb) is not available.
+
+
+
+library(paleotree)
+
+taxaAnimals&lt;-c("Archaeopteryx", "Eldredgeops",
+    "Corvus", "Acropora", "Velociraptor", "Gorilla", 
+    "Olenellus", "Lingula", "Dunkleosteus",
+    "Tyrannosaurus", "Triceratops", "Giraffa",
+    "Megatheriidae", "Aedes", "Histiodella",
+    "Rhynchotrema", "Pecten", "Homo", "Dimetrodon",
+    "Nemagraptus", "Panthera", "Anomalocaris")
+
+animalData &lt;-getSpecificTaxaPBDB(taxaAnimals, 
+    failIfNoInternet = FALSE)
+    
+if(!is.null(animalData)){  
+  
+tree &lt;- makePBDBtaxonTree(
+    animalData, 
+    rankTaxon = "genus", 
+    failIfNoInternet = FALSE
+    ) 
+
+plotPhyloPicTree(tree = tree, 
+    failIfNoInternet = FALSE)
+
+# let's plot upwards but at a funny size
+dev.new(height = 5, width = 10)
+plotPhyloPicTree(tree = tree,
+    orientation = "upwards", 
+    failIfNoInternet = FALSE) 
+
+# dated tree plotting
+
+#date the tree 
+timeTree &lt;- dateTaxonTreePBDB(tree, minBranchLen = 10)
+
+plotPhyloPicTree(tree = timeTree)
+
+# plotting the dated tree with an axis
+plotPhyloPicTree(
+    tree = timeTree,
+    depthAxisPhylo = TRUE)
+
+# now upwards!
+plotPhyloPicTree(tree = timeTree,
+    orientation = "upwards",
+    depthAxisPhylo= TRUE)
+
+###################################
+
+# plotting a time tree with stratigraphic ranges
+
+plotPhyloPicTree(tree = timeTree,
+   addTaxonStratDurations = TRUE)
+
+plotPhyloPicTree(tree = timeTree,
+   addTaxonStratDurations = TRUE,
+   orientation = "upwards",
+   depthAxisPhylo= TRUE)
+
+################################################
+
+# adjusting a tree to ignore a very old root
+
+# let's pretend that metazoans are extremely old
+treeOldRoot &lt;- timeTree
+rootEdges &lt;- timeTree$edge[,1] == (Ntip(timeTree)+1)
+rootEdgeLen &lt;- timeTree$edge.length[rootEdges]
+treeOldRoot$edge.length[rootEdges] &lt;- rootEdgeLen + 1500
+treeOldRoot$root.time &lt;- NULL
+
+# plot it
+plot(treeOldRoot)
+axisPhylo()
+# yep, that's really old
+
+# let's plot it now with the PhyloPic
+plotPhyloPicTree(tree = treeOldRoot,
+    depthAxisPhylo = TRUE)
+
+# let's crop that old lineage
+plotPhyloPicTree(tree = treeOldRoot,
+    maxAgeDepth = 500,
+    depthAxisPhylo = TRUE)
+# cool!
+
+##################################
+# playing with colors
+plotPhyloPicTree(tree = tree,
+     taxaColor = "green")
+
+# inverting the colors
+par(bg="black")
+taxaColors &lt;- rep("white",Ntip(tree))
+# making a red giraffe
+taxaColors[4] &lt;- "red"
+plotPhyloPicTree(
+    tree = tree, 
+    orientation = "upwards",
+    edge.color = "white",
+    taxaColor=taxaColors)
+
+
+} # end if to test if animalData was NULL
+ # end donttest segment
+
+######################################
+## Not run: 
+
+# let's try some different phylopics
+      # like a nice tree of commonly known tetrapods
+
+tetrapodList&lt;-c("Archaeopteryx", "Columba", "Ectopistes",
+    "Corvus", "Velociraptor", "Baryonyx", "Bufo",
+    "Rhamphorhynchus", "Quetzalcoatlus", "Natator",
+    "Tyrannosaurus", "Triceratops", "Gavialis",
+    "Brachiosaurus", "Pteranodon", "Crocodylus",
+    "Alligator", "Giraffa", "Felis", "Ambystoma",
+     "Homo", "Dimetrodon", "Coleonyx", "Equus",
+    "Sphenodon", "Amblyrhynchus")
+
+tetrapodData &lt;-getSpecificTaxaPBDB(tetrapodList)
+
+tree &lt;- makePBDBtaxonTree(tetrapodData, rankTaxon = "genus")
+
+plotPhyloPicTree(tree = tree)
+
+####################################
+
+# let's check our speed increase from caching!
+    # can try this on your own machine
+
+#first time
+system.time(plotPhyloPicTree(tree = tree))
+# second time
+system.time(plotPhyloPicTree(tree = tree))
+
+##################################
+# make a pretty plot
+
+taxaSeventyEight &lt;- c(
+    "Archaeopteryx", "Pinus", "Procoptodon", "Olenellus", "Eldredgeops",
+    "Quetzalcoatlus", "Homo", "Tyrannosaurus", "Triceratops", "Giraffa",
+    "Bolivina", "Cancer", "Dicellograptus", "Dunkleosteus", "Solanum",
+    "Anomalocaris", "Climacograptus", "Halysites", "Cyrtograptus", 
+    "Procoptodon", "Megacerops", "Moropus", "Dimetrodon", "Lingula",
+    "Rhynchosaurus", "Equus", "Megaloceros", "Rhynchotrema", "Pecten",
+    "Echinaster", "Eocooksonia", "Neospirifer", # "Prototaxites", 
+    "Cincinnaticrinus", "Nemagraptus", "Monograptus", "Pongo", "Acropora",
+    "Histiodella", "Agathiceras", "Juramaia", "Opabinia", "Arandaspis",
+    "Corvus", "Plethodon", "Latimeria", "Phrynosoma", "Araucarioxylon",
+    "Velociraptor", "Hylonomus", "Elginerpeton", "Rhyniognatha",
+    "Tyto", "Dromaius", "Solenopsis", "Gorilla", "Ginkgo", "Terebratella", 
+    "Caretta", "Crocodylus", "Rosa", "Prunus", "Lycopodium", "Meganeura",
+    "Diplodocus", "Brachiosaurus", "Hepaticae", "Canadaspis", "Pikaia",
+    "Smilodon", "Mammuthus", "Exaeretodon", "Redondasaurus", "Dimetrodon",
+    "Megatheriidae", "Metasequoia", "Aedes", "Panthera", "Megalonyx")
+
+dataSeventyEight &lt;-getSpecificTaxaPBDB(taxaSeventyEight)
+tree &lt;- makePBDBtaxonTree(dataSeventyEight, rankTaxon = "genus") 
+
+timeTree &lt;- dateTaxonTreePBDB(tree,
+  minBranchLen = 10)
+
+date &lt;- format(Sys.time(), "%m-%d-%y")
+file &lt;- paste0(
+   "tree_taxa78_phylopic_stratTree_",
+    date, ".pdf")
+
+png(file = file,
+    height = 5, width = 12, 
+    units = "in", res = 300)
+par(bg="black")
+par(mar=c(0,0,3,0))
+taxaColors &lt;- rep("white", Ntip(timeTree))
+taxaColors[4] &lt;- "red"
+
+plotPhyloPicTree(
+    tree = timeTree, 
+    orientation = "upwards",
+    addTaxonStratDurations = TRUE,
+    edge.color = "white",
+    maxAgeDepth = 700,
+    taxaColor=taxaColors,
+    depthAxisPhylo = TRUE,
+    colorAxisPhylo = "white")
+dev.off()
+shell.exec(file)
+
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,219 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>particleFilterLL_piecewise</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>run particle filter across piecewise data</h2>
+
+<h3>Description</h3>
+
+<p>Calculates likelihoods across several segments of data - e.g. multiple plots from a single experiment.
+Requires several implicitely defined variables to run:
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">particleFilterLL_piecewise(
+  param,
+  N,
+  y,
+  libuse_y,
+  smap_coefs,
+  Euse,
+  tuse,
+  colpar = c(logit(1e-06), log(0.1)),
+  nsmp = 1,
+  lowerbound = -999,
+  maxNuse = 512000
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>param</code></td>
+<td>
+<p>parameters to be passed to parseparam0 function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N</code></td>
+<td>
+<p>number of particles</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>the time series to be analyzed</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>libuse_y</code></td>
+<td>
+<p>a matrix with two columns, specifying the start end end positions of segments within vector y</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>smap_coefs</code></td>
+<td>
+<p>a matrix of s-mapping coefficients</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Euse</code></td>
+<td>
+<p>embedding dimension for the s-mapping analysis</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tuse</code></td>
+<td>
+<p>theta for s-mapping analysis</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colpar</code></td>
+<td>
+<p>parameters to be passed to the colfun0 - defaults to c(logit(1e-6), log(0.1))</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsmp</code></td>
+<td>
+<p>number of sample particle trajectories to return - defaults to 1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lowerbound</code></td>
+<td>
+<p>minimum accepted likelihood - used to automatically select number of particles. Defaults to -999</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxNuse</code></td>
+<td>
+<p>maximum number of particles to simulate - defaults to 512000</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>results from particle filter - including mean estimates (Nest) and standard deviations (Nsd), across particles,
+and sample particle trajectories with (Nsmp) and without (Nsmp_noproc) process noise
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load data
+data(dat)
+# sort by index
+dat = dat[order(dat$treatment, dat$number, dat$time),]
+
+
+# make list of starting and ending positions for each replicate in the dat list
+libmat&lt;-NULL
+trtmat&lt;-data.frame(trt=as.character(sort(unique(dat$treatment))))
+datnum&lt;-1:nrow(dat)
+
+for(i in 1:nrow(trtmat)) {
+  ps1&lt;-which(dat$treatment==trtmat$trt[i])
+  replst&lt;-sort(unique(dat$number[ps1]))
+
+  for(j in 1:length(replst)) {
+    ps2&lt;-which(dat$number[ps1]==replst[j])
+    libmat&lt;-rbind(libmat, data.frame(trt=trtmat$trt[i], rep=replst[j],
+      start=min(datnum[ps1][ps2]), end=max(datnum[ps1][ps2])))
+  }
+}
+
+## run particle filter
+# select treatment to analyse: enter either "LSA" or "LSP"
+trtuse&lt;-"HSP"
+# extract library positions for treatment
+libuse&lt;-as.matrix(libmat[libmat$trt==trtuse,c("start", "end")])
+# save abundance data to variable y
+yps&lt;-which(dat$treatment==trtuse)
+y&lt;-dat[,"Chlamydomonas.terricola"][yps]
+libuse_y&lt;-libuse-min(libuse)+1 # translate positions in dat to positions in y vector
+y&lt;-y/sd(y) # standardize to mean of one
+timesteps&lt;-dat$time[yps]
+
+# get S-mapping parameters
+sout&lt;-data.frame(E = 2:4, theta = NA, RMSE = NA)
+for(i in 1:nrow(sout)) {
+  optout = optimize(f = function(x) {S_map_Sugihara1994(Y = y, E = sout$E[i],
+      theta = x, lib = libuse_y)$RMSE}, interval = c(0,10))
+  sout$theta[i] = optout$minimum
+  sout$RMSE[i] = optout$objective
+}
+tuse&lt;-sout$theta[which.min(sout$RMSE)] # find theta (nonlinerity) parameter
+euse&lt;-sout$E[which.min(sout$RMSE)] # find embedding dimension
+spred&lt;-S_map_Sugihara1994(Y = y, E = euse, theta = tuse, lib = libuse_y)
+
+# set priors (log-transformed Beta_obs, Beta_proc1, and Beta_proc2)
+minvUSE_edm&lt;-c(log(0.001), log(0.001))  # lower limits
+maxvUSE_edm&lt;-c(log(2), log(2)) # upper limits
+
+
+## Not run: 
+  ## Run filter
+  # Commented-out code: Install BayesianTools package if needed
+  #install.packages("BayesianTools")
+  set.seed(2343)
+  require(BayesianTools)
+  density_fun_USE_edm&lt;-function(param) density_fun0(param = param,
+    minv = minvUSE_edm, maxv=maxvUSE_edm)
+  sampler_fun_USE_edm&lt;-function(x) sampler_fun0(n = 1, minv = minvUSE_edm, maxv=maxvUSE_edm)
+  prior_edm &lt;- createPrior(density = density_fun_USE_edm, sampler = sampler_fun_USE_edm,
+                         lower = minvUSE_edm, upper = maxvUSE_edm)
+  niter&lt;-5e3 # number of steps for the MCMC sampler
+  N&lt;-2e3 # number of particles
+  smap_coefs&lt;-process_scof(spred$C) # coefficients from s-mapping routine
+
+  # likelihood and bayesian set-ups for EDM functions
+  likelihood_EDM_piecewise_use&lt;-function(x) {
+    # default values for filter - see likelihood_EDM_piecewise documentation for details
+    # note that colpar are set near zero because we expect no colonisation into a closed microcosm.
+    likelihood_EDM_piecewise(param=x, y, libuse_y, smap_coefs, euse, tuse, N,
+                             colpar = c(logit(1e-06), log(0.1)))
+  }
+
+  bayesianSetup_EDM &lt;- createBayesianSetup(likelihood = likelihood_EDM_piecewise_use,
+     prior = prior_edm)
+
+  # run MCMC optimization (will take ~ 5 min)
+  out_EDM &lt;- runMCMC(bayesianSetup = bayesianSetup_EDM,
+     settings = list(iterations=niter, consoleUpdates=20))
+  burnin&lt;-floor(niter/5) # burnin period
+  plot(out_EDM, start=burnin) # plot MCMC chains
+  gelmanDiagnostics(out_EDM, start=burnin) # calculate Gelman statistic
+  summary(out_EDM, start=burnin) # coefficient summary
+
+  ## extract abundance estimate from particle filter
+  # use final estimate from MCMC chain
+  smp_EDM&lt;-(getSample(out_EDM, start=floor(niter/5)))
+  tmp&lt;-particleFilterLL_piecewise(param = smp_EDM[nrow(smp_EDM),], N=N, y = y, libuse_y = libuse_y,
+                                  smap_coefs = smap_coefs, Euse = euse, tuse = tuse)
+  # mean estimated abundance
+  simout&lt;-tmp$Nest
+  # sd estimated abundance
+  sdout&lt;-tmp$Nsd
+  # sample from true particle trajectory
+  simout_smp&lt;-tmp$Nsmp
+  # sample from true particle trajectory pre-process noise
+  simout_smp_noproc&lt;-tmp$Nsmp_noproc
+
+  plot(timesteps, simout, xlab="Time", ylab="Abundance")
+  abline(h=0, lty=3)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,308 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>estimate_IBD</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate IBD probabilities from marker genotypes and a phased linkage map</h2>
+
+<h3>Description</h3>
+
+<p><code>estimate_IBD</code> is a function for creating identity-by-descent (IBD) probabilities. Two computational methods are offered:
+by default IBD probabilites are estimated using hidden Markov models, but a heuristic method based on Bourke et al. (2014) is also included.
+Basic input data for this function are marker genotypes (either discrete marker dosages (ie scores 0, 1, ..., ploidy representing the number of copies of the marker allele),
+or the probabilities of these dosages) and a phased linkage map. Details on each of the methods are included under <code>method</code>
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">estimate_IBD(
+  input_type = "discrete",
+  genotypes,
+  phased_maplist,
+  method = "hmm",
+  remove_markers = NULL,
+  ploidy,
+  ploidy2 = NULL,
+  parent1 = "P1",
+  parent2 = "P2",
+  individuals = "all",
+  log = NULL,
+  map_function = "haldane",
+  bivalent_decoding = TRUE,
+  error = 0.01,
+  full_multivalent_hexa = FALSE,
+  verbose = FALSE,
+  ncores = 1,
+  fix_threshold = 0.1,
+  factor_dist = 1
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>input_type</code></td>
+<td>
+<p>Can be either one of 'discrete' or 'probabilistic'. For the former (default), <code>dosage_matrix</code> must be supplied,
+while for the latter <code>probgeno_df</code> must be supplied. Note that probabilistic genotypes can only be accepted if the <code>method</code> is default ('hmm').</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>genotypes</code></td>
+<td>
+<p>Marker genotypes, either a 2d matrix of integer marker scores or a data.frame of dosage probabilities. 
+Details are as follows:
+</p>
+
+<dl>
+<dt>discrete : </dt>
+<dd>
+<p>If <code>input_type</code> is 'discrete', <code>genotypes</code> is a matrix of marker dosage scores with markers in rows and individuals in columns.
+Both (marker) rownames and (individual or sample) colnames are needed.
+</p>
+</dd>
+<dt>probabilistic : </dt>
+<dd>
+<p>If <code>input_type</code> is 'probabilistic', <code>genotypes</code> is a data frame as read from the scores file produced by function <code>saveMarkerModels</code> of R package 
+<code>fitPoly</code>, or alternatively, a data frame containing at least the following columns:
+</p>
+
+<dl>
+<dt>SampleName : </dt>
+<dd>
+<p>Name of the sample (individual)
+</p>
+</dd>
+<dt>MarkerName : </dt>
+<dd>
+<p>Name of the marker
+</p>
+</dd>
+<dt>P0 : </dt>
+<dd>
+<p>Probabilities of dosage score '0'
+</p>
+</dd>
+<dt>P1, P2... etc. : </dt>
+<dd>
+<p>Probabilities of dosage score '1' etc. (up to max offspring dosage, e.g. P4 for tetraploid population)
+</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phased_maplist</code></td>
+<td>
+<p>A list of phased linkage maps, the output of <code>polymapR::create_phased_maplist</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>The method used to estimate IBD probabilities, either <code>"hmm"</code> or <code>"heur"</code>. By default, the Hidden Markov Model (hmm) method is used.
+This uses an approach developed by Zheng et al (2016), and implemented in the 'TetraOrigin' package. However, unlike the original TetraOrigin software, it does not 
+re-estimate parental linkage phase, as this is assumed to have been generated during map construction. Alternatively, a heuristic algorithm can be employed (<code>method = "heur"</code>), providing
+computational efficiency at higher ploidy levels (hexaploid, octoploid etc.), but at the cost of some accuracy. 
+If <code>method = "hmm"</code> is specified, only diploid, triploid, autotetraploid and autohexaploid populations are currently allowed, while <code>method = "heur"</code> 
+caters for all possible ploidy levels. Furthermore, the argument <code>bivalent_decoding</code> can only be set to <code>FALSE</code> in the case of 
+the 'hmm' method (i.e. allowing for the possibility of multivalent formation and double reduction).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>remove_markers</code></td>
+<td>
+<p>Optional vector of marker names to remove from the maps. Default is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ploidy</code></td>
+<td>
+<p>Integer. Ploidy of the organism.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ploidy2</code></td>
+<td>
+<p>Optional integer, by default <code>NULL</code>. Ploidy of parent 2, if different from parent 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parent1</code></td>
+<td>
+<p>Identifier of parent 1, by default assumed to be <code>"P1"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parent2</code></td>
+<td>
+<p>Identifier of parent 2, by default assumed to be <code>"P2"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>individuals</code></td>
+<td>
+<p>By default "all" offspring are included, but otherwise a subset can be selected, using a vector of offspring indexing numbers (1,2, etc.)
+according to their order in <code>dosage_matrix</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>log</code></td>
+<td>
+<p>Character string specifying the log filename to which standard output should be written. If <code>NULL</code> log is send to stdout.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>map_function</code></td>
+<td>
+<p>Mapping function to use when converting map distances to recombination frequencies.
+Currently only <code>"haldane"</code> or <code>"kosambi"</code> are allowed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bivalent_decoding</code></td>
+<td>
+<p>Option to consider only bivalent pairing during formation of gametes (ignored for diploid populations, as only bivalents possible there), by default <code>TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>error</code></td>
+<td>
+<p>The (prior) probability of errors in the offspring dosages, usually assumed to be small but non-zero</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>full_multivalent_hexa</code></td>
+<td>
+<p>Option to allow multivalent pairing in both parents at the hexaploid level, by default <code>FALSE</code>. Note that if <code>TRUE</code>,
+a very large available RAM may be required (&gt;= 32Gb) to process the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical, by default <code>TRUE</code>. Should progress messages be written?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ncores</code></td>
+<td>
+<p>How many CPU cores should be used in the evaluation? By default 1 core is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fix_threshold</code></td>
+<td>
+<p>If <code>method = "heur"</code>, the threshold to fix the IBD probabilities while correcting for the sum of probabilities.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>factor_dist</code></td>
+<td>
+<p>If <code>method = "heur"</code>, the factor by which to increase or decrease the recombination frequencies as calculated from the map distances.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list of IBD probabilities, organised by linkage group (as given in the input <code>phased_maplist</code>). Each
+list item is itself a list containing the following:
+</p>
+
+<dl>
+<dt>IBDtype</dt>
+<dd>
+<p>The type of IBD; for this function only "genotypeIBD" are calculated.</p>
+</dd>
+<dt>IBDarray</dt>
+<dd>
+<p>A 3d array of IBD probabilities, with dimensions marker, genotype-class and F1 individual.</p>
+</dd>
+<dt>map</dt>
+<dd>
+<p>A 3-column data-frame specifying chromosome, marker and position (in cM)</p>
+</dd>
+<dt>parental_phase</dt>
+<dd>
+<p>Phasing of the markers in the parents, as given in the input <code>phased_maplist</code></p>
+</dd>
+<dt>marginal.likelihoods</dt>
+<dd>
+<p>A list of marginal likelihoods of different valencies if method "hmm" was used, otherwise <code>NULL</code></p>
+</dd>
+<dt>valency</dt>
+<dd>
+<p>The predicted valency that maximised the marginal likelihood, per offspring. For method "heur", <code>NULL</code></p>
+</dd>
+<dt>offspring</dt>
+<dd>
+<p>Offspring names</p>
+</dd>
+<dt>biv_dec</dt>
+<dd>
+<p>Logical, whether bivalent decoding was used in the estimation of the F1 IBD probabilities.</p>
+</dd>
+<dt>gap</dt>
+<dd>
+<p>The size of the gap (in cM) used when interpolating the IBD probabilities. See function <code>spline_IBD</code> for details.</p>
+</dd>
+<dt>genocodes</dt>
+<dd>
+<p>Ordered list of genotype codes used to represent different genotype classes.</p>
+</dd>
+<dt>pairing</dt>
+<dd>
+<p>log likelihoods of each of the different pairing scenarios considered (can be used e.g. for post-mapping check of preferential pairing)</p>
+</dd>
+<dt>ploidy</dt>
+<dd>
+<p>ploidy of parent 1</p>
+</dd>
+<dt>ploidy2</dt>
+<dd>
+<p>ploidy of parent 2</p>
+</dd>
+<dt>method</dt>
+<dd>
+<p>The method used, either "hmm" (default) or "heur". See argument <code>method</code></p>
+</dd>
+<dt>error</dt>
+<dd>
+<p>The error prior used, if method "hmm" was used, otherwise <code>NULL</code></p>
+</dd>
+</dl>
+<h3>References</h3>
+
+
+<ul>
+<li>
+<p>Durbin R, Eddy S, Krogh A, Mitchison G (1998) Biological sequence analysis: Probabilistic models of proteins and nucleic acids. Cambridge: Cambridge University Press.
+</p>
+</li>
+<li>
+<p>Hackett et al. (2013) Linkage analysis and QTL mapping using SNP dosage data in a tetraploid potato mapping population. PLoS One 8(5): e63939
+</p>
+</li>
+<li>
+<p>Zheng et al. (2016) Probabilistic multilocus haplotype reconstruction in outcrossing tetraploids. Genetics 203: 119-131
+</p>
+</li>
+<li>
+<p>Bourke P.M. (2014) QTL analysis in polyploids: Model testing and power calculations. Wageningen University (MSc thesis)
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">data("phased_maplist.4x", "SNP_dosages.4x")
+estimate_IBD(phased_maplist=phased_maplist.4x,genotypes=SNP_dosages.4x,ploidy=4)
+</code></pre>
+
+
+</div>

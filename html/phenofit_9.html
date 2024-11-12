@@ -1,0 +1,216 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>check_input</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>check_input</h2>
+
+<h3>Description</h3>
+
+<p>Check input data, interpolate NA values in y, remove spike values, and set
+weights for NA in y and w.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">check_input(
+  t,
+  y,
+  w,
+  QC_flag,
+  nptperyear,
+  south = FALSE,
+  wmin = 0.2,
+  wsnow = 0.8,
+  ymin,
+  missval,
+  maxgap,
+  alpha = 0.02,
+  alpha_high = NULL,
+  date_start = NULL,
+  date_end = NULL,
+  mask_spike = TRUE,
+  na.rm = FALSE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>t</code></td>
+<td>
+<p>Numeric vector, <code>Date</code> variable</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Numeric vector, vegetation index time-series</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+<p>(optional) Numeric vector, weights of <code>y</code>. If not specified,
+weights of all <code>NA</code> values will be <code>wmin</code>, the others will be 1.0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>QC_flag</code></td>
+<td>
+<p>Factor (optional) returned by <code>qcFUN</code>, levels should be
+in the range of <code>c("snow", "cloud", "shadow", "aerosol", "marginal", "good")</code>, others will be categoried into <code>others</code>. <code>QC_flag</code> is
+used for visualization in <code>get_pheno()</code> and <code>plot_curvefits()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nptperyear</code></td>
+<td>
+<p>Integer, number of images per year.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>south</code></td>
+<td>
+<p>Boolean. In south hemisphere, growing year is 1 July to the
+following year 31 June; In north hemisphere, growing year is 1 Jan to 31 Dec.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wmin</code></td>
+<td>
+<p>Double, minimum weight of bad points, which could be smaller
+the weight of snow, ice and cloud.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wsnow</code></td>
+<td>
+<p>Doulbe. Reset the weight of snow points, after get <code>ylu</code>.
+Snow flag is an important flag of ending of growing
+season. Snow points is more valuable than marginal points. Hence, the weight
+of snow should be great than that of <code>marginal</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ymin</code></td>
+<td>
+<p>If specified, <code>ylu[1]</code> is constrained greater than ymin. This
+value is critical for bare, snow/ice land, where vegetation amplitude is quite
+small. Generally, you can set ymin=0.08 for NDVI, ymin=0.05 for EVI,
+ymin=0.5 gC m-2 s-1 for GPP.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>missval</code></td>
+<td>
+<p>Double, which is used to replace NA values in y. If missing,
+the default vlaue is <code>ylu[1]</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxgap</code></td>
+<td>
+<p>Integer, nptperyear/4 will be a suitable value. If continuous
+missing value numbers less than maxgap, then interpolate those NA values by
+zoo::na.approx; If false, then replace those NA values with a constant value
+<code>ylu[1]</code>. <br>
+Replacing NA values with a constant missing value (e.g. background value ymin)
+is inappropriate for middle growing season points. Interpolating all values
+by na.approx, it is unsuitable for large number continous missing segments,
+e.g. in the start or end of growing season.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Double, in <code style="white-space: pre;">⁠[0,1]⁠</code>, quantile prob of ylu_min.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha_high</code></td>
+<td>
+<p>Double, <code style="white-space: pre;">⁠[0,1]⁠</code>, quantile prob of <code>ylu_max</code>. If not
+specified, <code>alpha_high=alpha</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>date_start, date_end</code></td>
+<td>
+<p>starting and ending date of the original vegetation
+time-sereis (before <code>add_HeadTail</code>)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mask_spike</code></td>
+<td>
+<p>Boolean. Whether to remove spike values?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.rm</code></td>
+<td>
+<p>Boolean. If <code>TRUE</code>, NA and spike values will be removed;
+otherwise, NA and spike values will be interpolated by valid neighbours.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Others will be ignored.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list object returned:
+</p>
+
+<ul>
+<li> <p><code>t</code> : Numeric vector
+</p>
+</li>
+<li> <p><code>y0</code>: Numeric vector, original vegetation time-series.
+</p>
+</li>
+<li> <p><code>y</code> : Numeric vector, checked vegetation time-series, <code>NA</code> values are interpolated.
+</p>
+</li>
+<li> <p><code>w</code> : Numeric vector
+</p>
+</li>
+<li> <p><code>Tn</code>: Numeric vector
+</p>
+</li>
+<li> <p><code>ylu</code>: = <code style="white-space: pre;">⁠[ymin, ymax]⁠</code>. <code>w_critical</code> is used to filter not too bad values.
+</p>
+<p>If the percentage good values (w=1) is greater than 30\
+</p>
+<p>The else, if the percentage of w &gt;= 0.5 points is greater than 10\
+<code>w_critical</code>=0.5. In boreal regions, even if the percentage of w &gt;= 0.5
+points is only 10\
+</p>
+<p>We can't rely on points with the wmin weights. Then,  <br><code>y_good = y[w &gt;= w_critical]</code>,  <br><code>ymin = pmax( quantile(y_good, alpha/2), 0)</code>  <br><code>ymax = max(y_good)</code>.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">data("CA_NS6")
+d = CA_NS6
+# head(d)
+
+nptperyear = 23
+INPUT &lt;- check_input(d$t, d$y, d$w, QC_flag = d$QC_flag,
+     nptperyear = nptperyear, south = FALSE, 
+     maxgap = nptperyear/4, alpha = 0.02, wmin = 0.2)
+plot_input(INPUT)
+</code></pre>
+
+
+</div>

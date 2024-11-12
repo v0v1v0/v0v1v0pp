@@ -1,0 +1,210 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plsim.vs.hard</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Variable Selection for Partial Linear Single Index Models</h2>
+
+<h3>Description</h3>
+
+<p>Variable Selection based on AIC, BIC, SCAD, LASSO and 
+Elastic Net. The methods based on SCAD, LASSO and Elastic Net are implemented with Penalized Profile 
+Least Squares Estimator, while AIC and BIC are implemented with Stepwise Regression.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">plsim.vs.hard(...)
+
+## S3 method for class 'formula'
+plsim.vs.hard(formula, data, ...)
+
+## Default S3 method:
+plsim.vs.hard(xdat=NULL, zdat, ydat, h=NULL, zeta_i=NULL, 
+lambdaList=NULL, l1RatioList=NULL, lambda_selector="BIC", threshold=0.05,
+Method="SCAD", verbose=TRUE, ParmaSelMethod="SimpleValidation", seed=0, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a symbolic description of the model to be fitted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>an optional data frame, list or environment containing the variables in the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xdat</code></td>
+<td>
+<p>input matrix (linear covariates). The model reduces to a single index model when <code>x</code> is NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zdat</code></td>
+<td>
+<p>input matrix (nonlinear covariates). <code>z</code> should not be NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ydat</code></td>
+<td>
+<p>input vector (response variable).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>h</code></td>
+<td>
+<p>a numerical value or a vector for bandwidth. If <code>h</code> is NULL, a default vector c(0.01,0.02,0.05,0.1,0.5)
+will be set for it. plsim.bw is employed to select the optimal bandwidth when h is a vector or NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zeta_i</code></td>
+<td>
+<p>initial coefficients, optional (default: NULL). It could be obtained by the function <code>plsim.ini</code>.
+<code>zeta_i[1:ncol(z)]</code> is the initial coefficient vector <code class="reqn">\alpha_0</code>,
+and <code>zeta_i[(ncol(z)+1):(ncol(z)+ncol(x))]</code> is the initial coefficient vector <code class="reqn">\beta_0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>bool, default: TRUE. Enable verbose output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Method</code></td>
+<td>
+<p>variable selection method, default: "SCAD". It could be "SCAD", "LASSO", "ElasticNet", "AIC" or "BIC".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambdaList</code></td>
+<td>
+<p>the parameter for the function plsim.lam, default: "NULL".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>l1RatioList</code></td>
+<td>
+<p>the parameter for the function plsim.lam, default: "NULL".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda_selector</code></td>
+<td>
+<p>the parameter for the function plsim.lam, default: "BIC".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>the threshold to select important variable according to the estimated coefficients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ParmaSelMethod</code></td>
+<td>
+<p>the parameter for the function plsim.bw.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>int, default: 0.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>alpha_varSel</code></td>
+<td>
+<p>selected variables in <code>z</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta_varSel</code></td>
+<td>
+<p>selected variables in <code>x</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit_plsimest</code></td>
+<td>
+<p><code>fit_plsimest</code> is not NULL when <code>h</code> is a vector or NULL. 
+For each bandwidth, plsim.est is employed to integrate selected variabels. Finally, the optimal
+fitted model will be selected according to BIC.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# EXAMPLE 1 (INTERFACE=FORMULA)
+# To select variables with Penalized Profile Least Squares Estimation based on 
+# the penalty LASSO.
+
+n = 50
+dx = 10
+dz = 5
+sigma = 0.2
+alpha = matrix(c(1,3,1.5,0.5,0),dz,1)
+alpha = alpha/norm(alpha,"2")
+beta = matrix(c(3,2,0,0,0,1.5,0,0.2,0.3,0.15),dx,1)
+
+A = sqrt(3)/2-1.645/sqrt(12)
+B = sqrt(3)/2+1.645/sqrt(12)
+z = matrix(runif(n*dz),n,dz)
+x = matrix(runif(n*dx),n,dx)
+y = sin( (z%*%alpha - A) * 3.1415926 * (B-A) ) + x%*%beta + sigma*matrix(rnorm(n),n,1)
+
+# Variable Selectioin Based on LASSO
+res_varSel_LASSO = plsim.vs.hard(y~x|z,h=0.1,Method="LASSO")
+
+
+# EXAMPLE 2 (INTERFACE=DATA FRAME)
+# To select variables with Penalized Profile Least Squares Estimation based on 
+# the penalty LASSO.
+
+n = 50
+dx = 10
+dz = 5
+sigma = 0.2
+alpha = matrix(c(1,3,1.5,0.5,0),dz,1)
+alpha = alpha/norm(alpha,"2")
+beta = matrix(c(3,2,0,0,0,1.5,0,0.2,0.3,0.15),dx,1)
+
+A = sqrt(3)/2-1.645/sqrt(12)
+B = sqrt(3)/2+1.645/sqrt(12)
+z = matrix(runif(n*dz),n,dz)
+x = matrix(runif(n*dx),n,dx)
+y = sin( (z%*%alpha - A) * 3.1415926 * (B-A) ) + x%*%beta + sigma*matrix(rnorm(n),n,1)
+
+Z = data.frame(z)
+X = data.frame(x)
+
+# Variable Selectioin Based on LASSO
+res_varSel_LASSO = plsim.vs.hard(xdat=X,zdat=Z,ydat=y,h=0.1,Method="LASSO")
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,156 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sample_belief_space</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Sample from the Belief Space</h2>
+
+<h3>Description</h3>
+
+<p>Sample points from belief space using a several sampling strategies.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sample_belief_space(model, projection = NULL, n = 1000, method = "random", ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a unsolved or solved POMDP.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>projection</code></td>
+<td>
+<p>Sample in a projected belief space. See <code>projection()</code> for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>size of the sample. For trajectories, it is the number of trajectories.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>character string specifying the sampling strategy. Available
+are <code>"random"</code>, <code>"regular"</code>, and <code>"trajectories"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>for the trajectory method, further arguments are passed on to <code>simulate_POMDP()</code>. Further arguments are ignored for the other methods.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The purpose of sampling from the belief space is to provide good coverage or to sample belief points
+that are more likely to be encountered (see trajectory method).
+The following sampling methods are available:
+</p>
+
+<ul>
+<li> <p><code>'random'</code> samples uniformly sample from the projected belief space using
+the method described by Luc Devroye (1986). Sampling is be done in parallel
+after a foreach backend is registered.
+</p>
+</li>
+<li> <p><code>'regular'</code> samples points using a
+regularly spaced grid. This method is only available for projections on 2 or
+3 states.
+</p>
+</li>
+<li> <p><code>"trajectories"</code> returns the belief states encountered in <code>n</code> trajectories of length <code>horizon</code> starting at the
+model's initial belief. Thus it returns <code>n</code> x <code>horizon</code> belief states and will contain duplicates.
+Projection is not supported for trajectories. Additional
+arguments can include the simulation <code>horizon</code> and the start <code>belief</code> which are passed on to <code>simulate_POMDP()</code>.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>Returns a matrix. Each row is a sample from the belief space.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Michael Hahsler
+</p>
+
+
+<h3>References</h3>
+
+<p>Luc Devroye, Non-Uniform Random Variate Generation, Springer
+Verlag, 1986.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other POMDP: 
+<code>MDP2POMDP</code>,
+<code>POMDP()</code>,
+<code>accessors</code>,
+<code>actions()</code>,
+<code>add_policy()</code>,
+<code>plot_belief_space()</code>,
+<code>projection()</code>,
+<code>reachable_and_absorbing</code>,
+<code>regret()</code>,
+<code>simulate_POMDP()</code>,
+<code>solve_POMDP()</code>,
+<code>solve_SARSOP()</code>,
+<code>transition_graph()</code>,
+<code>update_belief()</code>,
+<code>value_function()</code>,
+<code>write_POMDP()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data("Tiger")
+
+# random sampling can be done in parallel after registering a backend.
+# doparallel::registerDoParallel()
+
+sample_belief_space(Tiger, n = 5)
+sample_belief_space(Tiger, n = 5, method = "regular")
+sample_belief_space(Tiger, n = 1, horizon = 5, method = "trajectories")
+
+# sample, determine the optimal action and calculate the expected reward for a solved POMDP
+# Note: check.names = FALSE is used to preserve the `-` for the state names in the dataframe.
+sol &lt;- solve_POMDP(Tiger)
+samp &lt;- sample_belief_space(sol, n = 5, method = "regular")
+data.frame(samp, action = optimal_action(sol,  belief = samp), 
+  reward = reward(sol, belief = samp), check.names = FALSE)
+  
+# sample from a 3 state problem
+data(Three_doors)
+Three_doors
+
+sample_belief_space(Three_doors, n = 5)
+sample_belief_space(Three_doors, n = 5, projection = c(`tiger-left` = .1))
+
+if ("Ternary" %in% installed.packages()) {
+sample_belief_space(Three_doors, n = 9, method = "regular")
+sample_belief_space(Three_doors, n = 9, method = "regular", projection = c(`tiger-left` = .1))
+}
+
+sample_belief_space(Three_doors, n = 1, horizon = 5, method = "trajectories")
+</code></pre>
+
+
+</div>

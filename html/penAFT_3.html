@@ -1,0 +1,257 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>penAFT</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit the solution path for the regularized semiparametric accelerated failure time model with weighted elastic net or weighted sparse group lasso penalties.</h2>
+
+<h3>Description</h3>
+
+<p>A function to fit the solution path for the regularized semiparametric accelerated failure time model estimator.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">penAFT(X, logY, delta, nlambda = 50, 
+  lambda.ratio.min = 0.1, lambda = NULL, 
+  penalty = NULL, alpha = 1, weight.set = NULL, 
+  groups = NULL, tol.abs = 1e-8, tol.rel = 2.5e-4, 
+  gamma = 0,  standardize = TRUE, 
+  admm.max.iter = 1e4, quiet=TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>An <code class="reqn">n \times p</code> matrix of predictors. Observations should be organized by row.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>logY</code></td>
+<td>
+<p>An <code class="reqn">n</code>-dimensional vector of log-survival or log-censoring times.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>delta</code></td>
+<td>
+<p>An <code class="reqn">n</code>-dimensional binary vector indicating whether the <code class="reqn">j</code>th component of <code>logY</code> is an observed log-survival time (<code class="reqn">\delta_j = 1</code>) or a log-censoring time (<code class="reqn">\delta_j = 0</code>) for <code class="reqn">j=1, \dots, n</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlambda</code></td>
+<td>
+<p>The number of candidate tuning parameters to consider.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.ratio.min</code></td>
+<td>
+<p>The ratio of maximum to minimum candidate tuning parameter value. As a default, we suggest 0.1, but standard model selection procedures should be applied to select <code class="reqn">\lambda</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>An optional (not recommended) prespecified vector of candidate tuning parameters. Should be in descending order. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalty</code></td>
+<td>
+<p>Either "EN" or "SG" for elastic net or sparse group lasso penalties.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>The tuning parameter <code class="reqn">\alpha</code>. See documentation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weight.set</code></td>
+<td>
+<p>A list of weights. For both penalties, <code class="reqn">w</code> is an <code class="reqn">n</code>-dimensional vector of nonnegative weights. For "SG" penalty, can also include <code class="reqn">v</code> – a non-negative vector the length of the number of groups. See documentation for usage example.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groups</code></td>
+<td>
+<p>When using penalty "SG", a <code class="reqn">p</code>-dimensional vector of integers corresponding the to group assignment of each predictor (i.e., column of <code>X</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol.abs</code></td>
+<td>
+<p>Absolute convergence tolerance.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol.rel</code></td>
+<td>
+<p>Relative convergence tolerance.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>A non-negative optimization parameter which can improve convergence speed in certain settings. It is highly recommended to set equal to zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardize</code></td>
+<td>
+<p>Should predictors be standardized (i.e., column-wise average zero and scaled to have unit variance) for model fitting?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>admm.max.iter</code></td>
+<td>
+<p>Maximum number of ADMM iterations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quiet</code></td>
+<td>
+<p><code>TRUE</code> or <code>FALSE</code> variable indicating whether progress should be printed.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Given <code class="reqn">(\log y_1, x_1, \delta_1),\dots,(\log y_n, x_n, \delta_n)</code> where <code class="reqn">y_i</code> is the minimum of the survival time and censoring time, <code class="reqn">x_i</code> is a <code class="reqn">p</code>-dimensional predictor, and <code class="reqn">\delta_i</code> is the indicator of censoring,  <code>penAFT</code> fits the solution path for the argument minimizing
+</p>
+<p style="text-align: center;"><code class="reqn">\frac{1}{n^2}\sum_{i=1}^n \sum_{j=1}^n \delta_i \{ \log y_i - \log y_j - (x_i - x_j)'\beta \}^{-} + \lambda g(\beta)</code>
+</p>
+
+<p>where <code class="reqn">\{a \}^{-} := \max(-a, 0) </code>, <code class="reqn">\lambda &gt; 0</code>, and <code class="reqn">g</code> is either the weighted elastic net penalty (<code>penalty = "EN"</code>) or weighted sparse group lasso penalty (<code>penalty = "SG"</code>).
+The weighted elastic net penalty is defined as 
+</p>
+<p style="text-align: center;"><code class="reqn">\alpha \| w \circ \beta\|_1 + \frac{(1-\alpha)}{2}\|\beta\|_2^2</code>
+</p>
+
+<p>where <code class="reqn">w</code> is a set of non-negative weights (which can be specified in the <code>weight.set</code> argument). The weighted sparse group-lasso penalty we consider is
+</p>
+<p style="text-align: center;"><code class="reqn">\alpha \| w \circ \beta\|_1 + (1-\alpha)\sum_{l=1}^G v_l\|\beta_{\mathcal{G}_l}\|_2</code>
+</p>
+
+<p>where again, <code class="reqn">w</code> is a set of non-negative weights and <code class="reqn">v_l</code> are weights applied to each of the <code class="reqn">G</code> groups. 
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>A <code class="reqn">p \times</code> <code>nlambda</code> sparse matrix consisting of the estimates of <code class="reqn">\beta</code> for the candidate values of <code class="reqn">\lambda</code>. It is recommended to use <code>penAFT.coef</code> to extract coefficients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>The candidate tuning parameter values. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardize</code></td>
+<td>
+<p>Were predictors standardized to have unit variance for model fitting? </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X.mean</code></td>
+<td>
+<p>The mean of the predictors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X.sd</code></td>
+<td>
+<p>The standard deviation of the predictors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>The tuning parameter <code class="reqn">\alpha</code>. See documentation.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R"># --------------------------------------
+# Generate data  
+# --------------------------------------
+set.seed(1)
+genData &lt;- genSurvData(n = 50, p = 50, s = 10, mag = 2, cens.quant = 0.6)
+X &lt;- genData$X
+logY &lt;- genData$logY
+delta &lt;- genData$status
+
+
+# -----------------------------------------------
+# Fit elastic net penalized estimator
+# -----------------------------------------------
+fit.en &lt;- penAFT(X = X, logY = logY, delta = delta,
+                   nlambda = 50, lambda.ratio.min = 0.01,
+                   penalty = "EN",
+                   alpha = 1)
+                   
+
+coef.en.10 &lt;- penAFT.coef(fit.en, lambda = fit.en$lambda[10])
+
+
+# ------------------------------------------------
+# Fit weighted elastic net penalized estimator
+# ------------------------------------------------
+weight.set &lt;- list("w" = c(0, 0, rep(1, 48)))
+fit.weighted.en &lt;- penAFT(X = X, logY = logY, delta = delta,
+                   nlambda = 50, weight.set = weight.set,
+                   penalty = "EN",
+                   alpha = 1)
+coef.wighted.en.10 &lt;- penAFT.coef(fit.weighted.en, lambda = fit.weighted.en$lambda[10])
+                   
+                   
+# ------------------------------------------------
+# Fit ridge penalized estimator with user-specified lambda
+# ------------------------------------------------
+fit.ridge &lt;- penAFT(X = X, logY = logY, delta = delta,
+                   lambda = 10^seq(-4, 4, length=50), 
+                   penalty = "EN",
+                   alpha = 0)
+                   
+                   
+# -----------------------------------------------
+# Fit sparse group penalized estimator
+# -----------------------------------------------
+groups &lt;- rep(1:5, each = 10)
+fit.sg &lt;- penAFT(X = X, logY = logY, delta = delta,
+                   nlambda = 50, lambda.ratio.min = 0.01,
+                   penalty = "SG", groups = groups, 
+                   alpha = 0.5)
+                   
+# -----------------------------------------------
+# Fit weighted sparse group penalized estimator
+# -----------------------------------------------
+groups &lt;- rep(1:5, each = 10)
+weight.set &lt;- list("w" = c(0, 0, rep(1, 48)), 
+      "v" = 1:5)
+fit.weighted.sg &lt;- penAFT(X = X, logY = logY, delta = delta,
+                   nlambda = 100, 
+                   weight.set = weight.set,
+                   penalty = "SG", groups = groups, 
+                   alpha = 0.5)
+
+coef.weighted.sg.20 &lt;- penAFT.coef(fit.weighted.sg, lambda = fit.weighted.sg$lambda[20])
+
+</code></pre>
+
+
+</div>

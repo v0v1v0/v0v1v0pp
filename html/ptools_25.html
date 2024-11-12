@@ -1,0 +1,134 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>small_samptest</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Small Sample Exact Test for Counts in Bins</h2>
+
+<h3>Description</h3>
+
+<p>Small sample test statistic for counts of N items in bins with particular probability.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">small_samptest(d, p = rep(1/length(d), length(d)), type = "G", cdf = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>vector of counts, e.g. c(0,2,1,3,1,4,0) for counts of crimes in days of the week</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+<p>vector of baseline probabilities, defaults to equal probabilities in each bin</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>string specifying "G" for likelihhood ratio G stat (the default), "V" for Kuipers test (for circular data), "KS" for Komolgrov-Smirnov test, and "Chi" for Chi-square test</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cdf</code></td>
+<td>
+<p>if <code>FALSE</code> (the default) generates a new permutation vector (using <code>exactProb</code>), else pass it a final probability dataset previously created</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This construct a null distribution for small sample statistics for N counts in M bins. Example use cases are to see if a repeat offender have a proclivity to commit crimes on a particular day of the week (see the referenced paper). It can also be used for Benford's analysis of leading/trailing digits for small samples. Referenced paper shows G test tends to have the most power, although with circular data may consider Kuiper's test.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A small_sampletest object with slots for:
+</p>
+
+<ul>
+<li> <p><code>CDF</code>, a dataframe that contains the exact probabilities and test statistic values for every possible permutation
+</p>
+</li>
+<li> <p><code>probabilities</code>, the null probabilities you specified
+</p>
+</li>
+<li> <p><code>data</code>, the observed counts you specified
+</p>
+</li>
+<li> <p><code>test</code>, the type of test conducted (e.g. G, KS, Chi, etc.)
+</p>
+</li>
+<li> <p><code>test_stat</code>, the test statistic for the observed data
+</p>
+</li>
+<li> <p><code>p_value</code>, the p-value for the observed stat based on the exact null distribution
+</p>
+</li>
+<li> <p><code>AggregateStatistics</code>, here is a reduced form aggregate table for the CDF/p-value calculation
+</p>
+</li>
+</ul>
+<p>If you wish to save the object, you may want to get rid of the CDF part, it can be quite large. It will have a total of <code>choose(n+n-1,m-1)</code> total rows, where m is the number of bins and n is the total counts. So if you have 10 crimes in 7 days of the week, it will result in a dataframe with <code>choose(7 + 10 - 1,7-1)</code>, which is 8008 rows.
+Currently I keep the CDF part though to make it easier to calculate power for a particular test
+</p>
+
+
+<h3>References</h3>
+
+<p>Nigrini, M. J. (2012). <em>Benford's Law: Applications for forensic accounting, auditing, and fraud detection</em>. John Wiley &amp; Sons.
+</p>
+<p>Wheeler, A. P. (2016). Testing Serial Crime Events for Randomness in Day-of-Week Patterns with Small Samples. <em>Journal of Investigative Psychology and Offender Profiling</em>, 13(2), 148-165.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>powalt()</code> for calculating power of a test under alternative
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Counts for different days of the week
+d &lt;- c(3,1,1,0,0,1,1) #format N observations in M bins
+res &lt;- small_samptest(d=d,type="G")
+print(res)
+
+# Example for Benfords analysis
+f &lt;- 1:9
+p_fd &lt;- log10(1 + (1/f)) #first digit probabilities
+#check data from Nigrini page 84
+checks &lt;- c(1927.48,27902.31,86241.90,72117.46,81321.75,97473.96,
+           93249.11,89658.17,87776.89,92105.83,79949.16,87602.93,
+           96879.27,91806.47,84991.67,90831.83,93766.67,88338.72,
+           94639.49,83709.28,96412.21,88432.86,71552.16)
+# To make example run a bit faster
+c1 &lt;- checks[1:10]
+#extracting the first digits
+fd &lt;- substr(format(c1,trim=TRUE),1,1)
+tot &lt;- table(factor(fd, levels=paste(f)))
+resG &lt;- small_samptest(d=tot,p=p_fd,type="Chi")
+resG
+
+#Can reuse the cdf table if you have the same number of observations
+c2 &lt;- checks[11:20]
+fd2 &lt;- substr(format(c2,trim=TRUE),1,1)
+t2 &lt;- table(factor(fd2, levels=paste(f)))
+resG2 &lt;- small_samptest(d=t2,p=p_fd,type="Chi",cdf=resG$CDF)
+
+</code></pre>
+
+
+</div>

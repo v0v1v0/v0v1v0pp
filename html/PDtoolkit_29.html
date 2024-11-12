@@ -1,0 +1,161 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>power</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Power of statistical tests for predictive ability testing</h2>
+
+<h3>Description</h3>
+
+<p><code>power</code> performs Monte Carlo simulation of power of statistical test used for testing the predictive
+ability of the PD rating model. It covers fours tests: the binomial, Jeffreys, z-score and Hosmer-Lemeshow test.
+This procedure is applied under assumption that the observed default rate is the true one and it is
+used to check if calibrated PDs are underestimated for the binomial, Jeffreys, and z-score.
+Therefore, for the cases where observed default rate is lower than the calibrated PD, the power calculation is not performed and will report the comment.
+For the Hosmer-Lemeshow test is used to test if the calibrated PD is the true one regardless the difference between the observed and calibrated
+portfolio default rate.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">power(rating.label, pdc, no, nb, alpha = 0.05, sim.num = 1000, seed = 2211)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>rating.label</code></td>
+<td>
+<p>Vector of rating labels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pdc</code></td>
+<td>
+<p>Vector of calibrated probabilities of default (PD).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>no</code></td>
+<td>
+<p>Number of observations per rating grade.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nb</code></td>
+<td>
+<p>Number of defaults (bad cases) per rating grade.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Significance level of p-value for implemented tests. Default is 0.05.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sim.num</code></td>
+<td>
+<p>Number of Monte Carlo simulations. Default is 1000.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Random seed needed for ensuring the result reproducibility. Default is 2211.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Due to the fact that test of predictive power is usually implemented on the application portfolio,
+certain prerequisites are needed to be fulfilled. In the first place model should be developed
+and rating scale should be formed. In order to reflect appropriate role and right moment of
+tests application, presented simplified example covers all steps before test implementation.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The command <code>power</code> returns a list with two objects. Both are the data frames and
+while the first one presents power calculation of the tests applied usually on the
+rating level (binomial, Jeffreys and z-score test), the second one presents results of
+the Hosmer-Lemeshow test which is applied on the complete rating scale.
+For both level of the implementation (rating or complete scale) if the observed default
+rate is less than calibrated PD, function will return the comment and power simulation
+will not be performed.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">suppressMessages(library(PDtoolkit))
+data(loans)
+#estimate some dummy model
+mod.frm &lt;- `Creditability` ~ `Account Balance` + `Duration of Credit (month)` +
+				`Age (years)`
+lr.mod &lt;- glm(mod.frm, family = "binomial", data = loans)
+summary(lr.mod)$coefficients
+#model predictions
+loans$pred &lt;-  unname(predict(lr.mod, type = "response", newdata = loans))
+#scale probabilities
+loans$score &lt;- scaled.score(probs = loans$pred, score = 600, odd = 50/1, pdo = 20)
+#group scores into rating
+loans$rating &lt;- sts.bin(x = round(loans$score), y = loans$Creditability, y.type = "bina")[[2]]
+#create rating scale
+rs &lt;- loans %&gt;%
+group_by(rating) %&gt;%
+summarise(no = n(),
+	    nb = sum(Creditability),
+	    ng = sum(1 - Creditability)) %&gt;%
+mutate(dr = nb / no)
+rs
+#calcualte portfolio default rate
+sum(rs$dr * rs$no / sum(rs$no))
+#calibrate rating scale to central tendency of 27% with minimum PD of 5%
+ct &lt;- 0.27
+min.pd &lt;- 0.05
+rs$pd &lt;- rs.calibration(rs = rs, 
+			dr = "dr", 
+			w = "no", 
+			ct = ct, 
+			min.pd = min.pd,
+			method = "log.odds.ab")[[1]]
+#check
+rs
+sum(rs$pd * rs$no / sum(rs$no))
+#simulate some dummy application portfolio
+set.seed(22)
+app.port &lt;- loans[sample(1:nrow(loans), 400), ]
+#summarise application portfolio on rating level
+ap.summary &lt;- app.port %&gt;%
+	  group_by(rating) %&gt;%
+	  summarise(no = n(),
+			nb = sum(Creditability),
+			ng = sum(1 - Creditability)) %&gt;%
+	  mutate(dr = nb / no)
+#bring calibrated pd as a based for predictive power testing
+ap.summary &lt;- merge(rs[, c("rating", "pd")], ap.summary, by = "rating", all.x = TRUE)
+ap.summary
+#perform predictive power testing
+pp.res &lt;- pp.testing(rating.label = ap.summary$rating,
+		     pdc = ap.summary$pd,
+		     no = ap.summary$no,
+		     nb = ap.summary$nb, 
+		     alpha = 0.05)
+pp.res
+power(rating.label = ap.summary$rating,
+  pdc = ap.summary$pd,
+  no = ap.summary$no,
+  nb = ap.summary$nb, 
+  alpha = 0.05,
+  sim.num = 1000,
+  seed = 2211)
+</code></pre>
+
+
+</div>

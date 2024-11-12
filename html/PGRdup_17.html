@@ -1,0 +1,456 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ProbDup</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Identify probable duplicates of accessions</h2>
+
+<h3>Description</h3>
+
+<p><code>ProbDup</code> identifies probable duplicates of germplasm accessions in KWIC
+indexes created from PGR passport databases using fuzzy, phonetic and
+semantic matching strategies.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ProbDup(
+  kwic1,
+  kwic2 = NULL,
+  method = c("a", "b", "c"),
+  excep = NULL,
+  chunksize = 1000,
+  useBytes = TRUE,
+  fuzzy = TRUE,
+  max.dist = 3,
+  force.exact = TRUE,
+  max.alpha = 4,
+  max.digit = Inf,
+  phonetic = TRUE,
+  encoding = c("primary", "alternate"),
+  phon.min.alpha = 5,
+  min.enc = 3,
+  semantic = FALSE,
+  syn = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>kwic1</code></td>
+<td>
+<p>An object of class <code>KWIC</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kwic2</code></td>
+<td>
+<p>An object of class <code>KWIC</code>. Required for <code>method</code>
+<code>"b"</code> and <code>"c"</code> only (see <strong>Details</strong>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>The method to be followed for identification of probable
+duplicates. Either <code>"a"</code>, <code>"b"</code> or <code>"c"</code>. (see
+<strong>Details</strong>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>excep</code></td>
+<td>
+<p>A vector of the keywords in KWIC not to be used for probable
+duplicate search (see <strong>Details</strong>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chunksize</code></td>
+<td>
+<p>A value indicating the size of KWIC index keyword block to
+be used for searching for matches at a time in case of large number of
+keywords(see <strong>Note</strong>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useBytes</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, performs byte-wise comparison
+instead of character-wise comparison (see <strong>Note</strong>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fuzzy</code></td>
+<td>
+<p>logical. If <code>TRUE</code> identifies probable duplicates based on
+fuzzy matching.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.dist</code></td>
+<td>
+<p>The maximum levenshtein distance between keyword strings
+allowed for a match. Default is 3 (see <strong>Details</strong>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>force.exact</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, enforces exact matching instead
+of fuzzy matching for keyword strings which match the criteria specified in
+arguments <code>max.alpha</code> and <code>max.digit</code> (see <strong>Details</strong>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.alpha</code></td>
+<td>
+<p>Maximum number of alphabet characters present in a keyword
+string up to which exact matching is enforced rather than fuzzy matching.
+Default is 4 (see <strong>Details</strong>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.digit</code></td>
+<td>
+<p>Maximum number of numeric characters present in a keyword
+string up to which exact matching is enforced rather than fuzzy matching.
+Default is Inf (see <strong>Details</strong>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phonetic</code></td>
+<td>
+<p>logical. If <code>TRUE</code> identifies probable duplicates based
+on phonetic matching.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>encoding</code></td>
+<td>
+<p>Double metaphone encoding for phonetic matching. The default
+is <code>"primary"</code> (see <strong>Details</strong>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phon.min.alpha</code></td>
+<td>
+<p>Minimum number of alphabet characters to be present in
+a keyword string for phonetic matching (see <strong>Details</strong>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.enc</code></td>
+<td>
+<p>Minimum number of characters to be be present in double
+metaphone encoding of a keyword string for phonetic matching (see
+<strong>Details</strong>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>semantic</code></td>
+<td>
+<p>logical. If <code>TRUE</code> identifies probable duplicates based
+on semantic matching.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>syn</code></td>
+<td>
+<p>A list with character vectors of synsets (see <strong>Details</strong>).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function performs fuzzy, phonetic and semantic matching of keywords in
+KWIC indexes of PGR passport databases (created using
+<code>KWIC</code> function) to identify probable duplicates of
+germplasm accessions. The function can execute matching according to either
+of the following three methods as specified by the <code>method</code> argument.
+</p>
+ <dl>
+<dt>Method <code>a</code>:</dt>
+<dd>
+<p>Perform string matching of keywords in a
+single KWIC index to identify probable duplicates of accessions in a single
+PGR passport database.</p>
+</dd> <dt>Method <code>b</code>:</dt>
+<dd>
+<p>Perform string matching of
+keywords in the first KWIC index (query) with that of the keywords in the
+second index (source) to identify probable duplicates of accessions of the
+first PGR passport database among the accessions in the second database.</p>
+</dd>
+<dt>Method <code>c</code>:</dt>
+<dd>
+<p>Perform string matching of keywords in two different
+KWIC indexes jointly to identify probable duplicates of accessions from among
+two PGR passport databases.</p>
+</dd>
+</dl>
+<p><strong>Fuzzy matching</strong> or approximate string matching of keywords is carried
+out by computing the generalized levenshtein (edit) distance between them.
+This distance measure  counts the number of deletions, insertions and
+substitutions necessary to turn one string to the another. A distance of up
+to <code>max.dist</code> are considered for a match.
+</p>
+<p>Exact matching will be enforced when the argument <code>force.exact</code> is
+<code>TRUE</code>. It can be used to avoid fuzzy matching when the number of
+alphabet characters in keywords is lesser than a critical value
+(<code>max.alpha</code>). Similarly, the value of <code>max.digit</code> can also be set
+according to the requirements. The default value of <code>Inf</code> avoids fuzzy
+matching and enforces exact matching for all keywords having any numerical
+characters. If <code>max.digit</code> and <code>max.alpha</code> are both set to
+<code>Inf</code>, exact matching will be enforced for all the keywords.
+</p>
+<p>When exact matching is enforced, for keywords having both alphabet and
+numeric characters and with the number of alphabet characters greater than
+<code>max.digit</code>, matching will be carried out separately for alphabet and
+numeric characters present.
+</p>
+<p><strong>Phonetic matching</strong> of keywords is carried out using the Double
+Metaphone phonetic algorithm (<code>DoubleMetaphone</code>) to
+identify keywords that have the similar pronunciation. Either the
+<code>primary</code> or <code>alternate</code> encodings can be used by specifying the
+<code>encoding</code> argument. The argument <code>phon.min.alpha</code> sets the limits
+for the number of alphabet characters to be present in a string for executing
+phonetic matching. Similarly <code>min.enc</code> sets the limits for the number of
+characters to be present in the encoding of a keyword for phonetic matching.
+</p>
+<p><strong>Semantic matching</strong> matches keywords based on a list of accession name
+synonyms supplied as list with character vectors of synonym sets (synsets) to
+the <code>syn</code> argument. Synonyms in this context refers to interchangeable
+identifiers or names by which an accession is recognized. Multiple keywords
+specified as members of the same synset in <code>syn</code> are merged together. To
+facilitate accurate identification of synonyms from the KWIC index, identical
+data standardization operations using the <code>MergeKW</code> and
+<code>DataClean</code> functions for both the original database
+fields and the synset list are recommended.
+</p>
+<p>The probable duplicate sets identified initially here may be intersecting
+with other sets. To get the disjoint sets after the union of all the
+intersecting sets use the <code>DisProbDup</code> function.
+</p>
+<p>The function <code>AddProbDup</code> can be used to add the
+information associated with the identified sets in an object of class
+<code>ProbDup</code> as fields(columns) to the original PGR passport database.
+</p>
+<p>All of the string matching operations here are executed through the
+<code>stringdist-package</code> functions.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list of class <code>ProbDup</code> containing the following data frames
+of probable duplicate sets identified along with the corresponding keywords
+and set counts: </p>
+ <ol>
+<li> <p><code>FuzzyDuplicates</code> </p>
+</li>
+<li>
+<p><code>PhoneticDuplicates</code> </p>
+</li>
+<li> <p><code>SemanticDuplicates</code> </p>
+</li>
+</ol>
+<p> Each data frame
+has the following columns: </p>
+
+<table>
+<tr>
+<td style="text-align: left;"> <code>SET_NO</code> </td>
+<td style="text-align: left;"> The set number.
+  </td>
+</tr>
+<tr>
+<td style="text-align: left;"> <code>TYPE</code> </td>
+<td style="text-align: left;"> The type of probable duplicate set. 'F' for fuzzy, 'P'
+  for phonetic and 'S' for semantic matching sets. </td>
+</tr>
+<tr>
+<td style="text-align: left;"> <code>ID</code> </td>
+<td style="text-align: left;"> The
+  primary IDs of records of accessions comprising a set. </td>
+</tr>
+<tr>
+<td style="text-align: left;"> <code>ID:KW</code>
+  </td>
+<td style="text-align: left;"> The 'matching' keywords along with the IDs. </td>
+</tr>
+<tr>
+<td style="text-align: left;"> <code>COUNT</code> </td>
+<td style="text-align: left;"> The
+  number of elements in a set. </td>
+</tr>
+<tr>
+<td style="text-align: left;"> </td>
+</tr>
+</table>
+<p>The prefix <code>[K*]</code> indicates the KWIC index of origin of the KEYWORD or
+PRIM_ID.
+</p>
+
+
+<h3>Note</h3>
+
+<p>As the number of keywords in the KWIC indexes increases, the memory
+consumption by the function also increases. For string matching, this
+function relies upon creation of a <code class="reqn">n</code>*<code class="reqn">m</code> matrix of all possible
+keyword pairs for comparison, where <code class="reqn">n</code> and <code class="reqn">m</code> are the number of
+keywords in the query and source indexes respectively. This can lead to
+<code>cannot allocate vector of size</code> errors in case very large KWIC
+indexes where the comparison matrix is too large to reside in memory. In
+such a case, try to adjust the <code>chunksize</code> argument to get the
+appropriate size of the KWIC index keyword block to be used for searching
+for matches at a time. However a smaller chunksize may lead to longer
+computation time due to the memory-time trade-off.
+</p>
+<p>The progress of matching is displayed in the console as number of blocks
+completed out of total (e.g. 6 / 30), the percentage of achievement (e.g.
+30%) and a text-based progress bar.
+</p>
+<p>In case of multi-byte characters in keywords, the matching speed is further
+dependent upon the <code>useBytes</code> argument as described in
+<strong>Encoding issues</strong> for the <code>stringdist</code>
+function, which is made use of here for string matching.
+</p>
+
+
+<h3>References</h3>
+
+<p>van der Loo, M. P. J. 2014. "The Stringdist Package for
+Approximate String Matching." <em>R Journal</em> 6 (1):111-22.
+<a href="https://journal.r-project.org/archive/2014/RJ-2014-011/index.html">https://journal.r-project.org/archive/2014/RJ-2014-011/index.html</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>KWIC</code>, <code>DoubleMetaphone</code>
+<code>stringdistmatrix</code>,
+<code>adist</code>, <code>print.ProbDup</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+
+## Not run: 
+
+# Method "a"
+#===========
+
+# Load PGR passport database
+GN &lt;- GN1000
+
+# Specify as a vector the database fields to be used
+GNfields &lt;- c("NationalID", "CollNo", "DonorID", "OtherID1", "OtherID2")
+
+# Clean the data
+GN[GNfields] &lt;- lapply(GN[GNfields], function(x) DataClean(x))
+y1 &lt;- list(c("Gujarat", "Dwarf"), c("Castle", "Cary"), c("Small", "Japan"),
+c("Big", "Japan"), c("Mani", "Blanco"), c("Uganda", "Erect"),
+c("Mota", "Company"))
+y2 &lt;- c("Dark", "Light", "Small", "Improved", "Punjab", "SAM")
+y3 &lt;- c("Local", "Bold", "Cary", "Mutant", "Runner", "Giant", "No.",
+        "Bunch", "Peanut")
+GN[GNfields] &lt;- lapply(GN[GNfields], function(x) MergeKW(x, y1, delim = c("space", "dash")))
+GN[GNfields] &lt;- lapply(GN[GNfields], function(x) MergePrefix(x, y2, delim = c("space", "dash")))
+GN[GNfields] &lt;- lapply(GN[GNfields], function(x) MergeSuffix(x, y3, delim = c("space", "dash")))
+
+# Generate KWIC index
+GNKWIC &lt;- KWIC(GN, GNfields)
+
+# Specify the exceptions as a vector
+exep &lt;- c("A", "B", "BIG", "BOLD", "BUNCH", "C", "COMPANY", "CULTURE",
+         "DARK", "E", "EARLY", "EC", "ERECT", "EXOTIC", "FLESH", "GROUNDNUT",
+         "GUTHUKAI", "IMPROVED", "K", "KUTHUKADAL", "KUTHUKAI", "LARGE",
+         "LIGHT", "LOCAL", "OF", "OVERO", "P", "PEANUT", "PURPLE", "R",
+         "RED", "RUNNER", "S1", "SAM", "SMALL", "SPANISH", "TAN", "TYPE",
+         "U", "VALENCIA", "VIRGINIA", "WHITE")
+
+# Specify the synsets as a list
+syn &lt;- list(c("CHANDRA", "AH114"), c("TG1", "VIKRAM"))
+
+# Fetch probable duplicate sets
+GNdup &lt;- ProbDup(kwic1 = GNKWIC, method = "a", excep = exep, fuzzy = TRUE,
+                 phonetic = TRUE, encoding = "primary",
+                 semantic = TRUE, syn = syn)
+GNdup
+
+# Method "b and c"
+#=================
+
+# Load PGR passport databases
+GN1 &lt;- GN1000[!grepl("^ICG", GN1000$DonorID), ]
+GN1$DonorID &lt;- NULL
+GN2 &lt;- GN1000[grepl("^ICG", GN1000$DonorID), ]
+GN2 &lt;- GN2[!grepl("S", GN2$DonorID), ]
+GN2$NationalID &lt;- NULL
+
+# Specify as a vector the database fields to be used
+GN1fields &lt;- c("NationalID", "CollNo", "OtherID1", "OtherID2")
+GN2fields &lt;- c("DonorID", "CollNo", "OtherID1", "OtherID2")
+
+# Clean the data
+GN1[GN1fields] &lt;- lapply(GN1[GN1fields], function(x) DataClean(x))
+GN2[GN2fields] &lt;- lapply(GN2[GN2fields], function(x) DataClean(x))
+y1 &lt;- list(c("Gujarat", "Dwarf"), c("Castle", "Cary"), c("Small", "Japan"),
+c("Big", "Japan"), c("Mani", "Blanco"), c("Uganda", "Erect"),
+c("Mota", "Company"))
+y2 &lt;- c("Dark", "Light", "Small", "Improved", "Punjab", "SAM")
+y3 &lt;- c("Local", "Bold", "Cary", "Mutant", "Runner", "Giant", "No.",
+        "Bunch", "Peanut")
+GN1[GN1fields] &lt;- lapply(GN1[GN1fields], function(x) MergeKW(x, y1, delim = c("space", "dash")))
+GN1[GN1fields] &lt;- lapply(GN1[GN1fields], function(x) MergePrefix(x, y2, delim = c("space", "dash")))
+GN1[GN1fields] &lt;- lapply(GN1[GN1fields], function(x) MergeSuffix(x, y3, delim = c("space", "dash")))
+GN2[GN2fields] &lt;- lapply(GN2[GN2fields], function(x) MergeKW(x, y1, delim = c("space", "dash")))
+GN2[GN2fields] &lt;- lapply(GN2[GN2fields], function(x) MergePrefix(x, y2, delim = c("space", "dash")))
+GN2[GN2fields] &lt;- lapply(GN2[GN2fields], function(x) MergeSuffix(x, y3, delim = c("space", "dash")))
+
+# Remove duplicated DonorID records in GN2
+GN2 &lt;- GN2[!duplicated(GN2$DonorID), ]
+
+# Generate KWIC index
+GN1KWIC &lt;- KWIC(GN1, GN1fields)
+GN2KWIC &lt;- KWIC(GN2, GN2fields)
+
+# Specify the exceptions as a vector
+exep &lt;- c("A", "B", "BIG", "BOLD", "BUNCH", "C", "COMPANY", "CULTURE",
+         "DARK", "E", "EARLY", "EC", "ERECT", "EXOTIC", "FLESH", "GROUNDNUT",
+         "GUTHUKAI", "IMPROVED", "K", "KUTHUKADAL", "KUTHUKAI", "LARGE",
+         "LIGHT", "LOCAL", "OF", "OVERO", "P", "PEANUT", "PURPLE", "R",
+         "RED", "RUNNER", "S1", "SAM", "SMALL", "SPANISH", "TAN", "TYPE",
+         "U", "VALENCIA", "VIRGINIA", "WHITE")
+
+# Specify the synsets as a list
+syn &lt;- list(c("CHANDRA", "AH114"), c("TG1", "VIKRAM"))
+
+# Fetch probable duplicate sets
+GNdupb &lt;- ProbDup(kwic1 = GN1KWIC, kwic2 = GN2KWIC, method = "b",
+                  excep = exep, fuzzy = TRUE, phonetic = TRUE,
+                  encoding = "primary", semantic = TRUE, syn = syn)
+GNdupb
+
+GNdupc &lt;- ProbDup(kwic1 = GN1KWIC, kwic2 = GN2KWIC, method = "c",
+                  excep = exep, fuzzy = TRUE, phonetic = TRUE,
+                  encoding = "primary", semantic = TRUE, syn = syn)
+GNdupc
+
+
+## End(Not run)
+
+
+
+</code></pre>
+
+
+</div>

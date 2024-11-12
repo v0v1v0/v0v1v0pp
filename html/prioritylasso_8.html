@@ -1,0 +1,322 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>prioritylasso</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Patient outcome prediction based on multi-omics data taking practitioners' preferences into account</h2>
+
+<h3>Description</h3>
+
+<p>Fits successive Lasso models for several ordered blocks of (omics) data and takes the predicted values as an offset for the next block.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">prioritylasso(
+  X,
+  Y,
+  weights,
+  family = c("gaussian", "binomial", "cox"),
+  type.measure,
+  blocks,
+  max.coef = NULL,
+  block1.penalization = TRUE,
+  lambda.type = "lambda.min",
+  standardize = TRUE,
+  nfolds = 10,
+  foldid,
+  cvoffset = FALSE,
+  cvoffsetnfolds = 10,
+  mcontrol = missing.control(),
+  scale.y = FALSE,
+  return.x = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>a (nxp) matrix of predictors with observations in rows and predictors in columns.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>n-vector giving the value of the response (either continuous, numeric-binary 0/1, or <code>Surv</code> object).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>observation weights. Default is 1 for each observation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>should be "gaussian" for continuous <code>Y</code>, "binomial" for binary <code>Y</code>, "cox" for <code>Y</code> of type <code>Surv</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type.measure</code></td>
+<td>
+<p>accuracy/error measure computed in cross-validation. It should be "class" (classification error) or "auc" (area under the ROC curve) if <code>family="binomial"</code>, "mse" (mean squared error) if <code>family="gaussian"</code> and "deviance" if <code>family="cox"</code> which uses the partial-likelihood.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>blocks</code></td>
+<td>
+<p>list of the format <code>list(bp1=...,bp2=...,)</code>, where the dots should be replaced by the indices of the predictors included in this block. The blocks should form a partition of 1:p.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.coef</code></td>
+<td>
+<p>vector with integer values which specify the number of maximal coefficients for each block. The first entry is omitted if <code>block1.penalization = FALSE</code>. Default is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>block1.penalization</code></td>
+<td>
+<p>whether the first block should be penalized. Default is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.type</code></td>
+<td>
+<p>specifies the value of lambda used for the predictions. <code>lambda.min</code> gives lambda with minimum cross-validated errors. <code>lambda.1se</code> gives the largest value of lambda such that the error is within 1 standard error of the minimum. Note that <code>lambda.1se</code> can only be chosen without restrictions of <code>max.coef</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardize</code></td>
+<td>
+<p>logical, whether the predictors should be standardized or not. Default is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nfolds</code></td>
+<td>
+<p>the number of CV procedure folds.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>foldid</code></td>
+<td>
+<p>an optional vector of values between 1 and nfold identifying what fold each observation is in.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cvoffset</code></td>
+<td>
+<p>logical, whether CV should be used to estimate the offsets. Default is FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cvoffsetnfolds</code></td>
+<td>
+<p>the number of folds in the CV procedure that is performed to estimate the offsets. Default is 10. Only relevant if <code>cvoffset=TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mcontrol</code></td>
+<td>
+<p>controls how to deal with blockwise missing data. For details see below or <code>missing.control</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale.y</code></td>
+<td>
+<p>determines if y gets scaled before passed to glmnet. Can only be used for <code>family = 'gaussian'</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return.x</code></td>
+<td>
+<p>logical, determines if the input data should be returned by <code>prioritylasso</code>. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>other arguments that can be passed to the function <code>cv.glmnet</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For <code>block1.penalization = TRUE</code>, the function fits a Lasso model for each block. First, a standard Lasso for the first entry of <code>blocks</code> (block of priority 1) is fitted.
+The predictions are then taken as an offset in the Lasso fit of the block of priority 2, etc.
+For <code>block1.penalization = FALSE</code>, the function fits a model without penalty to the block of priority 1 (recommended as a block with clinical predictors where <code>p &lt; n</code>).
+This is either a generalized linear model for family "gaussian" or "binomial", or a Cox model. The predicted values are then taken as an offset in the following Lasso fit of the block with priority 2, etc. <br></p>
+<p>The first entry of <code>blocks</code> contains the indices of variables of the block with priority 1 (first block included in the model).
+Assume that <code>blocks = list(1:100, 101:200, 201:300)</code> then the block with priority 1 consists of the first 100 variables of the data matrix.
+Analogously, the block with priority 2 consists of the variables 101 to 200 and the block with priority 3 of the variables 201 to 300.
+</p>
+<p><code>standardize = TRUE</code> leads to a standardisation of the covariables (<code>X</code>) in <code>glmnet</code> which is recommend by <code>glmnet</code>.
+In case of an unpenalized first block, the covariables for the first block are not standardized.
+Please note that the returned coefficients are rescaled to the original scale of the covariates as provided in <code>X</code>.
+Therefore, new data in <code>predict.prioritylasso</code> should be on the same scale as <code>X</code>.
+</p>
+<p>To use the method with blockwise missing data, one can set <code>handle.missingdata = ignore</code>.
+Then, to calculate the coefficients for a given block only the observations with values for this blocks are used.
+For the observations with missing values, the result from the previous block is used as the offset for the next block.
+Crossvalidated offsets are not supported with <code>handle.missingdata = ignore</code>.
+Please note that dealing with single missing values is not supported.
+Normally, every observation gets a unique foldid which stays the same across all blocks for the call to <code>cv.glmnet</code>.
+However when <code>handle.missingdata != none</code>, the foldid is set new for every block.
+</p>
+
+
+<h3>Value</h3>
+
+<p>object of class <code>prioritylasso</code> with the following elements. If these elements are lists, they contain the results for each penalized block.
+</p>
+
+<dl>
+<dt><code>lambda.ind</code></dt>
+<dd>
+<p>list with indices of lambda for <code>lambda.type</code>.</p>
+</dd>
+<dt><code>lambda.type</code></dt>
+<dd>
+<p>type of lambda which is used for the predictions.</p>
+</dd>
+<dt><code>lambda.min</code></dt>
+<dd>
+<p>list with values of lambda for <code>lambda.type</code>.</p>
+</dd>
+<dt><code>min.cvm</code></dt>
+<dd>
+<p>list with the mean cross-validated errors for <code>lambda.type</code>.</p>
+</dd>
+<dt><code>nzero</code></dt>
+<dd>
+<p>list with numbers of non-zero coefficients for <code>lambda.type</code>.</p>
+</dd>
+<dt><code>glmnet.fit</code></dt>
+<dd>
+<p>list of fitted <code>glmnet</code> objects.</p>
+</dd>
+<dt><code>name</code></dt>
+<dd>
+<p>a text string indicating type of measure.</p>
+</dd>
+<dt><code>block1unpen</code></dt>
+<dd>
+<p>if <code>block1.penalization = FALSE</code>, the results of either the fitted <code>glm</code> or <code>coxph</code> object corresponding to <code>best.blocks</code>.</p>
+</dd>
+<dt><code>coefficients</code></dt>
+<dd>
+<p>vector of estimated coefficients. If <code>block1.penalization = FALSE</code> and <code>family = gaussian</code> or <code>binomial</code>, the first entry contains an intercept.</p>
+</dd>
+<dt><code>call</code></dt>
+<dd>
+<p>the function call.</p>
+</dd>
+<dt><code>X</code></dt>
+<dd>
+<p>the original data used for the calculation or <code>NA</code> if <code>return.x = FALSE</code></p>
+</dd>
+<dt><code>missing.data</code></dt>
+<dd>
+<p>list with logical entries for every block which observation is missing (<code>TRUE</code> means missing)</p>
+</dd>
+<dt><code>imputation.models</code></dt>
+<dd>
+<p>if <code>handle.missingdata = "impute.offsets"</code>, it contains the used imputation models</p>
+</dd>
+<dt><code>blocks.used.for.imputation</code></dt>
+<dd>
+<p>if <code>handle.missingdata = "impute.offsets"</code>, it contains the blocks which were used for the imputation model for every block</p>
+</dd>
+<dt><code>y.scale.param</code></dt>
+<dd>
+<p>if <code>scale.y = TRUE</code>, then it contains the mean and sd used for scaling.</p>
+</dd>
+<dt><code>blocks</code></dt>
+<dd>
+<p>list with the description which variables belong to which block</p>
+</dd>
+<dt><code>mcontrol</code></dt>
+<dd>
+<p>the missing control settings used</p>
+</dd>
+<dt><code>family</code></dt>
+<dd>
+<p>the family of the fitted data</p>
+</dd>
+<dt><code>dim.x</code></dt>
+<dd>
+<p>the dimension of the used training data</p>
+</dd>
+</dl>
+<h3>Note</h3>
+
+<p>The function description and the first example are based on the R package <code>ipflasso</code>. The second example is inspired by the example of <code>cv.glmnet</code> from the <code>glmnet</code> package.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Simon Klau, Roman Hornung, Alina Bauer <br>
+Maintainer: Roman Hornung (<a href="mailto:hornung@ibe.med.uni-muenchen.de">hornung@ibe.med.uni-muenchen.de</a>)
+</p>
+
+
+<h3>References</h3>
+
+<p>Klau, S., Jurinovic, V., Hornung, R., Herold, T., Boulesteix, A.-L. (2018). Priority-Lasso: a simple hierarchical approach to the prediction of clinical outcome using multi-omics data. BMC Bioinformatics 19, 322
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pl_data</code>, <code>cvm_prioritylasso</code>, <code>cvr.ipflasso</code>, <code>cvr2.ipflasso</code>, <code>missing.control</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># gaussian
+  prioritylasso(X = matrix(rnorm(50*500),50,500), Y = rnorm(50), family = "gaussian",
+                type.measure = "mse", blocks = list(bp1=1:75, bp2=76:200, bp3=201:500),
+                max.coef = c(Inf,8,5), block1.penalization = TRUE,
+                lambda.type = "lambda.min", standardize = TRUE, nfolds = 5, cvoffset = FALSE)
+## Not run: 
+  # cox
+  # simulation of survival data:
+  n &lt;- 50;p &lt;- 300
+  nzc &lt;- trunc(p/10)
+  x &lt;- matrix(rnorm(n*p), n, p)
+  beta &lt;- rnorm(nzc)
+  fx &lt;- x[, seq(nzc)]%*%beta/3
+  hx &lt;- exp(fx)
+  # survival times:
+  ty &lt;- rexp(n,hx)
+  # censoring indicator:
+  tcens &lt;- rbinom(n = n,prob = .3,size = 1)
+  library(survival)
+  y &lt;- Surv(ty, 1-tcens)
+  blocks &lt;- list(bp1=1:20, bp2=21:200, bp3=201:300)
+  # run prioritylasso:
+  prioritylasso(x, y, family = "cox", type.measure = "deviance", blocks = blocks,
+                block1.penalization = TRUE, lambda.type = "lambda.min", standardize = TRUE,
+                nfolds = 5)
+
+  # binomial
+  # using pl_data:
+  prioritylasso(X = pl_data[,1:1028], Y = pl_data[,1029], family = "binomial", type.measure = "auc",
+                blocks = list(bp1=1:4, bp2=5:9, bp3=10:28, bp4=29:1028), standardize = FALSE)
+## End(Not run)
+
+</code></pre>
+
+
+</div>

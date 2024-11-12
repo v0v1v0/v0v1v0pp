@@ -1,0 +1,788 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>codeartifact</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>CodeArtifact</h2>
+
+<h3>Description</h3>
+
+<p>CodeArtifact is a fully managed artifact repository compatible with
+language-native package managers and build tools such as npm, Apache
+Maven, pip, and dotnet. You can use CodeArtifact to share packages with
+development teams and pull packages. Packages can be pulled from both
+public and CodeArtifact repositories. You can also create an upstream
+relationship between a CodeArtifact repository and another repository,
+which effectively merges their contents from the point of view of a
+package manager client.
+</p>
+<p><strong>CodeArtifact concepts</strong>
+</p>
+
+<ul>
+<li> <p><strong>Repository</strong>: A CodeArtifact repository contains a set of <a href="https://docs.aws.amazon.com/codeartifact/latest/ug/welcome.html#welcome-concepts-package-version">package versions</a>,
+each of which maps to a set of assets, or files. Repositories are
+polyglot, so a single repository can contain packages of any
+supported type. Each repository exposes endpoints for fetching and
+publishing packages using tools such as the <strong><code>npm</code></strong> CLI or the
+Maven CLI ( <strong><code>mvn</code></strong> ). For a list of supported package managers,
+see the <a href="https://docs.aws.amazon.com/codeartifact/latest/ug/welcome.html">CodeArtifact User Guide</a>.
+</p>
+</li>
+<li> <p><strong>Domain</strong>: Repositories are aggregated into a higher-level entity
+known as a <em>domain</em>. All package assets and metadata are stored in
+the domain, but are consumed through repositories. A given package
+asset, such as a Maven JAR file, is stored once per domain, no
+matter how many repositories it's present in. All of the assets and
+metadata in a domain are encrypted with the same customer master key
+(CMK) stored in Key Management Service (KMS).
+</p>
+<p>Each repository is a member of a single domain and can't be moved to
+a different domain.
+</p>
+<p>The domain allows organizational policy to be applied across
+multiple repositories, such as which accounts can access
+repositories in the domain, and which public repositories can be
+used as sources of packages.
+</p>
+<p>Although an organization can have multiple domains, we recommend a
+single production domain that contains all published artifacts so
+that teams can find and share packages across their organization.
+</p>
+</li>
+<li> <p><strong>Package</strong>: A <em>package</em> is a bundle of software and the metadata
+required to resolve dependencies and install the software.
+CodeArtifact supports npm, PyPI, Maven, NuGet, Swift, Ruby, Cargo,
+and generic package formats. For more information about the
+supported package formats and how to use CodeArtifact with them, see
+the <a href="https://docs.aws.amazon.com/codeartifact/latest/ug/welcome.html">CodeArtifact User Guide</a>.
+</p>
+<p>In CodeArtifact, a package consists of:
+</p>
+
+<ul>
+<li>
+<p> A <em>name</em> (for example, <code>webpack</code> is the name of a popular npm
+package)
+</p>
+</li>
+<li>
+<p> An optional namespace (for example, <code style="white-space: pre;">⁠@types⁠</code> in <code style="white-space: pre;">⁠@types/node⁠</code>)
+</p>
+</li>
+<li>
+<p> A set of versions (for example, <code style="white-space: pre;">⁠1.0.0⁠</code>, <code style="white-space: pre;">⁠1.0.1⁠</code>, <code style="white-space: pre;">⁠1.0.2⁠</code>, etc.)
+</p>
+</li>
+<li>
+<p> Package-level metadata (for example, npm tags)
+</p>
+</li>
+</ul>
+</li>
+<li> <p><strong>Package group</strong>: A group of packages that match a specified
+definition. Package groups can be used to apply configuration to
+multiple packages that match a defined pattern using package format,
+package namespace, and package name. You can use package groups to
+more conveniently configure package origin controls for multiple
+packages. Package origin controls are used to block or allow
+ingestion or publishing of new package versions, which protects
+users from malicious actions known as dependency substitution
+attacks.
+</p>
+</li>
+<li> <p><strong>Package version</strong>: A version of a package, such as
+<code style="white-space: pre;">⁠@types/node 12.6.9⁠</code>. The version number format and semantics vary
+for different package formats. For example, npm package versions
+must conform to the <a href="https://semver.org/">Semantic Versioning specification</a>. In CodeArtifact, a package
+version consists of the version identifier, metadata at the package
+version level, and a set of assets.
+</p>
+</li>
+<li> <p><strong>Upstream repository</strong>: One repository is <em>upstream</em> of another
+when the package versions in it can be accessed from the repository
+endpoint of the downstream repository, effectively merging the
+contents of the two repositories from the point of view of a client.
+CodeArtifact allows creating an upstream relationship between two
+repositories.
+</p>
+</li>
+<li> <p><strong>Asset</strong>: An individual file stored in CodeArtifact associated with
+a package version, such as an npm <code>.tgz</code> file or Maven POM and JAR
+files.
+</p>
+</li>
+</ul>
+<p><strong>CodeArtifact supported API operations</strong>
+</p>
+
+<ul>
+<li> <p><code>associate_external_connection</code>:
+Adds an existing external connection to a repository.
+</p>
+</li>
+<li> <p><code>copy_package_versions</code>:
+Copies package versions from one repository to another repository in
+the same domain.
+</p>
+</li>
+<li> <p><code>create_domain</code>: Creates a domain.
+</p>
+</li>
+<li> <p><code>create_package_group</code>: Creates
+a package group.
+</p>
+</li>
+<li> <p><code>create_repository</code>: Creates a
+CodeArtifact repository in a domain.
+</p>
+</li>
+<li> <p><code>delete_domain</code>: Deletes a domain. You
+cannot delete a domain that contains repositories.
+</p>
+</li>
+<li> <p><code>delete_domain_permissions_policy</code>:
+Deletes the resource policy that is set on a domain.
+</p>
+</li>
+<li> <p><code>delete_package</code>: Deletes a package
+and all associated package versions.
+</p>
+</li>
+<li> <p><code>delete_package_group</code>: Deletes
+a package group. Does not delete packages or package versions that
+are associated with a package group.
+</p>
+</li>
+<li> <p><code>delete_package_versions</code>:
+Deletes versions of a package. After a package has been deleted, it
+can be republished, but its assets and metadata cannot be restored
+because they have been permanently removed from storage.
+</p>
+</li>
+<li> <p><code>delete_repository</code>: Deletes a
+repository.
+</p>
+</li>
+<li> <p><code>delete_repository_permissions_policy</code>:
+Deletes the resource policy that is set on a repository.
+</p>
+</li>
+<li> <p><code>describe_domain</code>: Returns a
+<code>DomainDescription</code> object that contains information about the
+requested domain.
+</p>
+</li>
+<li> <p><code>describe_package</code>: Returns a
+<a href="https://docs.aws.amazon.com/codeartifact/latest/APIReference/API_PackageDescription.html">PackageDescription</a>
+object that contains details about a package.
+</p>
+</li>
+<li> <p><code>describe_package_group</code>:
+Returns a
+<a href="https://docs.aws.amazon.com/codeartifact/latest/APIReference/">PackageGroup</a>
+object that contains details about a package group.
+</p>
+</li>
+<li> <p><code>describe_package_version</code>:
+Returns a
+<a href="https://docs.aws.amazon.com/codeartifact/latest/APIReference/API_PackageVersionDescription.html">PackageVersionDescription</a>
+object that contains details about a package version.
+</p>
+</li>
+<li> <p><code>describe_repository</code>: Returns a
+<code>RepositoryDescription</code> object that contains detailed information
+about the requested repository.
+</p>
+</li>
+<li> <p><code>dispose_package_versions</code>:
+Disposes versions of a package. A package version with the status
+<code>Disposed</code> cannot be restored because they have been permanently
+removed from storage.
+</p>
+</li>
+<li> <p><code>disassociate_external_connection</code>:
+Removes an existing external connection from a repository.
+</p>
+</li>
+<li> <p><code>get_associated_package_group</code>:
+Returns the most closely associated package group to the specified
+package.
+</p>
+</li>
+<li> <p><code>get_authorization_token</code>:
+Generates a temporary authorization token for accessing repositories
+in the domain. The token expires the authorization period has
+passed. The default authorization period is 12 hours and can be
+customized to any length with a maximum of 12 hours.
+</p>
+</li>
+<li> <p><code>get_domain_permissions_policy</code>:
+Returns the policy of a resource that is attached to the specified
+domain.
+</p>
+</li>
+<li> <p><code>get_package_version_asset</code>:
+Returns the contents of an asset that is in a package version.
+</p>
+</li>
+<li> <p><code>get_package_version_readme</code>:
+Gets the readme file or descriptive text for a package version.
+</p>
+</li>
+<li> <p><code>get_repository_endpoint</code>:
+Returns the endpoint of a repository for a specific package format.
+A repository has one endpoint for each package format:
+</p>
+
+<ul>
+<li> <p><code>cargo</code>
+</p>
+</li>
+<li> <p><code>generic</code>
+</p>
+</li>
+<li> <p><code>maven</code>
+</p>
+</li>
+<li> <p><code>npm</code>
+</p>
+</li>
+<li> <p><code>nuget</code>
+</p>
+</li>
+<li> <p><code>pypi</code>
+</p>
+</li>
+<li> <p><code>ruby</code>
+</p>
+</li>
+<li> <p><code>swift</code>
+</p>
+</li>
+</ul>
+</li>
+<li> <p><code>get_repository_permissions_policy</code>:
+Returns the resource policy that is set on a repository.
+</p>
+</li>
+<li> <p><code>list_allowed_repositories_for_group</code>:
+Lists the allowed repositories for a package group that has origin
+configuration set to <code>ALLOW_SPECIFIC_REPOSITORIES</code>.
+</p>
+</li>
+<li> <p><code>list_associated_packages</code>:
+Returns a list of packages associated with the requested package
+group.
+</p>
+</li>
+<li> <p><code>list_domains</code>: Returns a list of
+<code>DomainSummary</code> objects. Each returned <code>DomainSummary</code> object
+contains information about a domain.
+</p>
+</li>
+<li> <p><code>list_packages</code>: Lists the packages in
+a repository.
+</p>
+</li>
+<li> <p><code>list_package_groups</code>: Returns a
+list of package groups in the requested domain.
+</p>
+</li>
+<li> <p><code>list_package_version_assets</code>:
+Lists the assets for a given package version.
+</p>
+</li>
+<li> <p><code>list_package_version_dependencies</code>:
+Returns a list of the direct dependencies for a package version.
+</p>
+</li>
+<li> <p><code>list_package_versions</code>:
+Returns a list of package versions for a specified package in a
+repository.
+</p>
+</li>
+<li> <p><code>list_repositories</code>: Returns a
+list of repositories owned by the Amazon Web Services account that
+called this method.
+</p>
+</li>
+<li> <p><code>list_repositories_in_domain</code>:
+Returns a list of the repositories in a domain.
+</p>
+</li>
+<li> <p><code>list_sub_package_groups</code>:
+Returns a list of direct children of the specified package group.
+</p>
+</li>
+<li> <p><code>publish_package_version</code>:
+Creates a new package version containing one or more assets.
+</p>
+</li>
+<li> <p><code>put_domain_permissions_policy</code>:
+Attaches a resource policy to a domain.
+</p>
+</li>
+<li> <p><code>put_package_origin_configuration</code>:
+Sets the package origin configuration for a package, which determine
+how new versions of the package can be added to a specific
+repository.
+</p>
+</li>
+<li> <p><code>put_repository_permissions_policy</code>:
+Sets the resource policy on a repository that specifies permissions
+to access it.
+</p>
+</li>
+<li> <p><code>update_package_group</code>: Updates
+a package group. This API cannot be used to update a package group's
+origin configuration or pattern.
+</p>
+</li>
+<li> <p><code>update_package_group_origin_configuration</code>:
+Updates the package origin configuration for a package group.
+</p>
+</li>
+<li> <p><code>update_package_versions_status</code>:
+Updates the status of one or more versions of a package.
+</p>
+</li>
+<li> <p><code>update_repository</code>: Updates the
+properties of a repository.
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">codeartifact(
+  config = list(),
+  credentials = list(),
+  endpoint = NULL,
+  region = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>config</code></td>
+<td>
+<p>Optional configuration of credentials, endpoint, and/or region.
+</p>
+
+<ul>
+<li>
+<p><strong>credentials</strong>: </p>
+
+<ul>
+<li>
+<p><strong>creds</strong>: </p>
+
+<ul>
+<li>
+<p><strong>access_key_id</strong>: AWS access key ID
+</p>
+</li>
+<li>
+<p><strong>secret_access_key</strong>: AWS secret access key
+</p>
+</li>
+<li>
+<p><strong>session_token</strong>: AWS temporary session token
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>profile</strong>: The name of a profile to use. If not given, then the default profile is used.
+</p>
+</li>
+<li>
+<p><strong>anonymous</strong>: Set anonymous credentials.
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>endpoint</strong>: The complete URL to use for the constructed client.
+</p>
+</li>
+<li>
+<p><strong>region</strong>: The AWS Region used in instantiating the client.
+</p>
+</li>
+<li>
+<p><strong>close_connection</strong>: Immediately close all HTTP connections.
+</p>
+</li>
+<li>
+<p><strong>timeout</strong>: The time in seconds till a timeout exception is thrown when attempting to make a connection. The default is 60 seconds.
+</p>
+</li>
+<li>
+<p><strong>s3_force_path_style</strong>: Set this to <code>true</code> to force the request to use path-style addressing, i.e. <code style="white-space: pre;">⁠http://s3.amazonaws.com/BUCKET/KEY⁠</code>.
+</p>
+</li>
+<li>
+<p><strong>sts_regional_endpoint</strong>: Set sts regional endpoint resolver to regional or legacy <a href="https://docs.aws.amazon.com/sdkref/latest/guide/feature-sts-regionalized-endpoints.html">https://docs.aws.amazon.com/sdkref/latest/guide/feature-sts-regionalized-endpoints.html</a>
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>credentials</code></td>
+<td>
+<p>Optional credentials shorthand for the config parameter
+</p>
+
+<ul>
+<li>
+<p><strong>creds</strong>: </p>
+
+<ul>
+<li>
+<p><strong>access_key_id</strong>: AWS access key ID
+</p>
+</li>
+<li>
+<p><strong>secret_access_key</strong>: AWS secret access key
+</p>
+</li>
+<li>
+<p><strong>session_token</strong>: AWS temporary session token
+</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>profile</strong>: The name of a profile to use. If not given, then the default profile is used.
+</p>
+</li>
+<li>
+<p><strong>anonymous</strong>: Set anonymous credentials.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>endpoint</code></td>
+<td>
+<p>Optional shorthand for complete URL to use for the constructed client.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>region</code></td>
+<td>
+<p>Optional shorthand for AWS Region used in instantiating the client.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A client for the service. You can call the service's operations using
+syntax like <code>svc$operation(...)</code>, where <code>svc</code> is the name you've assigned
+to the client. The available operations are listed in the
+Operations section.
+</p>
+
+
+<h3>Service syntax</h3>
+
+<div class="sourceCode"><pre>svc &lt;- codeartifact(
+  config = list(
+    credentials = list(
+      creds = list(
+        access_key_id = "string",
+        secret_access_key = "string",
+        session_token = "string"
+      ),
+      profile = "string",
+      anonymous = "logical"
+    ),
+    endpoint = "string",
+    region = "string",
+    close_connection = "logical",
+    timeout = "numeric",
+    s3_force_path_style = "logical",
+    sts_regional_endpoint = "string"
+  ),
+  credentials = list(
+    creds = list(
+      access_key_id = "string",
+      secret_access_key = "string",
+      session_token = "string"
+    ),
+    profile = "string",
+    anonymous = "logical"
+  ),
+  endpoint = "string",
+  region = "string"
+)
+</pre></div>
+
+
+<h3>Operations</h3>
+
+
+<table>
+<tr>
+<td style="text-align: left;">
+associate_external_connection </td>
+<td style="text-align: left;"> Adds an existing external connection to a repository</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+copy_package_versions </td>
+<td style="text-align: left;"> Copies package versions from one repository to another repository in the same domain</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+create_domain </td>
+<td style="text-align: left;"> Creates a domain</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+create_package_group </td>
+<td style="text-align: left;"> Creates a package group</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+create_repository </td>
+<td style="text-align: left;"> Creates a repository</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+delete_domain </td>
+<td style="text-align: left;"> Deletes a domain</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+delete_domain_permissions_policy </td>
+<td style="text-align: left;"> Deletes the resource policy set on a domain</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+delete_package </td>
+<td style="text-align: left;"> Deletes a package and all associated package versions</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+delete_package_group </td>
+<td style="text-align: left;"> Deletes a package group</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+delete_package_versions </td>
+<td style="text-align: left;"> Deletes one or more versions of a package</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+delete_repository </td>
+<td style="text-align: left;"> Deletes a repository</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+delete_repository_permissions_policy </td>
+<td style="text-align: left;"> Deletes the resource policy that is set on a repository</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+describe_domain </td>
+<td style="text-align: left;"> Returns a DomainDescription object that contains information about the requested domain</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+describe_package </td>
+<td style="text-align: left;"> Returns a PackageDescription object that contains information about the requested package</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+describe_package_group </td>
+<td style="text-align: left;"> Returns a PackageGroupDescription object that contains information about the requested package group</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+describe_package_version </td>
+<td style="text-align: left;"> Returns a PackageVersionDescription object that contains information about the requested package version</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+describe_repository </td>
+<td style="text-align: left;"> Returns a RepositoryDescription object that contains detailed information about the requested repository</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+disassociate_external_connection </td>
+<td style="text-align: left;"> Removes an existing external connection from a repository</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+dispose_package_versions </td>
+<td style="text-align: left;"> Deletes the assets in package versions and sets the package versions' status to Disposed</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+get_associated_package_group </td>
+<td style="text-align: left;"> Returns the most closely associated package group to the specified package</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+get_authorization_token </td>
+<td style="text-align: left;"> Generates a temporary authorization token for accessing repositories in the domain</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+get_domain_permissions_policy </td>
+<td style="text-align: left;"> Returns the resource policy attached to the specified domain</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+get_package_version_asset </td>
+<td style="text-align: left;"> Returns an asset (or file) that is in a package</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+get_package_version_readme </td>
+<td style="text-align: left;"> Gets the readme file or descriptive text for a package version</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+get_repository_endpoint </td>
+<td style="text-align: left;"> Returns the endpoint of a repository for a specific package format</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+get_repository_permissions_policy </td>
+<td style="text-align: left;"> Returns the resource policy that is set on a repository</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+list_allowed_repositories_for_group </td>
+<td style="text-align: left;"> Lists the repositories in the added repositories list of the specified restriction type for a package group</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+list_associated_packages </td>
+<td style="text-align: left;"> Returns a list of packages associated with the requested package group</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+list_domains </td>
+<td style="text-align: left;"> Returns a list of DomainSummary objects for all domains owned by the Amazon Web Services account that makes this call</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+list_package_groups </td>
+<td style="text-align: left;"> Returns a list of package groups in the requested domain</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+list_packages </td>
+<td style="text-align: left;"> Returns a list of PackageSummary objects for packages in a repository that match the request parameters</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+list_package_version_assets </td>
+<td style="text-align: left;"> Returns a list of AssetSummary objects for assets in a package version</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+list_package_version_dependencies </td>
+<td style="text-align: left;"> Returns the direct dependencies for a package version</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+list_package_versions </td>
+<td style="text-align: left;"> Returns a list of PackageVersionSummary objects for package versions in a repository that match the request parameters</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+list_repositories </td>
+<td style="text-align: left;"> Returns a list of RepositorySummary objects</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+list_repositories_in_domain </td>
+<td style="text-align: left;"> Returns a list of RepositorySummary objects</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+list_sub_package_groups </td>
+<td style="text-align: left;"> Returns a list of direct children of the specified package group</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+list_tags_for_resource </td>
+<td style="text-align: left;"> Gets information about Amazon Web Services tags for a specified Amazon Resource Name (ARN) in CodeArtifact</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+publish_package_version </td>
+<td style="text-align: left;"> Creates a new package version containing one or more assets (or files)</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+put_domain_permissions_policy </td>
+<td style="text-align: left;"> Sets a resource policy on a domain that specifies permissions to access it</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+put_package_origin_configuration </td>
+<td style="text-align: left;"> Sets the package origin configuration for a package</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+put_repository_permissions_policy </td>
+<td style="text-align: left;"> Sets the resource policy on a repository that specifies permissions to access it</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+tag_resource </td>
+<td style="text-align: left;"> Adds or updates tags for a resource in CodeArtifact</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+untag_resource </td>
+<td style="text-align: left;"> Removes tags from a resource in CodeArtifact</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+update_package_group </td>
+<td style="text-align: left;"> Updates a package group</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+update_package_group_origin_configuration </td>
+<td style="text-align: left;"> Updates the package origin configuration for a package group</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+update_package_versions_status </td>
+<td style="text-align: left;"> Updates the status of one or more versions of a package</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+update_repository </td>
+<td style="text-align: left;"> Update the properties of a repository
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+svc &lt;- codeartifact()
+svc$associate_external_connection(
+  Foo = 123
+)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

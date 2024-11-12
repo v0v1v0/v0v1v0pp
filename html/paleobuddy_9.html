@@ -1,0 +1,257 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>make.rate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a flexible rate for birth-death or sampling simulations</h2>
+
+<h3>Description</h3>
+
+<p>Generates a function determining the variation of a rate (speciation,
+extinction, sampling) with respect to time. To be used on birth-death or 
+sampling functions, it takes as the base rate (1) a constant, (2) a function
+of time, (3) a function of time and a time-series (usually an environmental
+variable), or (4) a vector of numbers describing rates as a step function. 
+Requires information regarding the maximum simulation time, and allows for 
+optional extra parameters to tweak the baseline rate.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">make.rate(rate, tMax = NULL, envRate = NULL, rateShifts = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>rate</code></td>
+<td>
+<p>The baseline function with which to make the rate.
+It can be a
+</p>
+
+<dl>
+<dt>A number</dt>
+<dd>
+<p>For constant birth-death rates.</p>
+</dd>
+<dt>A function of time</dt>
+<dd>
+<p>For rates that vary with time. Note that this can 
+be any function of time.</p>
+</dd> 
+<dt>A function of time and an environmental variable</dt>
+<dd>
+<p>For rates varying 
+with time and an environmental variable, such as temperature. Note that 
+supplying a function on more than one variable without an accompanying 
+<code>envRate</code> will result in an error.</p>
+</dd>
+<dt>A numeric vector</dt>
+<dd>
+<p>To create step function rates. Note this must be
+accompanied by a corresponding vector of rate shift times, 
+<code>rateShifts</code>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tMax</code></td>
+<td>
+<p>Ending time of simulation, in million years after the clade's 
+origin. Needed to ensure <code>rateShifts</code> runs the correct way.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>envRate</code></td>
+<td>
+<p>A <code>data.frame</code> representing a time-series, usually an 
+environmental variable (e.g. CO2, temperature, etc) varying with time. The 
+first column of this <code>data.frame</code> must be time, and the second column 
+must be the values of the variable. The function will return an error if 
+the user supplies <code>envRate</code> without <code>rate</code> being a function of two
+variables. <code>paleobuddy</code> has two environmental data frames, <code>temp</code>
+and <code>co2</code>. One can check <code>RPANDA</code> for more examples.
+</p>
+<p>Note that, since simulation functions are run in forward-time (i.e. with 
+<code>0</code> being the origin time of the simulation), the time column of
+<code>envRate</code> is assumed to do so as well, so that the row corresponding to
+<code>t = 0</code> is assumed to be the value of the time-series when the 
+simulation starts, and <code>t = tMax</code> is assumed to be its value when the
+simulation ends (the present).
+</p>
+<p>Acknowledgements: The strategy to transform a function of <code>t</code> and 
+<code>envRate</code> into a function of <code>t</code> only using <code>envRate</code> was 
+adapted from <code>RPANDA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rateShifts</code></td>
+<td>
+<p>A vector indicating the time of rate shifts in a step 
+function. The first element must be the first or last time point for the 
+simulation, i.e. <code>0</code> or <code>tMax</code>. Since functions in paleobuddy run
+from <code>0</code> to <code>tMax</code>, if <code>rateShifts</code> runs from past to present
+(meaning <code>rateShifts[2] &lt; rateShifts[1]</code>), we take 
+<code>tMax - rateShifts</code> as the shifts vector. Note that supplying 
+<code>rateShifts</code> when <code>rate</code> is not a numeric vector of the same 
+length will result in an error.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A constant or time-varying function (depending on input) that can
+then be used as a rate in the other <code>paleobuddy</code> functions.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Bruno do Rosario Petrucci
+</p>
+
+
+<h3>References</h3>
+
+<p>Morlon H. et al (2016) RPANDA: an R package for macroevolutionary analyses on 
+phylogenetic trees. <em>Methods in Ecology and Evolution</em> 7: 589-597.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# first we need a time vector to use on plots
+time &lt;- seq(0, 50, 0.1)
+
+###
+# we can have a step function rate
+
+# vector of rates
+rate &lt;- c(0.1, 0.2, 0.3, 0.2)
+
+# vector of rate shifts
+rateShifts &lt;- c(0, 10, 20, 35)
+# this could be c(50, 40, 30, 15) for equivalent results
+
+# make the rate
+r &lt;- make.rate(rate, tMax = 50, rateShifts = rateShifts)
+
+# plot it
+plot(time, rev(r(time)),type = 'l', xlim = c(max(time), min(time)))
+
+# note that this method of generating a step function rate is slower to
+# numerically integrate
+
+# it is also not possible a rate and a shifts vector and a time-series 
+# dependency, so in cases where one looks to run many simulations, or have a
+# step function modified by an environmental variable, consider 
+# using ifelse() (see below)
+
+###
+# we can have an environmental variable (or any time-series)
+
+# temperature data
+data(temp)
+
+# function
+rate &lt;- function(t, env) {
+  return(0.05*env)
+}
+
+# make the rate
+r &lt;- make.rate(rate, envRate = temp)
+
+# plot it
+plot(time, rev(r(time)), type = 'l', xlim = c(max(time), min(time)))
+
+###
+# we can have a rate that depends on time AND temperature
+
+# temperature data
+data(temp)
+
+# function
+rate &lt;- function(t, env) {
+  return(0.001*exp(0.1*t) + 0.05*env)
+}
+
+# make a rate
+r &lt;- make.rate(rate, envRate = temp)
+
+# plot it
+plot(time, rev(r(time)), type = 'l', xlim = c(max(time), min(time)))
+
+###
+# as mentioned above, we could also use ifelse() to 
+# construct a step function that is modulated by temperature
+
+# temperature data
+data(temp)
+
+# function
+rate &lt;- function(t, env) {
+  return(ifelse(t &lt; 10, 0.1 + 0.01*env,
+                ifelse(t &lt; 30, 0.2 - 0.005*env,
+                       ifelse(t &lt;= 50, 0.1 + 0.005*env, 0))))
+}
+
+# rate
+r &lt;- make.rate(rate, envRate = temp)
+
+# plot it
+plot(time, rev(r(time)), type = 'l', xlim = c(max(time), min(time)))
+
+# while using ifelse() to construct a step function is more
+# cumbersome, it leads to much faster numerical integration,
+# so in cases where the method above is proving too slow,
+# consider using ifelse() even if there is no time-series dependence
+
+###
+# make.rate will leave some types of functions unaltered
+
+# constant rates
+r &lt;- make.rate(0.5)
+
+# plot it
+plot(time, rep(r, length(time)), type = 'l', 
+     xlim = c(max(time), min(time)))
+
+###
+# linear rates
+
+# function
+rate &lt;- function(t) {
+  return(0.01*t)
+}
+
+# create rate
+r &lt;- make.rate(rate)
+
+# plot it
+plot(time, rev(r(time)), type = 'l', xlim = c(max(time), min(time)))
+
+###
+# any time-varying function, really
+
+# function
+rate &lt;- function(t) {
+  return(abs(sin(t))*0.1 + 0.05)
+}
+
+# create rate
+r &lt;- make.rate(rate)
+
+# plot it
+plot(time, r(time), type = 'l')
+
+</code></pre>
+
+
+</div>

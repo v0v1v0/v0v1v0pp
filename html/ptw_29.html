@@ -1,0 +1,80 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>lcms</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Parts of 3 proteomic LC-MS samples</h2>
+
+<h3>Description</h3>
+
+<p>The <code>lcms</code> data consists of a 100 x 2000 x 3 array <code>lcms</code>, a
+vector <code>time</code> of length 2000 and a vector <code>mz</code> of length 100. The
+LC-MS data in the array are a subset (samples 1, 2 and 5) of a larger
+set measured on a tryptic digest of E. coli proteins (see
+<code>source</code> section). Separate objects <code>mz</code> and <code>rt</code> give
+the values for the first two axis.
+</p>
+<p>Peak picking leads to the object ldms.pks (see example section).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">data(lcms)
+</code></pre>
+
+
+<h3>Source</h3>
+
+<p>Nijmegen Proteomics Facility, Department of Laboratory Medicine,
+Radboud University Nijmegen Medical Centre. Data available (in
+different formats) at
+http://www.cac.science.ru.nl/research/data/ecoli/</p>
+
+
+<h3>References</h3>
+
+<p>Bloemberg, T.G., et al. (2010)
+"Improved parametric time warping for Proteomics", Chemometrics and
+Intelligent Laboratory Systems, <b>104</b> (1), 65 – 74.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## the lcms.pks object is generated in the following way:
+## Not run: 
+data(lcms)
+pick.peaks &lt;- function(x, span) {
+  span.width &lt;- span * 2 + 1
+  loc.max &lt;- span.width + 1 -
+      apply(embed(x, span.width), 1, which.max)
+  loc.max[loc.max == 1 | loc.max == span.width] &lt;- NA
+  
+  pks &lt;- loc.max + 0:(length(loc.max)-1)
+  pks &lt;- pks[!is.na(pks)]
+  pks.tab &lt;- table(pks)
+  
+  pks.id &lt;- as.numeric(names(pks.tab)[pks.tab &gt; span])
+  
+  cbind(rt = pks.id, I = x[pks.id])
+}
+
+## bring all samples to the same scale, copied from ptw man page
+lcms.scaled &lt;- aperm(apply(lcms, c(1,3), 
+                           function(x) x/mean(x) ), c(2,1,3))
+lcms.s.z &lt;- aperm(apply(lcms.scaled, c(1,3), 
+                        function(x) padzeros(x, 250) ), c(2,1,3))
+lcms.pks &lt;- lapply(1:3,
+                   function(ii) {
+                     lapply(1:nrow(lcms.s.z[,,ii]),
+                            function(jj)
+                            cbind("mz" = jj,
+                                  pick.peaks(lcms.s.z[jj,,ii], 5)))
+                   })
+
+## End(Not run)</code></pre>
+
+
+</div>

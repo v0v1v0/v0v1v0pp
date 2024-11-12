@@ -1,0 +1,323 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>solve</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Solve</h2>
+
+<h3>Description</h3>
+
+<p>Solve a conservation planning problem.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'ConservationProblem'
+solve(a, b, ..., run_checks = TRUE, force = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>a</code></td>
+<td>
+<p><code>problem()</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>b</code></td>
+<td>
+<p>missing.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>arguments passed to <code>compile()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>run_checks</code></td>
+<td>
+<p><code>logical</code> flag indicating whether presolve checks
+should be run prior solving the problem. These checks are performed using
+the <code>presolve_check()</code> function. Defaults to <code>TRUE</code>.
+Skipping these checks may reduce run time for large problems.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>force</code></td>
+<td>
+<p><code>logical</code> flag indicating if an attempt to should be
+made to solve the problem even if potential issues were detected during
+the presolve checks. Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>After formulating a conservation planning <code>problem()</code>,
+it can be solved using an exact algorithm solver (see solvers
+for available solvers). If no solver has been explicitly specified,
+then the best available exact algorithm solver will be used by default
+(see <code>add_default_solver()</code>). Although these exact algorithm
+solvers will often display a lot of information that isn't really that
+helpful (e.g., nodes, cutting planes), they do display information
+about the progress they are making on solving the problem (e.g., the
+performance of the best solution found at a given point in time). If
+potential issues were detected during the
+presolve checks (see <code>presolve_check()</code>)
+and the problem is being forcibly solved (i.e., with <code>force = TRUE</code>),
+then it is also worth checking for any warnings displayed by the solver
+to see if these potential issues are actually causing issues
+(e.g., <em>Gurobi</em> can display warnings that include
+<code>"Warning: Model contains large matrix coefficient range"</code> and
+<code>"Warning: Model contains large rhs"</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>numeric</code>, <code>matrix</code>, <code>data.frame</code>, <code>sf::st_sf()</code>, or
+<code>terra::rast()</code> object containing the solution to the problem.
+Additionally, the returned object has attributes that describe
+optimization process or solution (see below  for examples on accessing
+these attributes). These attributes provide the following information.
+</p>
+
+<dl>
+<dt><code>objective</code></dt>
+<dd>
+<p><code>numeric</code> mathematical objective value for the solution used
+to evaluate the prioritization during optimization.
+</p>
+</dd>
+<dt><code>runtime</code></dt>
+<dd>
+<p><code>numeric</code> total amount of time elapsed while during the optimization
+process (reported in seconds). Note that this measure of time does not
+include any data pre-processing or post-processing steps.
+</p>
+</dd>
+<dt><code>status</code></dt>
+<dd>
+<p><code>character</code> status of the optimization process.
+This status typically describes
+the reason why the optimization process terminated. For example,
+it might indicate that the optimization process terminated because
+an optimal solution was found, or because a pre-specified time limit
+was reached. These status values are (mostly) obtained directly from
+the solver software, and so we recommend consulting the solver's
+documentation for further information on what particular status values mean.
+Note that some solvers (e.g., Gurobi and HiGHS) will return
+an <code>"OPTIMAL"</code> status when the solver has found a solution within the
+pre-specified optimality gap (e.g., it has found a solution within 10% of
+optimality), even though the solution itself may not be strictly optimal.
+</p>
+</dd>
+<dt><code>gap</code></dt>
+<dd>
+<p><code>numeric</code> optimality of the solution. This gap value provides an upper
+bound of how far the solution is from optimality.
+For example, you might specify a
+10% optimality gap for the optimization process (e.g., using
+<code>add_highs_solver(gap = 0.1)</code>), and this might produce a solution that is
+actually 5% from optimality. As such, the solution might have a gap value
+of 0.05 (corresponding to 5%). Because this value represents an upper bound,
+it is also possible that the solution in this example
+– even though it is actually 5% from optimality – might have a gap value
+of 7% (i.e., 0.07). Note that only some solvers are able to
+provide this information (i.e., the <em>Gurobi</em> and <em>HiGHS</em> solvers),
+and the gap value for other solvers will contain missing (<code>NA</code>) values.
+</p>
+</dd>
+</dl>
+<h3>Output format</h3>
+
+<p>This function will output solutions in a similar format to the
+planning units associated with <code>a</code>. Specifically, it will return
+solutions based on the following types of planning units.
+</p>
+
+<dl>
+<dt>
+<code>a</code> has <code>numeric</code> planning units</dt>
+<dd>
+<p>The solution will be
+returned as a <code>numeric</code> vector. Here, each element in the vector
+corresponds to a different planning unit.
+Note that if a portfolio is used to generate multiple solutions,
+then a <code>list</code> of such <code>numeric</code> vectors will be returned.</p>
+</dd>
+<dt>
+<code>a</code> has <code>matrix</code> planning units</dt>
+<dd>
+<p>The solution will be
+returned as a <code>matrix</code> object.
+Here, rows correspond to different planning units,
+and columns correspond to different  management zones.
+Note that if a portfolio is used to generate multiple solutions,
+then a <code>list</code> of such <code>matrix</code> objects will be returned.</p>
+</dd>
+<dt>
+<code>a</code> has <code>terra::rast()</code> planning units</dt>
+<dd>
+<p>The solution
+will be returned as a <code>terra::rast()</code> object.
+If the argument to <code>x</code> contains multiple zones, then the object
+will have a different layer for each management zone.
+Note that if a portfolio is used to generate multiple solutions,
+then a <code>list</code> of <code>terra::rast()</code> objects will be returned.</p>
+</dd>
+<dt>
+<code>a</code> has <code>sf::sf()</code>, or <code>data.frame</code> planning units</dt>
+<dd>
+<p>The solution will be returned in the same data format as the planning
+units.
+Here, each row corresponds to a different planning unit,
+and columns contain solutions.
+If the argument to <code>a</code> contains a single zone, then the solution object
+will contain columns named by solution.
+Specifically, the column names containing the solution values
+be will named as <code>"solution_XXX"</code> where <code>"XXX"</code> corresponds to a solution
+identifier (e.g., <code>"solution_1"</code>).
+If the argument to <code>a</code> contains multiple zones, then the columns
+containing solutions will be named as <code>"solution_XXX_YYY"</code> where
+<code>"XXX"</code> corresponds to the solution identifier and <code>"YYY"</code> is the name
+of the management zone (e.g., <code>"solution_1_zone1"</code>).</p>
+</dd>
+</dl>
+<h3>See Also</h3>
+
+<p>See <code>problem()</code> to create conservation planning problems, and
+<code>presolve_check()</code> to check problems for potential issues.
+Also, see the <code>category_layer()</code> and <code>category_vector()</code> function to
+reformat solutions that contain multiple zones.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# set seed for reproducibility
+set.seed(500)
+
+# load data
+sim_pu_raster &lt;- get_sim_pu_raster()
+sim_pu_polygons &lt;- get_sim_pu_polygons()
+sim_features &lt;- get_sim_features()
+sim_zones_pu_raster &lt;- get_sim_zones_pu_raster()
+sim_zones_pu_polygons &lt;- get_sim_zones_pu_polygons()
+sim_zones_features &lt;- get_sim_zones_features()
+
+# build minimal conservation problem with raster data
+p1 &lt;-
+  problem(sim_pu_raster, sim_features) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(0.1) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve the problem
+s1 &lt;- solve(p1)
+
+# print solution
+print(s1)
+
+# print attributes describing the optimization process and the solution
+print(attr(s1, "objective"))
+print(attr(s1, "runtime"))
+print(attr(s1, "status"))
+print(attr(s1, "gap"))
+
+# calculate feature representation in the solution
+r1 &lt;- eval_feature_representation_summary(p1, s1)
+print(r1)
+
+# plot solution
+plot(s1, main = "solution", axes = FALSE)
+
+# build minimal conservation problem with polygon data
+p2 &lt;-
+  problem(sim_pu_polygons, sim_features, cost_column = "cost") %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(0.1) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve the problem
+s2 &lt;- solve(p2)
+
+# print solution
+print(s2)
+
+# calculate feature representation in the solution
+r2 &lt;- eval_feature_representation_summary(p2, s2[, "solution_1"])
+print(r2)
+
+# plot solution
+plot(s2[, "solution_1"], main = "solution", axes = FALSE)
+
+# build multi-zone conservation problem with raster data
+p3 &lt;-
+  problem(sim_zones_pu_raster, sim_zones_features) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(matrix(runif(15, 0.1, 0.2), nrow = 5, ncol = 3)) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve the problem
+s3 &lt;- solve(p3)
+
+# print solution
+print(s3)
+
+# calculate feature representation in the solution
+r3 &lt;- eval_feature_representation_summary(p3, s3)
+print(r3)
+
+# plot solution
+plot(category_layer(s3), main = "solution", axes = FALSE)
+
+# build multi-zone conservation problem with polygon data
+p4 &lt;-
+  problem(
+    sim_zones_pu_polygons, sim_zones_features,
+    cost_column = c("cost_1", "cost_2", "cost_3")
+  ) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(matrix(runif(15, 0.1, 0.2), nrow = 5, ncol = 3)) %&gt;%
+  add_binary_decisions() %&gt;%
+  add_default_solver(verbose = FALSE)
+
+# solve the problem
+s4 &lt;- solve(p4)
+
+# print solution
+print(s4)
+
+# calculate feature representation in the solution
+r4 &lt;- eval_feature_representation_summary(
+  p4, s4[, c("solution_1_zone_1", "solution_1_zone_2", "solution_1_zone_3")]
+)
+print(r4)
+
+# create new column representing the zone id that each planning unit
+# was allocated to in the solution
+s4$solution &lt;- category_vector(
+  s4[, c("solution_1_zone_1", "solution_1_zone_2", "solution_1_zone_3")]
+)
+s4$solution &lt;- factor(s4$solution)
+
+# plot solution
+plot(s4[, "solution"])
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,159 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>get_message_data</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Extract user-visible messages from a package</h2>
+
+<h3>Description</h3>
+
+<p>This function looks in the R and src directories of a package for
+user-visible messages and compiles them as a
+<code>data.table::data.table()</code> to facilitate
+analyzing this corpus as such.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">get_message_data(
+  dir = ".",
+  custom_translation_functions = list(R = NULL, src = NULL),
+  style = NULL,
+  verbose = !is_testing()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dir</code></td>
+<td>
+<p>Character, default the present directory; a directory in which an
+R package is stored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>custom_translation_functions</code></td>
+<td>
+<p>A <code>list</code> with either/both of two
+components, <code>R</code> and <code>src</code>, together governing how to extract any
+non-standard strings from the package.
+</p>
+<p>See Details in <code>translate_package()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>style</code></td>
+<td>
+<p>Translation style, either <code>"base"</code> or <code>"explict"</code>.
+The default, <code>NULL</code>, reads from the <code>DESCRIPTION</code> field
+<code>Config/potools/style</code> so you can specify the style once for your
+package.
+</p>
+<p>Both styles extract strings explicitly flagged for translation with
+<code>gettext()</code> or <code>ngettext()</code>. The base style additionally extracts
+strings in calls to <code>stop()</code>, <code>warning()</code>, and <code>message()</code>,
+and to <code>stopf()</code>, <code>warningf()</code>, and <code>messagef()</code> if you have
+added those helpers to your package. The explicit style also accepts
+<code>tr_()</code> as a short hand for <code>gettext()</code>. See
+<code>vignette("developer")</code> for more details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical, default <code>TRUE</code> (except during testing). Should
+extra information about progress, etc. be reported?</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>data.table</code> with the following schema:
+</p>
+
+<ul>
+<li> <p><code>message_source</code>: <code>character</code>, either <code>"R"</code> or <code>"src"</code>,
+saying whether the string was found in the R or the src folder of the
+package
+</p>
+</li>
+<li> <p><code>type</code>: <code>character</code>, either <code>"singular"</code> or
+<code>"plural"</code>; <code>"plural"</code> means the string came from
+<code>ngettext()</code> and can be pluralized
+</p>
+</li>
+<li> <p><code>file</code>: <code>character</code>, the file where the string was found
+</p>
+</li>
+<li> <p><code>msgid</code>: <code>character</code>, the string (character literal or <code>char</code> array as
+found in the source); missing for all <code>type == "plural"</code> strings
+</p>
+</li>
+<li> <p><code>msgid_plural</code>: <code>list(character, character)</code>, the strings
+(character literals or <code>char</code> arrays as found in the source); the first
+applies in English for <code>n=1</code> (see <code>ngettext</code>), while the second
+applies for <code>n!=1</code>; missing for all <code>type == "singular"</code> strings
+</p>
+</li>
+<li> <p><code>call</code>: <code>character</code>, the full call containing the string
+that was found
+</p>
+</li>
+<li> <p><code>line_number</code>: <code>integer</code>, the line in <code>file</code> where the string was found
+</p>
+</li>
+<li> <p><code>is_repeat</code>: <code>logical</code>, whether the <code>msgid</code> is a duplicate within this
+<code>message_source</code>
+</p>
+</li>
+<li> <p><code>is_marked_for_translation</code>:<code>logical</code>, whether the string is marked for
+translation (e.g., in R, all character literals supplied to a <code>...</code> argument in
+<code>stop()</code> are so marked)
+</p>
+</li>
+<li> <p><code>is_templated</code>, <code>logical</code>, whether the string is templatable (e.g., uses
+<code style="white-space: pre;">⁠%s⁠</code> or other formatting markers)
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Michael Chirico
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>translate_package()</code>,
+<code>write_po_file()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+pkg &lt;- system.file('pkg', package = 'potools')
+get_message_data(pkg)
+
+# includes strings provided to the custom R wrapper function catf()
+get_message_data(pkg, custom_translation_functions = list(R = "catf:fmt|1"))
+
+# includes untranslated strings provided to the custom
+#   C/C++ wrapper function ReverseTemplateMessage()
+get_message_data(
+  pkg,
+  custom_translation_functions = list(src = "ReverseTemplateMessage:2")
+)
+
+# cleanup
+rm(pkg)
+
+</code></pre>
+
+
+</div>

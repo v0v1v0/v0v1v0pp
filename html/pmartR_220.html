@@ -1,0 +1,157 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>trelli_pvalue_filter</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Filter a paneled trelliData object by a p-value</h2>
+
+<h3>Description</h3>
+
+<p>This use-case-specific function allows users to filter down their plots to a 
+specified p-value IF statistics data has been included. This function is mostly
+relevant to the MODE application.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">trelli_pvalue_filter(
+  trelliData,
+  p_value_test = "anova",
+  p_value_thresh = 0.05,
+  comparison = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>trelliData</code></td>
+<td>
+<p>A trelliData object with statistics results (statRes). Required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p_value_test</code></td>
+<td>
+<p>A string to indicate which p_values to plot. Acceptable
+entries are "anova" or "gtest". Default is "anova". Unlike the
+plotting functions, here p_value_test cannot be null. Required unless
+the data is seqData, when this parameter will be ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p_value_thresh</code></td>
+<td>
+<p>A value between 0 and 1 to indicate the p-value threshold 
+at which to keep plots. Default is 0.05. Required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>comparison</code></td>
+<td>
+<p>The specific comparison to filter significant values to. Can
+be null. See attr(statRes, "comparisons") for the available options. Optional.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A paneled trelliData object with only plots corresponding to significant
+p-values from a statistical test.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David Degnan, Lisa Bramer
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+library(pmartRdata)
+
+# Transform the data
+omicsData &lt;- edata_transform(omicsData = pep_object, data_scale = "log2")
+
+# Group the data by condition
+omicsData &lt;- group_designation(omicsData = omicsData, main_effects = c("Phenotype"))
+
+# Apply the IMD ANOVA filter
+imdanova_Filt &lt;- imdanova_filter(omicsData = omicsData)
+omicsData &lt;- applyFilt(filter_object = imdanova_Filt, omicsData = omicsData,
+                       min_nonmiss_anova = 2)
+
+# Normalize my pepData
+omicsData &lt;- normalize_global(omicsData, "subset_fn" = "all", "norm_fn" = "median",
+                             "apply_norm" = TRUE, "backtransform" = TRUE)
+
+# Implement the IMD ANOVA method and compute all pairwise comparisons 
+# (i.e. leave the `comparisons` argument NULL)
+statRes &lt;- imd_anova(omicsData = omicsData, test_method = 'combined')
+
+# Generate the trelliData object
+trelliData3 &lt;- as.trelliData(statRes = statRes)
+trelliData4 &lt;- as.trelliData(omicsData = omicsData, statRes = statRes)
+
+###########################
+## MS/NMR OMICS EXAMPLES ##
+###########################
+
+# Filter a trelliData object with only statistics results, while not caring about a comparison
+trelli_pvalue_filter(trelliData3, p_value_test = "anova", p_value_thresh = 0.1)
+
+# Filter a trelliData object with only statistics results, while caring about a specific comparison
+trelli_pvalue_filter(
+ trelliData3, p_value_test = "anova", p_value_thresh = 0.1, comparison = "Phenotype3_vs_Phenotype2")
+
+# Filter both a omicsData and statRes object, while not caring about a specific comparison
+trelli_pvalue_filter(trelliData4, p_value_test = "anova", p_value_thresh = 0.001)
+
+# Filter both a omicsData and statRes object, while caring about a specific comparison
+trelli_pvalue_filter(
+ trelliData4, p_value_test = "gtest", p_value_thresh = 0.25, 
+ comparison = "Phenotype3_vs_Phenotype2"
+)
+
+######################
+## RNA-SEQ EXAMPLES ##  
+######################
+
+#' # Group data by condition
+omicsData_seq &lt;- group_designation(omicsData = rnaseq_object, main_effects = c("Virus"))
+
+# Filter low transcript counts
+omicsData_seq &lt;- applyFilt(
+ filter_object = total_count_filter(omicsData = omicsData_seq), 
+ omicsData = omicsData_seq, min_count = 15
+)
+
+# Select a normalization and statistics method (options are 'edgeR', 'DESeq2', and 'voom').
+# See ?difexp_seq for more details
+statRes_seq &lt;- diffexp_seq(omicsData = omicsData_seq, method = "voom")
+
+# Generate the trelliData object
+trelliData_seq3 &lt;- as.trelliData(statRes = statRes_seq)
+trelliData_seq4 &lt;- as.trelliData(omicsData = omicsData_seq, statRes = statRes_seq)
+
+# Filter a trelliData seqData object with only statistics results, while not 
+# caring about a comparison
+trelliData_seq3_filt &lt;- trelli_pvalue_filter(trelliData_seq3, p_value_thresh = 0.05)
+
+# Filter both a omicsData and statRes object, while caring about a specific comparison
+trelliData_seq4_filt &lt;- trelli_pvalue_filter(trelliData_seq4, p_value_thresh = 0.05, 
+ comparison = "StrainA_vs_StrainB")
+
+
+
+</code></pre>
+
+
+</div>

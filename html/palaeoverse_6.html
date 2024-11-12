@@ -1,0 +1,220 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>bin_time</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Assign fossil occurrences to time bins</h2>
+
+<h3>Description</h3>
+
+<p>A function to assign fossil occurrences to specified time bins based on
+different approaches commonly applied in palaeobiology.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">bin_time(
+  occdf,
+  min_ma = "min_ma",
+  max_ma = "max_ma",
+  bins,
+  method = "mid",
+  reps = 100,
+  fun = dunif,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>occdf</code></td>
+<td>
+<p><code>dataframe</code>. A dataframe of the fossil occurrences you
+wish to bin. This dataframe should contain at least two columns with
+<code>numeric</code> values: maximum age of occurrence and minimum age of
+occurrence (see <code>max_ma</code>, <code>min_ma</code>). If required, <code>numeric</code> ages can be
+generated from interval names via the
+<code>look_up()</code> function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_ma</code></td>
+<td>
+<p><code>character</code>. The name of the column you wish to be
+treated as the minimum age for <code>occdf</code> and <code>bins</code>, e.g. "min_ma"
+(default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_ma</code></td>
+<td>
+<p><code>character</code>. The name of the column you wish to be
+treated as the maximum age for <code>occdf</code> and <code>bins</code>, e.g. "max_ma"
+(default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bins</code></td>
+<td>
+<p><code>dataframe</code>. A dataframe of the bins that you wish to
+allocate fossil occurrences to such as that returned by
+<code>time_bins()</code>. This dataframe must
+contain at least the following named columns: "bin" and those specified
+to <code>max_ma</code> (default: "max_ma") and <code>min_ma</code> (default: "min_ma").
+Columns <code>max_ma</code> and <code>min_ma</code> must be <code>numeric</code> values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p><code>character</code>. The method desired for binning fossil
+occurrences. Currently, five methods exist in this function: "mid",
+"majority", "all", "random", and "point". See Details for a description
+of each.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reps</code></td>
+<td>
+<p><code>numeric</code>. A non-negative <code>numeric</code> specifying the number
+of replications for sampling. This argument is only useful in the case of
+the "random" or "point" method being specified in the <code>method</code> argument.
+Defaults to 100.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fun</code></td>
+<td>
+<p><code>function</code>. A probability density function from the
+stats package such as dunif or dnorm.
+This argument is only useful if the "point" method is specified in the
+<code>method</code> argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments available in the called function (<code>fun</code>).
+These arguments may be required for function arguments without default
+values, or if you wish to overwrite the default argument value (see
+example). <code>x</code> input values are generated internally based
+on the age range of the fossil occurrence and should not be manually
+provided. Note that <code>x</code> input values range between 0 and 1, and
+function arguments should therefore be scaled to be within these bounds.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Five approaches (methods) exist in the <code>bin_time()</code> function for
+assigning occurrences to time bins:
+</p>
+
+<ul>
+<li>
+<p> Midpoint: The "mid" method is the simplest approach and uses the midpoint
+of the fossil occurrence age range to bin the occurrence.
+</p>
+</li>
+<li>
+<p> Majority: The "majority" method bins an occurrence into the bin which it
+most overlaps with. As part of this implementation, the majority
+percentage overlap of the occurrence is also calculated and returned as
+an additional column in <code>occdf</code>. If desired, these percentages can be
+used to further filter an occurrence dataset.
+</p>
+</li>
+<li>
+<p> All: The "all" method bins an occurrence into every bin its age range
+covers. For occurrences with age ranges of more than one bin, the
+occurrence row is duplicated. Each occurrence is assigned an ID in the
+column <code>occdf$id</code> so that duplicates can be tracked. Additionally,
+<code>occdf$n_bins</code> records the number of bins each occurrence appears within.
+</p>
+</li>
+<li>
+<p> Random: The "random" method randomly samples X amount of bins (with
+replacement) from the bins that the fossil occurrence age range covers
+with equal probability regardless of bin length. The <code>reps</code> argument
+determines the number of times the sample process is repeated. All
+replications are stored as individual elements within the returned list
+with an appended <code>bin_assignment</code> and <code>bin_midpoint</code> column to the
+original input <code>occdf</code>. If desired, users can easily bind this list using
+<code>do.call(rbind, x)</code>.
+</p>
+</li>
+<li>
+<p> Point: The "point" method randomly samples X (<code>reps</code>) amount of point age
+estimates from the age range of the fossil occurrence. Sampling follows a
+user-input probability density function such
+as dnorm (see example 5). Users should also provide any
+additional arguments for the probability density function (see <code>...</code>).
+However, <code>x</code> (vector of quantiles) values should not be provided as these
+values are input from the age range of each occurrence. These
+values range between 0 and 1, and therefore function arguments should be
+scaled to be within these bounds. The <code>reps</code> argument determines the
+number of times the sample process is repeated. All replications are
+stored as individual elements within the returned list with an appended
+<code>bin_assignment</code> and <code>point_estimates</code> column to the original input
+<code>occdf</code>. If desired, users can easily bind this list using
+<code>do.call(rbind, x)</code>.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>For methods "mid", "majority" and "all", a <code>dataframe</code> of the
+original input <code>occdf</code> with the following appended columns is returned:
+occurrence id (<code>id</code>), number of bins that the occurrence age range covers
+(<code>n_bins</code>), bin assignment (<code>bin_assignment</code>), and bin midpoint
+(<code>bin_midpoint</code>). In the case of the "majority" method, an additional
+column of the majority percentage overlap (<code>overlap_percentage</code>) is also
+appended. For the "random" and "point" method, a <code>list</code> is returned
+(of length reps) with each element a copy of the <code>occdf</code> and appended
+columns (random: <code>bin_assignment</code> and <code>bin_midpoint</code>; point:
+<code>bin_assignment</code> and <code>point_estimates</code>).
+</p>
+
+
+<h3>Developer(s)</h3>
+
+<p>Christopher D. Dean &amp; Lewis A. Jones
+</p>
+
+
+<h3>Reviewer(s)</h3>
+
+<p>William Gearty
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#Grab internal tetrapod data
+occdf &lt;- tetrapods[1:100, ]
+bins &lt;- time_bins()
+
+#Assign via midpoint age of fossil occurrence data
+ex1 &lt;- bin_time(occdf = occdf, bins = bins, method = "mid")
+
+#Assign to all bins that age range covers
+ex2 &lt;- bin_time(occdf = occdf, bins = bins, method = "all")
+
+#Assign via majority overlap based on fossil occurrence age range
+ex3 &lt;- bin_time(occdf = occdf, bins = bins, method = "majority")
+
+#Assign randomly to overlapping bins based on fossil occurrence age range
+ex4 &lt;- bin_time(occdf = occdf, bins = bins, method = "random", reps = 5)
+
+#Assign point estimates following a normal distribution
+ex5 &lt;- bin_time(occdf = occdf, bins = bins, method = "point", reps = 5,
+                fun = dnorm, mean = 0.5, sd = 0.25)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,118 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>add_extra_portfolio</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Add an extra portfolio</h2>
+
+<h3>Description</h3>
+
+<p>Generate a portfolio of solutions for a conservation planning
+problem by storing feasible solutions
+discovered during the optimization process.
+This method is useful for quickly obtaining multiple solutions,
+but does not provide any guarantees on the number of solutions, or
+the quality of solutions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">add_extra_portfolio(x)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>problem()</code> object.</p>
+</td>
+</tr></table>
+<h3>Details</h3>
+
+<p>This strategy for generating a portfolio requires problems to
+be solved using the <em>Gurobi</em> software suite (i.e., using
+<code>add_gurobi_solver()</code>. Specifically, version 8.0.0 (or greater)
+of the <span class="pkg">gurobi</span> package must be installed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An updated <code>problem()</code> object with the portfolio added to it.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See portfolios for an overview of all functions for adding a portfolio.
+</p>
+<p>Other portfolios: 
+<code>add_cuts_portfolio()</code>,
+<code>add_default_portfolio()</code>,
+<code>add_gap_portfolio()</code>,
+<code>add_shuffle_portfolio()</code>,
+<code>add_top_portfolio()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# set seed for reproducibility
+set.seed(600)
+
+# load data
+sim_pu_raster &lt;- get_sim_pu_raster()
+sim_features &lt;- get_sim_features()
+sim_zones_pu_raster &lt;- get_sim_zones_pu_raster()
+sim_zones_features &lt;- get_sim_zones_features()
+
+# create minimal problem with a portfolio for extra solutions
+p1 &lt;-
+  problem(sim_pu_raster, sim_features) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(0.05) %&gt;%
+  add_extra_portfolio() %&gt;%
+  add_default_solver(gap = 0, verbose = FALSE)
+
+# solve problem and generate portfolio
+s1 &lt;- solve(p1)
+
+# convert portfolio into a multi-layer raster object
+s1 &lt;- terra::rast(s1)
+
+# print number of solutions found
+print(terra::nlyr(s1))
+
+# plot solutions
+plot(s1, axes = FALSE)
+
+# create multi-zone problem with a portfolio for extra solutions
+p2 &lt;-
+  problem(sim_zones_pu_raster, sim_zones_features) %&gt;%
+  add_min_set_objective() %&gt;%
+  add_relative_targets(matrix(runif(15, 0.1, 0.2), nrow = 5, ncol = 3)) %&gt;%
+  add_extra_portfolio() %&gt;%
+  add_default_solver(gap = 0, verbose = FALSE)
+
+# solve problem and generate portfolio
+s2 &lt;- solve(p2)
+
+# convert each solution in the portfolio into a single category layer
+s2 &lt;- terra::rast(lapply(s2, category_layer))
+
+# print number of solutions found
+print(terra::nlyr(s2))
+
+# plot solutions in portfolio
+plot(s2, axes = FALSE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

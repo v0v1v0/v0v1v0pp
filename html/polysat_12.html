@@ -1,0 +1,274 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>calcPopDiff</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Estimate Population Differentiation Statistics
+</h2>
+
+<h3>Description</h3>
+
+<p>Given a data frame of allele frequencies and population sizes,
+<code>calcPopDiff</code> calculates a matrix of pairwise <code class="reqn">F_{ST}</code>, 
+<code class="reqn">G_{ST}</code>, Jost's <code class="reqn">D</code>, or <code class="reqn">R_{ST}</code> values, or a single global
+value for any of these four statistics.
+<code>calcFst</code> is a wrapper for <code>calcPopDiff</code> to allow backwards
+compatibility with previous versions of <span class="pkg">polysat</span>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">calcPopDiff(freqs, metric, pops = row.names(freqs), 
+            loci = unique(gsub("\\..*$", "", names(freqs))), global = FALSE,
+            bootstrap = FALSE, n.bootstraps = 1000, object = NULL)
+
+calcFst(freqs, pops = row.names(freqs),
+        loci = unique(gsub("\\..*$", "", names(freqs))), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>freqs</code></td>
+<td>
+
+<p>A data frame of allele frequencies and population sizes such as that
+produced by <code>simpleFreq</code> or <code>deSilvaFreq</code>.  Each population 
+is in one row, and a
+column called <code>Genomes</code> (or multiple columns containing the locus
+names and “Genomes” seperated by a period) contains the relative
+size of each
+population.  All other columns contain allele frequencies.  The names of
+these columns are the locus name and allele name, separated by a period.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>metric</code></td>
+<td>
+
+<p>The population differentiation statistic to estimate.  Can be “Fst”,
+“Gst”, “Jost's D”, or “Rst”.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pops</code></td>
+<td>
+
+<p>A character vector.  Populations to analyze, which should be
+a subset of <code>row.names(freqs)</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loci</code></td>
+<td>
+
+<p>A character vector indicating which loci to analyze.  These should be a
+subset of the locus names as used in the column names of <code>freqs</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>global</code></td>
+<td>
+
+<p>Boolean.  If <code>TRUE</code>, a single global statistic will be estimated across all
+populations.  If <code>FALSE</code>, pairwise statistics will be estimated between 
+populations.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bootstrap</code></td>
+<td>
+
+<p>Boolean.  If <code>TRUE</code>, a set of replicates bootstrapped across loci will be returned.  If
+<code>FALSE</code>, a single value will be returned for each pair of populations (if 
+<code>global = FALSE</code>) or for the whole set (if <code>global = TRUE</code>).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.bootstraps</code></td>
+<td>
+
+<p>Integer.  The number of bootstrap replicates to perform.  Ignored if 
+<code>bootstrap = FALSE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+
+<p>A <code>"genambig"</code> or <code>"genbinary"</code> object with the <code>Usatnts</code> slot filled in.
+Required for <code>metric = "Rst"</code> only.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Additional arguments to be passed to <code>calcPopDiff</code> (<em>i.e.</em> <code>global</code>,
+<code>bootstrap</code>, and/or <code>n.bootstraps</code>).
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For <code>metric = "Fst"</code> or <code>calcFst</code>:
+</p>
+<p><code class="reqn">H_S</code> and <code class="reqn">H_T</code> are estimate directly from allele frequencies
+for each locus for each pair of populations, then averaged across loci.  
+Wright's <code class="reqn">F_{ST}</code> is then calculated for each pair of populations as 
+<code class="reqn">\frac{H_T - H_S}{H_T}</code>.
+</p>
+<p><code class="reqn">H</code> values (expected heterozygosities for populations and combined
+populations) are calculated as one minus the sum of all squared allele
+frequencies at a locus.  To calculte <code class="reqn">H_T</code>, allele frequencies between two
+populations are averaged before the calculation.  To calculate <code class="reqn">H_S</code>, <code class="reqn">H</code>
+values are averaged after the calculation.  In both cases, the averages
+are weighted by the relative sizes of the two populations (as indicated
+by <code>freqs$Genomes</code>).
+</p>
+<p>For <code>metric = "Gst"</code>:
+</p>
+<p>This metric is similar to <code class="reqn">F_{ST}</code>, but mean allele frequencies and 
+mean expected heterozygosities are not weighted by population size.  Additionally,
+unbiased estimators of <code class="reqn">H_S</code> and <code class="reqn">H_T</code> are used according to Nei
+and Chesser (1983; equations 15 and 16, reproduced also in Jost (2008)).
+Instead of using twice the harmonic mean of the number of individuals in the two
+subpopulations as described by Nei and Chesser (1983), the harmonic mean of the
+number of allele copies in the two subpopulations (taken from <code>freq$Genomes</code>)
+is used, in order to allow for polyploidy.
+<code class="reqn">G_{ST}</code> is estimated for each locus and then averaged across loci.
+</p>
+<p>For <code>metric = "Jost's D"</code>:
+</p>
+<p>The unbiased estimators of <code class="reqn">H_S</code> and <code class="reqn">H_T</code> and calculated as 
+with <code class="reqn">G_{ST}</code>, without weighting by population size.  They are then used 
+to estimate <code class="reqn">D</code> at each locus according to Jost (2008; equation 12):
+</p>
+<p style="text-align: center;"><code class="reqn">2 * \frac{H_T - H_S}{1 - H_S}</code>
+</p>
+
+<p>Values of <code class="reqn">D</code> are then averaged across loci.
+</p>
+<p>For <code>metric = "Rst"</code>:
+</p>
+<p><code class="reqn">R_{ST}</code> is estimated on a per-locus basis according to Slatkin (1995),
+but with populations weighted equally regardless of size. Values are then averaged
+across loci.
+</p>
+<p>For each locus:
+</p>
+<p style="text-align: center;"><code class="reqn">S_w = \frac{1}{d} * \sum_j^d{\frac{\sum_i{\sum_{i' &lt; i}{p_{ij} * p_{i'j} * n_j^2 * (a_i - a_{i'})^2}}}{n_j * (n_j - 1)}}</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\bar{S} = \frac{\sum_i{\sum_{i' &lt; i}{\bar{p}_i * \bar{p}_{i'} * n^2 * (a_i - a_{i'})^2}}}{n * (n-1)}</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">R_{ST} = \frac{\bar{S} - S_w}{\bar{S}}</code>
+</p>
+
+<p>where <code class="reqn">d</code> is the number of populations, <code class="reqn">j</code> is an individual population, <code class="reqn">i</code> and 
+<code class="reqn">i'</code> are individual alleles, <code class="reqn">p_{ij}</code> is the frequency of an allele in a population,
+<code class="reqn">n_j</code> is the number of allele copies in a population, <code class="reqn">a_i</code> is the size of an allele
+expressed in number of repeat units, <code class="reqn">\bar{p}_i</code> is an allele frequency averaged across
+populations (with populations weighted equally), and <code class="reqn">n</code> is the total number of allele copies
+across all populations.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>global = FALSE</code> and <code>bootstrap = FALSE</code>, a square matrix containing <code class="reqn">F_{ST}</code>, <code class="reqn">G_{ST}</code>, <code class="reqn">D</code>, or <code class="reqn">R_{ST}</code> values.  
+The rows and columns of the matrix are both named by population.
+</p>
+<p>If <code>global = TRUE</code> and <code>bootstrap = FALSE</code>, a single value indicating the <code class="reqn">F_{ST}</code>, <code class="reqn">G_{ST}</code>, <code class="reqn">D</code>, or <code class="reqn">R_{ST}</code> value.
+</p>
+<p>If <code>global = TRUE</code> and <code>bootstrap = TRUE</code>, a vector of bootstrapped replicates of <code class="reqn">F_{ST}</code>, <code class="reqn">G_{ST}</code>, <code class="reqn">D</code>, or <code class="reqn">R_{ST}</code>.
+</p>
+<p>If <code>global = FALSE</code> and <code>bootstrap = TRUE</code>, a square two-dimensional list, with rows and columns named by population.  Each item is
+a vector of bootstrapped values for <code class="reqn">F_{ST}</code>, <code class="reqn">G_{ST}</code>, <code class="reqn">D</code>, or <code class="reqn">R_{ST}</code> for that pair of populations.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>References</h3>
+
+<p>Nei, M. (1973) Analysis of gene diversity in subdivided populations.
+<em>Proceedings of the National Academy of Sciences of the United
+States of America</em> <b>70</b>, 3321–3323.
+</p>
+<p>Nei, M. and Chesser, R. (1983) Estimation of fixation indices and gene diversities.
+<em>Annals of Human Genetics</em> <b>47</b>, 253–259.
+</p>
+<p>Jost, L. (2008) <code class="reqn">G_{ST}</code> and its relatives to not measure differentiation.
+<em>Molecular Ecology</em> <b>17</b>, 4015–4026.
+</p>
+<p>Slatkin, M. (1995) A measure of population subdivision based on microsatellite 
+allele frequencies.  <em>Genetics</em> <b>139</b>, 457–462.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>simpleFreq</code>, <code>deSilvaFreq</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># create a data set (typically done by reading files)
+mygenotypes &lt;- new("genambig", samples = paste("ind", 1:6, sep=""),
+                   loci = c("loc1", "loc2"))
+Genotypes(mygenotypes, loci = "loc1") &lt;- list(c(206), c(208,210),
+                                              c(204,206,210),
+    c(196,198,202,208), c(196,200), c(198,200,202,204))
+Genotypes(mygenotypes, loci = "loc2") &lt;- list(c(130,134), c(138,140),
+                                              c(130,136,140),
+    c(138), c(136,140), c(130,132,136))
+PopInfo(mygenotypes) &lt;- c(1,1,1,2,2,2)
+mygenotypes &lt;- reformatPloidies(mygenotypes, output="sample")
+Ploidies(mygenotypes) &lt;- c(2,2,4,4,2,4)
+Usatnts(mygenotypes) &lt;- c(2,2)
+
+# calculate allele frequencies
+myfreq &lt;- simpleFreq(mygenotypes)
+
+# calculate pairwise differentiation statistics
+myfst &lt;- calcPopDiff(myfreq, metric = "Fst")
+mygst &lt;- calcPopDiff(myfreq, metric = "Gst")
+myD &lt;- calcPopDiff(myfreq, metric = "Jost's D")
+myrst &lt;- calcPopDiff(myfreq, metric = "Rst", object = mygenotypes)
+
+# examine the results
+myfst
+mygst
+myD
+myrst
+
+# get global statistics
+calcPopDiff(myfreq, metric = "Fst", global = TRUE)
+calcPopDiff(myfreq, metric = "Gst", global = TRUE)
+calcPopDiff(myfreq, metric = "Jost's D", global = TRUE)
+calcPopDiff(myfreq, metric = "Rst", global = TRUE, object = mygenotypes)
+</code></pre>
+
+
+</div>

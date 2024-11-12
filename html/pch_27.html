@@ -1,0 +1,148 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>splinex</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Including Splines in Piecewise Constant Hazard Regression
+</h2>
+
+<h3>Description</h3>
+
+<p>This function can be used within a call to <code>pchreg</code> to automatically include 
+spline functions in the linear predictor of the model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">  splinex(method = c("ns", "bs"), df = 2, degree = 2, v = 0.98, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+
+<p>a character string indicating whether natural splines (<code>ns</code>) or B-splines (<code>bs</code>)
+should be used. Default is “<kbd>ns</kbd>”.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+
+<p>the degrees of freedom of the spline basis.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>degree</code></td>
+<td>
+
+<p>the degree of the polynomial (only for <code>bs</code>).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+
+<p>a value between <kbd>0</kbd> and <kbd>1</kbd> determining how many principal components of the
+design matrix must be used in model fitting (see “Details”).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>for future arguments.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The piecewise constant hazard model implemented by <code>pchreg</code> can be used as
+a nonparametric maximum likelihood estimator, in which the number of parameters
+is allowed to increase with the sample size in order to achieve any desired flexibility.
+Modeling the effect of covariates is as important as setting a sufficiently large
+number of <code>breaks</code>.
+</p>
+<p>By letting <code>splinex = splinex(...)</code>, each column of the original design matrix 
+is automatically replaced by the corresponding spline basis, defined by <code>method</code>, 
+<code>df</code>, and <code>degree</code>.
+</p>
+<p>This modeling approach has the drawback of generating a potentially large design matrix.
+To reduce its dimension, select <code>v &lt; 1</code>. With this option, the original design matrix
+will be converted into principal components, and only the PCs explaining at least a proportion 
+<code>v</code> of the variance will be used to fit the model (see “Examples”).
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function returns its arguments, to be passed to an internal function <code>build.splinex</code>
+that actually computes the design matrix.
+</p>
+
+
+<h3>Note</h3>
+
+<p>A multidimensional spline can be created by including a tensor product of splines, e.g., 
+<code>ns(x1,df)*ns(x2,df)</code>. This is not supported by <code>splinex</code>,
+as it may generate a very large design matrix.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Paolo Frumento &lt;paolo.frumento@unipi.it&gt;
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pchreg</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+  require(splines)
+  n &lt;- 1000
+  x1 &lt;- runif(n,-2,2)
+  x2 &lt;- runif(n,-2,2)
+  t &lt;- rexp(n, exp(-abs(x1 - x2)))
+
+  # a simple model
+  model1 &lt;- pchreg(Surv(t) ~ x1 + x2)
+
+  # using splinex: the same as ~ ns(x1, df = 2) + ns(x2, df = 2)
+  model2 &lt;- pchreg(Surv(t) ~ x1 + x2, splinex = splinex("ns", v = 1))
+
+  # include interaction: ~ ns(x1, df = 2) + ns(x2, df = 2) + ns(x1*x2, df = 2)
+  model3 &lt;- pchreg(Surv(t) ~ x1 * x2, splinex = splinex("ns", v = 1))
+
+  # the same as model 3, only keep the PCs explaining at least 95 percent of the variance
+  model4 &lt;- pchreg(Surv(t) ~ x1 * x2, splinex = splinex("ns", v = 0.95))
+
+  # true CDF vs fitted
+
+  trueF &lt;- pexp(t, exp(-abs(x1 - x2)))
+  par(mfrow = c(2,2))
+  plot(trueF, 1 - predict(model1)$Surv); abline(0,1, col = "red", lwd = 2) # does not fit
+  plot(trueF, 1 - predict(model2)$Surv); abline(0,1, col = "red", lwd = 2) # neither
+  plot(trueF, 1 - predict(model3)$Surv); abline(0,1, col = "red", lwd = 2) # great!
+  plot(trueF, 1 - predict(model4)$Surv); abline(0,1, col = "red", lwd = 2) # almost as good
+</code></pre>
+
+
+</div>

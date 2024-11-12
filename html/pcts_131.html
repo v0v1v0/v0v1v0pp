@@ -1,0 +1,261 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mC.ss</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create environment for mc-fitting</h2>
+
+<h3>Description</h3>
+
+<p>Creates an environment for mc-fitting. These functions are transitory,
+hence the strange names.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mC.ss(spec, ...)
+
+xx.ss(period, type.eigval, n.root, eigabs, eigsign, co_r, co_arg, 
+      init = NULL, len.block = NULL, mo.col, generators = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>spec</code></td>
+<td>
+<p>a model, an object of class mcSpec.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments to be passed on to <code>xx.ss</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>period</code></td>
+<td>
+<p>the number of seasons.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type.eigval</code></td>
+<td>
+<p>types of the eigenvalues, a character vector with
+elements "r" or "cp", see Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.root</code></td>
+<td>
+<p>number of roots. Currently the dimension of the matrix
+is set to this.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eigabs</code></td>
+<td>
+<p>The absolute values/moduli of the eigenvalues, numeric vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eigsign</code></td>
+<td>
+<p>The signs/moduli of the eigenvalues.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>co_r</code></td>
+<td>
+<p>similar to <code>eigabs</code> but for the co parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>co_arg</code></td>
+<td>
+<p>similar to <code>eigsign</code> but for the co parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+
+<p>initial values, see Details.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>len.block</code></td>
+<td>
+<p>lengths of Jordan blocks.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mo.col</code></td>
+<td>
+<p>last non-zero column in the top of the matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>generators</code></td>
+<td>
+<p>~~ TODO: describe this argument. ~~</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>mC.ss</code> takes the specification of the model as an object of
+class mcSpec and calls <code>xx.ss</code>.
+</p>
+<p>Basically, the value returned by these functions is an extended
+model specification together with an environment which can be used for
+fitting the model, exploring the results and trying various things.
+This may be used for getting better understanding of the model and the
+optimisation routines.
+</p>
+<p>The result of both functions is a list, containing several functions
+and an environment. The environment (element <code>env</code>) is the most
+important element since it allows access to everything in the model
+environment. The function elements of the list are simply a
+convenience.
+</p>
+<p>Several functions in <code>env</code> are available for fitting the
+model. Currently these are <code>minim</code>, <code>minimBB</code> and
+<code>minimBBlu</code>. The first argument of all these functions is a time
+series to which the model is to be fitted. By default, a conditional
+likelihood is being optimised. To base the optimisation on conditional
+sum of squares, set argument <code>CONDLIK</code> to FALSE.  The remaining
+arguments in a call to any of the above functions are passed on to the
+corresponding optimisation routine (whose help page should be
+consulted for details).
+</p>
+<p><code>minim</code> uses the core <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function <code>optim</code>.
+<code>minimBB</code> and <code>minimBBlu</code> use <code>BBoptim</code> from package
+<code>BB</code>. They result is a list, as returned by the corresponding
+optimisation function with the optimal parameters  in element
+<code>par</code>. The elements of this vector are named to help somewhat in
+its interpretation but complete information about the fitted model can
+be obtained from the environment.
+</p>
+<p>Firstly, at the end of the optimisation, the optimal parameters and
+other information are stored in <code>env</code>. If the same call (maybe
+with modified instructions for the optimisation) is repeated, these
+parameters will be used as initial values for a new optimisation
+run. This may be useful, for example, if the previous run didn't
+converge.
+</p>
+<p>Secondly, properties of the fitted model and more useful
+representations can be obtained using functions in the environment or
+the convinience functions in the list returned by <code>xx.ss</code>.
+</p>
+<p><code>optparam2mcparam</code> converts a vector of parameters into the
+more familiar filter representation, where the i-th row contains the
+coefficients for the i-th season. This function takes one argument the
+vector of parameters, e.g. the one returned by the fitting
+functions. It updates a number of variables in <code>env</code>, computes
+the filter representation of the model and stores it in
+<code>wrkmodel</code>. It returns NULL.
+This function may be used for exploratory purposes or to set new
+values for the parameters, e.g. to be used as starting values for a
+new optimisation run.
+</p>
+<p><code>mcparam2optparam</code> does the opposite. It converts the current
+model in <code>env</code> to a vector of parameter. This function does not
+have arguments.
+</p>
+<p><code>mclik</code> computes the value of the conditional likelihood for
+given parameters. Its first argument is a time series, the second is a
+vector of parameters and the third is a vector of innovations. Only
+the first argument is compulsory. If <code>param</code> is not supplied, the
+current parameters in <code>env</code> are used. Otherwise, they are updated
+with the new parameters and then used. The innovations default to the
+zero vector.
+<code>mcss</code> is similar but computes the conditional sum of squares.
+</p>
+<p><strong>Argument <code>init</code></strong> can be used to provide initial
+values. If it is missing or NULL, random initial values are generated
+for the free parameters.
+<code>init</code> may also be a numeric vector suitable for the call
+<code>optparam2mcparam(init)</code>, see above. This vector would typically
+come from a previous optimisation run.
+</p>
+<p><code>init</code> may also be a list with elements <code>"eigabs"</code>,
+<code>"eigsign"</code>, <code>"co_r"</code>, <code>"co_abs"</code>. These components
+have the same meaning as the corresponding arguments of <code>xx.ss</code>.
+</p>
+<p><strong>TODO: more is needed here!</strong>
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>fmcss</code></td>
+<td>
+<p>a function to compute the sum of squares for a model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fparamvec</code></td>
+<td>
+<p>a function to convert mc-parameters to optimisation
+parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fmcparam</code></td>
+<td>
+<p>a function to convert optimisation parameters to
+mc-parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>env</code></td>
+<td>
+<p>an object of class <code>environment</code></p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Georgi N. Boshnakov</p>
+
+
+<h3>References</h3>
+
+<p>Boshnakov GN, Iqelan BM (2009).
+“Generation of time series models with given spectral properties.”
+<em>J. Time Series Anal.</em>, <b>30</b>(3), 349–368.
+ISSN 0143-9782, <a href="https://doi.org/10.1111/j.1467-9892.2009.00617.x">doi:10.1111/j.1467-9892.2009.00617.x</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>xx.ss</code> which is called by <code>mC.ss</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># test0 roots
+spec.coz2 &lt;- mcompanion::mcSpec(dim = 5, mo = 4, root1 = c(1,1), order = rep(2,4))
+spec.coz2
+xxcoz2a &lt;- mC.ss(spec.coz2)
+
+## test0 roots
+spec.coz4 &lt;- mcompanion::mcSpec(dim = 5, mo = 4, root1 = c(1,1), order = rep(3,4))
+xxcoz4a &lt;- mC.ss(spec.coz4)
+</code></pre>
+
+
+</div>

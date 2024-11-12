@@ -1,0 +1,107 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PeakSegFPOPchrom</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>PeakSegFPOPchrom</h2>
+
+<h3>Description</h3>
+
+<p>Find the optimal change-points using the Poisson loss and the
+PeakSeg constraint. This function is a user-friendly interface to
+the <code>PeakSegFPOP</code> function.</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PeakSegFPOPchrom(count.df, 
+    penalty = NULL)</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>count.df</code></td>
+<td>
+<p>data.frame with columns count, chromStart, chromEnd.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalty</code></td>
+<td>
+<p>non-negative numeric scalar: <code>penalty</code> parameter (smaller for more
+peaks, larger for fewer peaks).</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>List of data.frames: segments can be used for plotting the
+segmentation model, loss summarizes the penalized <code>PoissonLoss</code> and
+feasibilty of the computed model.</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Toby Dylan Hocking &lt;toby.hocking@r-project.org&gt; [aut, cre]</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(PeakSegOptimal)
+data("H3K4me3_XJ_immune_chunk1", envir=environment())
+sample.id &lt;- "McGill0106"
+H3K4me3_XJ_immune_chunk1$count &lt;- H3K4me3_XJ_immune_chunk1$coverage
+by.sample &lt;-
+  split(H3K4me3_XJ_immune_chunk1, H3K4me3_XJ_immune_chunk1$sample.id)
+one.sample &lt;- by.sample[[sample.id]]
+
+penalty.constant &lt;- 3000
+fpop.fit &lt;- PeakSegFPOPchrom(one.sample, penalty.constant)
+fpop.breaks &lt;- subset(fpop.fit$segments, 1 &lt; first)
+library(ggplot2)
+ggplot()+
+  theme_bw()+
+  theme(panel.margin=grid::unit(0, "lines"))+
+  geom_step(aes(chromStart/1e3, coverage),
+            data=one.sample, color="grey")+
+  geom_segment(aes(chromStart/1e3, mean,
+                   xend=chromEnd/1e3, yend=mean),
+               color="green",
+               data=fpop.fit$segments)+
+  geom_vline(aes(xintercept=chromStart/1e3),
+             color="green",
+             linetype="dashed",
+             data=fpop.breaks)
+
+max.peaks &lt;- as.integer(fpop.fit$segments$peaks[1]+1)
+pdpa.fit &lt;- PeakSegPDPAchrom(one.sample, max.peaks)
+models &lt;- pdpa.fit$modelSelection.decreasing
+models$PoissonLoss &lt;- pdpa.fit$loss[paste(models$peaks), "PoissonLoss"]
+models$algorithm &lt;- "PDPA"
+fpop.fit$loss$algorithm &lt;- "FPOP"
+ggplot()+
+  geom_abline(aes(slope=peaks, intercept=PoissonLoss, color=peaks),
+              data=pdpa.fit$loss)+
+  geom_label(aes(0, PoissonLoss, color=peaks,
+                 label=paste0("s=", peaks, " ")),
+            hjust=1,
+            vjust=0,
+            data=pdpa.fit$loss)+
+  geom_point(aes(penalty.constant, penalized.loss, fill=algorithm),
+             shape=21,
+             data=fpop.fit$loss)+
+  geom_point(aes(min.lambda, min.lambda*peaks + PoissonLoss,
+                 fill=algorithm),
+             shape=21,
+             data=models)+
+  xlab("penalty = lambda")+
+  ylab("penalized loss = PoissonLoss_s + lambda * s")
+
+</code></pre>
+
+
+</div>

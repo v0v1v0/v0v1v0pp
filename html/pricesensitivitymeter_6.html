@@ -1,0 +1,376 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>psm_analysis_weighted</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Weighted van Westendorp Price Sensitivity Meter Analysis (PSM)
+</h2>
+
+<h3>Description</h3>
+
+<p><code>psm_analysis_weighted()</code> performs a <b>weighted</b> analysis
+of consumer price preferences and price sensitivity known as
+<b>van Westendorp Price Sensitivity Meter (PSM)</b>. The function
+requires a sample design from the <span class="pkg">survey</span> package as the
+main input. Custom weights or sample designs from other packages
+are not supported.
+</p>
+<p>To run a PSM analysis <b>without</b> weighting, use the function
+<code>psm_analysis</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">psm_analysis_weighted(
+  toocheap, cheap, expensive, tooexpensive,
+  design,
+  validate = TRUE,
+  interpolate = FALSE,
+  interpolation_steps = 0.01,
+  intersection_method = "min",
+  acceptable_range = "original",
+  pi_cheap = NA, pi_expensive = NA,
+  pi_scale = 5:1,
+  pi_calibrated = c(0.7, 0.5, 0.3, 0.1, 0),
+  pi_calibrated_toocheap = 0, pi_calibrated_tooexpensive = 0
+  )
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>toocheap, cheap, expensive, tooexpensive</code></td>
+<td>
+<p>Names
+of the variables in the data.frame/matrix that contain the
+survey data on the respondents' "too cheap", "cheap",
+"expensive" and "too expensive" price preferences.
+</p>
+<p>If the <code>toocheap</code> price was not assessed, a
+variable of NAs can be used instead.  If <code>toocheap</code>
+is NA for all cases, it is possible to calculate the Point of
+Marginal Expensiveness and the Indifference Price Point, but it
+is impossible to calculate the Point of Marginal Cheapness and
+the Optimal Price Point.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>design</code></td>
+<td>
+<p>A survey design which has been created by the
+function <code>svydesign()</code> from the <span class="pkg">survey</span>
+package. The data that is used as an input of <code>svydesign()</code>
+must include all the variable names for <code>toocheap</code>,
+<code>cheap</code>, <code>expensive</code> and <code>tooexpensive</code> variables
+specified above.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>validate</code></td>
+<td>
+<p>logical. should only respondents with
+consistent price preferences (too cheap &lt; cheap &lt; expensive
+&lt; too expensive) be considered in the analysis?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interpolate</code></td>
+<td>
+<p>logical. should interpolation of the price
+curves be applied between the actual prices given by the
+respondents? If interpolation is enabled, the output appears
+less bumpy in regions with sparse price information. If the
+sample size is sufficiently large, interpolation should not
+be necessary.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interpolation_steps</code></td>
+<td>
+<p>numeric. if <code>interpolate</code> is
+<code>TRUE</code>: the size of the interpolation steps. Set by
+default to 0.01, which should be appropriate for most goods
+in a price range of 0-50 USD/Euro.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intersection_method</code></td>
+<td>
+<p>"min" (default), "max", "mean" or
+"median". defines the method how to determine the price
+points (range, indifference price, optimal price) if there
+are multiple possible intersections of the price curves.
+"min" uses the lowest possible prices, "max" uses the
+highest possible prices, "mean" calculates the mean among
+all intersections and "median" uses the median of all
+possible intersections</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>acceptable_range</code></td>
+<td>
+<p>"original" (default) or "narrower".
+Defines which intersection is used to calculate the point of
+marginal cheapness and point of marginal expensiveness, which
+together form the range of acceptable prices. "original"
+uses the definition provided in van Westendorp's paper:
+The lower end of the price range (point of marginal
+cheapness) is defined as the intersection of "too cheap"
+and the inverse of the "cheap" curve. The upper end of the
+price range (point of marginal expensiveness) is defined
+as the intersection of "too expensive" and the inverse of
+the "expensive" curve. Alternatively, it is possible to use
+a "narrower" definition which is applied by some market
+research companies. Here, the lower end of the price range
+is defined as the intersection of the "expensive" and the
+"too cheap" curves and the upper end of the price range is
+defined as the intersection of the "too expensive" and the
+"cheap" curves. This leads to a narrower range of acceptable
+prices. Note that it is possible that the optimal price
+according to the Newton/Miller/Smith extension is higher
+than the upper end of the acceptable price range in the
+"narrower" definition.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pi_cheap, pi_expensive</code></td>
+<td>
+<p>Only required for the Newton
+Miller Smith extension. Names of the variables in the data
+that contain the survey data on the respondents' purchase
+intent at their individual cheap/expensive price.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pi_scale</code></td>
+<td>
+<p>Only required for the Newton Miller Smith
+extension. Scale of the purchase intent variables pi_cheap and
+pi_expensive. By default assuming a five-point scale with 5
+indicating the highest purchase intent.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pi_calibrated</code></td>
+<td>
+<p>Only required for the Newton Miller Smith
+extension. Calibrated purchase probabilities that are assumed
+for each value of the purchase intent scale. Must be the same
+order as the pi_scale variable so that the first value of
+pi_calibrated corresponds to the first value in the pi_scale
+variable. Default values are taken from the Sawtooth Software
+PSM implementation in Excel: 70% for the best value of the
+purchase intent scale, 50% for the second best value,
+30% for the third best value (middle of the scale), 10%
+for the fourth best value and 0% for the worst value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pi_calibrated_toocheap, pi_calibrated_tooexpensive</code></td>
+<td>
+
+<p>Only required for the Newton Miller Smith extension. Calibrated
+purchase probabilities for the "too cheap" and the "too
+expensive" price, respectively. Must be a value between 0 and
+1; by default set to zero following the logic in van
+Westendorp's paper.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The main logic of the Price Sensitivity Meter Analysis is
+explained in the documentation of the <code>psm_analysis</code>
+function. The <code>psm_analysis_weighted</code> performs the same
+analysis, but weights the survey data according to a known
+population.</p>
+
+
+<h3>Value</h3>
+
+<p>The function output consists of the following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td>
+<code>data_input</code>:</td>
+<td>
+<p><code>data.frame</code> object. Contains
+the data that was used as an input for the analysis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>validated</code>:</td>
+<td>
+<p><code>logical</code> object. Indicates
+whether the <code>"validate"</code> option has been used (to
+exclude cases with intransitive price preferences).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>invalid_cases</code>:</td>
+<td>
+<p><code>numeric</code> object. Number
+of cases with intransitive price preferences.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>total_sample</code>:</td>
+<td>
+<p><code>"numeric"</code> object.
+Total sample size of the input sample <em>before</em>
+assessing the transitivity of individual price preferences.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>data_vanwestendorp</code>:</td>
+<td>
+<p><code>data.frame</code> object.
+Output data of the Price Sensitivity Meter analysis.
+Contains the <b>weighted</b> cumulative distribution
+functions for the four price assessments (too cheap, cheap,
+expensive, too expensive) for all prices.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>pricerange_lower</code>:</td>
+<td>
+<p><code>numeric</code> object. Lower
+limit of the acceptable price range as defined by the
+Price Sensitivity Meter, also known as <b>point of
+marginal cheapness</b>: Intersection of the "too cheap" and the
+"expensive" curves.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>pricerange_upper</code>:</td>
+<td>
+<p><code>numeric</code> object. Upper
+limit of the acceptable price range as defined by the Price
+Sensitivity Meter, also known as <b>point of marginal
+expensiveness</b>: Intersection of the "too expensive" and the
+"cheap" curves.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>idp</code>:</td>
+<td>
+<p><code>numeric</code> object. <b>Indifference
+Price Point</b> as defined by the Price Sensitivity Meter:
+Intersection of the "cheap" and the "expensive" curves.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>opp</code>:</td>
+<td>
+<p><code>numeric</code> object. <b>Optimal
+Price Point</b> as defined by the Price Sensitivity Meter:
+Intersection of the "too cheap" and the "too expensive"
+curves.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>weighted</code>:</td>
+<td>
+<p><code>logical</code> object. Indicating
+if weighted data was used in the analysis. Outputs from
+<code>psm_analysis_weighted()</code> always have the value
+<code>TRUE</code>. When data is unweighted, use the function
+<code>psm_analysis.</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>survey_design</code>:</td>
+<td>
+<p><code>survey.design2</code> object.
+Returning the full survey design as specified with the
+<code>svydesign</code> function from the <span class="pkg">survey</span> package.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>NMS</code>:</td>
+<td>
+<p><code>logical</code> object. Indicates whether
+the additional analyses of the Newton Miller Smith Extension
+were performed.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Van Westendorp, P (1976) "NSS-Price Sensitivity Meter (PSM) –
+A new approach to study consumer perception of price"
+<em>Proceedings of the ESOMAR 29th Congress</em>, 139–167. Online
+available at <a href="https://archive.researchworld.com/a-new-approach-to-study-consumer-perception-of-price/">https://archive.researchworld.com/a-new-approach-to-study-consumer-perception-of-price/</a>.
+</p>
+<p>Newton, D, Miller, J, Smith, P, (1993) "A market acceptance
+extension to traditional price sensitivity measurement"
+<em>Proceedings of the American Marketing Association
+Advanced Research Techniques Forum</em>.
+</p>
+<p>Sawtooth Software (2016) "Templates for van Westendorp PSM for
+Lighthouse Studio and Excel". Online available at
+<a href="https://sawtoothsoftware.com/resources/software-downloads/tools/van-westendorp-price-sensitivity-meter">https://sawtoothsoftware.com/resources/software-downloads/tools/van-westendorp-price-sensitivity-meter</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# assuming a skewed sample with only 1/3 women and 2/3 men
+
+input_data &lt;- data.frame(tch = round(rnorm(n = 250, mean = 8, sd = 1.5), digits = 2),
+                         ch = round(rnorm(n = 250, mean = 12, sd = 2), digits = 2),
+                         ex = round(rnorm(n = 250, mean = 13, sd = 1), digits = 2),
+                         tex = round(rnorm(n = 250, mean = 15, sd = 1), digits = 2),
+                         gender = sample(x = c("male", "female"),
+                                         size = 250,
+                                         replace = TRUE,
+                                         prob = c(2/3, 1/3)))
+
+# ... and in which women have on average 1.5x the price acceptance of men
+input_data$tch[input_data$gender == "female"] &lt;- input_data$tch[input_data$gender == "female"] * 1.5
+input_data$ch[input_data$gender == "female"] &lt;- input_data$ch[input_data$gender == "female"] * 1.5
+input_data$ex[input_data$gender == "female"] &lt;- input_data$ex[input_data$gender == "female"] * 1.5
+input_data$tex[input_data$gender == "female"] &lt;- input_data$tex[input_data$gender == "female"] * 1.5
+
+# creating a sample design object using the survey package
+# ... assuming that gender is balanced equally in the population of 10000
+
+input_data$gender_pop &lt;- 5000
+
+input_design &lt;- survey::svydesign(ids = ~ 1, # no clusters
+                          probs = NULL, # hence no cluster samling probabilities,
+                          strata = input_data$gender, # stratified by gender
+                          fpc = input_data$gender_pop, # strata size in the population
+                          data = input_data)
+                          # data object used as input: no need to specify single variables
+
+
+output_weighted_psm &lt;- psm_analysis_weighted(toocheap = "tch",
+  cheap = "ch",
+  expensive = "ex",
+  tooexpensive = "tex",
+  design = input_design)
+
+summary(output_weighted_psm)
+</code></pre>
+
+
+</div>

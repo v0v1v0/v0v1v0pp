@@ -1,0 +1,379 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>survmean</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compute Mean Survival Times Using Extrapolation</h2>
+
+<h3>Description</h3>
+
+<p>Computes mean survival times based on survival estimation up to
+a point in follow-up time (e.g. 10 years),
+after which survival is extrapolated
+using an appropriate hazard data file (<code>pophaz</code>) to yield the "full"
+survival curve. The area under the full survival curve is the mean survival.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">survmean(
+  formula,
+  data,
+  adjust = NULL,
+  weights = NULL,
+  breaks = NULL,
+  pophaz = NULL,
+  e1.breaks = NULL,
+  e1.pophaz = pophaz,
+  r = "auto",
+  surv.method = "hazard",
+  subset = NULL,
+  verbose = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a <code>formula</code>, e.g. <code>FUT ~ V1</code> or
+<code>Surv(FUT, lex.Xst) ~ V1</code>.
+Supplied in the same way as to <code>survtab</code>, see that help
+for more info.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a <code>Lexis</code> data set; see <code>Lexis</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjust</code></td>
+<td>
+<p>variables to adjust estimates by, e.g. <code>adjust = "agegr"</code>.
+Flexible input.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>weights to use to adjust mean survival times. See the
+dedicated help page for more details on
+weighting. <code>survmean</code>
+computes curves separately by all variables to adjust by, computes mean
+survival times, and computes weighted means of the mean survival times.
+See Examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>breaks</code></td>
+<td>
+<p>a list of breaks defining the time window to compute
+observed survival in, and the intervals used in estimation. E.g.
+<code>list(FUT = 0:10)</code> when <code>FUT</code> is the follow-up time scale in your
+data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pophaz</code></td>
+<td>
+<p>a data set of population hazards passed to
+<code>survtab</code> (see the
+dedicated help page and the help page of
+<code>survtab</code> for more information). Defines the
+population hazard in the time window where observed survival is estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>e1.breaks</code></td>
+<td>
+<p><code>NULL</code> or a list of breaks defining the time
+window to compute
+<strong>expected</strong> survival in, and the intervals used in estimation. E.g.
+<code>list(FUT = 0:100)</code> when <code>FUT</code> is the follow-up time scale in your
+data to extrapolate up to 100 years from where the observed survival
+curve ends. <strong>NOTE:</strong> the breaks on the survival time scale
+MUST include the breaks supplied to argument <code>breaks</code>; see Examples.
+If <code>NULL</code>, uses decent defaults (maximum follow-up time of 50 years).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>e1.pophaz</code></td>
+<td>
+<p>Same as <code>pophaz</code>, except this defines the
+population hazard in the time window where <strong>expected</strong>
+survival is estimated. By default uses the same data as
+argument <code>pophaz</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>r</code></td>
+<td>
+<p>either a numeric multiplier such as <code>0.995</code>, <code>"auto"</code>, or
+<code>"autoX"</code> where <code>X</code> is an integer;
+used to determine the relative survival ratio (RSR) persisting after where
+the estimated observed survival curve ends. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>surv.method</code></td>
+<td>
+<p>passed to <code>survtab</code>; see that help for more info.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+<p>a logical condition; e.g. <code>subset = sex == 1</code>;
+subsets the data before computations</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p><code>logical</code>; if <code>TRUE</code>, the function is returns
+some messages and results along the run, which may be useful in debugging</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><strong>Basics</strong>
+</p>
+<p><code>survmean</code> computes mean survival times. For median survival times
+(i.e. where 50 % of subjects have died or met some other event)
+use <code>survtab</code>.
+</p>
+<p>The mean survival time is simply the area under the survival curve.
+However, since full follow-up rarely happens, the observed survival curves
+are extrapolated using expected survival: E.g. one might compute observed
+survival till up to 10 years and extrapolate beyond that
+(till e.g. 50 years) to yield an educated guess on the full observed survival
+curve.
+</p>
+<p>The area is computed by trapezoidal integration of the area under the curve.
+This function also computes the "full" expected survival curve from
+T = 0 till e.g. T = 50 depending on supplied arguments. The
+expected mean survival time is the area under the
+mean expected survival curve.
+This function returns the mean expected survival time to be compared with
+the mean survival time and for computing years of potential life lost (YPLL).
+</p>
+<p>Results can be formed by strata and adjusted for e.g. age by using
+the <code>formula</code> argument as in <code>survtab</code>. See also Examples.
+</p>
+<p><strong>Extrapolation tweaks</strong>
+</p>
+<p>Argument <code>r</code> controls the relative survival ratio (RSR) assumed to
+persist beyond the time window where observed survival is computed
+(defined by argument <code>breaks</code>; e.g. up to <code>FUT = 10</code>).
+The RSR is simply <code>RSR_i = p_oi / p_ei</code> for a time interval <code>i</code>,
+i.e. the observed divided by the expected
+(conditional, not cumulative) probability of surviving from the beginning of
+a time interval till its end. The cumulative product of <code>RSR_i</code>
+over time is the (cumulative) relative survival curve.
+</p>
+<p>If <code>r</code> is numeric, e.g. <code>r = 0.995</code>, that RSR level is assumed
+to persist beyond the observed survival curve.
+Numeric <code>r</code> should be <code>&gt; 0</code> and expressed at the annual level
+when using fractional years as the scale of the time variables.
+E.g. if RSR is known to be <code>0.95</code> at the month level, then the
+annualized RSR is <code>0.95^12</code>. This enables correct usage of the RSR
+with survival intervals of varying lengths. When using day-level time
+variables (such as <code>Dates</code>; see <code>as.Date</code>), numeric <code>r</code>
+should be expressed at the day level, etc.
+</p>
+<p>If <code>r = "auto"</code> or <code>r = "auto1"</code>, this function computes
+RSR estimates internally and automatically uses the <code>RSR_i</code>
+in the last survival interval in each stratum (and adjusting group)
+and assumes that to persist beyond the observed survival curve.
+Automatic determination of <code>r</code> is a good starting point,
+but in situations where the RSR estimate is uncertain it may produce poor
+results. Using <code>"autoX"</code> such as <code>"auto6"</code> causes <code>survmean</code>
+to use the mean of the estimated RSRs in the last X survival intervals,
+which may be more stable.
+Automatic determination will not use values <code>&gt;1</code> but set them to 1.
+Visual inspection of the produced curves is always recommended: see
+Examples.
+</p>
+<p>One may also tweak the accuracy and length of extrapolation and
+expected survival curve computation by using
+<code>e1.breaks</code>. By default this is whatever was supplied to <code>breaks</code>
+for the survival time scale, to which
+</p>
+<p><code>c(seq(1/12, 1, 1/12), seq(1.2, 1.8, 0.2), 2:19, seq(20, 50, 5))</code>
+</p>
+<p>is added after the maximum value, e.g. with <code>breaks = list(FUT = 0:10)</code>
+we have
+</p>
+<p><code>..., 10+1/12, ..., 11, 11.2, ..., 2, 3, ..., 19, 20, 25, ... 50</code>
+</p>
+<p>as the <code>e1.breaks</code>. Supplying <code>e1.breaks</code> manually requires
+the breaks over time survival time scale supplied to argument <code>breaks</code>
+to be reiterated in <code>e1.breaks</code>; see Examples. <strong>NOTE</strong>: the
+default extrapolation breaks assume the time scales in the data to be
+expressed as fractional years, meaning this will work extremely poorly
+when using e.g. day-level time scales (such as <code>Date</code> variables).
+Set the extrapolation breaks manually in such cases.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a <code>data.frame</code> or <code>data.table</code> (depending on
+<code>getOptions("popEpi.datatable")</code>; see <code>?popEpi</code>) containing the
+following columns:
+</p>
+
+<ul>
+<li> <p><code>est</code>: The estimated mean survival time
+</p>
+</li>
+<li> <p><code>exp</code>: The computed expected survival time
+</p>
+</li>
+<li> <p><code>obs</code>: Counts of subjects in data
+</p>
+</li>
+<li> <p><code>YPLL</code>: Years of Potential Life Lost, computed as
+(<code>(exp - est) * obs</code>) — though your time data may be in e.g. days,
+this column will have the same name regardless.
+The returned data also has columns named according to the variables
+supplied to the right-hand-side of the formula.
+</p>
+</li>
+</ul>
+<h3>Author(s)</h3>
+
+<p>Joonas Miettinen
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other survmean functions: 
+<code>Surv()</code>,
+<code>lines.survmean()</code>,
+<code>plot.survmean()</code>
+</p>
+<p>Other main functions: 
+<code>Surv()</code>,
+<code>rate()</code>,
+<code>relpois()</code>,
+<code>relpois_ag()</code>,
+<code>sir()</code>,
+<code>sirspline()</code>,
+<code>survtab()</code>,
+<code>survtab_ag()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(Epi)
+## take 500 subjects randomly for demonstration
+data(sire)
+sire &lt;- sire[sire$dg_date &lt; sire$ex_date, ]
+set.seed(1L)
+sire &lt;- sire[sample(x = nrow(sire), size = 500),]
+
+## NOTE: recommended to use factor status variable
+x &lt;- Lexis(entry = list(FUT = 0, AGE = dg_age, CAL = get.yrs(dg_date)),
+           exit = list(CAL = get.yrs(ex_date)),
+           data = sire,
+           exit.status = factor(status, levels = 0:2,
+                                labels = c("alive", "canD", "othD")),
+           merge = TRUE)
+
+## phony variable
+set.seed(1L)
+x$group &lt;- rbinom(nrow(x), 1, 0.5)
+## age group
+x$agegr &lt;- cut(x$dg_age, c(0,45,60,Inf), right=FALSE)
+
+## population hazards data  set
+pm &lt;- data.frame(popEpi::popmort)
+names(pm) &lt;- c("sex", "CAL", "AGE", "haz")
+
+## breaks to define observed survival estimation
+BL &lt;- list(FUT = seq(0, 10, 1/12))
+
+## crude mean survival
+sm1 &lt;- survmean(Surv(FUT, lex.Xst != "alive") ~ 1,
+                pophaz = pm, data = x, weights = NULL,
+                breaks = BL)
+                
+sm1 &lt;- survmean(FUT ~ 1,
+                pophaz = pm, data = x, weights = NULL,
+                breaks = BL)             
+
+## mean survival by group                 
+sm2 &lt;- survmean(FUT ~ group,
+                pophaz = pm, data = x, weights = NULL,
+                breaks = BL)
+                
+## ... and adjusted for age using internal weights (counts of subjects)      
+## note: need also longer extrapolation here so that all curves
+## converge to zero in the end.
+eBL &lt;- list(FUT = c(BL$FUT, 11:75))
+sm3 &lt;- survmean(FUT ~ group + adjust(agegr),
+                pophaz = pm, data = x, weights = "internal",
+                breaks = BL, e1.breaks = eBL)
+
+## visual inspection of how realistic extrapolation is for each stratum;
+## solid lines are observed + extrapolated survivals;
+## dashed lines are expected survivals
+plot(sm1)
+
+## plotting object with both stratification and standardization
+## plots curves for each strata-std.group combination
+plot(sm3)
+
+## for finer control of plotting these curves, you may extract
+## from the survmean object using e.g.
+attributes(sm3)$survmean.meta$curves
+
+
+#### using Dates
+
+x &lt;- Lexis(entry = list(FUT = 0L, AGE = dg_date-bi_date, CAL = dg_date),
+           exit = list(CAL = ex_date),
+           data = sire[sire$dg_date &lt; sire$ex_date, ],
+           exit.status = factor(status, levels = 0:2, 
+                                labels = c("alive", "canD", "othD")), 
+           merge = TRUE)
+## phony group variable
+set.seed(1L)
+x$group &lt;- rbinom(nrow(x), 1, 0.5)
+
+                  
+## NOTE: population hazard should be reported at the same scale
+## as time variables in your Lexis data.
+data(popmort, package = "popEpi")
+pm &lt;- data.frame(popmort)
+names(pm) &lt;- c("sex", "CAL", "AGE", "haz")
+## from year to day level
+pm$haz &lt;- pm$haz/365.25 
+pm$CAL &lt;- as.Date(paste0(pm$CAL, "-01-01")) 
+pm$AGE &lt;- pm$AGE*365.25 
+
+BL &lt;- list(FUT = seq(0, 8, 1/12)*365.25)
+eBL &lt;- list(FUT = c(BL$FUT, c(8.25,8.5,9:60)*365.25))
+smd &lt;- survmean(FUT ~ group, data = x, 
+                pophaz = pm, verbose = TRUE, r = "auto5",
+                breaks = BL, e1.breaks = eBL)     
+plot(smd)
+
+
+
+</code></pre>
+
+
+</div>

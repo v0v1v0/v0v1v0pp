@@ -1,0 +1,225 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>glmnet-details</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Technical aspects of the glmnet model</h2>
+
+<h3>Description</h3>
+
+<p>glmnet is a popular statistical model for regularized generalized linear
+models. These notes reflect common questions about this particular model.
+</p>
+
+
+<h3>tidymodels and glmnet</h3>
+
+<p>The implementation of the glmnet package has some nice features. For
+example, one of the main tuning parameters, the regularization penalty,
+does not need to be specified when fitting the model. The package fits a
+compendium of values, called the regularization path. These values
+depend on the data set and the value of <code>alpha</code>, the mixture parameter
+between a pure ridge model (<code>alpha = 0</code>) and a pure lasso model
+(<code>alpha = 1</code>). When predicting, any penalty values can be simultaneously
+predicted, even those that are not exactly on the regularization path.
+For those, the model approximates between the closest path values to
+produce a prediction. There is an argument called <code>lambda</code> to the
+<code>glmnet()</code> function that is used to specify the path.
+</p>
+<p>In the discussion below, <code>linear_reg()</code> is used. The information is true
+for all parsnip models that have a <code>"glmnet"</code> engine.
+</p>
+
+
+<h4>Fitting and predicting using parsnip</h4>
+
+<p>Recall that tidymodels uses standardized parameter names across models
+chosen to be low on jargon. The argument <code>penalty</code> is the equivalent of
+what glmnet calls the <code>lambda</code> value and <code>mixture</code> is the same as their
+<code>alpha</code> value.
+</p>
+<p>In tidymodels, our <code>predict()</code> methods are defined to make one
+prediction at a time. For this model, that means predictions are for a
+single penalty value. For this reason, models that have glmnet engines
+require the user to always specify a single penalty value when the model
+is defined. For example, for linear regression:
+</p>
+<div class="sourceCode r"><pre>linear_reg(penalty = 1) %&gt;% set_engine("glmnet")
+</pre></div>
+<p>When the <code>predict()</code> method is called, it automatically uses the penalty
+that was given when the model was defined. For example:
+</p>
+<div class="sourceCode r"><pre>library(tidymodels)
+
+fit &lt;- 
+  linear_reg(penalty = 1) %&gt;% 
+  set_engine("glmnet") %&gt;% 
+  fit(mpg ~ ., data = mtcars)
+
+# predict at penalty = 1
+predict(fit, mtcars[1:3,])
+</pre></div>
+<div class="sourceCode"><pre>## # A tibble: 3 x 1
+##   .pred
+##   &lt;dbl&gt;
+## 1  22.2
+## 2  21.5
+## 3  24.9
+</pre></div>
+<p>However, any penalty values can be predicted simultaneously using the
+<code>multi_predict()</code> method:
+</p>
+<div class="sourceCode r"><pre># predict at c(0.00, 0.01)
+multi_predict(fit, mtcars[1:3,], penalty = c(0.00, 0.01))
+</pre></div>
+<div class="sourceCode"><pre>## # A tibble: 3 x 1
+##   .pred           
+##   &lt;list&gt;          
+## 1 &lt;tibble [2 x 2]&gt;
+## 2 &lt;tibble [2 x 2]&gt;
+## 3 &lt;tibble [2 x 2]&gt;
+</pre></div>
+<div class="sourceCode r"><pre># unnested:
+multi_predict(fit, mtcars[1:3,], penalty = c(0.00, 0.01)) %&gt;% 
+  add_rowindex() %&gt;% 
+  unnest(cols = ".pred")
+</pre></div>
+<div class="sourceCode"><pre>## # A tibble: 6 x 3
+##   penalty .pred  .row
+##     &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt;
+## 1    0     22.6     1
+## 2    0.01  22.5     1
+## 3    0     22.1     2
+## 4    0.01  22.1     2
+## 5    0     26.3     3
+## 6    0.01  26.3     3
+</pre></div>
+
+
+<h5>Where did <code>lambda</code> go?</h5>
+
+<p>It may appear odd that the <code>lambda</code> value does not get used in the fit:
+</p>
+<div class="sourceCode r"><pre>linear_reg(penalty = 1) %&gt;% 
+  set_engine("glmnet") %&gt;% 
+  translate()
+</pre></div>
+<div class="sourceCode"><pre>## Linear Regression Model Specification (regression)
+## 
+## Main Arguments:
+##   penalty = 1
+## 
+## Computational engine: glmnet 
+## 
+## Model fit template:
+## glmnet::glmnet(x = missing_arg(), y = missing_arg(), weights = missing_arg(), 
+##     family = "gaussian")
+</pre></div>
+<p>Internally, the value of <code>penalty = 1</code> is saved in the parsnip object
+and no value is set for <code>lambda</code>. This enables the full path to be fit
+by <code>glmnet()</code>. See the section below about setting the path.
+</p>
+
+
+
+
+<h4>How do I set the regularization path?</h4>
+
+<p>Regardless of what value you use for <code>penalty</code>, the full coefficient
+path is used when <code>glmnet::glmnet()</code> is called.
+</p>
+<p>What if you want to manually set this path? Normally, you would pass a
+vector to <code>lambda</code> in <code>glmnet::glmnet()</code>.
+</p>
+<p>parsnip models that use a <code>glmnet</code> engine can use a special optional
+argument called <code>path_values</code>. This is <em>not</em> an argument to
+<code>glmnet::glmnet()</code>; it is used by parsnip to
+independently set the path.
+</p>
+<p>For example, we have found that if you want a fully ridge regression
+model (i.e., <code>mixture = 0</code>), you can get the <em>wrong coefficients</em> if the
+path does not contain zero (see <a href="https://github.com/tidymodels/parsnip/issues/431#issuecomment-782883848">issue #431</a>).
+</p>
+<p>If we want to use our own path, the argument is passed as an
+engine-specific option:
+</p>
+<div class="sourceCode r"><pre>coef_path_values &lt;- c(0, 10^seq(-5, 1, length.out = 7))
+
+fit_ridge &lt;- 
+  linear_reg(penalty = 1, mixture = 0) %&gt;% 
+  set_engine("glmnet", path_values = coef_path_values) %&gt;% 
+  fit(mpg ~ ., data = mtcars)
+
+all.equal(sort(fit_ridge$fit$lambda), coef_path_values)
+</pre></div>
+<div class="sourceCode"><pre>## [1] TRUE
+</pre></div>
+<div class="sourceCode r"><pre># predict at penalty = 1
+predict(fit_ridge, mtcars[1:3,])
+</pre></div>
+<div class="sourceCode"><pre>## # A tibble: 3 x 1
+##   .pred
+##   &lt;dbl&gt;
+## 1  22.1
+## 2  21.8
+## 3  26.6
+</pre></div>
+
+
+
+<h4>Tidying the model object</h4>
+
+<p><code>broom::tidy()</code> is a function that gives a summary of
+the object as a tibble.
+</p>
+<p><strong>tl;dr</strong> <code>tidy()</code> on a <code>glmnet</code> model produced by parsnip gives the
+coefficients for the value given by <code>penalty</code>.
+</p>
+<p>When parsnip makes a model, it gives it an extra class. Use the <code>tidy()</code>
+method on the object, it produces coefficients for the penalty that was
+originally requested:
+</p>
+<div class="sourceCode r"><pre>tidy(fit)
+</pre></div>
+<div class="sourceCode"><pre>## # A tibble: 11 x 3
+##   term        estimate penalty
+##   &lt;chr&gt;          &lt;dbl&gt;   &lt;dbl&gt;
+## 1 (Intercept)  35.3          1
+## 2 cyl          -0.872        1
+## 3 disp          0            1
+## 4 hp           -0.0101       1
+## 5 drat          0            1
+## 6 wt           -2.59         1
+## # i 5 more rows
+</pre></div>
+<p>Note that there is a <code>tidy()</code> method for <code>glmnet</code> objects in the <code>broom</code>
+package. If this is used directly on the underlying <code>glmnet</code> object, it
+returns <em>all of coefficients on the path</em>:
+</p>
+<div class="sourceCode r"><pre># Use the basic tidy() method for glmnet
+all_tidy_coefs &lt;- broom:::tidy.glmnet(fit$fit)
+all_tidy_coefs
+</pre></div>
+<div class="sourceCode"><pre>## # A tibble: 640 x 5
+##   term         step estimate lambda dev.ratio
+##   &lt;chr&gt;       &lt;dbl&gt;    &lt;dbl&gt;  &lt;dbl&gt;     &lt;dbl&gt;
+## 1 (Intercept)     1     20.1   5.15     0    
+## 2 (Intercept)     2     21.6   4.69     0.129
+## 3 (Intercept)     3     23.2   4.27     0.248
+## 4 (Intercept)     4     24.7   3.89     0.347
+## 5 (Intercept)     5     26.0   3.55     0.429
+## 6 (Intercept)     6     27.2   3.23     0.497
+## # i 634 more rows
+</pre></div>
+<div class="sourceCode r"><pre>length(unique(all_tidy_coefs$lambda))
+</pre></div>
+<div class="sourceCode"><pre>## [1] 79
+</pre></div>
+<p>This can be nice for plots but it might not contain the penalty value
+that you are interested in.
+</p>
+
+
+
+</div>

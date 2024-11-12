@@ -1,0 +1,177 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Direct-Standardised Incidence/Mortality Rates</h2>
+
+<h3>Description</h3>
+
+<p><code>rate</code> calculates adjusted rates using
+preloaded weights data or user specified weights.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rate(
+  data,
+  obs = NULL,
+  pyrs = NULL,
+  print = NULL,
+  adjust = NULL,
+  weights = NULL,
+  subset = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>aggregated data (see e.g. <code>lexpand</code>, 
+<code>aggre</code> if you have subject-level data)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obs</code></td>
+<td>
+<p>observations variable name in data.
+Flexible input, typically e.g.
+<code>obs = obs</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pyrs</code></td>
+<td>
+<p>person-years variable name in data.
+Flexible input, typically e.g.
+<code>pyrs = pyrs</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>print</code></td>
+<td>
+<p>variable name to stratify the rates.
+Flexible input, typically e.g.
+<code>print = sex</code> or <code>print = list(sex, area)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>adjust</code></td>
+<td>
+<p>variable for adjusting the rates.
+Flexible input, typically e.g.
+<code>adjust = agegroup</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>typically a list of weights or a <code>character</code> string
+specifying an age group standardization scheme; see
+the dedicated help page 
+and examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+<p>a logical expression to subset data.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Input data needs to be in aggregated format with observations 
+and person-years. For individual data use <code>lexpand</code>, or
+<code>ltable</code> and merge person-years manually.
+</p>
+<p>The confidence intervals are based on the normal approximation of the logarithm of the rate.
+The variance of the log rate that is used to derive the confidence intervals 
+is derived using the delta method.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a <code>data.table</code> with observations, person-years, rates and
+adjusted rates, if available. Results are stratified by <code>print</code>.
+Adjusted rates are identified with suffix <code>.adj</code> and  
+<code>.lo</code> and <code>.hi</code> are for confidence intervals lower and upper 
+95% bounds, respectively.
+The prefix <code>SE.</code> stands for standard error.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Matti Rantanen, Joonas Miettinen
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>lexpand</code>, <code>ltable</code>
+</p>
+<p>Other main functions: 
+<code>Surv()</code>,
+<code>relpois()</code>,
+<code>relpois_ag()</code>,
+<code>sir()</code>,
+<code>sirspline()</code>,
+<code>survmean()</code>,
+<code>survtab()</code>,
+<code>survtab_ag()</code>
+</p>
+<p>Other rate functions: 
+<code>rate_ratio()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Prepare data with lexpand and then reformat agegroup.
+data(sibr)
+x &lt;- lexpand(sibr, birth = bi_date, entry = dg_date, exit = ex_date,  
+             breaks = list(per = c(1990,2000,2010,2020), age = c(0:17*5,Inf)),
+             aggre = list(agegroup = age, year.cat = per),
+             status =  status != 0)
+
+x$agegroup &lt;- cut(x$agegroup,  c(0:17*5,Inf), right = FALSE)
+
+## calculate rates for selected periods with Nordic 2000 weights:
+r1 &lt;- rate( data = x, obs = from0to1, pyrs = pyrs, print = year.cat, 
+            adjust = agegroup, weights = 'nordic')
+r1
+
+## use total person-years by stratum as weights (some have zero)
+w &lt;- ltable(x, by.vars = "agegroup", expr = sum(pyrs))
+w[is.na(w$V1),]$V1 &lt;- 0
+
+r2 &lt;- rate( data = x, obs = from0to1, pyrs = pyrs, print = year.cat, 
+            adjust = agegroup,
+            weights = w$V1)
+r2
+
+## use data.frame of weights:
+names(w) &lt;- c("agegroup", "weights")
+r2 &lt;- rate( data = x, obs = from0to1, pyrs = pyrs, print = year.cat, 
+            adjust = agegroup,
+            weights = w)
+r2
+
+## internal weights (same result as above)
+r3 &lt;- rate( data = x, obs = from0to1, pyrs = pyrs, print = year.cat, 
+            adjust = agegroup,
+            weights = "internal")
+r3
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,111 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>poso_simu_pop</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate the prior distribution of population parameters</h2>
+
+<h3>Description</h3>
+
+<p>Estimates the prior distribution of population parameters by Monte Carlo
+simulations
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">poso_simu_pop(
+  dat = NULL,
+  prior_model = NULL,
+  n_simul = 1000,
+  return_model = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>dat</code></td>
+<td>
+<p>Dataframe. An individual subject dataset following the
+structure of NONMEM/rxode2 event records.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior_model</code></td>
+<td>
+<p>A <code>posologyr</code> prior population pharmacokinetics
+model, a list of six objects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_simul</code></td>
+<td>
+<p>An integer, the number of simulations to be run. For <code>n_simul =0</code>, all ETAs are set to 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_model</code></td>
+<td>
+<p>A boolean. Returns a rxode2 model using the simulated
+ETAs if set to <code>TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>If <code>return_model</code> is set to <code>FALSE</code>, a list of one element: a
+dataframe <code style="white-space: pre;">⁠$eta⁠</code> of the individual values of ETA.
+If <code>return_model</code> is set to <code>TRUE</code>, a list of the dataframe of the
+individual values of ETA, and a rxode2 model using the simulated ETAs.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># model
+mod_run001 &lt;- function() {
+  ini({
+    THETA_Cl &lt;- 4.0
+    THETA_Vc &lt;- 70.0
+    THETA_Ka &lt;- 1.0
+    ETA_Cl ~ 0.2
+    ETA_Vc ~ 0.2
+    ETA_Ka ~ 0.2
+    prop.sd &lt;- sqrt(0.05)
+  })
+  model({
+    TVCl &lt;- THETA_Cl
+    TVVc &lt;- THETA_Vc
+    TVKa &lt;- THETA_Ka
+
+    Cl &lt;- TVCl*exp(ETA_Cl)
+    Vc &lt;- TVVc*exp(ETA_Vc)
+    Ka &lt;- TVKa*exp(ETA_Ka)
+
+    K20 &lt;- Cl/Vc
+    Cc &lt;- centr/Vc
+
+    d/dt(depot) = -Ka*depot
+    d/dt(centr) = Ka*depot - K20*centr
+    Cc ~ prop(prop.sd)
+  })
+}
+# df_patient01: event table for Patient01, following a 30 minutes intravenous
+# infusion
+df_patient01 &lt;- data.frame(ID=1,
+                        TIME=c(0.0,1.0,14.0),
+                        DV=c(NA,25.0,5.5),
+                        AMT=c(2000,0,0),
+                        EVID=c(1,0,0),
+                        DUR=c(0.5,NA,NA))
+# estimate the prior distribution of population parameters
+poso_simu_pop(dat=df_patient01,prior_model=mod_run001,n_simul=100)
+
+</code></pre>
+
+
+</div>

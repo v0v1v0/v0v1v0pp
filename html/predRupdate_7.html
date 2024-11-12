@@ -1,0 +1,177 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pred_input_info</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Input information about an existing prediction model</h2>
+
+<h3>Description</h3>
+
+<p>Input coefficient information about one or multiple existing prediction
+model(s), for use in other functions in the package.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pred_input_info(
+  model_type = c("logistic", "survival"),
+  model_info,
+  cum_hazard = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>model_type</code></td>
+<td>
+<p>specifies the type of model that the existing prediction
+model is based on; possible options are: </p>
+ <ul>
+<li> <p><code>"logistic"</code>
+indicates that the existing model was based on a logistic regression model
+(default) </p>
+</li>
+<li> <p><code>"survival"</code> indicates that the existing model was
+based on a survival regression model </p>
+</li>
+</ul>
+<p> If multiple models are being
+entered, then all models need to be of the same type - otherwise call
+function multiple times for each type of model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model_info</code></td>
+<td>
+<p>a data.frame that contains the coefficients of the existing
+prediction model(s). Each column should be a predictor variable (with the
+name of the column being the name of the predictor variable), with the
+values being the coefficients, taken exactly as published from the existing
+prediction model(s). Multiple existing prediction models should be
+specified by entering multiple rows. If a predictor variable is not present
+in a given model then enter that cell of the data.frame as NA. See
+examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cum_hazard</code></td>
+<td>
+<p>A data.frame with two columns: (1) time, and (2) estimated
+cumulative baseline hazard at that time. The first column (time) should be
+named 'time' and the second (cumulative baseline hazard) should be named
+'hazard'. Only relevant if <code>model_type</code> is "survival"; leave as NULL
+otherwise. If multiple existing models entered, and model_type = survival,
+then <code>cum_hazard</code> should be supplied as list of length equal to number
+of models.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function will structure the relevant information about one or
+more existing prediction model(s) into a standardised format, such that it
+can be used within other functions in the package.
+</p>
+<p>First, the existing prediction model(s) will have a functional form (i.e.
+the linear predictor of the model); this will be taken as being a linear
+combination of the variables specified by the columns of <code>model_info</code>.
+</p>
+<p>Second, each of the predictor variables of the existing prediction model(s)
+will have a published coefficient (e.g. log-odds-ratio or
+log-hazard-ratio), which should each be given as the values of
+<code>model_info</code>. If entering information about multiple existing
+prediction models, then <code>model_info</code> will contain multiple rows (one
+per existing model). Here, if a given model does not contain a predictor
+variable that is included in another model, then set as NA; see examples of
+this below.
+</p>
+<p>In the case of <code>model_type</code> = "logistic", then <code>model_info</code> must
+contain a column named as "Intercept", which gives the intercept
+coefficient of each of the existing logistic regression models (taken
+exactly as previously published); this should be the first column of
+<code>model_info</code>.
+</p>
+<p>If <code>model_type</code> = "survival", then the baseline cumulative hazard of
+the model(s) can be specified in <code>cum_hazard</code>. If the baseline
+cumulative hazard of the existing survival model is not available, then
+leave as NULL; this will limit any validation metrics that can be
+calculated.
+</p>
+<p>Note, the column names of <code>model_info</code> should match columns in any new
+data that the existing model(s) will be applied to (i.e. any new data that
+will be provided to other functions within the package should have
+corresponding predictor variables entered through <code>model_info</code>). See
+<code>pred_predict</code>, <code>pred_validate</code>,
+<code>pred_update</code> and <code>pred_stacked_regression</code> for
+more information.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>pred_input_info</code> returns an object of class
+"<code>predinfo</code>", with child classes per <code>model_type</code>. This is a
+standardised format, such that it can be used with other functions in the
+package. An object of class "<code>predinfo</code>" is a list containing the
+following components:
+</p>
+ <ul>
+<li>
+<p>M = the number of existing models that information has been
+entered about </p>
+</li>
+<li>
+<p>model_type = this is the type of model that
+the existing prediction model is based upon ("logistic" or "survival")
+</p>
+</li>
+<li>
+<p>coefs = this is the set of (previously estimated) coefficients for
+each predictor variable </p>
+</li>
+<li>
+<p>coef_names = gives the names of each
+predictor variable </p>
+</li>
+<li>
+<p>formula = this is the functional form of the
+model's linear predictor </p>
+</li>
+<li>
+<p>cum_hazard = if supplied, this is the
+cumulative baseline hazard of the existing model(s)</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">#Example 1 - logistic regression existing model
+# create a data.frame of the model coefficients, with columns being variables
+coefs_table &lt;- data.frame("Intercept" = -3.4,
+                          "SexM" = 0.306,
+                          "Smoking_Status" = 0.628,
+                          "Diabetes" = 0.499,
+                          "CKD" = 0.538)
+#pass this into pred_input_info()
+Existing_Logistic_Model &lt;- pred_input_info(model_type = "logistic",
+                                           model_info = coefs_table)
+summary(Existing_Logistic_Model)
+
+#Example 2 - survival model example; uses an example dataset within the
+#             package.
+pred_input_info(model_type = "survival",
+                model_info = SYNPM$Existing_TTE_models[2,],
+                cum_hazard = SYNPM$TTE_mod2_baseline)
+
+#Example 3 - Input information about multiple models
+summary(pred_input_info(model_type = "logistic",
+                        model_info = SYNPM$Existing_logistic_models))
+
+</code></pre>
+
+
+</div>

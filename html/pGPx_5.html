@@ -1,0 +1,133 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>DTV</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compute Distance Transform Variability</h2>
+
+<h3>Description</h3>
+
+<p>Compute the expected L^2 distance between the average distance transform and the set realizations.    If the input is the actual values of the gaussian process, compute also the random sets.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">DTV(rand.set, threshold, nsim, n.int.points)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>rand.set</code></td>
+<td>
+<p>a matrix of size <code>n.int.points</code>x<code>nsim</code> containing the excursion set realizations stored as long vectors. For example the excursion set obtained from the result of <code>simulate_and_interpolate</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>threshold</code></td>
+<td>
+<p>threshold value</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsim</code></td>
+<td>
+<p>number of simulations of the excursion set</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.int.points</code></td>
+<td>
+<p>total length of the excursion set discretization. The size of the image is <code>sqrt(n.int.points)</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing</p>
+
+<ul>
+<li>
+<p><code>variance:</code>Value of the distance transform variability. The integral of <code>dvar</code> over the spatial domain.
+</p>
+</li>
+<li>
+<p><code>dbar:</code>empirical distance average transform <code class="reqn"> 1/N \sum_{i=1}^N d(x,\Gamma_i)</code>, a matrix of size <code>n.int.points</code> x <code>n.int.points</code>
+</p>
+</li>
+<li>
+<p><code>dvar:</code>empirical variance of distance transform <code class="reqn"> 1/N \sum_{i=1}^N (d(x,\Gamma_i) - dbar)^2</code>, a matrix of size <code>n.int.points</code> x <code>n.int.points</code>
+</p>
+</li>
+<li>
+<p><code>alldt:</code>distance transforms for all realizations, a matrix of size <code>n.int.points</code> x <code>nsim</code>
+</p>
+</li>
+<li>
+<p><code>naTot:</code>Total number of infinite distance transform values. These are returned in realizations where there is no excursion.
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Azzimonti D. F., Bect J., Chevalier C. and Ginsbourger D. (2016). Quantifying uncertainties on excursion sets under a Gaussian random field prior. SIAM/ASA Journal on Uncertainty Quantification, 4(1):850–874.
+</p>
+<p>Azzimonti, D. (2016). Contributions to Bayesian set estimation relying on random field priors. PhD thesis, University of Bern.
+</p>
+<p>Felzenszwalb, P. F. and Huttenlocher, D. P. (2012). Distance Transforms of Sampled Functions. Theory of Computing, 8(19):415-428.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">### Simulate and interpolate for a 2d example
+if (!requireNamespace("DiceKriging", quietly = TRUE)) {
+stop("DiceKriging needed for this example to work. Please install it.",
+     call. = FALSE)
+}
+if (!requireNamespace("DiceDesign", quietly = TRUE)) {
+stop("DiceDesign needed for this example to work. Please install it.",
+     call. = FALSE)
+}
+# Define the function
+g=function(x){
+  return(-DiceKriging::branin(x))
+}
+d=2
+# Fit OK km model
+design&lt;-DiceDesign::maximinESE_LHS(design = DiceDesign::lhsDesign(n=50,
+                                                                  dimension = 2,
+                                                                  seed=42)$design)$design
+colnames(design)&lt;-c("x1","x2")
+observations&lt;-apply(X = design,MARGIN = 1,FUN = g)
+kmModel&lt;-DiceKriging::km(formula = ~1,design = design,response = observations,
+                         covtype = "matern3_2",control=list(trace=FALSE))
+# Get simulation points
+# Here they are not optimized, you can use optim_dist_measure to find optimized points
+simu_points &lt;- DiceDesign::maximinSA_LHS(DiceDesign::lhsDesign(n=100,
+                                                               dimension = d,
+                                                               seed=1)$design)$design
+
+# obtain nsims posterior realization at simu_points
+nsims &lt;- 30
+nn_data&lt;-expand.grid(seq(0,1,,50),seq(0,1,,50))
+nn_data&lt;-data.frame(nn_data)
+colnames(nn_data)&lt;-colnames(kmModel@X)
+approx.simu &lt;- simulate_and_interpolate(object=kmModel, nsim = nsims, simupoints = simu_points,
+                                        interpolatepoints = as.matrix(nn_data),
+                                        nugget.sim = 0, type = "UK")
+Dvar&lt;- DTV(rand.set = approx.simu,threshold = -10,
+                             nsim = nsims,n.int.points = 50^2)
+
+image(matrix(Dvar$dbar,ncol=50),col=grey.colors(20),main="average distance transform")
+image(matrix(Dvar$dvar,ncol=50),col=grey.colors(20),main="variance of distance transform")
+points(design,pch=17)
+
+</code></pre>
+
+
+</div>

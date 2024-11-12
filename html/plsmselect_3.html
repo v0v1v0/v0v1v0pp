@@ -1,0 +1,89 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cumbasehaz</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Cumulative Baseline Hazard of a gamlasso object</h2>
+
+<h3>Description</h3>
+
+<p>This is only used when with family="cox"
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cumbasehaz(object)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>fitted model object of the class <code>gamlasso</code> as
+produced by <code>gamlasso</code></p>
+</td>
+</tr></table>
+<h3>Value</h3>
+
+<p>This function returns the cumulative baseline hazard function of
+a <code>gamlasso</code> object if fitted using <code>family = "cox"</code>. More
+specifically, cumbasehaz(object) is the cumulative baseline hazard function
+corresponding to the linear predictor predict(object).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>gamlasso</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(plsmselect)
+
+data(simData)
+
+## Fit Cox gamlasso model using the formula approach:
+## (L1-penalty both on X terms and smooth terms (bs="ts"))
+simData$X = model.matrix(~x1+x2+x3+x4+x5+x6+x7+x8+x9+x10, data=simData)[,-1]
+
+cfit = gamlasso(time ~ X +
+                  s(z1, bs="ts", k=5) +
+                  s(z2, bs="ts", k=5) +
+                  s(z3, bs="ts", k=5) +
+                  s(z4, bs="ts", k=5),
+                data = simData,
+                family = "cox",
+                weights="status",
+                seed=1)
+
+## Obtain and plot predicted cumulative baseline hazard:
+H0.pred &lt;- cumbasehaz(cfit)
+
+time.seq &lt;- seq(0, 60, by=1)
+plot(time.seq, H0.pred(time.seq), type="l", ylab="Predicted Cumulative Baseline Hazard")
+
+## Obtain predicted survial probabilities at month 1 and 2 (days 30 &amp; 60):
+
+lp &lt;- predict(cfit) # estimated linear predictor
+
+S.pred &lt;- cbind(exp(-H0.pred(30)*exp(lp)), exp(-H0.pred(60)*exp(lp)))
+
+## Obtain predicted survival at month 1 and 2 directly:
+S.pred2 &lt;- predict(cfit, type="response", new.event.times=c(30,60))
+
+## Confirm that the two arrived at the same values:
+all.equal(S.pred, S.pred2)
+
+# See ?gamlasso for an example fitting a gaussian response model
+# See ?summary.gamlasso for an example fitting a binomial response model
+# See ?predict.gamlasso for an example fitting a poisson response model
+</code></pre>
+
+
+</div>

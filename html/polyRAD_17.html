@@ -1,0 +1,145 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>AddGenotypePriorProb_HWE</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Estimate Genotype Prior Probabilities In the Absence of Population Structure
+</h2>
+
+<h3>Description</h3>
+
+<p>Assuming Hardy-Weinberg Equilibrium, this function uses allele frequencies
+and possible ploidies stored in a “RADdata” object to estimate
+genotype frequencies in the population, then stores these genotype 
+frequencies in the <code>$priorProb</code> slot.  Inbreeding can also be simulated
+using the <code>selfing.rate</code> argument.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">AddGenotypePriorProb_HWE(object, ...)
+## S3 method for class 'RADdata'
+AddGenotypePriorProb_HWE(object, selfing.rate = 0, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+
+<p>A “RADdata” object that has had allele frequencies added with
+<code>AddAlleleFreqHWE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>selfing.rate</code></td>
+<td>
+
+<p>A number ranging from zero to one indicating the frequency of
+self-fertilization in the species.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Additional arguments (none currently implemented).
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For an autopolyploid, or within one subgenome of an allopolyploid,
+genotype prior probabilities are estimated as:
+</p>
+<p style="text-align: center;"><code class="reqn">P(G_i) = {k \choose i} p^i * (1 - p)^{k - i}</code>
+</p>
+
+<p>where <code class="reqn">k</code> is the ploidy, <code class="reqn">i</code> is the copy number of a given allele,
+and <code class="reqn">p</code> is the allele frequency in the population.
+</p>
+<p>If the selfing rate is above zero and ploidy is even, genotype prior
+probabilities are adjusted according to Equation 6 of de Silva et al. (2005):
+</p>
+<p style="text-align: center;"><code class="reqn">P(G_{self}) = (1 - s)(I - sA)^{-1}P(G)</code>
+</p>
+
+<p>where <code class="reqn">s</code> is the selfing rate.  <code class="reqn">A</code> is a <code class="reqn">k + 1 \times k + 1</code> matrix,
+with each column representing the allele copy number from 0 to <code class="reqn">k</code> of a
+parental genotype, and each row representing the allele copy number from 0 to
+<code class="reqn">k</code> of a progeny genotype, and matrix elements representing the frequencies
+of progeny after self-fertilization (each column summing to one).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A “RADdata” object identical that passed to the function, but with
+data stored in one new slot:
+</p>
+<table><tr style="vertical-align: top;">
+<td><code>priorProb </code></td>
+<td>
+<p>A two-dimensional list of matrices, with rows corresponding to
+<code>object$possiblePloidies</code> and columns corresponding to unique values in
+<code>object$taxaPloidy</code>. Each item in the list is a matrix.  
+For each matrix, allele copy number (from zero to the total
+ploidy) is in rows, and alleles are in columns.  Each value is the probability
+of sampling an individual with that allele copy number from the population.</p>
+</td>
+</tr></table>
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>References</h3>
+
+<p>De Silva, H. N., Hall, A. J., Rikkerink, E., and Fraser, L. G. (2005)
+Estimation of allele frequencies in polyploids under
+certain patterns of inheritance.  <em>Heredity</em> <b>95</b>, 327–334.
+<a href="https://doi.org/10.1038/sj.hdy.6800728">doi:10.1038/sj.hdy.6800728</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>AddGenotypePriorProb_Mapping2Parents</code>, <code>AddGenotypeLikelihood</code>,
+<code>AddGenotypePriorProb_ByTaxa</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load in an example dataset
+data(exampleRAD)
+# add allele frequencies
+exampleRAD &lt;- AddAlleleFreqHWE(exampleRAD)
+# add inheritance modes
+exampleRAD$possiblePloidies &lt;- list(2L, 4L, c(2L, 2L))
+
+# estimate genotype prior probabilities
+exampleRAD &lt;- AddGenotypePriorProb_HWE(exampleRAD)
+
+# examine results
+exampleRAD$alleleFreq
+exampleRAD$priorProb
+
+# try it with inbreeding, for diploids only
+exampleRAD2 &lt;- SubsetByTaxon(exampleRAD, GetTaxa(exampleRAD)[exampleRAD$taxaPloidy == 2])
+exampleRAD2 &lt;- AddGenotypePriorProb_HWE(exampleRAD2, selfing.rate = 0.5)
+exampleRAD2$priorProb
+</code></pre>
+
+
+</div>

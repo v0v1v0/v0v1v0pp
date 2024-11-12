@@ -1,0 +1,362 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>create_informant</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a <strong>pointblank</strong> <em>informant</em> object</h2>
+
+<h3>Description</h3>
+
+<p>The <code>create_informant()</code> function creates an <em>informant</em> object, which is
+used in an <em>information management</em> workflow. The overall aim of this
+workflow is to record, collect, and generate useful information on data
+tables. We can supply any information that is useful for describing a
+particular data table. The <em>informant</em> object created by the
+<code>create_informant()</code> function takes information-focused functions:
+<code>info_columns()</code>, <code>info_tabular()</code>, <code>info_section()</code>, and <code>info_snippet()</code>.
+</p>
+<p>The <code style="white-space: pre;">⁠info_*()⁠</code> series of functions allows for a progressive build up of
+information about the target table. The <code>info_columns()</code> and <code>info_tabular()</code>
+functions facilitate the entry of <em>info text</em> that concerns the table columns
+and the table proper; the <code>info_section()</code> function allows for the creation
+of arbitrary sections that can have multiple subsections full of additional
+<em>info text</em>. The system allows for dynamic values culled from the target
+table by way of <code>info_snippet()</code>, for getting named text extracts from
+queries, and the use of <code style="white-space: pre;">⁠{&lt;snippet_name&gt;}⁠</code> in the <em>info text</em>. To make the
+use of <code>info_snippet()</code> more convenient for common queries, a set of
+<code style="white-space: pre;">⁠snip_*()⁠</code> functions are provided in the package (<code>snip_list()</code>,
+<code>snip_stats()</code>, <code>snip_lowest()</code>, and <code>snip_highest()</code>) though you are free to
+use your own expressions.
+</p>
+<p>Because snippets need to query the target table to return fragments of <em>info
+text</em>, the <code>incorporate()</code> function needs to be used to initiate this action.
+This is also necessary for the <em>informant</em> to update other metadata elements
+such as row and column counts. Once the incorporation process is complete,
+snippets and other metadata will be updated. Calling the <em>informant</em> itself
+will result in a reporting table. This reporting can also be accessed with
+the <code>get_informant_report()</code> function, where there are more reporting
+options.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">create_informant(
+  tbl = NULL,
+  tbl_name = NULL,
+  label = NULL,
+  agent = NULL,
+  lang = NULL,
+  locale = NULL,
+  read_fn = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tbl</code></td>
+<td>
+<p><em>Table or expression for reading in one</em>
+</p>
+<p><code style="white-space: pre;">⁠obj:&lt;tbl_*&gt;|&lt;tbl reading expression&gt;⁠</code> // <strong>required</strong>
+</p>
+<p>The input table. This can be a data frame, a tibble, a <code>tbl_dbi</code> object, or
+a <code>tbl_spark</code> object. Alternatively, an expression can be supplied to serve
+as instructions on how to retrieve the target table at incorporation-time.
+There are two ways to specify an association to a target table: (1) as a
+table-prep formula, which is a right-hand side (RHS) formula expression
+(e.g., <code style="white-space: pre;">⁠~ { &lt;tbl reading code&gt;}⁠</code>), or (2) as a function (e.g.,
+<code style="white-space: pre;">⁠function() { &lt;tbl reading code&gt;}⁠</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tbl_name</code></td>
+<td>
+<p><em>A table name</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;character&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>A optional name to assign to the input table object. If no value is
+provided, a name will be generated based on whatever information is
+available.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>label</code></td>
+<td>
+<p><em>An optional label for the information report</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;character&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>An optional label for the information report. If no value is provided, a
+label will be generated based on the current system time. Markdown can be
+used here to make the label more visually appealing (it will appear in the
+header area of the information report).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>agent</code></td>
+<td>
+<p><em>The pointblank agent object</em>
+</p>
+<p><code style="white-space: pre;">⁠obj:&lt;ptblank_agent&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>A pointblank <em>agent</em> object. The table from this object can be extracted
+and used in the new informant instead of supplying a table in <code>tbl</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lang</code></td>
+<td>
+<p><em>Reporting language</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;character&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>The language to use for the information report (a summary table that
+provides all of the available information for the table. By default, <code>NULL</code>
+will create English (<code>"en"</code>) text. Other options include French (<code>"fr"</code>),
+German (<code>"de"</code>), Italian (<code>"it"</code>), Spanish (<code>"es"</code>), Portuguese (<code>"pt"</code>),
+Turkish (<code>"tr"</code>), Chinese (<code>"zh"</code>), Russian (<code>"ru"</code>), Polish (<code>"pl"</code>),
+Danish (<code>"da"</code>), Swedish (<code>"sv"</code>), and Dutch (<code>"nl"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>locale</code></td>
+<td>
+<p><em>Locale for value formatting within reports</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;character&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>An optional locale ID to use for formatting values in the information
+report according the locale's rules. Examples include <code>"en_US"</code> for English
+(United States) and <code>"fr_FR"</code> for French (France); more simply, this can be
+a language identifier without a country designation, like "es" for Spanish
+(Spain, same as <code>"es_ES"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>read_fn</code></td>
+<td>
+<p><em>Deprecated Table reading function</em>
+</p>
+<p><code>function</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>The <code>read_fn</code> argument is deprecated. Instead, supply a table-prep formula
+or function to <code>tbl</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A <code>ptblank_informant</code> object.
+</p>
+
+
+<h3>Supported Input Tables</h3>
+
+<p>The types of data tables that are officially supported are:
+</p>
+
+<ul>
+<li>
+<p> data frames (<code>data.frame</code>) and tibbles (<code>tbl_df</code>)
+</p>
+</li>
+<li>
+<p> Spark DataFrames (<code>tbl_spark</code>)
+</p>
+</li>
+<li>
+<p> the following database tables (<code>tbl_dbi</code>):
+</p>
+
+<ul>
+<li> <p><em>PostgreSQL</em> tables (using the <code>RPostgres::Postgres()</code> as driver)
+</p>
+</li>
+<li> <p><em>MySQL</em> tables (with <code>RMySQL::MySQL()</code>)
+</p>
+</li>
+<li> <p><em>Microsoft SQL Server</em> tables (via <strong>odbc</strong>)
+</p>
+</li>
+<li> <p><em>BigQuery</em> tables (using <code>bigrquery::bigquery()</code>)
+</p>
+</li>
+<li> <p><em>DuckDB</em> tables (through <code>duckdb::duckdb()</code>)
+</p>
+</li>
+<li> <p><em>SQLite</em> (with <code>RSQLite::SQLite()</code>)
+</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>Other database tables may work to varying degrees but they haven't been
+formally tested (so be mindful of this when using unsupported backends with
+<strong>pointblank</strong>).
+</p>
+
+
+<h3>YAML</h3>
+
+<p>A <strong>pointblank</strong> informant can be written to YAML with <code>yaml_write()</code> and the
+resulting YAML can be used to regenerate an informant (with
+<code>yaml_read_informant()</code>) or perform the 'incorporate' action using the target
+table (via <code>yaml_informant_incorporate()</code>). Here is an example of how a
+complex call of <code>create_informant()</code> is expressed in R code and in the
+corresponding YAML representation.
+</p>
+<p>R statement:
+</p>
+<div class="sourceCode r"><pre>create_informant(
+  tbl = ~ small_table,
+  tbl_name = "small_table",
+  label = "An example.",
+  lang = "fr", 
+  locale = "fr_CA"
+)
+</pre></div>
+<p>YAML representation:
+</p>
+<div class="sourceCode yaml"><pre>type: informant
+tbl: ~small_table
+tbl_name: small_table
+info_label: An example.
+lang: fr
+locale: fr_CA
+table:
+  name: small_table
+  _columns: 8
+  _rows: 13.0
+  _type: tbl_df
+columns:
+  date_time:
+    _type: POSIXct, POSIXt
+  date:
+    _type: Date
+  a:
+    _type: integer
+  b:
+    _type: character
+  c:
+    _type: numeric
+  d:
+    _type: numeric
+  e:
+    _type: logical
+  f:
+    _type: character
+</pre></div>
+<p>The generated YAML includes some top-level keys where <code>type</code> and <code>tbl</code> are
+mandatory, and, two metadata sections: <code>table</code> and <code>columns</code>. Keys that begin
+with an underscore character are those that are updated whenever
+<code>incorporate()</code> is called on an <em>informant</em>. The <code>table</code> metadata section can
+have multiple subsections with <em>info text</em>. The <code>columns</code> metadata section
+can similarly have have multiple subsections, so long as they are children to
+each of the column keys (in the above YAML example, <code>date_time</code> and <code>date</code>
+are column keys and they match the table's column names). Additional sections
+can be added but they must have key names on the top level that don't
+duplicate the default set (i.e., <code>type</code>, <code>table</code>, <code>columns</code>, etc. are treated
+as reserved keys).
+</p>
+
+
+<h3>Writing an Informant to Disk</h3>
+
+<p>An <em>informant</em> object can be written to disk with the <code>x_write_disk()</code>
+function. Informants are stored in the serialized RDS format and can be
+easily retrieved with the <code>x_read_disk()</code> function.
+</p>
+<p>It's recommended that table-prep formulas are supplied to the <code>tbl</code> argument
+of <code>create_informant()</code>. In this way, when an <em>informant</em> is read from disk
+through <code>x_read_disk()</code>, it can be reused to access the target table (which
+may changed, hence the need to use an expression for this).
+</p>
+
+
+<h3>Examples</h3>
+
+<p>Let's walk through how we can generate some useful information for a really
+small table. It's actually called <code>small_table</code> and we can find it as a
+dataset in this package.
+</p>
+<div class="sourceCode r"><pre>small_table
+#&gt; # A tibble: 13 x 8
+#&gt;    date_time           date           a b             c      d e     f    
+#&gt;    &lt;dttm&gt;              &lt;date&gt;     &lt;int&gt; &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;lgl&gt; &lt;chr&gt;
+#&gt;  1 2016-01-04 11:00:00 2016-01-04     2 1-bcd-345     3  3423. TRUE  high 
+#&gt;  2 2016-01-04 00:32:00 2016-01-04     3 5-egh-163     8 10000. TRUE  low  
+#&gt;  3 2016-01-05 13:32:00 2016-01-05     6 8-kdg-938     3  2343. TRUE  high 
+#&gt;  4 2016-01-06 17:23:00 2016-01-06     2 5-jdo-903    NA  3892. FALSE mid  
+#&gt;  5 2016-01-09 12:36:00 2016-01-09     8 3-ldm-038     7   284. TRUE  low  
+#&gt;  6 2016-01-11 06:15:00 2016-01-11     4 2-dhe-923     4  3291. TRUE  mid  
+#&gt;  7 2016-01-15 18:46:00 2016-01-15     7 1-knw-093     3   843. TRUE  high 
+#&gt;  8 2016-01-17 11:27:00 2016-01-17     4 5-boe-639     2  1036. FALSE low  
+#&gt;  9 2016-01-20 04:30:00 2016-01-20     3 5-bce-642     9   838. FALSE high 
+#&gt; 10 2016-01-20 04:30:00 2016-01-20     3 5-bce-642     9   838. FALSE high 
+#&gt; 11 2016-01-26 20:07:00 2016-01-26     4 2-dmx-010     7   834. TRUE  low  
+#&gt; 12 2016-01-28 02:51:00 2016-01-28     2 7-dmx-010     8   108. FALSE low  
+#&gt; 13 2016-01-30 11:23:00 2016-01-30     1 3-dka-303    NA  2230. TRUE  high
+</pre></div>
+<p>Create a pointblank <code>informant</code> object with <code>create_informant()</code> and the
+<code>small_table</code> dataset.
+</p>
+<div class="sourceCode r"><pre>informant &lt;- 
+  create_informant(
+    tbl = pointblank::small_table,
+    tbl_name = "small_table",
+    label = "`create_informant()` example."
+  )
+</pre></div>
+<p>This function creates some information without any extra help by profiling
+the supplied table object. It adds the <code>COLUMNS</code> section with stubs for each
+of the target table's columns. We can use the <code>info_columns()</code> or
+<code>info_columns_from_tbl()</code> to provide descriptions for each of the columns.
+The <code>informant</code> object can be printed to see the information report in the
+Viewer.
+</p>
+<div class="sourceCode r"><pre>informant
+</pre></div>
+
+
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_create_informant_1.png" alt="This image was generated from the first code example in the `create_informant()` help file." style="width:100%;"><p>If we want to make use of more report display options, we can alternatively
+use the <code>get_informant_report()</code> function.
+</p>
+<div class="sourceCode r"><pre>report &lt;- 
+  get_informant_report(
+    informant,
+    title = "Data Dictionary for `small_table`"
+  )
+  
+report
+</pre></div>
+
+
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_create_informant_2.png" alt="This image was generated from the second code example in the `create_informant()` help file." style="width:100%;"><h3>Function ID</h3>
+
+<p>1-3
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Planning and Prep: 
+<code>action_levels()</code>,
+<code>create_agent()</code>,
+<code>db_tbl()</code>,
+<code>draft_validation()</code>,
+<code>file_tbl()</code>,
+<code>scan_data()</code>,
+<code>tbl_get()</code>,
+<code>tbl_source()</code>,
+<code>tbl_store()</code>,
+<code>validate_rmd()</code>
+</p>
+
+
+</div>

@@ -1,0 +1,405 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>makePBDBtaxonTree</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Creating a Taxon-Tree from Taxonomic Data Downloaded from the Paleobiology Database</h2>
+
+<h3>Description</h3>
+
+<p>The function <code>makePBDBtaxonTree</code> creates phylogeny-like 
+object of class <code>phylo</code> from the taxonomic information
+recorded in a taxonomy download from the PBDB for
+a given group. Two different algorithms are provided,
+the default being based on parent-child taxon relationships,
+the other based on the nested Linnean hierarchy. The function
+<code>plotTaxaTreePBDB</code> is also provided as a minor helper
+function for optimally plotting the labeled topologies that are
+output by <code>makePBDBtaxonTree</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">makePBDBtaxonTree(
+  taxaDataPBDB,
+  rankTaxon,
+  method = "parentChild",
+  tipSet = NULL,
+  cleanTree = TRUE,
+  annotatedDuplicateNames = TRUE,
+  APIversion = "1.2",
+  failIfNoInternet = TRUE
+)
+
+plotTaxaTreePBDB(taxaTree, edgeLength = 1)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>taxaDataPBDB</code></td>
+<td>
+<p>A table of taxonomic data collected from
+the Paleobiology Database, using the taxa list option
+with <code>show = class</code>. Should work with versions 1.1-1.2 of
+the API, with either the <code>pbdb</code> or <code>com</code> vocab. However,
+as <code>accepted_name</code> is not available in API v1.1, the resulting
+tree will have a taxon's *original* name and not
+any formally updated name.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rankTaxon</code></td>
+<td>
+<p>The selected taxon rank; must be one of <code>'species'</code>,
+<code>'genus'</code>, <code>'family'</code>, <code>'order'</code>, <code>'class'</code> or <code>'phylum'</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Controls which algorithm is used for calculating
+the taxon-tree. The default option is <code>method  = "parentChild"</code>
+which converts the listed binary parent-child taxon relationships in
+the Paleobiology Database- these parent-child relationships (if missing
+from the input dataset) are autofilled using API calls to the
+Paleobiology Database. Alternatively, users may use
+<code>method = "Linnean"</code>, which converts the table of Linnean taxonomic
+assignments (family, order, etc as provided by <code>show = class</code> in
+PBDB API calls) into a taxon-tree. Two methods formerly both implemented
+under <code>method  = "parentChild"</code> are also available as
+<code>method = "parentChildOldMergeRoot"</code> and <code>method = "parentChildOldQueryPBDB"</code>
+respectively. Both of these use similar algorithms as the current
+<code>method  = "parentChild"</code> but differ in how they treat taxa with
+parents missing from the input taxonomic dataset.
+<code>method = "parentChildOldQueryPBDB"</code> behaves most similar
+to <code>method = "parentChild"</code>  in that it queries the Paleobiology
+Database via the API , but repeatedly does so for information on parent
+taxa of the 'floating' parents, and continues within a <code>while</code>
+loop until only one such unassigned parent taxon remains. This latter
+option may talk a long time or never finish, depending on the
+linearity and taxonomic structures encountered in the PBDB taxonomic
+data; i.e. if someone a taxon was ultimately its own indirect child
+in some grand loop by mistake, then under this option
+<code>makePBDBtaxonTree</code> might never finish. In cases where taxonomy
+is bad due to weird and erroneous taxonomic assignments reported by
+the PBDB, this routine may search all the way back to a very ancient
+and deep taxon, such as the <em>Eukaryota</em> taxon.
+<code>method = "parentChildOldMergeRoot"</code> will combine these disparate
+potential roots and link them to an artificially-constructed
+pseudo-root, which at least allows for visualization of the taxonomic
+structure in a limited dataset. This latter option will be fully
+offline, as it does not do any additional API calls
+of the Paleobiology Database, unlike other options.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tipSet</code></td>
+<td>
+<p>This argument only impacts analyses where 
+<code>method  = "parentChild"</code> is used. This <code>tipSet</code> argument controls
+which taxa are selected as tip taxa for the output tree. 
+<code>tipSet  = "nonParents"</code> selects all child taxa which
+are not listed as parents in <code>parentChild</code>.
+Alternatively, <code>tipSet = "all"</code> will add a tip to every
+internal node with the parent-taxon name encapsulated in parentheses.
+The default is <code>NULL</code> - if <code>tipSet = NULL</code> and <code>method  = "parentChild"</code>,
+then <code>tipSet</code> will be set so <code>tipSet = "nonParents"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cleanTree</code></td>
+<td>
+<p>When <code>TRUE</code> (the default), the tree is run through a series of
+post-processing, including having singles collapsed,
+nodes reordered and being written out as a Newick string and read
+back in, to ensure functionality with ape functions
+and ape-derived functions. 
+If <code>FALSE</code>, none of this post-processing is done and
+users should beware, as such trees can lead to hard-crashes of R.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>annotatedDuplicateNames</code></td>
+<td>
+<p>A logical determining whether duplicate taxon names,
+when found in the Paleobiology Database for taxa (presumably reflecting an issue with
+taxa being obsolete but with incomplete seniority data), should be annotated to include
+sequential numbers so to modify them, via function<code>base</code>'s
+<code>make.unique</code>. This only applies to
+<code>method = "parentChild"</code>, with the default option being
+<code>annotatedDuplicateNames = TRUE</code>. If more than 26 duplicates are found, an error
+is issued. If this argument is <code>FALSE</code>, an error is issued if duplicate taxon
+names are found.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>APIversion</code></td>
+<td>
+<p>Version of the Paleobiology Database API used by
+<code>makePBDBtaxonTree</code> when <code>method  = "parentChild"</code> or
+<code>method  = "parentChildOldQueryPBDB"</code> is used. The current default
+is <code>APIversion = "1.2"</code>, the most recent API version as of 12/11/2018.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>failIfNoInternet</code></td>
+<td>
+<p>If the Paleobiology Database or another 
+needed internet resource cannot be accessed, perhaps because of
+no internet connection, should the function fail (with an error)
+or should the function return <code>NULL</code> and return an
+informative message instead, thus meeting the CRAN policy
+that such functionalities must 'fail gracefully'?
+The default is <code>TRUE</code> but all examples that might be auto-run
+use <code>FALSE</code> so they do not fail during R CHECK.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>taxaTree</code></td>
+<td>
+<p>A phylogeny of class <code>phylo</code>, presumably a taxon tree as output from
+<code>makePBDBtaxonTree</code> with higher-taxon names as node labels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>edgeLength</code></td>
+<td>
+<p>The edge length that the plotted tree should be plotted
+with (<code>plotTaxaTreePBDB</code> plots phylogenies as non-ultrametric,
+not as a cladogram with aligned tips).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function should not be taken too seriously.
+Many groups in the Paleobiology Database have
+out-of-date or very incomplete taxonomic information.
+This function is meant to help visualize
+what information is present, and by use of time-scaling
+functions, allow us to visualize the intersection
+of temporal and phylogenetic, mainly to look for incongruence
+due to either incorrect taxonomic placements,
+erroneous occurrence data or both. 
+</p>
+<p>Note however that, contrary to common opinion among some
+paleontologists, taxon-trees may be just as useful for 
+macroevolutionary studies as reconstructed phylogenies
+(Soul and Friedman, 2015).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A phylogeny of class <code>phylo</code>, where each tip is a taxon of the given <code>rankTaxon</code>. See additional details
+regarding branch lengths can be found in the sub-algorithms used to create the taxon-tree by this function:
+<code>parentChild2taxonTree</code> and <code>taxonTable2taxonTree</code>.
+</p>
+<p>Depending on the <code>method</code>
+used, either the element <code>$parentChild</code> or <code>$taxonTable</code> is added to the list structure of
+the output phylogeny object, which was used as input for one of the two algorithms mentioned above.
+</p>
+<p>Please note that when applied to output from the taxa option of the API version 1.1, the taxon names
+returned are the <em>original</em> taxon names as 'accepted_name' is not available in API v1.1, while
+under API v1.2, the returned taxon names should be the most up-to-date formal names for those taxa.
+Similar issues also effect the identification of parent taxa, as the accepted name of the
+parent ID number is only provided in version 1.2 of the API.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David W. Bapst
+</p>
+
+
+<h3>References</h3>
+
+<p>Peters, S. E., and M. McClennen. 2015. The Paleobiology Database
+application programming interface. <em>Paleobiology</em> 42(1):1-7.
+</p>
+<p>Soul, L. C., and M. Friedman. 2015. Taxonomy and Phylogeny Can Yield
+Comparable Results in Comparative Palaeontological Analyses. <em>Systematic Biology</em> 
+(<a href="https://doi.org/10.1093/sysbio/syv015">doi:10.1093/sysbio/syv015</a>)
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Two other functions in paleotree are used as sub-algorithms by <code>makePBDBtaxonTree</code>
+to create the taxon-tree within this function,
+and users should consult their manual pages for additional details:
+</p>
+<p><code>parentChild2taxonTree</code> and <code>taxonTable2taxonTree</code>
+</p>
+<p>Closely related functions for 
+</p>
+<p>Other functions for manipulating PBDB data can be found at <code>taxonSortPBDBocc</code>,
+<code>occData2timeList</code>, and the example data at <code>graptPBDB</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Note that most examples here use argument 
+    # failIfNoInternet = FALSE so that functions do
+    # not error out but simply return NULL if internet
+    # connection is not available, and thus
+    # fail gracefully rather than error out (required by CRAN).
+# Remove this argument or set to TRUE so functions DO fail
+    # when internet resources (paleobiodb) is not available.
+
+set.seed(1)
+
+
+
+#get some example occurrence and taxonomic data
+data(graptPBDB)
+
+#get the taxon tree: Linnean method
+graptTreeLinnean &lt;- makePBDBtaxonTree(
+    taxaDataPBDB = graptTaxaPBDB,
+    rankTaxon = "genus",
+    method = "Linnean", 
+    failIfNoInternet = FALSE)
+
+#get the taxon tree: parentChild method
+graptTreeParentChild &lt;- makePBDBtaxonTree(
+    taxaDataPBDB = graptTaxaPBDB,
+    rankTaxon = "genus",
+    method = "parentChild", 
+    failIfNoInternet = FALSE)
+    
+if(!is.null(graptTreeParentChild) &amp; 
+        !is.null(graptTreeLinnean)){
+    # if those functions worked...
+    # let's plot these and compare them! 
+    plotTaxaTreePBDB(graptTreeParentChild)
+    plotTaxaTreePBDB(graptTreeLinnean)
+    }
+
+
+# pause 3 seconds so we don't spam the API
+Sys.sleep(3)
+
+####################################################
+# let's try some other groups
+
+###################################
+#conodonts
+
+conoData &lt;- getCladeTaxaPBDB("Conodonta", 
+    failIfNoInternet = FALSE)
+
+if(!is.null(conoData)){ 
+ 
+conoTree &lt;- makePBDBtaxonTree(
+    taxaDataPBDB = conoData,
+    rankTaxon = "genus",
+    method = "parentChild")
+
+# if it worked, plot it!
+plotTaxaTreePBDB(conoTree)
+
+}
+
+# pause 3 seconds so we don't spam the API
+Sys.sleep(3)
+
+#############################
+#asaphid trilobites
+
+asaData &lt;- getCladeTaxaPBDB("Asaphida", 
+    failIfNoInternet = FALSE)
+    
+if(!is.null(asaData)){
+
+asaTree &lt;- makePBDBtaxonTree(
+    taxaDataPBDB = asaData,
+    rankTaxon = "genus",
+    method = "parentChild")
+
+# if it worked, plot it!
+plotTaxaTreePBDB(asaTree)
+
+}
+
+# pause 3 seconds so we don't spam the API
+Sys.sleep(3)
+
+###############################
+#Ornithischia
+
+ornithData &lt;- getCladeTaxaPBDB("Ornithischia", 
+    failIfNoInternet = FALSE)
+
+if(!is.null(ornithData)){
+
+ornithTree &lt;- makePBDBtaxonTree(
+    taxaDataPBDB = ornithData,
+    rankTaxon = "genus",
+    method = "parentChild")
+
+# if it worked, plot it!
+plotTaxaTreePBDB(ornithTree)
+
+# pause 3 seconds so we don't spam the API
+Sys.sleep(3)
+
+#try Linnean!
+
+#but first... need to drop repeated taxon first: Hylaeosaurus
+    # actually this taxon seems to have been repaired 
+    # as of September 2019 !
+# findHylaeo &lt;- ornithData$taxon_name == "Hylaeosaurus"
+# there's actually only one accepted ID number
+# HylaeoIDnum &lt;- unique(ornithData[findHylaeo,"taxon_no"])
+# HylaeoIDnum 
+# so, take which one has occurrences listed
+# dropThis &lt;- which((ornithData$n_occs &lt; 1) &amp; findHylaeo)
+# ornithDataCleaned &lt;- ornithData[-dropThis,]
+
+ornithTree &lt;- makePBDBtaxonTree(
+    ornithData,
+    rankTaxon = "genus",
+    method = "Linnean", 
+    failIfNoInternet = FALSE)
+
+# if it worked, plot it!
+plotTaxaTreePBDB(ornithTree)
+
+}
+
+# pause 3 seconds so we don't spam the API
+Sys.sleep(3)
+
+#########################
+# Rhynchonellida
+
+rhynchData &lt;- getCladeTaxaPBDB("Rhynchonellida", 
+    failIfNoInternet = FALSE)
+    
+if(!is.null(rhynchData)){  
+
+rhynchTree &lt;- makePBDBtaxonTree(
+    taxaDataPBDB = rhynchData,
+    rankTaxon = "genus",
+    method = "parentChild")
+
+    # if it worked, plot it!
+    plotTaxaTreePBDB(rhynchTree)
+    }
+
+#some of these look pretty messy!
+
+
+
+</code></pre>
+
+
+</div>

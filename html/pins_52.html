@@ -1,0 +1,173 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>board_url</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Use a vector of URLs as a board</h2>
+
+<h3>Description</h3>
+
+<p><code>board_url()</code> lets you build up a board from individual urls or a manifest file.
+</p>
+<p><code>board_url()</code> is read only.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">board_url(
+  urls,
+  cache = NULL,
+  use_cache_on_failure = is_interactive(),
+  headers = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>urls</code></td>
+<td>
+<p>Identify available pins being served at a URL or set of URLs (see details):
+</p>
+
+<ul>
+<li>
+<p> Unnamed string: URL to a manifest file.
+</p>
+</li>
+<li>
+<p> Named character vector: URLs to specific pins (does not support versioning).
+</p>
+</li>
+<li>
+<p> Named list: URLs to pin version directories (supports versioning).
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cache</code></td>
+<td>
+<p>Cache path. Every board requires a local cache to avoid
+downloading files multiple times. The default stores in a standard
+cache location for your operating system, but you can override if needed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use_cache_on_failure</code></td>
+<td>
+<p>If the pin fails to download, is it ok to
+use the last cached version? Defaults to <code>is_interactive()</code> so you'll
+be robust to poor internet connectivity when exploring interactively,
+but you'll get clear errors when the code is deployed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>headers</code></td>
+<td>
+<p>Named character vector for additional HTTP headers (such as for
+authentication). See <code>connect_auth_headers()</code> for Posit Connect support.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The way <code>board_url()</code> works depends on the type of the <code>urls</code> argument:
+</p>
+
+<ul>
+<li>
+<p> Unnamed character scalar, i.e. <strong>a single URL</strong> to a
+manifest file: If the URL ends in a <code>/</code>,
+<code>board_url()</code> will look for a <code style="white-space: pre;">⁠_pins.yaml⁠</code> manifest. If the manifest
+file parses to a named list, versioning is supported. If it parses to a
+named character vector, the board will not support versioning.
+</p>
+</li>
+<li> <p><strong>Named character vector of URLs</strong>: If the URLs end in a <code>/</code>,
+<code>board_url()</code> will look for a <code>data.txt</code> that provides metadata for the
+associated pin. The easiest way to generate this file is to upload a pin
+version directory created by <code>board_folder()</code>. Versioning is not supported.
+</p>
+</li>
+<li> <p><strong>Named list</strong>, where the values are character vectors of URLs and each
+element of the vector refers to a version of the particular pin: If a
+URL ends in a <code>/</code>, <code>board_url()</code> will look for a <code>data.txt</code> that
+provides metadata. Versioning is supported.
+</p>
+</li>
+</ul>
+<p>Using a vector of URLs can be useful because <code>pin_download()</code> and
+<code>pin_read()</code> will be cached; they'll only re-download the data if it's
+changed from the last time you downloaded it (using the tools of
+<a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching">HTTP caching</a>).
+You'll also be protected from the vagaries of the internet; if a fresh
+download fails, you'll get the previously cached result with a warning.
+</p>
+<p>Using a manifest file can be useful because you
+can serve a board of pins and allow collaborators to access the board
+straight from a URL, without worrying about board-level storage details.
+Some examples are provided in <code>vignette("using-board-url")</code>.
+</p>
+
+
+<h3>Authentication for <code>board_url()</code>
+</h3>
+
+<p>The <code>headers</code> argument allows you to pass authentication details or other
+HTTP headers to the board, such as for a Posit Connect vanity URL that is
+not public (see <code>board_connect_url()</code>) or a private GitHub repo.
+</p>
+<div class="sourceCode r"><pre>gh_pat_auth &lt;- c(
+  Authorization = paste("token", "github_pat_XXXX")
+)
+board &lt;- board_url(
+  "https://raw.githubusercontent.com/username/repo/main/path/to/pins",
+  headers = gh_pat_auth
+)
+
+board %&gt;% pin_list()
+</pre></div>
+
+
+<h3>See Also</h3>
+
+<p>Other boards: 
+<code>board_connect()</code>,
+<code>board_connect_url()</code>,
+<code>board_folder()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+github_raw &lt;- function(x) paste0("https://raw.githubusercontent.com/", x)
+
+## with a named vector of URLs to specific pins:
+b1 &lt;- board_url(c(
+  files = github_raw("rstudio/pins-r/main/tests/testthat/pin-files/"),
+  rds = github_raw("rstudio/pins-r/main/tests/testthat/pin-rds/"),
+  raw = github_raw("rstudio/pins-r/main/tests/testthat/pin-files/first.txt")
+))
+
+b1 %&gt;% pin_read("rds")
+b1 %&gt;% pin_browse("rds", local = TRUE)
+
+b1 %&gt;% pin_download("files")
+b1 %&gt;% pin_download("raw")
+
+## with a manifest file:
+b2 &lt;- board_url(github_raw("rstudio/pins-r/main/tests/testthat/pin-board/"))
+b2 %&gt;% pin_list()
+b2 %&gt;% pin_versions("y")
+
+</code></pre>
+
+
+</div>

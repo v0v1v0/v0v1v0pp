@@ -1,0 +1,127 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>create.augmentation.function</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Creation of augmentation functions</h2>
+
+<h3>Description</h3>
+
+<p>Creates an augmentation function that optionally utilizes cross-fitting
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">create.augmentation.function(
+  family,
+  crossfit = TRUE,
+  nfolds.crossfit = 10,
+  cv.glmnet.args = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>The response type (see options in <code>glmnet</code> help file)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>crossfit</code></td>
+<td>
+<p>A logical value indicating whether to use cross-fitting (<code>TRUE</code>) or not (<code>FALSE</code>).
+Cross-fitting is more computationally intensive, but helps to prevent overfitting, see Chernozhukov, et al. (2018)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nfolds.crossfit</code></td>
+<td>
+<p>An integer specifying the number of folds to use for cross-fitting. Must be greater than 1</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv.glmnet.args</code></td>
+<td>
+<p>A list of NAMED arguments to pass to the <code>cv.glmnet</code> function. For
+example, <code>cv.glmnet.args = list(type.measure = "mse", nfolds = 10)</code>. See <code>cv.glmnet</code> and <code>glmnet</code>
+for all possible options.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A function which can be passed to the <code>augment.func</code> argument of the <code>fit.subgroup</code> function.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W., &amp; Robins, J. (2018).
+Double/debiased machine learning for treatment and structural parameters <a href="https://arxiv.org/abs/1608.00060">https://arxiv.org/abs/1608.00060</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>fit.subgroup</code> for estimating ITRs and <code>create.propensity.function</code> for creation of propensity functions
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(personalized)
+
+set.seed(123)
+n.obs  &lt;- 500
+n.vars &lt;- 15
+x &lt;- matrix(rnorm(n.obs * n.vars, sd = 3), n.obs, n.vars)
+
+
+# simulate non-randomized treatment
+xbetat   &lt;- 0.5 + 0.5 * x[,7] - 0.5 * x[,9]
+trt.prob &lt;- exp(xbetat) / (1 + exp(xbetat))
+trt01    &lt;- rbinom(n.obs, 1, prob = trt.prob)
+
+trt      &lt;- 2 * trt01 - 1
+
+# simulate response
+# delta below drives treatment effect heterogeneity
+delta &lt;- 2 * (0.5 + x[,2] - x[,3] - x[,11] + x[,1] * x[,12] )
+xbeta &lt;- x[,1] + x[,11] - 2 * x[,12]^2 + x[,13] + 0.5 * x[,15] ^ 2
+xbeta &lt;- xbeta + delta * trt
+
+# continuous outcomes
+y &lt;- drop(xbeta) + rnorm(n.obs, sd = 2)
+
+aug.func &lt;- create.augmentation.function(family = "gaussian",
+                                         crossfit = TRUE,
+                                         nfolds.crossfit = 10,
+                                         cv.glmnet.args = list(type.measure = "mae",
+                                                               nfolds = 5))
+
+prop.func &lt;- create.propensity.function(crossfit = TRUE,
+                                        nfolds.crossfit = 10,
+                                        cv.glmnet.args = list(type.measure = "auc",
+                                                              nfolds = 5))
+## Not run: 
+subgrp.model &lt;- fit.subgroup(x = x, y = y,
+                             trt = trt01,
+                             propensity.func = prop.func,
+                             augment.func = aug.func,
+                             loss   = "sq_loss_lasso",
+                             nfolds = 10)    # option for cv.glmnet (for ITR estimation)
+
+summary(subgrp.model)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

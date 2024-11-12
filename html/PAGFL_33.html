@@ -1,0 +1,319 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tv_pagfl</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Time-varying Pairwise Adaptive Group Fused Lasso</h2>
+
+<h3>Description</h3>
+
+<p>Estimate a time-varying panel data model with a latent group structure using the pairwise adaptive group fused lasso (<em>time-varying PAGFL</em>). The <em>time-varying PAGFL</em> jointly identifies the latent group structure and group-specific time-varying functional coefficients.
+The time-varying coefficients are modeled as polynomial B-splines. The function supports both static and dynamic panel data models.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">tv_pagfl(
+  formula,
+  data,
+  index = NULL,
+  n_periods = NULL,
+  lambda,
+  d = 3,
+  M = floor(length(y)^(1/7) - log(p)),
+  min_group_frac = 0.05,
+  const_coef = NULL,
+  kappa = 2,
+  max_iter = 50000,
+  tol_convergence = 1e-10,
+  tol_group = 0.001,
+  rho = 0.04 * log(N * n_periods)/sqrt(N * n_periods),
+  varrho = 1,
+  verbose = TRUE,
+  parallel = TRUE,
+  ...
+)
+
+## S3 method for class 'tvpagfl'
+summary(object, ...)
+
+## S3 method for class 'tvpagfl'
+formula(x, ...)
+
+## S3 method for class 'tvpagfl'
+df.residual(object, ...)
+
+## S3 method for class 'tvpagfl'
+print(x, ...)
+
+## S3 method for class 'tvpagfl'
+coef(object, ...)
+
+## S3 method for class 'tvpagfl'
+residuals(object, ...)
+
+## S3 method for class 'tvpagfl'
+fitted(object, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a formula object describing the model to be estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a <code>data.frame</code> or <code>matrix</code> holding a panel data set. If no <code>index</code> variables are provided, the panel must be balanced and ordered in the long format <code class="reqn">\bold{Y}=(Y_1^\prime, \dots, Y_N^\prime)^\prime</code>, <code class="reqn">Y_i = (Y_{i1}, \dots, Y_{iT})^\prime</code> with <code class="reqn">Y_{it} = (y_{it}, x_{it}^\prime)^\prime</code>. Conversely, if <code>data</code> is not ordered or not balanced, <code>data</code> must include two index variables that declare the cross-sectional unit <code class="reqn">i</code> and the time period <code class="reqn">t</code> of each observation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>index</code></td>
+<td>
+<p>a character vector holding two strings. The first string denotes the name of the index variable identifying the cross-sectional unit <code class="reqn">i</code>, and the second string represents the name of the variable declaring the time period <code class="reqn">t</code>. In case of a balanced panel data set that is ordered in the long format, <code>index</code> can be left empty if the the number of time periods <code>n_periods</code> is supplied.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_periods</code></td>
+<td>
+<p>the number of observed time periods <code class="reqn">T</code>. If an <code>index</code> character vector is passed, this argument can be left empty. Default is <code>Null</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>the tuning parameter determining the strength of the penalty term. Either a single <code class="reqn">\lambda</code> or a vector of candidate values can be passed. If a vector is supplied, a BIC-type IC automatically selects the best fitting <code class="reqn">\lambda</code> value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>the polynomial degree of the B-splines. Default is 3.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M</code></td>
+<td>
+<p>the number of interior knots of the B-splines. If left unspecified, the default heuristic <code class="reqn">M = \text{floor}((NT)^{\frac{1}{7}} - \log(p))</code> is used. Note that <code class="reqn">M</code> does not include the boundary knots and the entire sequence of knots is of length <code class="reqn">M + d + 1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min_group_frac</code></td>
+<td>
+<p>the minimum group cardinality as a fraction of the total number of individuals <code class="reqn">N</code>. In case a group falls short of this threshold, each of its members is allocated to one of the remaining groups according to the <em>MSE</em>. Default is 0.05.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>const_coef</code></td>
+<td>
+<p>a character vector containing the variable names of explanatory variables that enter with time-constant coefficients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kappa</code></td>
+<td>
+<p>the a non-negative weight used to obtain the adaptive penalty weights. Default is 2.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_iter</code></td>
+<td>
+<p>the maximum number of iterations for the <em>ADMM</em> estimation algorithm. Default is <code class="reqn">5*10^4</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol_convergence</code></td>
+<td>
+<p>the tolerance limit for the stopping criterion of the iterative <em>ADMM</em> estimation algorithm. Default is <code class="reqn">1*10^{-10}</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol_group</code></td>
+<td>
+<p>the tolerance limit for within-group differences. Two individuals are assigned to the same group if the Frobenius norm of their coefficient vector difference is below this threshold. Default is <code class="reqn">1*10^{-3}</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rho</code></td>
+<td>
+<p>the tuning parameter balancing the fitness and penalty terms in the IC that determines the penalty parameter <code class="reqn">\lambda</code>. If left unspecified, the heuristic <code class="reqn">\rho = 0.07 \frac{\log(NT)}{\sqrt{NT}}</code> of Mehrabani (2023, sec. 6) is used. We recommend the default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>varrho</code></td>
+<td>
+<p>the non-negative Lagrangian <em>ADMM</em> penalty parameter. For the employed penalized sieve estimation <em>PSE</em>, the <code class="reqn">\varrho</code> value is trivial. We recommend the default 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, helpful warning messages are shown. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, certain operations are parallelized across multiple cores. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>ellipsis</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>of class <code>tvpagfl</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>of class <code>tvpagfl</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Consider the grouped time-varying panel data model
+</p>
+<p style="text-align: center;"><code class="reqn">y_{it} = \gamma_i + \beta^\prime_{i} (t/T) x_{it} + \epsilon_{it}, \quad i = 1, \dots, N, \; t = 1, \dots, T,</code>
+</p>
+
+<p>where <code class="reqn">y_{it}</code> is the scalar dependent variable, <code class="reqn">\gamma_i</code> is an individual fixed effect, <code class="reqn">x_{it}</code> is a <code class="reqn">p \times 1</code> vector of explanatory variables, and <code class="reqn">\epsilon_{it}</code> is a zero mean error.
+The coefficient vector <code class="reqn">\beta_{i} (t/T)</code> is subject to the latent group pattern
+</p>
+<p style="text-align: center;"><code class="reqn">\beta_i \left(\frac{t}{T} \right) = \sum_{k = 1}^K \alpha_k \left( \frac{t}{T} \right) \bold{1} \{i \in G_k \},</code>
+</p>
+
+<p>with <code class="reqn">\cup_{k = 1}^K G_k = \{1, \dots, N\}</code>, <code class="reqn">G_k \cap G_j = \emptyset</code> and <code class="reqn">\| \alpha_k - \alpha_j \| \neq 0</code> for any <code class="reqn">k \neq j</code>, <code class="reqn">k = 1, \dots, K</code>.
+</p>
+<p>The time-varying coefficient functions are estimated as polynomial B-splines using the penalized sieve-technique. To this end, let <code class="reqn">B(v)</code> denote a <code class="reqn">M + d +1</code> vector basis functions, where <code class="reqn">d</code> denotes the polynomial degree and <code class="reqn">M</code> the number of interior knots.
+Then, <code class="reqn">\beta_{i}(t/T)</code> and <code class="reqn">\alpha_{k}(t/T)</code> are approximated by forming linear combinations of the basis functions <code class="reqn">\beta_{i} (t/T) \approx \pi_i^\prime B(t/T)</code> and <code class="reqn">\alpha_{i}(t/T) \approx \xi_k^\prime B(t/T)</code>, where <code class="reqn">\pi_i</code> and <code class="reqn">\xi_i</code> are <code class="reqn">(M + d + 1) \times p</code> coefficient matrices.
+</p>
+<p>The explanatory variables are projected onto the spline basis system, which results in the <code class="reqn">(M + d + 1)p \times 1</code> vector <code class="reqn">z_{it} = x_{it} \otimes B(v)</code>. Subsequently, the DGP can be reformulated as
+</p>
+<p style="text-align: center;"><code class="reqn">y_{it} = \gamma_i + z_{it}^\prime \text{vec}(\pi_{i}) + u_{it},</code>
+</p>
+
+<p>where <code class="reqn">u_{it} = \epsilon_{it} + \eta_{it}</code> and <code class="reqn">\eta_{it}</code> reflects a sieve approximation error. We refer to Su et al. (2019, sec. 2) for more details on the sieve technique.
+</p>
+<p>Inspired by Su et al. (2019) and Mehrabani (2023), the time-varying PAGFL jointly estimates the functional coefficients and the group structure by minimizing the criterion
+</p>
+<p style="text-align: center;"><code class="reqn">Q_{NT} (\bold{\pi}, \lambda) = \frac{1}{NT} \sum^N_{i=1} \sum^{T}_{t=1}(\tilde{y}_{it} - \tilde{z}_{it}^\prime \text{vec}(\pi_{i}))^2 + \frac{\lambda}{N} \sum_{i = 1}^{N - 1} \sum_{j &gt; i}^N \dot{\omega}_{ij} \| \pi_i - \pi_j \|</code>
+</p>
+
+<p>with respect to <code class="reqn">\bold{\pi} = (\text{vec}(\pi_i)^\prime, \dots, \text{vec}(\pi_N)^\prime)^\prime</code>. <code class="reqn">\tilde{a}_{it} = a_{it} - T^{-1} \sum^{T}_{t=1} a_{it}</code>, <code class="reqn">a = \{y, z\}</code> to concentrate out the individual fixed effects <code class="reqn">\gamma_i</code>. <code class="reqn">\lambda</code> is the penalty tuning parameter and <code class="reqn">\dot{w}_{ij}</code> denotes adaptive penalty weights which are obtained by a preliminary non-penalized estimation. <code class="reqn">\| \cdot \|</code> represents the Frobenius norm.
+The solution criterion function is minimized via the iterative alternating direction method of multipliers (<em>ADMM</em>) algorithm proposed by Mehrabani (2023, sec. 5.1).
+</p>
+<p>Two individuals are assigned to the same group if <code class="reqn">\| \text{vec} (\hat{\pi}_i - \hat{\pi}_j) \| \leq \epsilon_{\text{tol}}</code>, where <code class="reqn">\epsilon_{\text{tol}}</code> is determined by <code>tol_group</code>. Subsequently, the number of groups follows as the number of distinct elements in <code class="reqn">\hat{\bold{\pi}}</code>. Given an estimated group structure, it is straightforward to obtain post-Lasso estimates <code class="reqn">\hat{\bold{\xi}}</code> using group-wise least squares (see <code>grouped_tv_plm</code>).
+</p>
+<p>We recommend identifying a suitable <code class="reqn">\lambda</code> parameter by passing a logarithmically spaced grid of candidate values with a lower limit close to 0 and an upper limit that leads to a fully homogeneous panel. A BIC-type information criterion then selects the best fitting <code class="reqn">\lambda</code> value.
+</p>
+<p>In case of an unbalanced panel data set, the earliest and latest available observations per group define the start and end-points of the interval on which the group-specific time-varying coefficients are defined.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>tvpagfl</code> holding
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>a <code>data.frame</code> containing the dependent and explanatory variables as well as cross-sectional and time indices,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coefficients</code></td>
+<td>
+<p>let <code class="reqn">p^{(1)}</code> denote the number of time-varying coefficients and <code class="reqn">p^{(2)}</code> the number of time constant parameters. A <code>list</code> holding (i) a <code class="reqn">T \times p^{(1)} \times \hat{K}</code> array of the post-Lasso group-specific functional coefficients and (ii) a <code class="reqn">K \times p^{(2)}</code> matrix of time-constant post-Lasso estimates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groups</code></td>
+<td>
+<p>a <code>list</code> containing (i) the total number of groups <code class="reqn">\hat{K}</code> and (ii) a vector of estimated group memberships <code class="reqn">(\hat{g}_1, \dots, \hat{g}_N)</code>, where <code class="reqn">\hat{g}_i = k</code> if <code class="reqn">i</code> is assigned to group <code class="reqn">k</code>,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>residuals</code></td>
+<td>
+<p>a vector of residuals of the demeaned model,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fitted</code></td>
+<td>
+<p>a vector of fitted values of the demeaned model,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>args</code></td>
+<td>
+<p>a <code>list</code> of additional arguments,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>IC</code></td>
+<td>
+<p>a <code>list</code> containing (i) the value of the IC, (ii) the employed tuning parameter <code class="reqn">\lambda</code>, and (iii) the <em>MSE</em>,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convergence</code></td>
+<td>
+<p>a <code>list</code> containing (i) a logical variable if convergence was achieved and (ii) the number of executed <em>ADMM</em> algorithm iterations,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>the function call.</p>
+</td>
+</tr>
+</table>
+<p>An object of class <code>tvpagfl</code> has <code>print</code>, <code>summary</code>, <code>fitted</code>, <code>residuals</code>, <code>formula</code>, <code>df.residual</code> and <code>coef</code> S3 methods.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Paul Haimerl
+</p>
+
+
+<h3>References</h3>
+
+<p>Mehrabani, A. (2023). Estimation and identification of latent group structures in panel data. <em>Journal of Econometrics</em>, 235(2), 1464-1482. <a href="https://doi.org/10.1016/j.jeconom.2022.12.002">doi:10.1016/j.jeconom.2022.12.002</a>.
+</p>
+<p>Su, L., Wang, X., &amp; Jin, S. (2019). Sieve estimation of time-varying panel data models with latent structures. <em>Journal of Business &amp; Economic Statistics</em>, 37(2), 334-349. <a href="https://doi.org/10.1080/07350015.2017.1340299">doi:10.1080/07350015.2017.1340299</a>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Simulate a time-varying panel with a trend and a group pattern
+set.seed(1)
+sim &lt;- sim_tv_DGP(N = 10, n_periods = 50, intercept = TRUE, p = 1)
+df &lt;- data.frame(y = c(sim$y))
+
+# Run the time-varying PAGFL
+estim &lt;- tv_pagfl(y ~ ., data = df, n_periods = 50, lambda = 10, parallel = FALSE)
+summary(estim)
+
+</code></pre>
+
+
+</div>

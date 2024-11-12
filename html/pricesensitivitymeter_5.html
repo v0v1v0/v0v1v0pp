@@ -1,0 +1,541 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>psm_analysis</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Van Westendorp Price Sensitivity Meter Analysis (PSM)
+</h2>
+
+<h3>Description</h3>
+
+<p><code>psm_analysis()</code> performs an analysis of consumer price
+preferences and price sensitivity known as <b>van
+Westendorp Price Sensitivity Meter (PSM)</b>. It takes respondent's
+price preferences (from survey data) as an input and estimates
+acceptable price ranges and price points. For a description of
+the method see the <em>Details</em> section.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">psm_analysis(
+  toocheap, cheap, expensive, tooexpensive,
+  data = NA,
+  validate = TRUE,
+  interpolate = FALSE,
+  interpolation_steps = 0.01,
+  intersection_method = "min",
+  acceptable_range = "original",
+  pi_cheap = NA, pi_expensive = NA,
+  pi_scale = 5:1,
+  pi_calibrated = c(0.7, 0.5, 0.3, 0.1, 0),
+  pi_calibrated_toocheap = 0, pi_calibrated_tooexpensive = 0
+  )
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>toocheap, cheap, expensive, tooexpensive</code></td>
+<td>
+<p>If a
+data.frame/matrix/tibble is provided in the <code>data</code>
+argument: names of the variables in the data.frame/matrix
+that contain the survey data on the respondents' "too cheap",
+"cheap", "expensive" and "too expensive" price preferences.
+</p>
+<p>If no data.frame/matrix/tibble is provided in the <code>data</code>
+argument: numeric vectors that directly include this
+information. If numeric vectors are provided, it is assumed
+that they are sorted by respondent ID (the preferences for
+respondent <code>n</code> are stored at the <code>n</code>-th position in
+all vectors).
+</p>
+<p>If the <code>toocheap</code> price was not assessed, a
+variable/vector of NAs can be used instead. This
+variable/vector needs to have the same length as the other
+survey information. If <code>toocheap</code> is NA for all cases,
+it is possible to calculate the Point of Marginal
+Expensiveness and the Indifference Price Point, but it is
+impossible to calculate the Point of Marginal Cheapness and
+the Optimal Price Point.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>data.frame, matrix or tibble that contains the
+function's input data. <code>data</code> input is not mandatory:
+Instead of using a data.frame/matrix/tibble as an input, it
+is also possible to provide the data directly as vectors in
+the "too cheap", "cheap", "expensive" and "too expensive"
+arguments.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>validate</code></td>
+<td>
+<p>logical. should only respondents with
+consistent price preferences (too cheap &lt; cheap &lt; expensive
+&lt; too expensive) be considered in the analysis?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interpolate</code></td>
+<td>
+<p>logical. should interpolation of the price
+curves be applied between the actual prices given by the
+respondents? If interpolation is enabled, the output appears
+less bumpy in regions with sparse price information. If the
+sample size is sufficiently large, interpolation should not
+be necessary.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interpolation_steps</code></td>
+<td>
+<p>numeric. if <code>interpolate</code> is
+<code>TRUE</code>: the size of the interpolation steps. Set by
+default to 0.01, which should be appropriate for most goods
+in a price range of 0-50 USD/Euro.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intersection_method</code></td>
+<td>
+<p>"min" (default), "max", "mean" or
+"median". defines the method how to determine the price
+points (range, indifference price, optimal price) if there
+are multiple possible intersections of the price curves.
+"min" uses the lowest possible prices, "max" uses the
+highest possible prices, "mean" calculates the mean among
+all intersections and "median" uses the median of all
+possible intersections</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>acceptable_range</code></td>
+<td>
+<p>"original" (default) or "narrower".
+Defines which intersection is used to calculate the point of
+marginal cheapness and point of marginal expensiveness, which
+together form the range of acceptable prices. "original"
+uses the definition provided in van Westendorp's paper:
+The lower end of the price range (point of marginal
+cheapness) is defined as the intersection of "too cheap"
+and the inverse of the "cheap" curve. The upper end of the
+price range (point of marginal expensiveness) is defined
+as the intersection of "too expensive" and the inverse of
+the "expensive" curve. Alternatively, it is possible to use
+a "narrower" definition which is applied by some market
+research companies. Here, the lower end of the price range
+is defined as the intersection of the "expensive" and the
+"too cheap" curves and the upper end of the price range is
+defined as the intersection of the "too expensive" and the
+"cheap" curves. This leads to a narrower range of acceptable
+prices. Note that it is possible that the optimal price
+according to the Newton/Miller/Smith extension is higher
+than the upper end of the acceptable price range in the
+"narrower" definition.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pi_cheap, pi_expensive</code></td>
+<td>
+<p>Only required for the Newton
+Miller Smith extension. If <code>data</code> argument is provided:
+names of the variables in the data.frame/matrix/tibble that
+contain the survey data on the respondents' purchase intent
+at their individual cheap/expensive price.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pi_scale</code></td>
+<td>
+<p>Only required for the Newton Miller Smith
+extension. Scale of the purchase intent variables pi_cheap and
+pi_expensive. By default assuming a five-point scale with 5
+indicating the highest purchase intent.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pi_calibrated</code></td>
+<td>
+<p>Only required for the Newton Miller Smith
+extension. Calibrated purchase probabilities that are assumed
+for each value of the purchase intent scale. Must be the same
+order as the pi_scale variable so that the first value of
+pi_calibrated corresponds to the first value in the pi_scale
+variable. Default values are taken from the Sawtooth Software
+PSM implementation in Excel: 70% for the best value of the
+purchase intent scale, 50% for the second best value,
+30% for the third best value (middle of the scale), 10%
+for the fourth best value and 0% for the worst value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pi_calibrated_toocheap, pi_calibrated_tooexpensive</code></td>
+<td>
+
+<p>Only required for the Newton Miller Smith extension. Calibrated
+purchase probabilities for the "too cheap" and the "too
+expensive" price, respectively. Must be a value between 0 and
+1; by default set to zero following the logic in van
+Westendorp's paper.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The Price Sensitivity Meter method for the analysis of consumer
+price preferences was proposed by the Dutch economist Peter van
+Westendorp in 1976 at the ESOMAR conference. It is a
+survey-based approach that has become one of the standard price
+acceptance measurement techniques in the market research
+industry and is still widely used for during early-stage product
+development.
+</p>
+<p>Price acceptance and price sensitivity are measured in van
+Westendorp's approach by four open-ended survey questions:
+</p>
+
+<ul>
+<li>
+<p> At which price on this scale are you beginning to
+experience ... (test-product) as cheap?
+</p>
+</li>
+<li>
+<p> At which price on this scale are you beginning to
+experience ... (test-product) as expensive?
+</p>
+</li>
+<li>
+<p> At which price on this scale you are beginning to
+experience ... (test-product) as too expensive – so that you
+would never consider buying it yourself?
+</p>
+</li>
+<li>
+<p> At which price on this scale you are beginning to
+experience ... (test-product) as too cheap – so that you say
+"at this price the quality cannot be good"?
+</p>
+</li>
+</ul>
+<p>Respondents with inconsistent price preferences (e.g. "cheap"
+price larger than "expensive" price) are usually removed from
+the data set. This function has built-in checks to detect
+invalid preference structures and removes those respondents from
+the analysis by default.
+</p>
+<p>To analyze price preferences and price sensitivity, the method
+uses cumulative distribution functions for each of the
+aforementioned price steps (e.g. "how many respondents think
+that a price of <code>x</code> <em>or more</em> is expensive?"). By
+convention, the distributions for the "too cheap" and the
+"cheap" price are inverted. This leads to the interpretation
+"how many respondents think that a price of <em>up to</em>
+<code>x</code> is (too) cheap?".
+</p>
+<p>The interpretation is built on the analysis of the intersections
+of the four cumulative distribution functions for the different
+prices (usually via graphical inspection). The original paper
+describes the four intersections as follows:
+</p>
+
+<ul>
+<li> <p><b>Point of Marginal Cheapness (PMC)</b>: Below this price
+point, there are more respondents that consider the price as
+"too cheap" than respondents who consider it as "not cheap"
+(intersection of "too cheap" and "not cheap"). This is interpreted
+as the lower limit of the range of acceptable prices.
+</p>
+</li>
+<li> <p><b>Point of Marginal Expensiveness (PME)</b>. Above this
+price point, there are more respondent that consider the price
+as "too expensive" than there are respondents who consider it as
+"not expensive" (intersection of "not expensive" and "too
+expensive"). This is interpreted as the upper limit of the
+range of acceptable prices.
+</p>
+</li>
+<li> <p><b>Indifference Price Point (IDP)</b>: The same number of
+respondents perceives the price as "cheap" and "expensive"
+(intersection of "cheap" and "expensive"). In van Westendorp's
+interpretation, this is either the median price paid in the
+market or the price of an important market-leader.
+</p>
+</li>
+<li> <p><b>Optimal Price Point (OPP)</b>: The same number of
+respondents perceives the product as "too cheap" and "too
+expensive" (intersection of "too cheap" and "too expensive").
+van Westendorp argues that this is the value for which the
+respondents' resistance against the price is particularly low.
+</p>
+</li>
+</ul>
+<p>Besides those four intersections, van Westendorp's article
+advises to analyze the cumulative distribution functions for
+steep areas which indicate price steps.
+</p>
+<p>To analyze reach (trial rates) and estimate revenue forecasts,
+Newton/Miller/Smith have extended van Westendorp's original
+model by adding two purchase intent questions that are asked for
+the respondent's "cheap" and "expensive" price. The purchase
+probability at the respondent's "too cheap" and "too expensive"
+price are defined as <code>0</code>. The main logic is that the "too
+expensive" price point is prohibitively expensive for the
+respondent and a price at the "too cheap" price level raises
+doubts about the product quality.
+</p>
+<p>By combining the standard van Westendorp questions with those
+two additional purchase intent questions, it becomes possible to
+summarize the purchase probabilities across respondents (using
+linear interpolation for the purchase probabilities between each
+respondent's cornerstone prices). The maximum of this curve is
+then defined as the price point with the highest expected reach.
+Moreover, by multiplying the reach with the price, it also
+becomes possible to estimate a price with the highest expected
+revenue.
+</p>
+<p>It has to be noted that the van Westendorp Price Sensitivity
+Meter is useful in some cases, but does not answer every
+pricing-related question. It may be a good tool to assess very
+broadly if the consumers' price perceptions exceed the actual
+production costs. For more complex analyses (e.g. defining
+specific prices for different products to avoid cannibalization
+and drive at the same time incremental growth), other
+methodological approaches are needed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function output consists of the following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td>
+<code>data_input</code>:</td>
+<td>
+<p><code>data.frame</code> object. Contains
+the data that was used as an input for the analysis.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>validated</code>:</td>
+<td>
+<p><code>logical</code> object. Indicates
+whether the <code>"validate"</code> option has been used (to
+exclude cases with intransitive price preferences).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>invalid_cases</code>:</td>
+<td>
+<p><code>numeric</code> object. Number
+of cases with intransitive price preferences.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>total_sample</code>:</td>
+<td>
+<p><code>"numeric"</code> object.
+Total sample size of the input sample <em>before</em>
+assessing the transitivity of individual price preferences.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>data_vanwestendorp</code>:</td>
+<td>
+<p><code>data.frame</code> object.
+Output data of the Price Sensitivity Meter analysis.
+Contains the cumulative distribution functions for the four
+price assessments (too cheap, cheap, expensive, too
+expensive) for all prices.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>pricerange_lower</code>:</td>
+<td>
+<p><code>numeric</code> object. Lower
+limit of the acceptable price range as defined by the
+Price Sensitivity Meter, also known as <b>point of
+marginal cheapness</b>: Intersection of the "too cheap" and the
+"not cheap" curves.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>pricerange_upper</code>:</td>
+<td>
+<p><code>numeric</code> object. Upper
+limit of the acceptable price range as defined by the Price
+Sensitivity Meter, also known as <b>point of marginal
+expensiveness</b>: Intersection of the "too expensive" and the
+"not expensive" curves.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>idp</code>:</td>
+<td>
+<p><code>numeric</code> object. <b>Indifference
+Price Point</b> as defined by the Price Sensitivity Meter:
+Intersection of the "cheap" and the "expensive" curves.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>opp</code>:</td>
+<td>
+<p><code>numeric</code> object. <b>Optimal
+Price Point</b> as defined by the Price Sensitivity Meter:
+Intersection of the "too cheap" and the "too expensive"
+curves.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>NMS</code>:</td>
+<td>
+<p><code>logical</code> object. Indicates whether
+the additional analyses of the Newton Miller Smith Extension
+were performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>weighted</code>:</td>
+<td>
+<p><code>logical</code> object. Indicates
+if weighted data was used in the analysis. Outputs from
+<code>psm_analysis()</code> always have the value <code>FALSE</code>.
+When data is weighted, use the function
+<code>psm_analysis_weighted.</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>data_nms</code>:</td>
+<td>
+<p><code>data.frame</code> object. Output of
+the Newton Miller Smith extension: calibrated mean
+purchase probabilities for each price point.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>pi_scale</code>:</td>
+<td>
+<p><code>data.frame</code> object. Shows the
+values of the purchase intent variable and the
+corresponding calibrated purchase probabilities as defined
+in the function input for the Newton Miller Smith
+extension.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>price_optimal_reach</code>:</td>
+<td>
+<p><code>numeric</code> object.
+Output of the Newton Miller Smith extension: Estimate for
+the price with the highest reach (trial rate).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>price_optimal_revenue</code>:</td>
+<td>
+<p><code>numeric</code> object.
+Output of the Newton Miller Smith extension:
+Estimate for the price with the highest revenue (based on
+the reach).</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Van Westendorp, P (1976) "NSS-Price Sensitivity Meter (PSM) –
+A new approach to study consumer perception of price"
+<em>Proceedings of the ESOMAR 29th Congress</em>, 139–167. Online
+available at <a href="https://archive.researchworld.com/a-new-approach-to-study-consumer-perception-of-price/">https://archive.researchworld.com/a-new-approach-to-study-consumer-perception-of-price/</a>.
+</p>
+<p>Newton, D, Miller, J, Smith, P, (1993) "A market acceptance
+extension to traditional price sensitivity measurement"
+<em>Proceedings of the American Marketing Association
+Advanced Research Techniques Forum</em>.
+</p>
+<p>Sawtooth Software (2016) "Templates for van Westendorp PSM for
+Lighthouse Studio and Excel". Online available at
+<a href="https://sawtoothsoftware.com/resources/software-downloads/tools/van-westendorp-price-sensitivity-meter">https://sawtoothsoftware.com/resources/software-downloads/tools/van-westendorp-price-sensitivity-meter</a>
+</p>
+<p>Examples for companies that use a narrower definition than
+van Westendorp's original paper include Conjoint.ly
+(<a href="https://conjointly.com/products/van-westendorp/">https://conjointly.com/products/van-westendorp/</a>),
+Quantilope (<a href="https://www.quantilope.com/resources/glossary-how-to-use-van-westendorp-pricing-model-to-inform-pricing-strategy">https://www.quantilope.com/resources/glossary-how-to-use-van-westendorp-pricing-model-to-inform-pricing-strategy</a>),
+and Milieu (<a href="https://www.mili.eu/learn/what-is-the-van-westendorp-pricing-study-and-when-to-use-it">https://www.mili.eu/learn/what-is-the-van-westendorp-pricing-study-and-when-to-use-it</a>)
+</p>
+
+
+<h3>See Also</h3>
+
+<p>The function <code>psm_analysis_weighted()</code> performs the same
+analyses for weighted data.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+set.seed(42)
+
+# standard van Westendorp Price Sensitivity Meter Analysis
+# input directly via vectors
+
+tch &lt;- round(rnorm(n = 250, mean = 5, sd = 0.5), digits = 2)
+ch &lt;- round(rnorm(n = 250, mean = 8.5, sd = 0.5), digits = 2)
+ex &lt;- round(rnorm(n = 250, mean = 13, sd = 0.75), digits = 2)
+tex &lt;- round(rnorm(n = 250, mean = 17, sd = 1), digits = 2)
+
+output_psm_demo1 &lt;- psm_analysis(toocheap = tch,
+  cheap = ch,
+  expensive = ex,
+  tooexpensive = tex)
+
+# additional analysis with Newton Miller Smith Extension
+# input via data.frame
+
+pint_ch &lt;- sample(x = c(1:5), size = length(tex),
+  replace = TRUE, prob = c(0.1, 0.1, 0.2, 0.3, 0.3))
+
+pint_ex &lt;- sample(x = c(1:5), size = length(tex),
+  replace = TRUE, prob = c(0.3, 0.3, 0.2, 0.1, 0.1))
+
+data_psm_demo &lt;- data.frame(tch, ch, ex, tex, pint_ch, pint_ex)
+
+output_psm_demo2 &lt;- psm_analysis(toocheap = "tch",
+  cheap = "ch",
+  expensive = "ex",
+  tooexpensive = "tex",
+  pi_cheap = "pint_ch",
+  pi_expensive = "pint_ex",
+  data = data_psm_demo)
+
+summary(output_psm_demo2)
+</code></pre>
+
+
+</div>

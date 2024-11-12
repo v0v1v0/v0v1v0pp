@@ -1,0 +1,136 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>as.multiData</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a 'multiData' object from multiple omicsData objects</h2>
+
+<h3>Description</h3>
+
+<p>Create a 'multiData' object from multiple omicsData objects
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">as.multiData(
+  ...,
+  f_meta = NULL,
+  sample_intersect = FALSE,
+  match_samples = TRUE,
+  keep_sample_info = FALSE,
+  auto_fmeta = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>two or more objects of type 'pepData', 'proData', 'metabData',
+'lipidData', or 'nmrData', created by <code>as.pepData</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>f_meta</code></td>
+<td>
+<p>A data.frame containing sample and group information for all
+omicsData objects supplied to the function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sample_intersect</code></td>
+<td>
+<p>logical indicator for whether only the samples that
+are common across all datasets be kept in f_meta. See details for how
+samples will be dropped.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>match_samples</code></td>
+<td>
+<p>logical indicator. If auto_fmeta = TRUE, whether to 
+attempt to match the names in the sample columns in f_data across all
+objects in an attempt to align them in f_meta. Defaults to TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep_sample_info</code></td>
+<td>
+<p>logical indicator for whether to attempt to append
+sample information contained in the objects' f_data to the final f_meta via
+a series of left joins. Defaults to FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>auto_fmeta</code></td>
+<td>
+<p>logical indicator for whether to attempt to automatically
+construct f_meta from the objects' sample information. Defaults to FALSE.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Object limits: Currently, as.multiData accepts at most one object
+from each of classes 'pepData/proData', 'metabData', 'nmrData', and at most
+two objects of class 'lipidData'.
+</p>
+<p><code>sample_intersect</code> will auto-align samples that occur in all datasets.
+Specifically, it creates a vector of all samples that are common across all
+datasets, and simply creates an f_meta by copying this vector for each dataset
+and column-binding them.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Object of class 'multiData' containing the omicsData objects, and the
+sample alignment information f_meta.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>combine_lipidData</code> if you want to combine lipidData
+objects before providing them to as.multiData.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+library(pmartRdata)
+
+# Combine metabolomics and protein object into multidata, both must be log2
+# and normalized.
+mymetab &lt;- edata_transform(omicsData = metab_object, data_scale = "log2")
+mymetab &lt;- normalize_global(omicsData = mymetab, subset_fn = "all",
+                            norm_fn = "median", apply_norm = TRUE)
+
+mypro &lt;- pro_object
+
+# Combine without specifically supplying f_meta, either directly, or as one
+# of the f_datas in any object.
+mymultidata &lt;- as.multiData(mymetab, mypro, auto_fmeta = TRUE, sample_intersect = TRUE)
+
+# Manually supply an f_meta
+f_meta &lt;- data.frame(
+  "Proteins" = mypro$f_data$SampleID[match(mymetab$f_data$SampleID, mypro$f_data$SampleID)],
+  "Metabolites" = mymetab$f_data$SampleID,
+  "Condition" = mymetab$f_data$Phenotype[match(mymetab$f_data$SampleID, mypro$f_data$SampleID)]
+)
+
+mymultidata &lt;- as.multiData(mymetab, mypro, f_meta = f_meta)
+# remove samples that are not common across all data.
+mymultidata &lt;- as.multiData(mymetab, mypro, f_meta = f_meta, sample_intersect = TRUE)
+
+</code></pre>
+
+
+</div>

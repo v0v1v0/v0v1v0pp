@@ -1,0 +1,467 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>partial</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Partial Dependence Functions</h2>
+
+<h3>Description</h3>
+
+<p>Compute partial dependence functions (i.e., marginal effects) for various
+model fitting objects.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">partial(object, ...)
+
+## Default S3 method:
+partial(
+  object,
+  pred.var,
+  pred.grid,
+  pred.fun = NULL,
+  grid.resolution = NULL,
+  ice = FALSE,
+  center = FALSE,
+  approx = FALSE,
+  quantiles = FALSE,
+  probs = 1:9/10,
+  trim.outliers = FALSE,
+  type = c("auto", "regression", "classification"),
+  inv.link = NULL,
+  which.class = 1L,
+  prob = FALSE,
+  recursive = TRUE,
+  plot = FALSE,
+  plot.engine = c("lattice", "ggplot2"),
+  smooth = FALSE,
+  rug = FALSE,
+  chull = FALSE,
+  levelplot = TRUE,
+  contour = FALSE,
+  contour.color = "white",
+  alpha = 1,
+  train,
+  cats = NULL,
+  check.class = TRUE,
+  progress = FALSE,
+  parallel = FALSE,
+  paropts = NULL,
+  ...
+)
+
+## S3 method for class 'model_fit'
+partial(object, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A fitted model object of appropriate class (e.g., <code>"gbm"</code>,
+<code>"lm"</code>, <code>"randomForest"</code>, <code>"train"</code>, etc.).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional optional arguments to be passed onto
+<code>predict</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pred.var</code></td>
+<td>
+<p>Character string giving the names of the predictor variables
+of interest. For reasons of computation/interpretation, this should include
+no more than three variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pred.grid</code></td>
+<td>
+<p>Data frame containing the joint values of interest for the
+variables listed in <code>pred.var</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pred.fun</code></td>
+<td>
+<p>Optional prediction function that requires two arguments:
+<code>object</code> and <code>newdata</code>. If specified, then the function must return
+a single prediction or a vector of predictions (i.e., not a matrix or data
+frame). Default is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grid.resolution</code></td>
+<td>
+<p>Integer giving the number of equally spaced points to
+use for the continuous variables listed in <code>pred.var</code> when
+<code>pred.grid</code> is not supplied. If left <code>NULL</code>, it will default to
+the minimum between <code>51</code> and the number of unique data points for each
+of the continuous independent variables listed in <code>pred.var</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ice</code></td>
+<td>
+<p>Logical indicating whether or not to compute individual
+conditional expectation (ICE) curves. Default is <code>FALSE</code>. See
+Goldstein et al. (2014) for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>Logical indicating whether or not to produce centered ICE
+curves (c-ICE curves). Only used when <code>ice = TRUE</code>. Default is
+<code>FALSE</code>. See Goldstein et al. (2014) for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>approx</code></td>
+<td>
+<p>Logical indicating whether or not to compute a faster, but
+approximate, marginal effect plot (similar in spirit to the
+<strong>plotmo</strong> package). If <code>TRUE</code>, then <code>partial()</code> will compute
+predictions across the predictors specified in <code>pred.var</code> while holding
+the other predictors constant (a "poor man's partial dependence" function as
+Stephen Milborrow, the author of <strong>plotmo</strong>, puts it).
+Default is <code>FALSE</code>. Note this works with <code>ice = TRUE</code> as well.
+WARNING: This option is currently experimental. Use at your own risk. It is
+possible (and arguably safer) to do this manually by passing a specific
+"exemplar" observation to the train argument and specifying <code>pred.grid</code>
+manually.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>quantiles</code></td>
+<td>
+<p>Logical indicating whether or not to use the sample
+quantiles of the continuous predictors listed in <code>pred.var</code>. If
+<code>quantiles = TRUE</code> and <code>grid.resolution = NULL</code> the sample
+quantiles will be used to generate the grid of joint values for which the
+partial dependence is computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>probs</code></td>
+<td>
+<p>Numeric vector of probabilities with values in [0,1]. (Values up
+to 2e-14 outside that range are accepted and moved to the nearby endpoint.)
+Default is <code>1:9/10</code> which corresponds to the deciles of the predictor
+variables. These specify which quantiles to use for the continuous predictors
+listed in <code>pred.var</code> when <code>quantiles = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trim.outliers</code></td>
+<td>
+<p>Logical indicating whether or not to trim off outliers
+from the continuous predictors listed in <code>pred.var</code> (using the simple
+boxplot method) before generating the grid of joint values for which the
+partial dependence is computed. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>Character string specifying the type of supervised learning.
+Current options are <code>"auto"</code>, <code>"regression"</code> or
+<code>"classification"</code>. If <code>type = "auto"</code> then <code>partial</code> will try
+to extract the necessary information from <code>object</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inv.link</code></td>
+<td>
+<p>Function specifying the transformation to be applied to the
+predictions before the partial dependence function is computed
+(experimental). Default is <code>NULL</code> (i.e., no transformation). This option
+is intended to be used for models that allow for non-Gaussian response
+variables (e.g., counts). For these models, predictions are not typically
+returned on the original response scale by default. For example, Poisson GBMs
+typically return predictions on the log scale. In this case setting
+<code>inv.link = exp</code> will return the partial dependence function on the
+response (i.e., raw count) scale.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>which.class</code></td>
+<td>
+<p>Integer specifying which column of the matrix of predicted
+probabilities to use as the "focus" class. Default is to use the first class.
+Only used for classification problems (i.e., when
+<code>type = "classification"</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prob</code></td>
+<td>
+<p>Logical indicating whether or not partial dependence for
+classification problems should be returned on the probability scale, rather
+than the centered logit. If <code>FALSE</code>, the partial dependence function is
+on a scale similar to the logit. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>recursive</code></td>
+<td>
+<p>Logical indicating whether or not to use the weighted tree
+traversal method described in Friedman (2001). This only applies to objects
+that inherit from class <code>"gbm"</code>. Default is <code>TRUE</code> which is much
+faster than the exact brute force approach used for all other models. (Based
+on the C++ code behind <code>plot.gbm</code>.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>Logical indicating whether to return a data frame containing the
+partial dependence values (<code>FALSE</code>) or plot the partial dependence
+function directly (<code>TRUE</code>). Default is <code>FALSE</code>. See
+<code>plotPartial</code> for plotting details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.engine</code></td>
+<td>
+<p>Character string specifying which plotting engine to use
+whenever <code>plot = TRUE</code>. Options include <code>"lattice"</code> (default) or
+<code>"ggplot2"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>smooth</code></td>
+<td>
+<p>Logical indicating whether or not to overlay a LOESS smooth.
+Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rug</code></td>
+<td>
+<p>Logical indicating whether or not to include a rug display on the
+predictor axes. The tick marks indicate the min/max and deciles of the
+predictor distributions. This helps reduce the risk of interpreting the
+partial dependence plot outside the region of the data (i.e., extrapolating).
+Only used when <code>plot = TRUE</code>. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chull</code></td>
+<td>
+<p>Logical indicating whether or not to restrict the values of the
+first two variables in <code>pred.var</code> to lie within the convex hull of their
+training values; this affects <code>pred.grid</code>. This helps reduce the risk of
+interpreting the partial dependence plot outside the region of the data
+(i.e., extrapolating).Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>levelplot</code></td>
+<td>
+<p>Logical indicating whether or not to use a false color level
+plot (<code>TRUE</code>) or a 3-D surface (<code>FALSE</code>). Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contour</code></td>
+<td>
+<p>Logical indicating whether or not to add contour lines to the
+level plot. Only used when <code>levelplot = TRUE</code>. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contour.color</code></td>
+<td>
+<p>Character string specifying the color to use for the
+contour lines when <code>contour = TRUE</code>. Default is <code>"white"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>Numeric value in <code>[0, 1]</code> specifying the opacity alpha (
+most useful when plotting ICE/c-ICE curves). Default is 1 (i.e., no
+transparency). In fact, this option only affects ICE/c-ICE curves and level
+plots.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>train</code></td>
+<td>
+<p>An optional data frame, matrix, or sparse matrix containing the
+original training data. This may be required depending on the class of
+<code>object</code>. For objects that do not store a copy of the original training
+data, this argument is required. For reasons discussed below, it is good
+practice to always specify this argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cats</code></td>
+<td>
+<p>Character string indicating which columns of <code>train</code> should
+be treated as categorical variables. Only used when <code>train</code> inherits
+from class <code>"matrix"</code> or <code>"dgCMatrix"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>check.class</code></td>
+<td>
+<p>Logical indicating whether or not to make sure each column
+in <code>pred.grid</code> has the correct class, levels, etc. Default is
+<code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>progress</code></td>
+<td>
+<p>Logical indicating whether or not to display a text-based
+progress bar. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>Logical indicating whether or not to run <code>partial</code> in
+parallel using a backend provided by the <code>foreach</code> package. Default is
+<code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>paropts</code></td>
+<td>
+<p>List containing additional options to be passed onto
+<code>foreach</code> when <code>parallel = TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>By default, <code>partial</code> returns an object of class
+<code>c("data.frame", "partial")</code>. If <code>ice = TRUE</code> and
+<code>center = FALSE</code> then an object of class <code>c("data.frame", "ice")</code>
+is returned. If <code>ice = TRUE</code> and <code>center = TRUE</code> then an object of
+class <code>c("data.frame", "cice")</code> is returned. These three classes
+determine the behavior of the <code>plotPartial</code> function which is
+automatically called whenever <code>plot = TRUE</code>. Specifically, when
+<code>plot = TRUE</code>, a <code>"trellis"</code> object is returned (see
+<code>lattice</code> for details); the <code>"trellis"</code> object will
+also include an additional attribute, <code>"partial.data"</code>, containing the
+data displayed in the plot.
+</p>
+
+
+<h3>Note</h3>
+
+<p>In some cases it is difficult for <code>partial</code> to extract the original
+training data from <code>object</code>. In these cases an error message is
+displayed requesting the user to supply the training data via the
+<code>train</code> argument in the call to <code>partial</code>. In most cases where
+<code>partial</code> can extract the required training data from <code>object</code>,
+it is taken from the same environment in which <code>partial</code> is called.
+Therefore, it is important to not change the training data used to construct
+<code>object</code> before calling <code>partial</code>. This problem is completely
+avoided when the training data are passed to the <code>train</code> argument in the
+call to <code>partial</code>.
+</p>
+<p>It is recommended to call <code>partial</code> with <code>plot = FALSE</code> and store
+the results. This allows for more flexible plotting, and the user will not
+have to waste time calling <code>partial</code> again if the default plot is not
+sufficient.
+</p>
+<p>It is possible to retrieve the last printed <code>"trellis"</code> object, such as
+those produced by <code>plotPartial</code>, using <code>trellis.last.object()</code>.
+</p>
+<p>If <code>ice = TRUE</code> or the prediction function given to <code>pred.fun</code>
+returns a prediction for each observation in <code>newdata</code>, then the result
+will be a curve for each observation. These are called individual conditional
+expectation (ICE) curves; see Goldstein et al. (2015) and
+<code>ice</code> for details.
+</p>
+
+
+<h3>References</h3>
+
+<p>J. H. Friedman. Greedy function approximation: A gradient boosting machine.
+<em>Annals of Statistics</em>, <b>29</b>: 1189-1232, 2001.
+</p>
+<p>Goldstein, A., Kapelner, A., Bleich, J., and Pitkin, E., Peeking Inside the
+Black Box: Visualizing Statistical Learning With Plots of Individual
+Conditional Expectation. (2014) <em>Journal of Computational and Graphical
+Statistics</em>, <b>24</b>(1): 44-65, 2015.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+#
+# Regression example (requires randomForest package to run)
+#
+
+# Fit a random forest to the boston housing data
+library(randomForest)
+data (boston)  # load the boston housing data
+set.seed(101)  # for reproducibility
+boston.rf &lt;- randomForest(cmedv ~ ., data = boston)
+
+# Using randomForest's partialPlot function
+partialPlot(boston.rf, pred.data = boston, x.var = "lstat")
+
+# Using pdp's partial function
+head(partial(boston.rf, pred.var = "lstat"))  # returns a data frame
+partial(boston.rf, pred.var = "lstat", plot = TRUE, rug = TRUE)
+
+# The partial function allows for multiple predictors
+partial(boston.rf, pred.var = c("lstat", "rm"), grid.resolution = 40,
+        plot = TRUE, chull = TRUE, progress = TRUE)
+
+# The plotPartial function offers more flexible plotting
+pd &lt;- partial(boston.rf, pred.var = c("lstat", "rm"), grid.resolution = 40)
+plotPartial(pd, levelplot = FALSE, zlab = "cmedv", drape = TRUE,
+            colorkey = FALSE, screen = list(z = -20, x = -60))
+
+# The autplot function can be used to produce graphics based on ggplot2
+library(ggplot2)
+autoplot(pd, contour = TRUE, legend.title = "Partial\ndependence")
+
+#
+# Individual conditional expectation (ICE) curves
+#
+
+# Use partial to obtain ICE/c-ICE curves
+rm.ice &lt;- partial(boston.rf, pred.var = "rm", ice = TRUE)
+plotPartial(rm.ice, rug = TRUE, train = boston, alpha = 0.2)
+autoplot(rm.ice, center = TRUE, alpha = 0.2, rug = TRUE, train = boston)
+
+#
+# Classification example (requires randomForest package to run)
+#
+
+# Fit a random forest to the Pima Indians diabetes data
+data (pima)  # load the boston housing data
+set.seed(102)  # for reproducibility
+pima.rf &lt;- randomForest(diabetes ~ ., data = pima, na.action = na.omit)
+
+# Partial dependence of positive test result on glucose (default logit scale)
+partial(pima.rf, pred.var = "glucose", plot = TRUE, chull = TRUE,
+        progress = TRUE)
+
+# Partial dependence of positive test result on glucose (probability scale)
+partial(pima.rf, pred.var = "glucose", prob = TRUE, plot = TRUE,
+        chull = TRUE, progress = TRUE)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

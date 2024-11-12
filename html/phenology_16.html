@@ -1,0 +1,343 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fitRMU</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Adjust incomplete timeseries with various constraints.</h2>
+
+<h3>Description</h3>
+
+<p>The data must be a data.frame with the first column being years
+and two columns for each beach: the average and the se for the estimate.<br>
+The correspondence between mean, se and density for each rookery are given in the RMU.names data.frame.<br>
+This data.frame must have a column named mean, another named se and a third named density. If
+no sd column exists, no sd will be considered for the series and if no density column exists, it
+will be considered as being "dnorm" (Gaussian distribution).<br>
+The aggregated number of nests and its confidence interval can be obtained using CI.RMU().<br>
+The names of beach columns must not begin by T_, SD_, a0_, a1_ or a2_ and cannot be r.<br>
+A RMU is the acronyme for Regional Managment Unit. See:<br>
+Wallace, B.P., DiMatteo, A.D., Hurley, B.J., Finkbeiner, E.M., Bolten, A.B.,
+Chaloupka, M.Y., Hutchinson, B.J., Abreu-Grobois, F.A., Amorocho, D., Bjorndal, K.A.,
+Bourjea, J., Bowen, B.W., Dueñas, R.B., Casale, P., Choudhury, B.C., Costa, A.,
+Dutton, P.H., Fallabrino, A., Girard, A., Girondot, M., Godfrey, M.H., Hamann, M.,
+López-Mendilaharsu, M., Marcovaldi, M.A., Mortimer, J.A., Musick, J.A., Nel, R.,
+Seminoff, J.A., Troëng, S., Witherington, B., Mast, R.B., 2010. Regional
+management units for marine turtles: a novel framework for prioritizing
+conservation and research across multiple scales. PLoS One 5, e15465.<br>
+Variance for each value is additive based on both the observed SE (in the RMU.data
+object) and a value.<br>
+The value is a global constant when model.SD is "global-constant". <br>
+The value is proportional to the observed number of nests when model.SD is
+"global-proportional" with aSD_*observed+SD_ with aSD_ and SD_ being fitted
+values. This value is fixed to zero when model.SD is "Zero".<br>
+The value is dependent on the rookery when model.SD is equal to
+"Rookery-constant" or "Rookery-proportional" with a similar formula as previously
+described for "global".<br>
+if method is NULL, it will simply return the names of required parameters.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fitRMU(
+  RMU.data = stop("data parameter must be provided"),
+  years.byrow = TRUE,
+  RMU.names = NULL,
+  model.trend = "Constant",
+  model.rookeries = "Constant",
+  model.SD = "Global-constant",
+  parameters = NULL,
+  fixed.parameters = NULL,
+  SE = NULL,
+  method = c("Nelder-Mead", "BFGS"),
+  control = list(trace = 1),
+  itnmax = c(1500, 1500),
+  cptmax.optim = 100,
+  limit.cpt.optim = 1e-05,
+  hessian = TRUE,
+  replicate.CI = 1000,
+  colname.year = "Year",
+  maxL = 1e+09
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>RMU.data</code></td>
+<td>
+<p>A data.frame with a column Year (the name is defined in colname.year) and one to three columns per rookery defined in RMU.names</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>years.byrow</code></td>
+<td>
+<p>If TRUE, the RMU.data data.frame is organized with years in rows</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>RMU.names</code></td>
+<td>
+<p>A dataframe with one to three columns indicating name of columns for mean, standard deviation, and distribution for roockeris</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model.trend</code></td>
+<td>
+<p>Can be Constant, Exponential or Year-specific</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model.rookeries</code></td>
+<td>
+<p>Description temporal change in rookeries proportion. It be Constant, First-order or Second-order</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model.SD</code></td>
+<td>
+<p>Can be Zero, Global-constant, Global-proportional or Rookery-constant. See description.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parameters</code></td>
+<td>
+<p>Parameters to fit</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixed.parameters</code></td>
+<td>
+<p>Parameters that are fixed</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SE</code></td>
+<td>
+<p>Parameters SE for example from fitRMU_MHmcmc()</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Methods to be used by optim()</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>List of controls for optim()</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>itnmax</code></td>
+<td>
+<p>A vector with maximum iterations for each method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cptmax.optim</code></td>
+<td>
+<p>How many times optim can be ran when likelihood is better.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>limit.cpt.optim</code></td>
+<td>
+<p>Limit to consider that likelihood is better.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hessian</code></td>
+<td>
+<p>If TRUE, the hessian matrix is calculated and then the standard error of parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>replicate.CI</code></td>
+<td>
+<p>Number of replicates to estimate CI of proportion for each rookery</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colname.year</code></td>
+<td>
+<p>Name of the column to be used as time index</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxL</code></td>
+<td>
+<p>If an error is produced during the estimation of likelihood, replace -Ln L by this value</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>fitRMU is used to estimate missing information when several linked values are observed along a timeseries
+</p>
+
+
+<h3>Value</h3>
+
+<p>Return a list with the results from optim and synthesis for proportions and numbers
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Marc Girondot <a href="mailto:marc.girondot@gmail.com">marc.girondot@gmail.com</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Fill gaps in RMU: 
+<code>CI.RMU()</code>,
+<code>fitRMU_MHmcmc()</code>,
+<code>fitRMU_MHmcmc_p()</code>,
+<code>logLik.fitRMU()</code>,
+<code>plot.fitRMU()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+library("phenology")
+RMU.names.AtlanticW &lt;- data.frame(mean=c("Yalimapo.French.Guiana", 
+                                         "Galibi.Suriname", 
+                                         "Irakumpapy.French.Guiana"), 
+                                 se=c("se_Yalimapo.French.Guiana", 
+                                      "se_Galibi.Suriname", 
+                                      "se_Irakumpapy.French.Guiana"), 
+                                 density=c("density_Yalimapo.French.Guiana", 
+                                           "density_Galibi.Suriname", 
+                                           "density_Irakumpapy.French.Guiana"))
+data.AtlanticW &lt;- data.frame(Year=c(1990:2000), 
+      Yalimapo.French.Guiana=c(2076, 2765, 2890, 2678, NA, 
+                               6542, 5678, 1243, NA, 1566, 1566),
+      se_Yalimapo.French.Guiana=c(123.2, 27.7, 62.5, 126, NA, 
+                                 230, 129, 167, NA, 145, 20),
+      density_Yalimapo.French.Guiana=rep("dnorm", 11), 
+      Galibi.Suriname=c(276, 275, 290, NA, 267, 
+                       542, 678, NA, 243, 156, 123),
+      se_Galibi.Suriname=c(22.3, 34.2, 23.2, NA, 23.2, 
+                           4.3, 2.3, NA, 10.3, 10.1, 8.9),
+      density_Galibi.Suriname=rep("dnorm", 11), 
+      Irakumpapy.French.Guiana=c(1076, 1765, 1390, 1678, NA, 
+                               3542, 2678, 243, NA, 566, 566),
+      se_Irakumpapy.French.Guiana=c(23.2, 29.7, 22.5, 226, NA, 
+                                 130, 29, 67, NA, 15, 20), 
+      density_Irakumpapy.French.Guiana=rep("dnorm", 11)
+      )
+                           
+cst &lt;- fitRMU(RMU.data=data.AtlanticW, RMU.names=RMU.names.AtlanticW, 
+               colname.year="Year", model.trend="Constant", 
+               model.SD="Zero")
+cst &lt;- fitRMU(RMU.data=data.AtlanticW, RMU.names=RMU.names.AtlanticW, 
+               colname.year="Year", model.trend="Constant", 
+               model.SD="Zero", 
+               control=list(trace=1, REPORT=100, maxit=500, parscale = c(3000, -0.2, 0.6)))
+               
+cst &lt;- fitRMU(RMU.data=data.AtlanticW, RMU.names=RMU.names.AtlanticW, 
+               colname.year="Year", model.trend="Constant", 
+               model.SD="Zero", method=c("Nelder-Mead","BFGS"), 
+               control = list(trace = 0, REPORT = 100, maxit = 500, 
+               parscale = c(3000, -0.2, 0.6)))
+expo &lt;- fitRMU(RMU.data=data.AtlanticW, RMU.names=RMU.names.AtlanticW, 
+               colname.year="Year", model.trend="Exponential", 
+               model.SD="Zero", method=c("Nelder-Mead","BFGS"), 
+               control = list(trace = 0, REPORT = 100, maxit = 500, 
+               parscale = c(6000, -0.05, -0.25, 0.6)))
+YS &lt;- fitRMU(RMU.data=data.AtlanticW, RMU.names=RMU.names.AtlanticW, 
+             colname.year="Year", model.trend="Year-specific", method=c("Nelder-Mead","BFGS"), 
+             model.SD="Zero")
+YS1 &lt;- fitRMU(RMU.data=data.AtlanticW, RMU.names=RMU.names.AtlanticW, 
+             colname.year="Year", model.trend="Year-specific", method=c("Nelder-Mead","BFGS"), 
+             model.SD="Zero", model.rookeries="First-order")
+YS1_cst &lt;- fitRMU(RMU.data=data.AtlanticW, RMU.names=RMU.names.AtlanticW, 
+             colname.year="Year", model.trend="Year-specific", 
+             model.SD="Constant", model.rookeries="First-order", 
+             parameters=YS1$par, method=c("Nelder-Mead","BFGS"))
+YS2 &lt;- fitRMU(RMU.data=data.AtlanticW, RMU.names=RMU.names.AtlanticW, 
+             colname.year="Year", model.trend="Year-specific",
+             model.SD="Zero", model.rookeries="Second-order", 
+             parameters=YS1$par, method=c("Nelder-Mead","BFGS"))
+YS2_cst &lt;- fitRMU(RMU.data=data.AtlanticW, RMU.names=RMU.names.AtlanticW, 
+             colname.year="Year", model.trend="Year-specific",
+             model.SD="Constant", model.rookeries="Second-order", 
+             parameters=YS1_cst$par, method=c("Nelder-Mead","BFGS"))
+               
+compare_AIC(Constant=cst, Exponential=expo, 
+YearSpecific=YS)
+
+compare_AIC(YearSpecific_ProportionsFirstOrder_Zero=YS1,
+YearSpecific_ProportionsFirstOrder_Constant=YS1_cst)
+
+compare_AIC(YearSpecific_ProportionsConstant=YS,
+           YearSpecific_ProportionsFirstOrder=YS1,
+           YearSpecific_ProportionsSecondOrder=YS2)
+           
+compare_AIC(YearSpecific_ProportionsFirstOrder=YS1_cst,
+           YearSpecific_ProportionsSecondOrder=YS2_cst)
+
+# Example of different types of plots
+plot(cst, main="Use of different beaches along the time", what="total", 
+     ylim=c(0, 4000))
+plot(cst, main="Use of different beaches along the time", what = "proportions", 
+     replicate.CI=0)
+plot(cst, main="Use of different beaches along the time", what = "numbers", 
+     aggregate="model", ylim=c(0, 4000), replicate.CI=0)
+plot(cst, main="Use of different beaches along the time", what = "numbers", 
+     aggregate="both", ylim=c(0, 11000), replicate.CI=0)
+     
+plot(expo, main="Use of different beaches along the time", what="total")
+plot(YS2_cst, main="Use of different beaches along the time", what="total")
+
+plot(YS1, main="Use of different beaches along the time")
+plot(YS1_cst, main="Use of different beaches along the time")
+plot(YS1_cst, main="Use of different beaches along the time", what="numbers")
+
+# Gamma distribution should be used for MCMC outputs
+
+RMU.names.AtlanticW &lt;- data.frame(mean=c("Yalimapo.French.Guiana", 
+                                         "Galibi.Suriname", 
+                                         "Irakumpapy.French.Guiana"), 
+                                 se=c("se_Yalimapo.French.Guiana", 
+                                      "se_Galibi.Suriname", 
+                                      "se_Irakumpapy.French.Guiana"), 
+                                 density=c("density_Yalimapo.French.Guiana", 
+                                           "density_Galibi.Suriname", 
+                                           "density_Irakumpapy.French.Guiana"), 
+                                           stringsAsFactors = FALSE)
+                                           
+data.AtlanticW &lt;- data.frame(Year=c(1990:2000), 
+      Yalimapo.French.Guiana=c(2076, 2765, 2890, 2678, NA, 
+                               6542, 5678, 1243, NA, 1566, 1566),
+      se_Yalimapo.French.Guiana=c(123.2, 27.7, 62.5, 126, NA, 
+                                 230, 129, 167, NA, 145, 20),
+      density_Yalimapo.French.Guiana=rep("dgamma", 11), 
+      Galibi.Suriname=c(276, 275, 290, NA, 267, 
+                       542, 678, NA, 243, 156, 123),
+      se_Galibi.Suriname=c(22.3, 34.2, 23.2, NA, 23.2, 
+                           4.3, 2.3, NA, 10.3, 10.1, 8.9),
+      density_Galibi.Suriname=rep("dgamma", 11), 
+      Irakumpapy.French.Guiana=c(1076, 1765, 1390, 1678, NA, 
+                               3542, 2678, 243, NA, 566, 566),
+      se_Irakumpapy.French.Guiana=c(23.2, 29.7, 22.5, 226, NA, 
+                                 130, 29, 67, NA, 15, 20), 
+      density_Irakumpapy.French.Guiana=rep("dgamma", 11), stringsAsFactors = FALSE
+      )
+cst &lt;- fitRMU(RMU.data=data.AtlanticW, RMU.names=RMU.names.AtlanticW, 
+               colname.year="Year", model.trend="Constant", 
+               model.SD="Zero")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

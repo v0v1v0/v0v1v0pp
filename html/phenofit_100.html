@@ -1,0 +1,164 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>opt_FUN</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Unified optimization function</h2>
+
+<h3>Description</h3>
+
+<p><code>I_optimx</code> is rich of functionality, but with a low computing
+performance. Some basic optimization functions are unified here, with some
+input and output format. <br></p>
+
+<ul>
+<li> <p><code>opt_ncminf</code> General-Purpose Unconstrained Non-Linear Optimization,
+see <code>ucminf::ucminf()</code>.
+</p>
+</li>
+<li> <p><code>opt_nlminb</code> Optimization using PORT routines, see <code>stats::nlminb()</code>.
+</p>
+</li>
+<li> <p><code>opt_nlm</code> Non-Linear Minimization, <code>stats::nlm()</code>.
+</p>
+</li>
+<li> <p><code>opt_optim</code> General-purpose Optimization, see <code>stats::optim()</code>.
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">opt_ucminf(par0, objective, ...)
+
+opt_nlm(par0, objective, ...)
+
+opt_optim(par0, objective, method = "BFGS", ...)
+
+opt_nlminb(par0, objective, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>par0</code></td>
+<td>
+<p>Initial values for the parameters to be optimized over.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>objective</code></td>
+<td>
+<p>A function to be minimized (or maximized), with first
+argument the vector of parameters over which minimization is to take place.
+It should return a scalar result.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>other parameters passed to <code>objective</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>optimization method to be used in <code>p_optim</code>. See
+<code>stats::optim()</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+
+<ul>
+<li> <p><code>convcode</code>: An integer code. 0 indicates successful convergence.
+Various methods may or may not return sufficient information to allow all
+the codes to be specified. An incomplete list of codes includes
+</p>
+
+<ul>
+<li> <p><code>1</code>: indicates that the iteration limit <code>maxit</code> had been reached.
+</p>
+</li>
+<li> <p><code>20</code>: indicates that the initial set of parameters is inadmissible,
+that is, that the function cannot be computed or returns an infinite,
+NULL, or NA value.
+</p>
+</li>
+<li> <p><code>21</code>: indicates that an intermediate set of parameters is inadmissible.
+</p>
+</li>
+<li> <p><code>10</code>: indicates degeneracy of the Nelder–Mead simplex.
+</p>
+</li>
+<li> <p><code>51</code>: indicates a warning from the <code>"L-BFGS-B"</code> method; see component
+<code>message</code> for further details.
+</p>
+</li>
+<li> <p><code>52</code>: indicates an error from the <code>"L-BFGS-B"</code> method; see component
+<code>message</code> for further details.
+</p>
+</li>
+<li> <p><code>9999</code>: error
+</p>
+</li>
+</ul>
+</li>
+<li> <p><code>value</code>: The value of fn corresponding to par
+</p>
+</li>
+<li> <p><code>par</code>: The best parameter found
+</p>
+</li>
+<li> <p><code>nitns</code>: the number of iterations
+</p>
+</li>
+<li> <p><code>fevals</code>: The number of calls to <code>objective</code>.
+</p>
+</li>
+</ul>
+<h3>See Also</h3>
+
+<p><code>optim_pheno()</code>, <code>I_optim()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(phenofit)
+library(ggplot2)
+library(magrittr)
+library(purrr)
+library(data.table)
+
+# simulate vegetation time-series
+fFUN = doubleLog_Beck
+par  = c( mn  = 0.1 , mx  = 0.7 , sos = 50 , rsp = 0.1 , eos = 250, rau = 0.1)
+par0 = c( mn  = 0.15, mx  = 0.65, sos = 100, rsp = 0.12, eos = 200, rau = 0.12)
+
+t    &lt;- seq(1, 365, 8)
+tout &lt;- seq(1, 365, 1)
+y &lt;- fFUN(par, t)
+
+optFUNs &lt;- c("opt_ucminf", "opt_nlminb", "opt_nlm", "opt_optim") %&gt;% set_names(., .)
+opts &lt;- lapply(optFUNs, function(optFUN){
+    optFUN &lt;- get(optFUN)
+    opt    &lt;- optFUN(par0, f_goal, y = y, t = t, fun = fFUN)
+    opt$ysim &lt;- fFUN(opt$par, t)
+    opt
+})
+
+# visualization
+df   &lt;- map(opts, "ysim") %&gt;% as.data.table() %&gt;% cbind(t, y, .)
+pdat &lt;- data.table::melt(df, c("t", "y"), variable.name = "optFUN")
+
+ggplot(pdat) + 
+    geom_point(data = data.frame(t, y), aes(t, y), size = 2) + 
+    geom_line(aes(t, value, color = optFUN), linewidth = 0.9)
+</code></pre>
+
+
+</div>

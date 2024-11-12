@@ -1,0 +1,205 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>occData2timeList</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Converting Occurrences Data to a <code>timeList</code> Data Object</h2>
+
+<h3>Description</h3>
+
+<p>This function converts occurrence data, given as a list where each element
+is a different taxon's occurrence table (containing minimum and maximum ages
+for each occurrence), to the <code>timeList</code> format, consisting of a list composed
+of a matrix of lower and upper age bounds for intervals, and a second matrix
+recording the interval in which taxa first and last occur in the given dataset.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">occData2timeList(occList, intervalType = "dateRange")
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>occList</code></td>
+<td>
+<p>A list where every element is a table of occurrence data for a different taxon,
+such as that returned by <code>taxonSortPBDBocc</code>. The occurrence data can be either a 
+two-column matrix composed of the lower and upper age bounds on each taxon occurrence, or has
+two named variables which match any of the field names given by the PBDB API under either
+the <code>'pbdb'</code> vocab or <code>'com'</code> (compact) vocab for early and late age bounds.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intervalType</code></td>
+<td>
+<p>Must be either <code>"dateRange"</code> (the default), <code>"occRange"</code> or
+<code>"zoneOverlap"</code>. Please see details below.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function should translate taxon-sorted occurrence data, which could be Paleobiology Database
+datasets sorted by <code>taxonSortPBDBocc</code> or any data object where occurrence data
+(i.e. age bounds for each occurrence) for different taxa is separated into different elements
+of a named list. 
+</p>
+
+
+<h4>The Usage of the Argument <code>intervalType</code>
+</h4>
+
+<p>The argument <code>intervalType</code> controls the algorithm used for obtain first and last interval bounds for
+each taxon, of which there are several options for <code>intervalType</code> to select from:
+</p>
+
+<dl>
+<dt><code>"dateRange"</code></dt>
+<dd>
+<p>The default option. The bounds on the first appearances
+are the span between the oldest upper and lower bounds
+of the occurrences, and the bounds on the last appearances are the span between the youngest
+upper and lower bounds across all occurrences. This is guaranteed to provide the smallest
+bounds on the first and last appearances, and was originally suggested to the author by J. Marcot.</p>
+</dd>
+<dt><code>"occRange"</code></dt>
+<dd>
+<p>This option returns the smallest bounds among (a) the oldest occurrences for the
+first appearance (i.e. all occurrences with their lowest bound at the oldest lower age bound), and (b) the
+youngest occurrences for the last appearance (i.e. all occurrences with their uppermost bound
+at the youngest upper age bound).</p>
+</dd>
+<dt><code>"zoneOverlap"</code></dt>
+<dd>
+<p>This option is an attempt to mimic the stratigraphic range algorithm used by PBDB Classic
+which "finds the oldest base that is older than at least part of all the intervals and the
+youngest that is younger than at least part of all the intervals" (personal communication, J. Alroy). 
+This is a somewhat more complex case as we are trying to obtain a <code>timeList</code> object.
+So, for calculating the bounds of the first interval a taxon occurs in, the <code>zoneOverlap</code>
+algorithm looks for all occurrences that overlap with the age range of the earliest-most occurrence
+and (1) obtains their earliest boundary ages and returns the latest-most earliest age boundary among
+these overlapping occurrences and (2) obtains their latest boundary ages and returns the earliest-most
+latest age boundary among these overlapping occurrences. Similarly, for calculating the bound of the
+last interval a taxon occurs in, the <code>zoneOverlap</code> algorithm looks for all occurrences that overlap
+with the age range of the latest-most occurrence and (1) obtains their earliest boundary ages and returns
+the latest-most earliest age boundary among these overlapping occurrences and (2) obtains their latest
+boundary ages and returns the earliest-most latest age boundary among these overlapping occurrences. 
+</p>
+<p>On theoretical grounds, one could probably describe the zone-of-overlap algorithm as minimizing
+taxonomic age ranges by assuming that all overlapping occurrences at the start and end of a taxon's
+range probably describe a very similar first and last appearance (FADs and LADs), and thus picks the
+occurrence with bounds that extends the taxonomic range the least. However, this does come with a downside
+that if these occurrences are not essentially repeated attempts to capture the same FAD or LAD, then the
+zone-of-overlap algorithm is not an accurate depiction of the uncertainty in the ages. The true biological
+range of a taxon might be well outside the bounds obtained using the zone-of-overlap algorithm. A more
+conservative approach is the <code>"dateRange"</code> algorithm which finds the smallest possible bounds on the
+endpoints of a taxon's range without ignoring uncertainty from any particular set of occurrences.</p>
+</dd> </dl>
+<h3>Value</h3>
+
+<p>Returns a standard <code>timeList</code> data object, as used by
+many other <code>paleotree</code> functions, like
+<code>bin_timePaleoPhy</code>, <code>bin_cal3TimePaleoPhy</code>
+and <code>taxicDivDisc</code>
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David W. Bapst, with the <code>"dateRange"</code> algorithm suggested by Jon Marcot.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Occurrence data as commonly used with <code>paleotree</code> functions can
+be obtained with <code>link{getPBDBocc}</code>, and sorted into taxa by 
+<code>taxonSortPBDBocc</code>, and further explored with this function and
+<code>plotOccData</code>. Also, see the example graptolite dataset
+at <code>graptPBDB</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(graptPBDB)
+
+graptOccSpecies &lt;- taxonSortPBDBocc(
+   data = graptOccPBDB,
+   rank = "species",
+   onlyFormal = FALSE)
+graptTimeSpecies &lt;- occData2timeList(occList = graptOccSpecies)
+
+head(graptTimeSpecies[[1]])
+head(graptTimeSpecies[[2]])
+
+graptOccGenus &lt;- taxonSortPBDBocc(
+   data = graptOccPBDB,
+   rank = "genus",
+   onlyFormal = FALSE
+   )
+graptTimeGenus &lt;- occData2timeList(occList = graptOccGenus)
+
+layout(1:2)
+taxicDivDisc(graptTimeSpecies)
+taxicDivDisc(graptTimeGenus)
+
+# the default interval calculation is "dateRange"
+# let's compare to the other option, "occRange"
+   # but now for graptolite *species*
+
+graptOccRange &lt;- occData2timeList(
+   occList = graptOccSpecies, 
+   intervalType = "occRange"
+   )
+
+#we would expect no change in the diversity curve
+   #because there are only changes in th
+       #earliest bound for the FAD
+       #latest bound for the LAD
+#so if we are depicting ranges within maximal bounds
+   #dateRanges has no effect
+layout(1:2)
+taxicDivDisc(graptTimeSpecies)
+taxicDivDisc(graptOccRange)
+#yep, identical!
+
+#so how much uncertainty was gained by using dateRange?
+
+# write a function for getting uncertainty in first and last
+   # appearance dates from a timeList object
+sumAgeUncert &lt;- function(timeList){
+   fourDate &lt;- timeList2fourDate(timeList)
+   perOcc &lt;- (fourDate[,1] - fourDate[,2]) +
+       (fourDate[,3] - fourDate[,4])
+   sum(perOcc)
+   }
+
+#total amount of uncertainty in occRange dataset
+sumAgeUncert(graptOccRange)
+#total amount of uncertainty in dateRange dataset
+sumAgeUncert(graptTimeSpecies)
+#the difference
+sumAgeUncert(graptOccRange) - sumAgeUncert(graptTimeSpecies)
+#as a proportion
+1 - (sumAgeUncert(graptTimeSpecies) / sumAgeUncert(graptOccRange))
+
+#a different way of doing it
+dateChange &lt;- timeList2fourDate(graptTimeSpecies) - 
+    timeList2fourDate(graptOccRange)
+apply(dateChange, 2, sum)
+#total amount of uncertainty removed by dateRange algorithm
+sum(abs(dateChange))
+
+layout(1)
+
+</code></pre>
+
+
+</div>

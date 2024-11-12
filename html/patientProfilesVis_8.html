@@ -1,0 +1,395 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>createSubjectProfileReport</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create subject profile report.</h2>
+
+<h3>Description</h3>
+
+<p>By default all subjects available in at least one module of <code>listPlots</code> are considered.
+If only a set of subjects are of interest, these are specified either:
+</p>
+
+<ul>
+<li>
+<p>directly with the subject IDs of interest via <code>subjectSubset</code>
+</p>
+</li>
+<li>
+<p>by extracting subjects with a specific value (<code>subjectSubsetValue</code>)
+in a variable (<code>subjectSubsetVar</code>) in a specific dataset <code>subjectSubsetData</code>
+</p>
+</li>
+</ul>
+<h3>Usage</h3>
+
+<pre><code class="language-R">createSubjectProfileReport(
+  listPlots,
+  timeLim = NULL,
+  timeAlign = "all",
+  timeAlignPerSubject = "none",
+  refLines = NULL,
+  refLinesData = NULL,
+  refLinesTimeVar = NULL,
+  refLinesLabelVar = NULL,
+  bookmarkData = NULL,
+  bookmarkVar = NULL,
+  subjectSortData = bookmarkData,
+  subjectSortVar = bookmarkVar,
+  subjectSortDecreasing = FALSE,
+  subjectVar = "USUBJID",
+  subjectSubset = NULL,
+  subjectSubsetData = NULL,
+  subjectSubsetVar = NULL,
+  subjectSubsetValue = NULL,
+  subjectSample = NULL,
+  seed = 123,
+  subset = NULL,
+  outputFile = "subjectProfile.pdf",
+  exportFigures = FALSE,
+  reportPerSubject = FALSE,
+  exportBatchSize = NULL,
+  labelVars = NULL,
+  maxNLines = NULL,
+  shiny = FALSE,
+  formatReport = subjectProfileReportFormat(),
+  verbose = FALSE,
+  nCores = 1
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>listPlots</code></td>
+<td>
+<p>nested list of plots, as returned by the <code>subjectProfileTextPlot</code>,
+<code>subjectProfileEventPlot</code>, <code>subjectProfileIntervalPlot</code> or
+<code>subjectProfileLinePlot</code> functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timeLim</code></td>
+<td>
+<p>Time limits, as a numeric vector of length 2,
+or a list with time limits for each module,
+or nested list with time limits for each module and subject.
+If not specified, these are set to the time limits specified
+when creating each module (stored in <code>attributes(x)$metaData$timeLim</code>)
+otherwise to the range defined by <code>timeAlign</code> and <code>timeAlignPerSubject</code>.
+Note that this doesn't modify the geoms of the plots, it only extends the
+axis range. So for interval module(s) if the specified <code>timeLim</code>
+is smaller than the time limits in the input plot, no arrows are created in case than
+the time goes above/below specified <code>timeLim</code> (the segment is cut).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timeAlign</code></td>
+<td>
+<p>Character vector with time alignment across modules/subjects, either:
+</p>
+
+<ul>
+<li>
+<p>'all' (by default): all plots have the same time limits
+</p>
+</li>
+<li>
+<p>'none': each of the plot (module*subject) has its own time limits
+</p>
+</li>
+<li>
+<p>character vector with names of the modules which
+should have the same time limits
+(should correspond to the names of <code>listPlots</code>)
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timeAlignPerSubject</code></td>
+<td>
+<p>Character vector, specifying if the plots
+should be aligned (or not) across subjects
+</p>
+
+<ul>
+<li>
+<p>'none' (by default): all modules to align
+have the same time limit across subjects
+</p>
+</li>
+<li>
+<p>'all': all modules to align
+have different time limits per subject
+</p>
+</li>
+<li>
+<p>character vector with subset of the modules to align per subject
+(should correspond to the names of <code>listPlots</code>)
+</p>
+</li>
+</ul>
+<p>Only the modules already specified in <code>timeAlign</code>
+can be aligned by subject.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refLines</code></td>
+<td>
+<p>(optional) nested list with details for reference line(s).
+Each sublist contains:
+</p>
+
+<ul>
+<li>
+<p>(required) 'label': string with label for the reference line
+</p>
+</li>
+<li>
+<p>(required) 'time': unique time (x) coordinate for the reference line
+</p>
+</li>
+<li>
+<p>(optional) 'color': color for the reference line,
+'black' by default
+</p>
+</li>
+<li>
+<p>(optional) 'linetype': linetype for the reference line,
+'dotted' by default
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refLinesData</code></td>
+<td>
+<p>data.frame with data from which the reference line(s) should be extracted</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refLinesTimeVar</code></td>
+<td>
+<p>string, variable of <code>refLinesData</code> with time for reference line(s)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refLinesLabelVar</code></td>
+<td>
+<p>string, variable of <code>refLinesData</code> with label for reference line(s)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bookmarkData, bookmarkVar</code></td>
+<td>
+<p>Data.frame with data containing information for the index,
+and character vector with corresponding variable(s) of interest.
+An index will be created at the end of the subject profile report.<br>
+The index contains a section per variable, referencing the 
+pages of the report containing subject profiles
+for each category/variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subjectSortData</code></td>
+<td>
+<p>Data.frame with data containing information on how the subjects 
+should be sorted (by default same as <code>bookmarkData</code>):
+</p>
+
+<ul>
+<li>
+<p>in the report, in case one single report is created for all subjects
+</p>
+</li>
+<li>
+<p>for the export, in case <code>reportPerSubject</code> is TRUE
+</p>
+</li>
+</ul>
+<p>This data should contain <code>subjectSortVar</code> and <code>subjectVar</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subjectSortVar</code></td>
+<td>
+<p>Character vector, 
+variable(s) of <code>subjectSortData</code> indicating the order for the subjects in the report,
+(by default same as <code>bookmarkVar</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subjectSortDecreasing</code></td>
+<td>
+<p>Logical, if TRUE (FALSE by default)
+subjects are sorted based on decreasing order of <code>subjectSortVar</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subjectVar</code></td>
+<td>
+<p>String, variable of <code>data</code> with subject ID</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subjectSubset</code></td>
+<td>
+<p>subjectSubset (optional) Character vector with subjects of interest 
+(available in <code>subjectVar</code>), NULL by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subjectSubsetData</code></td>
+<td>
+<p>Data.frame used to select subset of subjects of interest.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subjectSubsetVar</code></td>
+<td>
+<p>String with variable of <code>subjectSubsetData</code> 
+that should be considered to filter subjects.
+If not specified, all subjects available in <code>subjectSubsetData</code> are considered.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subjectSubsetValue</code></td>
+<td>
+<p>Character vector with value(s) of <code>subjectSubsetVar</code>
+of interest to filter subjects on.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subjectSample</code></td>
+<td>
+<p>(optional) Integer of length 1
+with number of random subject(s) that should be considered in the specified subset dataset.
+By default, all specified subjects are considered (set to NULL).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>(optional) Integer of length 1 with seed used to select random subjects 
+if <code>subjectSample</code> is specified (123 by default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+<p>Character vector with subjects of interest 
+(among names of each list in <code>listPlots</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>outputFile</code></td>
+<td>
+<p>string, path to the output report</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exportFigures</code></td>
+<td>
+<p>Logical, if TRUE (FALSE by default) the 
+subject profile figures are also exported
+in pdf format in a 'figures' folder.<br>
+Figures are named as <code>[subjectID]-[page].pdf</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reportPerSubject</code></td>
+<td>
+<p>Logical, if TRUE (FALSE by default)
+export a subject profile report by subject.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exportBatchSize</code></td>
+<td>
+<p>(optional) Integer, if specified, the
+patient-profile reports are created by batch of this number of subjects.
+This might speed up the export for a high number of subjects.
+Only available if report is created by subject (<code>reportPerSubject</code> is TRUE)
+and modules are not aligned across subjects (<code>timeAlignPerSubject</code> is: 'all').</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>labelVars</code></td>
+<td>
+<p>Named character vector with variable labels 
+(names are the variable code)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxNLines</code></td>
+<td>
+<p>Maximum number of lines for a combined plot,
+to fit in the page height. <br>
+When the different visualizations
+are combined for each subject, they will be allocated 
+to different pages if the number of lines of the combined visualization
+is higher than this number.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shiny</code></td>
+<td>
+<p>logical, set to TRUE (FALSE by default) 
+if the report is generated from a Shiny application.
+Messages during report creation will be included in the Shiny interface,
+and it will be mentioned at the end of the report.
+In this case, the <code>shiny</code> package should be available.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formatReport</code></td>
+<td>
+<p>list with parameters used to specify the format of the report,
+e.g. output of the <code>subjectProfileReportFormat</code> function</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical, if TRUE print messages during execution</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nCores</code></td>
+<td>
+<p>Integer containing the number of cores used for the computation
+(1 by default). If more than 1, computation is parallelized, in this case
+the package <code>parallel</code> is required.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The path(s) of the report(s) is returned invisibly, and the
+report is created at the location
+specified by <code>outputFile</code>.<br>
+If the report is created by subject, 
+the name of the exported subject profile is built as:
+<code>[filename]-[subjectID].pdf</code>, with [filename] extracted from
+<code>outputFile</code>.
+Space and platform-specific file separator are replaced by
+a dash in the filename.<br>
+If no patient profiles are available in the input,
+nothing is returned and a warning is triggered.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Laure Cougnaud
+</p>
+
+
+</div>

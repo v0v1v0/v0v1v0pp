@@ -1,0 +1,332 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PP_4pl</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate Person Parameters for the 4-PL model</h2>
+
+<h3>Description</h3>
+
+<p>Compute Person Parameters for the 1/2/3/4-PL model and choose between five common estimation techniques: ML, WL, MAP, EAP and a robust estimation. All item parameters are treated as fixed.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PP_4pl(
+  respm,
+  thres,
+  slopes = NULL,
+  lowerA = NULL,
+  upperA = NULL,
+  theta_start = NULL,
+  mu = NULL,
+  sigma2 = NULL,
+  type = "wle",
+  maxsteps = 40,
+  exac = 0.001,
+  H = 1,
+  ctrl = list()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>respm</code></td>
+<td>
+<p>An integer matrix, which contains the examinees responses. A persons x items matrix is expected.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thres</code></td>
+<td>
+<p>A numeric vector or a numeric matrix which contains the threshold parameter (also known as difficulty parameter or beta parameter) for each item. If a matrix is submitted, the first row must contain only <b>zeroes</b>!</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>slopes</code></td>
+<td>
+<p>A numeric vector, which contains the slope parameters for each item - one parameter per item is expected.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lowerA</code></td>
+<td>
+<p>A numeric vector, which contains the lower asymptote parameters (kind of guessing parameter) for each item.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>upperA</code></td>
+<td>
+<p>numeric vector, which contains the upper asymptote parameters for each item.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta_start</code></td>
+<td>
+<p>A vector which contains a starting value for each person. If NULL is submitted, the starting values are set automatically. If a scalar is submitted, this start value is used for each person.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>A numeric vector of location parameters for each person in case of MAP or EAP estimation. If nothing is submitted this is set to 0 for each person for MAP estimation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sigma2</code></td>
+<td>
+<p>A numeric vector of variance parameters for each person in case of MAP or EAP estimation. If nothing is submitted this is set to 1 for each person for MAP estimation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>Which maximization should be applied? There are five valid entries possible: "mle", "wle", "map", "eap" and "robust". To choose between the methods, or just to get a deeper understanding the papers mentioned below are quite helpful. The default is <code>"wle"</code> which is a good choice in many cases.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxsteps</code></td>
+<td>
+<p>The maximum number of steps the NR Algorithm will take. Default = 100.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>exac</code></td>
+<td>
+<p>How accurate are the estimates supposed to be? Default is 0.001.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>H</code></td>
+<td>
+<p>In case <code>type = "robust"</code> a Huber ability estimate is performed, and <code>H</code> modulates how fast the downweighting takes place (for more Details read Schuster &amp; Yuan 2011).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ctrl</code></td>
+<td>
+<p>more controls:
+</p>
+
+<ul>
+<li> <p><code>killdupli</code>: Should duplicated response pattern be removed for estimation (estimation is faster)? This is especially resonable in case of a large number of examinees and a small number of items.  Use this option with caution (for map and eap), because persons with different <code>mu</code> and <code>sigma2</code> will have different ability estimates despite they responded identically. Default value is <code>FALSE</code>.
+</p>
+</li>
+<li> <p><code>skipcheck</code>: Default = FALSE. If TRUE data matrix and arguments are not checked - this saves time e.g. when you use this function for simulations.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>With this function you can estimate:
+</p>
+
+<ul>
+<li> <p><b>1-PL model</b> (Rasch model) by submitting: the data matrix, item difficulties and <b>nothing else</b>, since the 1-PL model is merely a 4-PL model with: any slope = 1, any lower asymptote = 0 and any upper asymptote = 1!
+</p>
+</li>
+<li> <p><b>2-PL model</b> by submitting: the data matrix, item difficulties and slope parameters. Lower and upper asymptotes are automatically set to 0 und 1 respectively.
+</p>
+</li>
+<li> <p><b>3-PL model</b> by submitting anything except the upper asymptote parameters
+</p>
+</li>
+<li> <p><b>4-PL model</b> —&gt; submit all parameters ...
+</p>
+</li>
+</ul>
+<p>The probability function of the 4-PL model is:
+</p>
+<p style="text-align: center;"><code class="reqn">P(x_{ij} = 1 | \hat \alpha_i, \hat\beta_i, \hat\gamma_i, \hat\delta_i, \theta_j ) = \hat\gamma_i + (\hat\delta_i-\hat\gamma_i) \frac{exp(\hat \alpha_i (\theta_{j} - \hat\beta_{i}))}{\,1 + exp(\hat\alpha_i (\theta_{j} - \hat\beta_{i}))}</code>
+</p>
+
+<p>In our case <code class="reqn">\theta</code> is to be estimated, and the four item parameters are assumed as fixed (usually these are estimates of a former scaling procedure).
+</p>
+<p>The 3-PL model is the same, except that <code class="reqn">\delta_i = 1, \forall i</code>.
+</p>
+<p>In the 2-PL model <code class="reqn">\delta_i = 1, \gamma_i = 0, \forall i</code>.
+</p>
+<p>In the 1-PL model <code class="reqn">\delta_i = 1, \gamma_i = 0, \alpha_i = 1, \forall i</code>.
+</p>
+<p>.
+</p>
+<p>The <b>robust</b> estimation method, applies a Huber-type estimator (Schuster &amp; Yuan, 2011), which downweights responses to items which provide little information for the ability estimation. First a residuum is estimated and on this basis, the weight for each observation is computed.
+</p>
+<p>residuum:
+</p>
+<p style="text-align: center;"><code class="reqn">r_i = \alpha_i(\theta - \beta_i)</code>
+</p>
+
+<p>weight:
+</p>
+<p style="text-align: center;"><code class="reqn">w(r_i) =  1 \rightarrow if\, |r_i| \leq H</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">w(r_i) = H/|r| \rightarrow if\, |r_i| &gt; H</code>
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>The function returns a list with the estimation results and pretty much everything which has been submitted to fit the model. The estimation results can be found in <code>OBJ$resPP</code>. The core result is a number_of_persons x 2 matrix, which contains the ability estimate and the SE for each submitted person.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Manuel Reif
+</p>
+
+
+<h3>References</h3>
+
+<p>Baker, Frank B., and Kim, Seock-Ho (2004). Item Response Theory - Parameter Estimation Techniques. CRC-Press.
+</p>
+<p>Barton, M. A., &amp; Lord, F. M. (1981). An Upper Asymptote for the Three-Parameter Logistic Item-Response Model.
+</p>
+<p>Birnbaum, A. (1968). Some latent trait models and their use in inferring an examinee's ability. In Lord, F.M. &amp; Novick, M.R. (Eds.), Statistical theories of mental test scores. Reading, MA: Addison-Wesley.
+</p>
+<p>Magis, D. (2013). A note on the item information function of the four-parameter logistic model. Applied Psychological Measurement, 37(4), 304-315.
+</p>
+<p>Samejima, Fumiko (1993). The bias function of the maximum likelihood estimate of ability for the dichotomous response level. Psychometrika,  58, 195-209.
+</p>
+<p>Samejima, Fumiko (1993). An approximation of the bias function of the maximum likelihood estimate of a latent variable for the general case where the item responses are discrete. Psychometrika,  58, 119-138.
+</p>
+<p>Schuster, C., &amp; Yuan, K. H. (2011). Robust estimation of latent ability in item response models. Journal of Educational and Behavioral Statistics, 36(6), 720-735.
+</p>
+<p>Warm, Thomas A. (1989). Weighted Likelihood Estimation Of Ability In Item Response Theory. Psychometrika, 54, 427-450.
+</p>
+<p>Yen, Y.-C., Ho, R.-G., Liao, W.-W., Chen, L.-J., &amp; Kuo, C.-C. (2012). An empirical evaluation of the slip correction in the four parameter logistic models with computerized adaptive testing. Applied Psychological Measurement, 36, 75-87.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>PPass, PPall, PP_gpcm, JKpp, PV
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">################# 4 PL #############################################################
+
+### real data ##########
+
+data(pp_amt)
+
+d &lt;- as.matrix(pp_amt$daten_amt[,-(1:7)])
+
+rd_res &lt;- PP_4pl(respm = d, thres = pp_amt$betas[,2], type = "wle")
+summary(rd_res)
+
+rd_res1 &lt;- PP_4pl(respm = d, thres = pp_amt$betas[,2], theta_start = 0,type = "wle")
+summary(rd_res1)
+
+### fake data ##########
+# smaller ... faster
+
+set.seed(1522)
+# intercepts
+diffpar &lt;- seq(-3,3,length=12)
+# slope parameters
+sl     &lt;- round(runif(12,0.5,1.5),2)
+la     &lt;- round(runif(12,0,0.25),2)
+ua     &lt;- round(runif(12,0.8,1),2)
+
+# response matrix
+awm &lt;- matrix(sample(0:1,10*12,replace=TRUE),ncol=12)
+
+
+## 1PL model ##### 
+
+# MLE
+res1plmle &lt;- PP_4pl(respm = awm,thres = diffpar,type = "mle")
+# WLE
+res1plwle &lt;- PP_4pl(respm = awm,thres = diffpar,type = "wle")
+# MAP estimation
+res1plmap &lt;- PP_4pl(respm = awm,thres = diffpar,type = "map")
+# EAP estimation
+res1pleap &lt;- PP_4pl(respm = awm,thres = diffpar,type = "eap")
+# robust estimation
+res1plrob &lt;- PP_4pl(respm = awm,thres = diffpar,type = "robust")
+
+# summarize results
+summary(res1plmle)
+summary(res1plwle)
+summary(res1plmap)
+
+
+## 2PL model ##### 
+
+# MLE
+res2plmle &lt;- PP_4pl(respm = awm,thres = diffpar, slopes = sl,type = "mle")
+# WLE
+res2plwle &lt;- PP_4pl(respm = awm,thres = diffpar, slopes = sl,type = "wle")
+# MAP estimation
+res2plmap &lt;- PP_4pl(respm = awm,thres = diffpar, slopes = sl,type = "map")
+# EAP estimation
+res2pleap &lt;- PP_4pl(respm = awm,thres = diffpar, slopes = sl,type = "eap")
+# robust estimation
+res2plrob &lt;- PP_4pl(respm = awm,thres = diffpar, slopes = sl,type = "robust")
+
+
+## 3PL model ##### 
+
+# MLE
+res3plmle &lt;- PP_4pl(respm = awm,thres = diffpar,
+                    slopes = sl,lowerA = la,type = "mle")
+# WLE
+res3plwle &lt;- PP_4pl(respm = awm,thres = diffpar,
+                    slopes = sl,lowerA = la,type = "wle")
+# MAP estimation
+res3plmap &lt;- PP_4pl(respm = awm,thres = diffpar,
+                    slopes = sl,lowerA = la,type = "map")
+# EAP estimation
+res3pleap &lt;- PP_4pl(respm = awm,thres = diffpar,
+                    slopes = sl,lowerA = la, type = "eap")
+
+
+## 4PL model ##### 
+
+# MLE
+res4plmle &lt;- PP_4pl(respm = awm,thres = diffpar,
+                    slopes = sl,lowerA = la,upperA=ua,type = "mle")
+# WLE
+res4plwle &lt;- PP_4pl(respm = awm,thres = diffpar,
+                    slopes = sl,lowerA = la,upperA=ua,type = "wle")
+# MAP estimation
+res4plmap &lt;- PP_4pl(respm = awm,thres = diffpar,
+                    slopes = sl,lowerA = la,upperA=ua,type = "map")
+# EAP estimation
+res4pleap &lt;- PP_4pl(respm = awm,thres = diffpar,
+                    slopes = sl,lowerA = la,upperA=ua,type = "eap")
+
+
+## A special on robust estimation:
+# it reproduces the example given in Schuster &amp; Ke-Hai 2011:
+
+diffpar &lt;- c(-3,-2,-1,0,1,2,3)
+
+AWM &lt;- matrix(0,7,7)
+diag(AWM) &lt;- 1
+
+res1plmle &lt;- PP_4pl(respm = AWM,thres = diffpar, type = "mle")
+
+summary(res1plmle)
+
+res1plrob &lt;- PP_4pl(respm = AWM,thres = diffpar, type = "robust")
+
+summary(res1plrob)
+</code></pre>
+
+
+</div>

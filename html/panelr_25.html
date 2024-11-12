@@ -1,0 +1,193 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>long_panel</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Convert wide panels to long format</h2>
+
+<h3>Description</h3>
+
+<p>This function takes wide format panels as input and
+converts them to long format.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">long_panel(
+  data,
+  prefix = NULL,
+  suffix = NULL,
+  begin = NULL,
+  end = NULL,
+  id = "id",
+  wave = "wave",
+  periods = NULL,
+  label_location = c("end", "beginning"),
+  as_panel_data = TRUE,
+  match = ".*",
+  use.regex = FALSE,
+  check.varying = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>The wide data frame.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prefix</code></td>
+<td>
+<p>What character(s) go before the period indicator? If none,
+set this argument to NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>suffix</code></td>
+<td>
+<p>What character(s) go after the period indicator? If none,
+set this argument to NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>begin</code></td>
+<td>
+<p>What is the label for the first period? Could be <code>1</code>, <code>"A"</code>,
+or anything that can be sequenced.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>end</code></td>
+<td>
+<p>What is the label for the final period? Could be <code>2</code>, <code>"B"</code>,
+or anything that can be sequenced and lies further along the sequence
+than the <code>begin</code> argument.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id</code></td>
+<td>
+<p>The name of the ID variable as a string. If there is no ID
+variable, then this will be the name of the newly-created ID variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>wave</code></td>
+<td>
+<p>This will be the name of the newly-created wave variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>periods</code></td>
+<td>
+<p>If you period indicator does not lie in a sequence or is
+not understood by the function, then you can supply them as a vector
+instead. For instance, you could give <code>c("one","three","five")</code> if
+your variables are labeled <code>var_one</code>, <code>var_three</code>, and <code>var_five</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>label_location</code></td>
+<td>
+<p>Where does the period label go on the variable?
+If the variables are labeled like <code>var_1</code>, <code>var_2</code>, etc., then it is
+<code>"end"</code>. If the labels are more like <code>A_var</code>, <code>B_var</code>, and so on, then
+it is <code>"beginning"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>as_panel_data</code></td>
+<td>
+<p>Should the return object be a <code>panel_data()</code> object?
+Default is TRUE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>match</code></td>
+<td>
+<p>The regex that will match the part of the variable names other
+than the wave indicator. By default it will match any character any
+amount of times. Sometimes you might know that the variable names should
+start with a digit, for instance, and you might use <code>"\\d.*"</code> instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use.regex</code></td>
+<td>
+<p>Should the <code>begin</code> and <code>end</code> arguments be treated as
+regular expressions? Default is FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>check.varying</code></td>
+<td>
+<p>Should the function check to make sure that every
+variable in the wide data with a wave indicator is actually time-varying?
+Default is TRUE, meaning that a constant like "race_W1" only measured in
+wave 1 will be defined in each wave in the long data. With very large
+datasets, however, sometimes setting this to FALSE can save memory.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>There is no easy way to convert panel data from wide to long format because
+the both formats are basically non-standard for other applications.
+This function can handle the common case in which the wide data frame
+has a regular labeling system for each period. The key thing is
+providing enough information for the function to understand the pattern.
+</p>
+<p>In the end, this function calls <code>stats::reshape()</code> but should be easier
+to use and able to handle more situations, such as when the label occurs
+at the beginning of the variable name. Also, just as important, this
+function has built-in utilities to handle unbalanced data — when
+variables occur more than once but every single period, which breaks
+<code>stats::reshape()</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Either a <code>data.frame</code> or <code>panel_data</code> frame.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>widen_panel()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## We need a wide data frame, so we will make one from the long-format 
+## data included in the package.
+
+# Convert WageData to panel_data object
+wages &lt;- panel_data(WageData, id = id, wave = t)
+# Convert wages to wide format
+wide_wages &lt;- widen_panel(wages)
+
+# Note: wide_wages has variables in the following format:
+# var1_1, var1_2, var1_3, var2_1, var2_2, var2_3, etc.
+## Not run: 
+long_wages &lt;- long_panel(wide_wages, prefix = "_", begin = 1, end = 7,
+                         id = "id", label_location = "end")
+
+## End(Not run)
+# Note that in this case, the prefix and label_location arguments are
+# the defaults but are included just for clarity.
+
+
+</code></pre>
+
+
+</div>

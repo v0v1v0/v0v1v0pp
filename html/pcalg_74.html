@@ -1,0 +1,197 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>LINGAM</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Linear non-Gaussian Acyclic Models (LiNGAM)</h2>
+
+<h3>Description</h3>
+
+<p>Fits a Linear non-Gaussian Acyclic Model (LiNGAM) to the data and
+returns the corresponding DAG.
+</p>
+<p>For details, see the reference below.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">lingam(X, verbose = FALSE)
+
+## For back-compatibility; this is *deprecated*
+LINGAM(X, verbose = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>n x p data matrix (n: sample size, p: number of variables).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical or integer indicating that increased diagnostic output is to
+be provided.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>lingam()</code> returns an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object of (S3) class <code>"LINGAM"</code>,
+basically a <code>list</code> with components
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>Bpruned</code></td>
+<td>
+<p>a <code class="reqn">p \times p</code> matrix <code class="reqn">B</code> of linear
+coefficients, where <code class="reqn">B_{i,j}</code> corresponds to a directed edge
+from <code class="reqn">j</code> to <code class="reqn">i</code>.
+
+
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stde</code></td>
+<td>
+<p>a vector of length <code class="reqn">p</code> with the standard deviations of
+the estimated residuals</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ci</code></td>
+<td>
+<p>a vector of length <code class="reqn">p</code> with the intercepts of each
+equation
+<br> ..................
+<br></p>
+</td>
+</tr>
+</table>
+<p><code>LINGAM()</code> — <em>deprecated now</em> — returns a <code>list</code> with components
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>Adj</code></td>
+<td>
+<p>a <code class="reqn">p \times p</code> 0/1 adjacency matrix <code class="reqn">A</code>.
+<code>A[i,j] == 1</code> corresponds to a directed edge from i to j.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p><code class="reqn">p \times p</code> matrix of corresponding linear
+coefficients.  Note it corresponds to the <em>transpose</em> of
+<code>Adj</code>, i.e., <code>identical( Adj, t(B) != 0 )</code> is true.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Of <code>LINGAM()</code> and the underlying functionality,
+
+Patrik Hoyer &lt;patrik.hoyer@helsinki.fi&gt;, Doris Entner
+&lt;entnerd@hotmail.com&gt;, Antti Hyttinen &lt;antti.hyttinen@cs.helsinki.fi&gt;
+and Jonas Peters &lt;jonas.peters@tuebingen.mpg.de&gt;.
+</p>
+
+
+<h3>References</h3>
+
+<p>S. Shimizu, P.O. Hoyer, A. Hyv\"arinen, A. Kerminen (2006)
+A Linear Non-Gaussian Acyclic Model for Causal Discovery;
+<em>Journal of Machine Learning Research</em> <b>7</b>, 2003–2030.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>fastICA</code> from package <span class="pkg">fastICA</span> is used.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">##################################################
+## Exp 1
+##################################################
+set.seed(1234)
+n &lt;- 500
+eps1 &lt;- sign(rnorm(n)) * sqrt(abs(rnorm(n)))
+eps2 &lt;- runif(n) - 0.5
+
+x2 &lt;- 3 + eps2
+x1 &lt;- 0.9*x2 + 7 + eps1
+
+#truth: x1 &lt;- x2
+trueDAG &lt;- cbind(c(0,1),c(0,0))
+
+X &lt;- cbind(x1,x2)
+res &lt;- lingam(X)
+
+cat("true DAG:\n")
+show(trueDAG)
+
+cat("estimated DAG:\n")
+as(res, "amat")
+
+cat("\n true constants:\n")
+show(c(7,3))
+cat("estimated constants:\n")
+show(res$ci)
+
+cat("\n true (sample) noise standard deviations:\n")
+show(c(sd(eps1), sd(eps2)))
+cat("estimated noise standard deviations:\n")
+show(res$stde)
+
+
+##################################################
+## Exp 2
+##################################################
+set.seed(123)
+n &lt;- 500
+eps1 &lt;- sign(rnorm(n)) * sqrt(abs(rnorm(n)))
+eps2 &lt;- runif(n) - 0.5
+eps3 &lt;- sign(rnorm(n)) * abs(rnorm(n))^(1/3)
+eps4 &lt;- rnorm(n)^2
+
+x2 &lt;-                eps2
+x1 &lt;-   0.9*x2     + eps1
+x3 &lt;-   0.8*x2     + eps3
+x4 &lt;- -x1  -0.9*x3 + eps4
+
+X &lt;- cbind(x1,x2,x3,x4)
+
+trueDAG &lt;- cbind(x1 = c(0,1,0,0),
+                 x2 = c(0,0,0,0),
+                 x3 = c(0,1,0,0),
+                 x4 = c(1,0,1,0))
+## x4 &lt;- x3 &lt;- x2 -&gt; x1 -&gt; x4
+## adjacency matrix:
+## 0 0 0 1
+## 1 0 1 0
+## 0 0 0 1
+## 0 0 0 0
+
+res1 &lt;- lingam(X, verbose = TRUE)# details on LINGAM
+res2 &lt;- lingam(X, verbose = 2)   # details on LINGAM and fastICA
+## results are the same, of course:
+stopifnot(identical(res1, res2))
+cat("true DAG:\n")
+show(trueDAG)
+
+cat("estimated DAG:\n")
+as(res1, "amat")
+</code></pre>
+
+
+</div>

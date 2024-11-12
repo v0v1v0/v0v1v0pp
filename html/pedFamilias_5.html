@@ -1,0 +1,196 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>readFam</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Read Familias <code>.fam</code> files</h2>
+
+<h3>Description</h3>
+
+<p>Parses the content of a <code>.fam</code> file exported from Familias, and converts it
+into suitable <code>ped</code> objects. This function does not depend on the <code>Familias</code>
+R package.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">readFam(
+  famfile,
+  useDVI = NA,
+  Xchrom = FALSE,
+  prefixAdded = "added_",
+  fallbackModel = c("equal", "proportional"),
+  simplify1 = TRUE,
+  deduplicate = TRUE,
+  includeParams = FALSE,
+  verbose = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>famfile</code></td>
+<td>
+<p>Path (or URL) to a <code>.fam</code> file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useDVI</code></td>
+<td>
+<p>A logical, indicating if the DVI section of the <code>.fam</code> file
+should be identified and parsed. If <code>NA</code> (the default), the DVI section is
+included if it is present in the input file.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xchrom</code></td>
+<td>
+<p>A logical. If TRUE, the <code>chrom</code> attribute of all markers will
+be set to "X". Default = FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prefixAdded</code></td>
+<td>
+<p>A string used as prefix when adding missing parents.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fallbackModel</code></td>
+<td>
+<p>Either "equal" or "proportional"; the mutation model to
+be applied (with the same overall rate) when a specified model fails for
+some reason. Default: "equal".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simplify1</code></td>
+<td>
+<p>A logical indicating if the outer list layer should be
+removed in the output if the file contains only a single pedigree.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deduplicate</code></td>
+<td>
+<p>A logical, only relevant for DVI. If TRUE (default),
+redundant copies of the reference pedigrees are removed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>includeParams</code></td>
+<td>
+<p>A logical indicating if various parameters should be
+read and returned in a separate list. See Value for details. Default:
+FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A logical. If TRUE, various information is written to the
+screen during the parsing process.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The output of <code>readFam()</code> depends on the contents of the input file,
+and the argument <code>includeParams</code>. This is FALSE by default, giving the
+following possible outcomes:
+</p>
+
+<ul>
+<li>
+<p> If the input file only contains a database, the output is a list of
+information (name, alleles, frequencies, mutation model) about each locus.
+This list can be used as <code>locusAttributes</code> in e.g. <code>pedtools::setMarkers()</code>.
+</p>
+</li>
+<li>
+<p> If the input file describes pedigree data, the output is a list of <code>ped</code>
+objects. If there is only one pedigree, and <code>simplify1 = TRUE</code>, the output
+is a <code>ped</code> object.
+</p>
+</li>
+<li>
+<p> If <code>useDVI = TRUE</code>, or <code>useDVI = NA</code> <em>and</em> the file contains DVI data, then
+the <code style="white-space: pre;">⁠Reference Families⁠</code> section of the file is parsed and converted to
+<code>ped</code> objects. Each family generally describes multiple pedigrees, so the
+output gets another layer in this case.
+</p>
+</li>
+</ul>
+<p>If <code>includeParams = TRUE</code>, the output is a list with elements <code>main</code> (the
+main output, as described above) and <code>params</code>, a list with some or all of
+the following entries:
+</p>
+
+<ul>
+<li> <p><code>version</code>: The version of Familias
+</p>
+</li>
+<li> <p><code>dvi</code>: A logical indicating if a DVI section was read
+</p>
+</li>
+<li> <p><code>dbName</code>: The name of the database
+</p>
+</li>
+<li> <p><code>dbSize</code>: A named numeric vector containing the DatabaseSize reported for
+each marker
+</p>
+</li>
+<li> <p><code>dropoutConsider</code>: A named logical vector indicating for each person if
+dropouts should be considered
+</p>
+</li>
+<li> <p><code>dropoutValue</code>: A named numeric vector containing the dropout value for
+each marker
+</p>
+</li>
+<li> <p><code>maf</code>: A named numeric vector containing the "Minor Allele Frequency"
+given for each marker
+</p>
+</li>
+<li> <p><code>theta</code>: The <code>Theta/Kinship/Fst</code> value given for the marker database
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Egeland et al. (2000). <em>Beyond traditional paternity and
+identification cases. Selecting the most probable pedigree.</em> Forensic Sci
+Int 110(1): 47-59.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>writeFam()</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Using example file "paternity.fam" included in the package
+fam = system.file("extdata", "paternity.fam", package = "pedFamilias")
+
+# Read and plot
+peds = readFam(fam)
+plotPedList(peds, hatched = typedMembers, marker = 1)
+
+# Store parameters
+x = readFam(fam, includeParams = TRUE)
+x$params
+
+stopifnot(identical(x$main, peds))
+
+</code></pre>
+
+
+</div>

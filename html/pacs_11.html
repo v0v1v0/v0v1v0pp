@@ -1,0 +1,162 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>lib_validate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Validate the local library</h2>
+
+<h3>Description</h3>
+
+<p>Checking if installed packages have correct versions taking into account all DESCRIPTION files requirements.
+Moreover identifying which packages are newest releases.
+Optionally we could add life duration and CRAN check page status for each package.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">lib_validate(
+  lib.loc = .libPaths(),
+  fields = c("Depends", "Imports", "LinkingTo"),
+  lifeduration = FALSE,
+  checkred = list(scope = character(0), flavors = NULL),
+  built = FALSE,
+  repos = biocran_repos()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>lib.loc</code></td>
+<td>
+<p><code>character</code> vector of search paths with local packages. Default: <code>.libPaths()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fields</code></td>
+<td>
+<p><code>character</code> vector listing the types of dependencies, a subset of <code>c("Depends", "Imports", "LinkingTo", "Suggests", "Enhances")</code>.
+Character string "all" is shorthand for that vector, character string "most" for the same vector without "Enhances", character string "strong" (default) for the first three elements of that vector.
+Default: <code>c("Depends", "Imports", "LinkingTo")</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lifeduration</code></td>
+<td>
+<p><code>logical</code> if to assess life duration for each package in the library.
+For installed newest releases of packages, a local evaluation is used.
+<code style="white-space: pre;">⁠MEATCRAN CRANDB⁠</code> is used for libraries with less than 500 packages.
+Otherwise the direct web page download from CRAN is used.
+Default: 'FALSE“</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>checkred</code></td>
+<td>
+<p><code>list</code> with two named fields, <code>scope</code> and <code>flavor</code>. <code>scope</code> of R CRAN check pages statuses to consider, any of <code>c("ERROR", "FAIL", "WARN", "NOTE")</code>.
+<code>flavor</code> is a vector of CRAN machines to consider, which might be retrieved with <code>pacs::cran_flavors()$Flavor</code>.
+By default an empty scope field deactivated assessment for <code>checkred</code> column, and NULL flavor will results in checking all machines.
+Default: <code>list(scope = character(0), flavor = NULL)</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>built</code></td>
+<td>
+<p><code>logical</code> if to add an R version under which each package was installed.
+Useful mainly for a local usage.
+Packages installed with a previous version of R could not work correctly with the new version of R. Default: <code>FALSE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>repos</code></td>
+<td>
+<p><code>character</code> vector of repositories URLs to use. By default checking CRAN and newest Bioconductor per R version. Default <code>pacs::biocran_repos()</code></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>data.frame</code> with 4/6/8/9/10 columns.
+</p>
+
+<dl>
+<dt>Package</dt>
+<dd>
+<p>character a package name.</p>
+</dd>
+<dt>Version.expected.min</dt>
+<dd>
+<p>character expected by DESCRIPTION files minimal version. "" means not specified so the newest version.</p>
+</dd>
+<dt>Version.have</dt>
+<dd>
+<p>character installed package version.</p>
+</dd>
+<dt>version_status</dt>
+<dd>
+<p> numeric -1/0/1 which comes from <code>utils::compareVersion</code> function.
+0 means that we have the same version as required by DESCRIPTION files. -1 means we have too low version installed, this is an error. 1 means we have higher version.</p>
+</dd>
+<dt>built</dt>
+<dd>
+<p>character package was built under this R version</p>
+</dd>
+<dt>built_status</dt>
+<dd>
+<p>integer if the package was built under the current R version, then 1 (good) and for older R versions 0 (possibly bad).
+A package built under older R version or mix of packages built under different versions could bring possible failures.</p>
+</dd>
+<dt>newest</dt>
+<dd>
+<p>logical (Internet needed) if the installed version is the newest one. For Bioconductor if is the newest one per R version.</p>
+</dd>
+<dt>cran</dt>
+<dd>
+<p>logical (Internet needed) if the package is on CRAN, version is not taken into account here.</p>
+</dd>
+<dt>checkred</dt>
+<dd>
+<p>(Optional) (Internet needed) logical if the NEWEST package contains any specified statuses on CRAN check page. <code>pacs::checked_packages</code> is used to quickly retrieve all statuses at once.</p>
+</dd>
+<dt>lifeduration</dt>
+<dd>
+<p>(Optional) (Internet needed) integer number of days a package was released.</p>
+</dd>
+</dl>
+<h3>Note</h3>
+
+<p>Version.expected.min column not count packages which are not a dependency for any package, so could not be find in DESCRIPTION files.
+When turn on the <code>lifeduration</code> options, calculations might be time consuming for libraries bigger than 500 packages.
+Results are cached for 30 minutes with <code>memoise</code> package.
+<code>BioConductor</code> packages are tested only in available scope, <code>checkred</code> is not assessed for them.
+The <code>crandb</code> R packages database is a part of <code>METACRAN</code> project, source:
+Csárdi G, Salmon M (2022). <code>pkgsearch</code>: Search and Query CRAN R Packages. <code style="white-space: pre;">⁠https://github.com/r-hub/pkgsearch⁠</code>, <code style="white-space: pre;">⁠https://r-hub.github.io/pkgsearch/⁠</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+pacs::lib_validate()
+pacs::lib_validate(checkred = list(scope = c("ERROR", "FAIL", "WARN")))
+pacs::lib_validate(checkred = list(
+  scope = c("ERROR", "FAIL"),
+  flavors = pacs::match_flavors()
+))
+# activate lifeduration argument, could be time consuming for bigger libraries.
+pacs::lib_validate(
+  lifeduration = TRUE,
+  checkred = list(scope = c("ERROR", "FAIL"))
+)
+# only R CRAN repository
+pacs::lib_validate(repos = "https://cran.rstudio.com/")
+
+## End(Not run)
+</code></pre>
+
+
+</div>

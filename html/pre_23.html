@@ -1,0 +1,205 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>mi_pre</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit a prediction rule ensemble to multiply-imputed data (experimental)</h2>
+
+<h3>Description</h3>
+
+<p>Function <code>mi_pre</code> derives a sparse ensemble of rules and/or
+linear rules based on imputed data. The function is still experimental,
+so use at own risk.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">mi_pre(
+  formula,
+  data,
+  weights = NULL,
+  obs_ids = NULL,
+  compl_frac = NULL,
+  nfolds = 10L,
+  sampfrac = 0.5,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a symbolic description of the model to be fit of the form 
+<code>y ~ x1 + x2 + ... + xn</code>. Response (left-hand side of the formula) 
+should be of class numeric (for <code>family = "gaussian"</code> or
+<code>"mgaussian"</code>), integer (for <code>family = "poisson"</code>), factor (for 
+<code>family = "binomial"</code> or <code>"multinomial"</code>). See Examples below. 
+Note that the minus sign (<code>-</code>) may not be used in the formula to omit
+the intercept or variables in <code>data</code>, and neither should  <code>+ 0</code> 
+be used to omit the intercept. To omit the intercept from the final ensemble, 
+add <code>intercept = FALSE</code> to the call (although omitting the intercept from
+the final ensemble will only very rarely be appropriate). To omit variables 
+from the final ensemble, make sure they are excluded from <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A list of imputed datasets. The datasets must have identically-named
+columns, but need not have the same number of rows (this can happen, for example.
+if a bootstrap sampling approach had been employed for multiple imputation).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>A list of observation weights for each observation in each 
+imputed dataset. The list must have the same length as <code>data</code>, and each 
+element must be a numeric vector of length identical to the number of rows of 
+the corresponding imputed dataset in <code>data</code>. The default is 
+<code>NULL</code>, yielding constant observation weights w_i = 1/M, where M is the 
+number of imputed datasets (i.e., <code>length(data)</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>obs_ids</code></td>
+<td>
+<p>A list of observation ids, corresponding to the id in the
+original data, of each observation in each imputed dataset. Defaults to 
+<code>NULL</code>, which assumes that the imputed datasets contain the observations 
+in identical order. If specified, the list must have
+the same length as <code>data</code>, and each element must be a numeric or character 
+vector of length identical to the number of rows of the corresponding imputed
+dataset in <code>data</code>. At least some of the observations ids must be repeated 
+at least some times, within or between imputed datasets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compl_frac</code></td>
+<td>
+<p>An optional list specifying the fraction of observed values
+for each observation. This will be used to compute observation weights as
+a function of the fraction of complete data per observations, as per 
+Wan et al. (2015), but note that this is only recommended for users who
+know the risks (i.e., an analysis more like complete-case analysis).
+If specified, the list must have
+the same length as <code>data</code>, and each element must be a numeric  
+vector of length identical to the number of rows of the corresponding imputed
+dataset in <code>data</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nfolds</code></td>
+<td>
+<p>positive integer. Number of cross-validation folds to be used for 
+selecting the optimal value of the penalty parameter <code class="reqn">\lambda</code> in selecting
+the final ensemble.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sampfrac</code></td>
+<td>
+<p>numeric value <code class="reqn">&gt; 0</code> and <code class="reqn">\le 1</code>. Specifies
+the fraction of randomly selected training observations used to produce each 
+tree. Values <code class="reqn">&lt; 1</code> will result in sampling without replacement (i.e., 
+subsampling), a value of 1 will result in sampling with replacement 
+(i.e., bootstrap sampling). Alternatively, a sampling function may be supplied, 
+which should take arguments <code>n</code> (sample size) and <code>weights</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments to be passed to
+<code>cv.glmnet</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Experimental function to fit a prediction rule ensemble to 
+multiply imputed data. Essentially, it is a wrapper function around function
+<code>pre()</code>, the main differences relate to sampling for the tree induction
+and fold assignment for estimation of the coefficients for the final ensemble.
+</p>
+<p>Function <code>mi_pre</code> implements a so-called stacking approach to the analysis
+of imputed data (see also Wood et al., 2008), where imputed datasets are combined 
+into one large dataset.
+In addition to adjustments of the sampling procedures, adjustments to observation 
+weight are made to counter the artificial inflation of sample size.  
+</p>
+<p>Observations which occur repeatedly across the imputed datasets will be 
+completely in- or excluded from each sample or fold, to avoid overfitting. Thus,
+complete observations instead of individual imputed observations are sampled,
+for tree and rule induction, as well as the cross-validation for selecting the
+penalty parameter values for the final ensemble.
+</p>
+<p>It is assumed that data have already been imputed (using e.g.,
+R package mice or missForest), and therefore function <code>mi_pre</code> takes a 
+<code>list</code> of imputed datasets as input data.
+</p>
+<p>Although the option to use the fraction of complete data for computing 
+observation weight is provided through argument <code>compl_frac</code>, users
+are not advised to use it. See e.g., Du et al. (2022): "An alternative weight 
+specification, proposed in Wan et al. (2015), is o_i = f_i/D, where f_i is 
+the number of observed predictors out of the total number of predictors for 
+subject i [...] upweighting subjects with less missingness and downweighting 
+subjects with more missingness can, in some sense, be viewed as making the 
+optimization more like complete-case analysis, which might be problematic 
+for Missing at Random (MAR) and Missing not at Random (MNAR) scenarios."
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>pre</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Du, J., Boss, J., Han, P., Beesley, L. J., Kleinsasser, M., Goutman, S.A., ... 
+&amp; Mukherjee, B. (2022). Variable selection with multiply-imputed datasets: 
+choosing between stacked and grouped methods. Journal of Computational and 
+Graphical Statistics, 31(4), 1063-1075. <a href="https://doi.org/10.1080/10618600.2022.2035739">doi:10.1080/10618600.2022.2035739</a>.
+</p>
+<p>Wood, A. M., White, I. R., &amp; Royston, P. (2008). How should variable selection 
+be performed with multiply imputed data? Statistics in medicine, 27(17), 
+3227-3246. <a href="https://doi.org/10.1002/sim.3177">doi:10.1002/sim.3177</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pre</code> <code>mi_mean</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library("mice")
+set.seed(42)
+
+## Shoot extra holes in airquality data
+airq &lt;- sapply(airquality, function(x) {
+  x[sample(1:nrow(airquality), size = 25)] &lt;- NA
+  return(x)
+})
+
+## impute the data
+imp &lt;- mice(airq, m = 5)
+imp &lt;- as.list(complete(imp, action = "all"))
+
+## fit a rule ensemble to the imputed data
+set.seed(42)
+airq.ens.mi &lt;- mi_pre(Ozone ~ . , data = imp)
+</code></pre>
+
+
+</div>

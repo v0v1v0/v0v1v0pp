@@ -1,0 +1,253 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>aggre</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Aggregation of split <code>Lexis</code> data</h2>
+
+<h3>Description</h3>
+
+<p>Aggregates a split <code>Lexis</code> object by given variables 
+and / or expressions into a long-format table of person-years and 
+transitions / end-points. Automatic aggregation over time scales
+by which data has been split if the respective time scales are mentioned
+in the aggregation argument to e.g. intervals of calendar time, follow-up time
+and/or age.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">aggre(
+  lex,
+  by = NULL,
+  type = c("unique", "full"),
+  sum.values = NULL,
+  subset = NULL,
+  verbose = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>lex</code></td>
+<td>
+<p>a <code>Lexis</code> object split with e.g. 
+<code>splitLexis</code> or <code>splitMulti</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>by</code></td>
+<td>
+<p>variables to tabulate (aggregate) by.
+Flexible input, typically e.g.
+<code>by = c("V1", "V2")</code>. See Details and Examples.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>determines output levels to which data is aggregated varying
+from returning only rows with <code>pyrs &gt; 0</code> (<code>"unique"</code>) to
+returning all possible combinations of variables given in <code>aggre</code> even
+if those combinations are not represented in data (<code>"full"</code>); 
+see Details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sum.values</code></td>
+<td>
+<p>optional: additional variables to sum by argument
+<code>by</code>. Flexible input, typically e.g.
+<code>sum.values = c("V1", "V2")</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>subset</code></td>
+<td>
+<p>a logical condition to subset by before computations;
+e.g. <code>subset = area %in% c("A", "B")</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p><code>logical</code>; if <code>TRUE</code>, the function returns timings
+and some information useful for debugging along the aggregation process</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><strong>Basics</strong>
+</p>
+<p><code>aggre</code> is intended for aggregation of split <code>Lexis</code> data only.
+See <code>Lexis</code> for forming <code>Lexis</code> objects by hand
+and e.g. <code>splitLexis</code>, <code>splitLexisDT</code>, and
+<code>splitMulti</code> for splitting the data. <code>lexpand</code>
+may be used for simple data sets to do both steps as well as aggregation
+in the same function call.
+</p>
+<p>Here aggregation refers to computing person-years and the appropriate events
+(state transitions and end points in status) for the subjects in the data.
+Hence, it computes e.g. deaths (end-point and state transition) and 
+censorings (end-point) as well as events in a multi-state setting
+(state transitions).
+</p>
+<p>The result is a long-format <code>data.frame</code> or <code>data.table</code>
+(depending on <code>options("popEpi.datatable")</code>; see <code>?popEpi</code>)
+with the columns <code>pyrs</code> and the appropriate transitions named as
+<code>fromXtoY</code>, e.g. <code>from0to0</code> and <code>from0to1</code> depending
+on the values of <code>lex.Cst</code> and <code>lex.Xst</code>.
+</p>
+<p><strong>The by argument</strong>
+</p>
+<p>The <code>by</code> argument determines the length of the table, i.e.
+the combinations of variables to which data is aggregated.  
+<code>by</code> is relatively flexible, as it can be supplied as
+</p>
+
+<ul>
+<li>
+<p>a character string vector, e.g. <code>c("sex", "area")</code>, 
+naming variables existing in <code>lex</code>
+</p>
+</li>
+<li>
+<p>an expression, e.g. <code>factor(sex, 0:1, c("m", "f"))</code> 
+using any variable found in <code>lex</code>
+</p>
+</li>
+<li>
+<p>a list (fully or partially named) of expressions, e.g. 
+<code>list(gender = factor(sex, 0:1, c("m", "f"), area)</code>
+</p>
+</li>
+</ul>
+<p>Note that expressions effectively allow a variable to be supplied simply as
+e.g. <code>by = sex</code> (as a symbol/name in R lingo).
+</p>
+<p>The data is then aggregated to the levels of the given variables 
+or expression(s). Variables defined to be time scales in the supplied 
+<code>Lexis</code> are processed in a special way: If any are mentioned in the
+<code>by</code> argument, intervals of them are formed based on the breaks
+used to split the data: e.g. if <code>age</code> was split using the breaks 
+<code>c(0, 50, Inf)</code>, mentioning <code>age</code> in <code>by</code> leads to
+creating the <code>age</code> intervals <code>[0, 50)</code> and <code>[50, Inf)</code>
+and aggregating to them. The intervals are identified in the output
+as the lower bounds of the appropriate intervals.
+</p>
+<p>The order of multiple time scales mentioned in <code>by</code> matters,
+as the last mentioned time scale is assumed to be a survival time scale
+for when computing event counts. E.g. when the data is split by the breaks
+<code>list(FUT = 0:5, CAL = c(2008,2010))</code>, time lines cut short at
+<code>CAL = 2010</code> are considered to be censored, but time lines cut short at
+<code>FUT = 5</code> are not. See Return.
+</p>
+<p><strong>Aggregation types (styles)</strong>
+</p>
+<p>It is almost always enough to aggregate the data to variable levels
+that are actually represented in the data 
+(default <code>aggre = "unique"</code>; alias <code>"non-empty"</code>). 
+For certain uses it may be useful
+to have also "empty" levels represented (resulting in some rows in output
+with zero person-years and events); in these cases supplying
+<code>aggre = "full"</code> (alias <code>"cartesian"</code>) causes <code>aggre</code>
+to determine the Cartesian product of all the levels of the supplied 
+<code>by</code> variables or expressions and aggregate to them. As an example
+of a Cartesian product, try
+</p>
+<p><code>merge(1:2, 1:5)</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A long <code>data.frame</code> or <code>data.table</code> of aggregated person-years 
+(<code>pyrs</code>), numbers of subjects at risk (<code>at.risk</code>), and events
+formatted <code>fromXtoY</code>, where <code>X</code> and <code>X</code> are states 
+transitioning from and to or states at the end of each <code>lex.id</code>'s 
+follow-up (implying <code>X</code> = <code>Y</code>). Subjects at risk are computed 
+in the beginning of an interval defined by any Lexis time scales and 
+mentioned in <code>by</code>, but events occur at any point within an interval.
+</p>
+<p>When the data has been split along multiple time scales, the last
+time scale mentioned in <code>by</code> is considered to be the survival time 
+scale with regard to computing events. Time lines cut short by the
+extrema of non-survival-time-scales are considered to be censored
+("transitions" from the current state to the current state).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Joonas Miettinen
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>aggregate</code> for a similar base R solution,
+and <code>ltable</code> for a <code>data.table</code> based aggregator. Neither
+are directly applicable to split <code>Lexis</code> data.
+</p>
+<p>Other aggregation functions: 
+<code>as.aggre()</code>,
+<code>lexpand()</code>,
+<code>setaggre()</code>,
+<code>summary.aggre()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## form a Lexis object
+library(Epi)
+data(sibr)
+x &lt;- sibr[1:10,]
+x[1:5,]$sex &lt;- 0 ## pretend some are male
+x &lt;- Lexis(data = x,
+           entry = list(AGE = dg_age, CAL = get.yrs(dg_date)),
+           exit = list(CAL = get.yrs(ex_date)),
+           entry.status=0, exit.status = status)
+x &lt;- splitMulti(x, breaks = list(CAL = seq(1993, 2013, 5), 
+                                 AGE = seq(0, 100, 50)))
+
+## these produce the same results (with differing ways of determining aggre)
+a1 &lt;- aggre(x, by = list(gender = factor(sex, 0:1, c("m", "f")), 
+             agegroup = AGE, period = CAL))
+
+a2 &lt;- aggre(x, by = c("sex", "AGE", "CAL"))
+
+a3 &lt;- aggre(x, by = list(sex, agegroup = AGE, CAL))
+
+## returning also empty levels
+a4 &lt;- aggre(x, by = c("sex", "AGE", "CAL"), type = "full")
+
+## computing also expected numbers of cases
+x &lt;- lexpand(sibr[1:10,], birth = bi_date, entry = dg_date,
+             exit = ex_date, status = status %in% 1:2, 
+             pophaz = popmort, fot = 0:5, age = c(0, 50, 100))
+x$d.exp &lt;- with(x, lex.dur*pop.haz)
+## these produce the same result
+a5 &lt;- aggre(x, by = c("sex", "age", "fot"), sum.values = list(d.exp))
+a5 &lt;- aggre(x, by = c("sex", "age", "fot"), sum.values = "d.exp")
+a5 &lt;- aggre(x, by = c("sex", "age", "fot"), sum.values = d.exp)
+## same result here with custom name
+a5 &lt;- aggre(x, by = c("sex", "age", "fot"), 
+             sum.values = list(expCases = d.exp))
+             
+## computing pohar-perme weighted figures
+x$d.exp.pp &lt;- with(x, lex.dur*pop.haz*pp)
+a6 &lt;- aggre(x, by = c("sex", "age", "fot"), 
+             sum.values = c("d.exp", "d.exp.pp"))
+## or equivalently e.g. sum.values = list(expCases = d.exp, expCases.p = d.exp.pp).
+</code></pre>
+
+
+</div>

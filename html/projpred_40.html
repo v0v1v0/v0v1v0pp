@@ -1,0 +1,406 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>plot.vsel</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Plot predictive performance</h2>
+
+<h3>Description</h3>
+
+<p>This is the <code>plot()</code> method for <code>vsel</code> objects (returned by <code>varsel()</code> or
+<code>cv_varsel()</code>). It visualizes the predictive performance of the reference
+model (possibly also that of some other "baseline" model) and that of the
+submodels along the full-data predictor ranking. Basic information about the
+(CV) variability in the ranking of the predictors is included as well (if
+available; inferred from <code>cv_proportions()</code>). For a tabular representation,
+see <code>summary.vsel()</code> and <code>performances()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S3 method for class 'vsel'
+plot(
+  x,
+  nterms_max = NULL,
+  stats = "elpd",
+  deltas = FALSE,
+  alpha = 2 * pnorm(-1),
+  baseline = if (!inherits(x$refmodel, "datafit")) "ref" else "best",
+  thres_elpd = NA,
+  resp_oscale = TRUE,
+  point_size = 3,
+  bar_thickness = 1,
+  ranking_nterms_max = NULL,
+  ranking_abbreviate = FALSE,
+  ranking_abbreviate_args = list(),
+  ranking_repel = NULL,
+  ranking_repel_args = list(),
+  ranking_colored = FALSE,
+  show_cv_proportions = TRUE,
+  cumulate = FALSE,
+  text_angle = NULL,
+  size_position = "primary_x_bottom",
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>An object of class <code>vsel</code> (returned by <code>varsel()</code> or <code>cv_varsel()</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nterms_max</code></td>
+<td>
+<p>Maximum submodel size (number of predictor terms) for which
+the performance statistics are calculated. Using <code>NULL</code> is effectively the
+same as <code>length(ranking(object)$fulldata)</code>. Note that <code>nterms_max</code> does not
+count the intercept, so use <code>nterms_max = 0</code> for the intercept-only model.
+For <code>plot.vsel()</code>, <code>nterms_max</code> must be at least <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stats</code></td>
+<td>
+<p>One or more character strings determining which performance
+statistics (i.e., utilities or losses) to estimate based on the
+observations in the evaluation (or "test") set (in case of
+cross-validation, these are all observations because they are partitioned
+into multiple test sets; in case of <code>varsel()</code> with <code>d_test = NULL</code>, these
+are again all observations because the test set is the same as the training
+set). Available statistics are:
+</p>
+
+<ul>
+<li> <p><code>"elpd"</code>: expected log (pointwise) predictive density (for a new
+dataset). Estimated by the sum of the observation-specific log predictive
+density values (with each of these predictive density values being
+a—possibly weighted—average across the parameter draws).
+</p>
+</li>
+<li> <p><code>"mlpd"</code>: mean log predictive density, that is, <code>"elpd"</code> divided by the
+number of observations.
+</p>
+</li>
+<li> <p><code>"gmpd"</code>: geometric mean predictive density (GMPD), that is, <code>exp()</code> of
+<code>"mlpd"</code>. The GMPD is especially helpful for discrete response families
+(because there, the GMPD is bounded by zero and one). For the corresponding
+standard error, the delta method is used. The corresponding confidence
+interval type is "exponentiated normal approximation" because the
+confidence interval bounds are the exponentiated confidence interval bounds
+of the <code>"mlpd"</code>.
+</p>
+</li>
+<li> <p><code>"mse"</code>: mean squared error (only available in the situations mentioned
+in section "Details" below).
+</p>
+</li>
+<li> <p><code>"rmse"</code>: root mean squared error (only available in the situations
+mentioned in section "Details" below). For the corresponding standard error
+and lower and upper confidence interval bounds, bootstrapping is used.
+</p>
+</li>
+<li> <p><code>"acc"</code> (or its alias, <code>"pctcorr"</code>): classification accuracy (only
+available in the situations mentioned in section "Details" below). By
+"classification accuracy", we mean the proportion of correctly classified
+observations. For this, the response category ("class") with highest
+probability (the probabilities are model-based) is taken as the prediction
+("classification") for an observation.
+</p>
+</li>
+<li> <p><code>"auc"</code>: area under the ROC curve (only available in the situations
+mentioned in section "Details" below). For the corresponding standard error
+and lower and upper confidence interval bounds, bootstrapping is used.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>deltas</code></td>
+<td>
+<p>If <code>TRUE</code>, the submodel statistics are estimated relatively to
+the baseline model (see argument <code>baseline</code>). For the GMPD, the term
+"relatively" refers to the ratio vs. the baseline model (i.e., the submodel
+statistic divided by the baseline model statistic). For all other <code>stats</code>,
+"relatively" refers to the difference from the baseline model (i.e., the
+submodel statistic minus the baseline model statistic).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>A number determining the (nominal) coverage <code>1 - alpha</code> of the
+normal-approximation (or bootstrap or exponentiated normal-approximation;
+see argument <code>stats</code>) confidence intervals. For example, in case of the
+normal approximation, <code>alpha = 2 * pnorm(-1)</code> corresponds to a confidence
+interval stretching by one standard error on either side of the point
+estimate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>baseline</code></td>
+<td>
+<p>For <code>summary.vsel()</code>: Only relevant if <code>deltas</code> is <code>TRUE</code>.
+For <code>plot.vsel()</code>: Always relevant. Either <code>"ref"</code> or <code>"best"</code>, indicating
+whether the baseline is the reference model or the best submodel found (in
+terms of <code>stats[1]</code>), respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thres_elpd</code></td>
+<td>
+<p>Only relevant if <code>any(stats %in% c("elpd", "mlpd", "gmpd"))</code>. The threshold for the ELPD difference (taking the submodel's
+ELPD minus the baseline model's ELPD) above which the submodel's ELPD is
+considered to be close enough to the baseline model's ELPD. An equivalent
+rule is applied in case of the MLPD and the GMPD. See <code>suggest_size()</code> for
+a formalization. Supplying <code>NA</code> deactivates this.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>resp_oscale</code></td>
+<td>
+<p>Only relevant for the latent projection. A single logical
+value indicating whether to calculate the performance statistics on the
+original response scale (<code>TRUE</code>) or on latent scale (<code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>point_size</code></td>
+<td>
+<p>Passed to argument <code>size</code> of <code>ggplot2::geom_point()</code> and
+controls the size of the points.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bar_thickness</code></td>
+<td>
+<p>Passed to argument <code>linewidth</code> of
+<code>ggplot2::geom_linerange()</code> and controls the thickness of the uncertainty
+bars.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ranking_nterms_max</code></td>
+<td>
+<p>Maximum submodel size (number of predictor terms)
+for which the predictor names and the corresponding ranking proportions are
+added on the x-axis. Using <code>NULL</code> is effectively the same as using
+<code>nterms_max</code>. Using <code>NA</code> causes the predictor names and the corresponding
+ranking proportions to be omitted. Note that <code>ranking_nterms_max</code> does not
+count the intercept, so <code>ranking_nterms_max = 1</code> corresponds to the
+submodel consisting of the first (non-intercept) predictor term.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ranking_abbreviate</code></td>
+<td>
+<p>A single logical value indicating whether the
+predictor names in the full-data predictor ranking should be abbreviated by
+<code>abbreviate()</code> (<code>TRUE</code>) or not (<code>FALSE</code>). See also argument
+<code>ranking_abbreviate_args</code> and section "Value".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ranking_abbreviate_args</code></td>
+<td>
+<p>A <code>list</code> of arguments (except for <code>names.arg</code>)
+to be passed to <code>abbreviate()</code> in case of <code>ranking_abbreviate = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ranking_repel</code></td>
+<td>
+<p>Either <code>NULL</code>, <code>"text"</code>, or <code>"label"</code>. By <code>NULL</code>, the
+full-data predictor ranking and the corresponding ranking proportions are
+placed below the x-axis. By <code>"text"</code> or <code>"label"</code>, they are placed within
+the plotting area, using <code>ggrepel::geom_text_repel()</code> or
+<code>ggrepel::geom_label_repel()</code>, respectively. See also argument
+<code>ranking_repel_args</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ranking_repel_args</code></td>
+<td>
+<p>A <code>list</code> of arguments (except for <code>mapping</code>) to be
+passed to <code>ggrepel::geom_text_repel()</code> or <code>ggrepel::geom_label_repel()</code> in
+case of <code>ranking_repel = "text"</code> or <code>ranking_repel = "label"</code>,
+respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ranking_colored</code></td>
+<td>
+<p>A single logical value indicating whether the points
+and the uncertainty bars should be gradient-colored according to the CV
+ranking proportions (<code>TRUE</code>, currently only works if <code>show_cv_proportions</code>
+is <code>TRUE</code> as well) or not (<code>FALSE</code>). The CV ranking proportions may be
+cumulated (see argument <code>cumulate</code>). Note that the point and the
+uncertainty bar at submodel size 0 (i.e., at the intercept-only model) are
+always colored in gray because the intercept is forced to be selected
+before any predictors are selected (in other words, the reason is that for
+submodel size 0, the question of variability across CV folds is not
+appropriate in the first place).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>show_cv_proportions</code></td>
+<td>
+<p>A single logical value indicating whether the CV
+ranking proportions (see <code>cv_proportions()</code>) should be displayed (<code>TRUE</code>)
+or not (<code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cumulate</code></td>
+<td>
+<p>Passed to argument <code>cumulate</code> of <code>cv_proportions()</code>. Affects
+the ranking proportions given on the x-axis (below the full-data predictor
+ranking).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>text_angle</code></td>
+<td>
+<p>Passed to argument <code>angle</code> of <code>ggplot2::element_text()</code> for
+the x-axis tick labels. In case of long predictor names (and/or large
+<code>nterms_max</code>), <code>text_angle = 45</code> might be helpful (for example). If
+<code>text_angle &gt; 0</code> (<code style="white-space: pre;">⁠&lt; 0⁠</code>), the x-axis text is automatically right-aligned
+(left-aligned). If <code>-90 &lt; text_angle &amp;&amp; text_angle &lt; 90 &amp;&amp; text_angle != 0</code>, the x-axis text is also top-aligned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>size_position</code></td>
+<td>
+<p>A single character string specifying the position of the
+submodel sizes. Either <code>"primary_x_bottom"</code> for including them in the
+x-axis tick labels, <code>"primary_x_top"</code> for putting them above the x-axis, or
+<code>"secondary_x"</code> for putting them into a secondary x-axis. Currently, both
+of the non-default options may not be combined with <code>ranking_nterms_max = NA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments passed to the internal function which is used for
+bootstrapping (if applicable; see argument <code>stats</code>). Currently, relevant
+arguments are <code>B</code> (the number of bootstrap samples, defaulting to <code>2000</code>)
+and <code>seed</code> (see <code>set.seed()</code>, but defaulting to <code>NA</code> so that <code>set.seed()</code>
+is not called within that function at all).</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>stats</code> options <code>"mse"</code> and <code>"rmse"</code> are only available for:
+</p>
+
+<ul>
+<li>
+<p> the traditional projection,
+</p>
+</li>
+<li>
+<p> the latent projection with <code>resp_oscale = FALSE</code>,
+</p>
+</li>
+<li>
+<p> the latent projection with <code>resp_oscale = TRUE</code> in combination with
+<code style="white-space: pre;">⁠&lt;refmodel&gt;$family$cats⁠</code> being <code>NULL</code>.
+</p>
+</li>
+</ul>
+<p>The <code>stats</code> option <code>"acc"</code> (= <code>"pctcorr"</code>) is only available for:
+</p>
+
+<ul>
+<li>
+<p> the <code>binomial()</code> family in case of the traditional projection,
+</p>
+</li>
+<li>
+<p> all families in case of the augmented-data projection,
+</p>
+</li>
+<li>
+<p> the <code>binomial()</code> family (on the original response scale) in case of the
+latent projection with <code>resp_oscale = TRUE</code> in combination with
+<code style="white-space: pre;">⁠&lt;refmodel&gt;$family$cats⁠</code> being <code>NULL</code>,
+</p>
+</li>
+<li>
+<p> all families (on the original response scale) in case of the latent
+projection with <code>resp_oscale = TRUE</code> in combination with
+<code style="white-space: pre;">⁠&lt;refmodel&gt;$family$cats⁠</code> being not <code>NULL</code>.
+</p>
+</li>
+</ul>
+<p>The <code>stats</code> option <code>"auc"</code> is only available for:
+</p>
+
+<ul>
+<li>
+<p> the <code>binomial()</code> family in case of the traditional projection,
+</p>
+</li>
+<li>
+<p> the <code>binomial()</code> family (on the original response scale) in case of the
+latent projection with <code>resp_oscale = TRUE</code> in combination with
+<code style="white-space: pre;">⁠&lt;refmodel&gt;$family$cats⁠</code> being <code>NULL</code>.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>A <span class="pkg">ggplot2</span> plotting object (of class <code>gg</code> and <code>ggplot</code>). If
+<code>ranking_abbreviate</code> is <code>TRUE</code>, the output of <code>abbreviate()</code> is stored in
+an attribute called <code>projpred_ranking_abbreviated</code> (to allow the
+abbreviations to be easily mapped back to the original predictor names).
+</p>
+
+
+<h3>Horizontal lines</h3>
+
+<p>As long as the reference model's performance is computable, it is always
+shown in the plot as a dashed red horizontal line. If <code>baseline = "best"</code>,
+the baseline model's performance is shown as a dotted black horizontal line.
+If <code>!is.na(thres_elpd)</code> and <code>any(stats %in% c("elpd", "mlpd", "gmpd"))</code>, the
+value supplied to <code>thres_elpd</code> (which is automatically adapted internally in
+case of the MLPD or the GMPD or <code>deltas = FALSE</code>) is shown as a dot-dashed
+gray horizontal line for the reference model and, if <code>baseline = "best"</code>, as
+a long-dashed green horizontal line for the baseline model.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Data:
+dat_gauss &lt;- data.frame(y = df_gaussian$y, df_gaussian$x)
+
+# The `stanreg` fit which will be used as the reference model (with small
+# values for `chains` and `iter`, but only for technical reasons in this
+# example; this is not recommended in general):
+fit &lt;- rstanarm::stan_glm(
+  y ~ X1 + X2 + X3 + X4 + X5, family = gaussian(), data = dat_gauss,
+  QR = TRUE, chains = 2, iter = 500, refresh = 0, seed = 9876
+)
+
+# Run varsel() (here without cross-validation, with L1 search, and with small
+# values for `nterms_max` and `nclusters_pred`, but only for the sake of
+# speed in this example; this is not recommended in general):
+vs &lt;- varsel(fit, method = "L1", nterms_max = 3, nclusters_pred = 10,
+             seed = 5555)
+print(plot(vs))
+
+</code></pre>
+
+
+</div>

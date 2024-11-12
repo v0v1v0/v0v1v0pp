@@ -1,0 +1,128 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>sim_pexp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simulate survival times from the piece-wise exponential distribution</h2>
+
+<h3>Description</h3>
+
+<p>Simulate survival times from the piece-wise exponential distribution
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">sim_pexp(formula, data, cut)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>An extended formula that specifies the linear predictor.
+If you want to include a smooth baseline
+or time-varying effects, use <code>t</code> within your formula as
+if it was a covariate in the data, although it is not and should not
+be included in the <code>data</code> provided to <code>sim_pexp</code>. See examples
+below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data set with variables specified in <code>formula</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cut</code></td>
+<td>
+<p>A sequence of time-points starting with 0.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(survival)
+library(dplyr)
+library(pammtools)
+
+# set number of observations/subjects
+n &lt;- 250
+# create data set with variables which will affect the hazard rate.
+df &lt;- cbind.data.frame(x1 = runif (n, -3, 3), x2 = runif (n, 0, 6)) %&gt;%
+ as_tibble()
+# the formula which specifies how covariates affet the hazard rate
+f0 &lt;- function(t) {
+ dgamma(t, 8, 2) *6
+}
+form &lt;- ~ -3.5 + f0(t) -0.5*x1 + sqrt(x2)
+set.seed(24032018)
+sim_df &lt;- sim_pexp(form, df, 1:10)
+head(sim_df)
+plot(survfit(Surv(time, status)~1, data = sim_df ))
+
+# for control, estimate with Cox PH
+mod &lt;- coxph(Surv(time, status) ~ x1 + pspline(x2), data=sim_df)
+coef(mod)[1]
+layout(matrix(1:2, nrow=1))
+termplot(mod, se = TRUE)
+
+# and using PAMs
+layout(1)
+ped &lt;- sim_df %&gt;% as_ped(Surv(time, status)~., max_time=10)
+library(mgcv)
+pam &lt;- gam(ped_status ~ s(tend) + x1 + s(x2), data=ped, family=poisson, offset=offset)
+coef(pam)[2]
+plot(pam, page=1)
+
+## Not run: 
+# Example 2: Functional covariates/cumulative coefficients
+# function to generate one exposure profile, tz is a vector of time points
+# at which TDC z was observed
+rng_z = function(nz) {
+  as.numeric(arima.sim(n = nz, list(ar = c(.8, -.6))))
+}
+# two different exposure times  for two different exposures
+tz1 &lt;- 1:10
+tz2 &lt;- -5:5
+# generate exposures and add to data set
+df &lt;- df %&gt;%
+  add_tdc(tz1, rng_z) %&gt;%
+  add_tdc(tz2, rng_z)
+df
+
+# define tri-variate function of time, exposure time and exposure z
+ft &lt;- function(t, tmax) {
+  -1*cos(t/tmax*pi)
+}
+fdnorm &lt;- function(x) (dnorm(x,1.5,2)+1.5*dnorm(x,7.5,1))
+wpeak2 &lt;- function(lag) 15*dnorm(lag,8,10)
+wdnorm &lt;- function(lag) 5*(dnorm(lag,4,6)+dnorm(lag,25,4))
+f_xyz1 &lt;- function(t, tz, z) {
+  ft(t, tmax=10) * 0.8*fdnorm(z)* wpeak2(t - tz)
+}
+f_xyz2 &lt;- function(t, tz, z) {
+  wdnorm(t-tz) * z
+}
+
+# define lag-lead window function
+ll_fun &lt;- function(t, tz) {t &gt;= tz}
+ll_fun2 &lt;- function(t, tz) {t - 2 &gt;= tz}
+# simulate data with cumulative effect
+sim_df &lt;- sim_pexp(
+  formula = ~ -3.5 + f0(t) -0.5*x1 + sqrt(x2)|
+     fcumu(t, tz1, z.tz1, f_xyz=f_xyz1, ll_fun=ll_fun) +
+     fcumu(t, tz2, z.tz2, f_xyz=f_xyz2, ll_fun=ll_fun2),
+  data = df,
+  cut = 0:10)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

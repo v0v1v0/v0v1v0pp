@@ -1,0 +1,142 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>partitionMetric</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Compute a distance metric between two partitions of a set</h2>
+
+<h3>Description</h3>
+
+<p>Given a set partitioned in two ways, compute a distance metric between
+the partitions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">partitionMetric(B, C, beta = 2)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+
+
+<p>B and C are vectors that represents partitions of a single set, with
+each element representing a member of the set.  <code class="reqn">B_i</code>
+corresponds to <code class="reqn">C_i</code>, and the two vectors must be the same
+length.  The data types of B and C must be identical and convertable to a
+factor data type.
+</p>
+<p>See examples below for more information.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C</code></td>
+<td>
+<p>See B above.
+
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+
+<p><code class="reqn">\beta</code> is the nonlinear parameter used to compute the
+distance metric.  See the publication referenced below for full details.
+
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>The return value is a nonnegative real number representing the distance
+between the two partition of the set.  Full details are in the paper
+referenced below.
+
+
+
+
+
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David Weisman, Dan Simovici
+
+</p>
+
+
+<h3>References</h3>
+
+<p>David Weisman and Dan Simovici, 
+Several Remarks on the Metric Space of Genetic Codes.
+<em>International
+Journal of Data Mining and Bioinformatics</em>, 2012(6).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>as.dist</code>, <code>hclust</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Define several partitions of a 4-element set
+gender &lt;- c('boy',   'girl', 'girl',   'boy')
+height &lt;- c('short', 'tall', 'medium', 'tall')
+age    &lt;- c(7,       6,      5,        4)    
+
+## Compute some distances
+(dGG &lt;- partitionMetric (gender, gender))
+(dGH &lt;- partitionMetric (gender, height))
+(dHG &lt;- partitionMetric (height, gender))
+(dGA &lt;- partitionMetric (gender, age))
+(dHA &lt;- partitionMetric (height, age))
+
+## These properties must hold for any metric 
+dGG == 0
+dGH == dHG
+dGA &lt;= dGH + dHA
+
+## Note that the partition names are irrelevant, and only need to be
+## self-consistent within each B and C.  It follows that these two set
+## partitions are identical and have distance 0.
+partitionMetric (c(1,8,8), c(7,3,3)) == 0
+
+
+## Use the set partition to measure amino acid acid sequence differences
+## between several alleles of the aryl hydrocarbon receptor.
+
+data(AhRs)
+dim(AhRs)
+AhRs[,1:10]
+
+distanceMatrix &lt;-
+  matrix(nrow=nrow(AhRs), ncol=nrow(AhRs), 0,
+         dimnames=list(rownames(AhRs), rownames(AhRs)))
+
+for (pair in combn(rownames(AhRs), 2, simplify=FALSE)) {
+  d &lt;- partitionMetric (AhRs[pair[1],], AhRs[pair[2],], beta=1.01)
+  distanceMatrix[pair[1],pair[2]] &lt;- distanceMatrix[pair[2],pair[1]] &lt;- d
+}
+
+hc &lt;- hclust(as.dist(distanceMatrix))
+plot(hc,
+     sub=sprintf('Cophenentic correlation between distances and tree is %0.2f',
+       cor(as.dist(distanceMatrix), cophenetic(hc))))
+</code></pre>
+
+
+</div>

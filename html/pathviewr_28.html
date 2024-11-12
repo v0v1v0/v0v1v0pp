@@ -1,0 +1,222 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>insert_treatments</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Inserts treatment and experiment information</h2>
+
+<h3>Description</h3>
+
+<p>Adds information about treatment and experimental set up to viewr objects for
+analysis in other pathviewr functions
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">insert_treatments(
+  obj_name,
+  tunnel_config = "box",
+  perch_2_vertex = NULL,
+  vertex_angle = NULL,
+  tunnel_width = NULL,
+  tunnel_length = NULL,
+  stim_param_lat_pos = NULL,
+  stim_param_lat_neg = NULL,
+  stim_param_end_pos = NULL,
+  stim_param_end_neg = NULL,
+  treatment = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>obj_name</code></td>
+<td>
+<p>The input viewr object; a tibble or data.frame with attribute
+<code>pathviewr_steps</code> that includes <code>"viewr"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tunnel_config</code></td>
+<td>
+<p>The configuration of the experimental tunnel.
+Currently, pathviewr supports rectangular "box" and V-shaped tunnel
+configurations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>perch_2_vertex</code></td>
+<td>
+<p>If using a V-shaped tunnel, this is the vertical
+distance between the vertex and the height of the perches. If the tunnel does
+not have perches, insert the vertical distance between the vertex and the
+height of the origin (0,0,0).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vertex_angle</code></td>
+<td>
+<p>If using a V-shaped tunnel, the angle of the vertex (in
+degrees) <code>vertex_angle</code> defaults to 90.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tunnel_width</code></td>
+<td>
+<p>If using a box-shaped tunnel, the width of the tunnel.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tunnel_length</code></td>
+<td>
+<p>The length of the tunnel.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stim_param_lat_pos</code></td>
+<td>
+<p>The size of the stimulus on the lateral positive
+wall of the tunnel. Eg. for 10cm wide gratings,
+<code>stim_param_lat_pos</code> = 0.1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stim_param_lat_neg</code></td>
+<td>
+<p>The size of the stimulus on the lateral negative
+wall of the tunnel..</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stim_param_end_pos</code></td>
+<td>
+<p>The size of the stimulus on the end positive
+wall of the tunnel.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stim_param_end_neg</code></td>
+<td>
+<p>The size of the stimulus on the end negative
+wall of the tunnel.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>treatment</code></td>
+<td>
+<p>The name of the treatment assigned to all rows of the viewr
+object. Currently only able to accept a single treatment per viewr data
+object.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>All length measurements reported in meters.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A viewr object (tibble or data.frame with attribute
+<code>pathviewr_steps</code> that includes <code>"treatments added"</code>). Depending
+on the argument <code>tunnel_config</code>, the viewr object also includes
+columns storing the values of the supplied arguments. This experimental
+information is also stored in the viewr object's metadata
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Eric R. Press
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other utility functions: 
+<code>clean_by_span()</code>,
+<code>remove_duplicate_frames()</code>,
+<code>remove_vel_anomalies()</code>,
+<code>set_traj_frametime()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"> ## Import sample data from package
+ motive_data &lt;-
+  read_motive_csv(system.file("extdata", "pathviewr_motive_example_data.csv",
+                              package = 'pathviewr'))
+ flydra_data &lt;-
+ read_flydra_mat(system.file("extdata", "pathviewr_flydra_example_data.mat",
+                              package = 'pathviewr'),
+                              subject_name = "birdie_sanders")
+
+  ## Clean data up to and including get_full_trajectories()
+motive_data_full &lt;-
+ motive_data %&gt;%
+ relabel_viewr_axes() %&gt;%
+ gather_tunnel_data() %&gt;%
+ trim_tunnel_outliers() %&gt;%
+ rotate_tunnel() %&gt;%
+ select_x_percent(desired_percent = 50) %&gt;%
+ separate_trajectories(max_frame_gap = "autodetect") %&gt;%
+ get_full_trajectories(span = 0.95)
+
+ flydra_data_full &lt;-
+  flydra_data %&gt;%
+  redefine_tunnel_center(length_method = "middle",
+                        height_method = "user-defined",
+                        height_zero = 1.44) %&gt;%
+  select_x_percent(desired_percent = 50) %&gt;%
+  separate_trajectories(max_frame_gap = "autodetect") %&gt;%
+  get_full_trajectories(span = 0.95)
+
+
+## Now add information about the experimental configuration. In this example,
+## a V-shaped tunnel in which the vertex is 90deg and lies 0.40m below the
+## origin. The visual stimuli on the lateral and end walls have a cycle
+## length of 0.1m and 0.3m respectively, and the treatment is labeled
+## "lat10_end30"
+
+motive_v &lt;-
+motive_data_full %&gt;%
+ insert_treatments(tunnel_config = "v",
+                   perch_2_vertex = 0.4,
+                   vertex_angle = 90,
+                   tunnel_length = 2,
+                   stim_param_lat_pos = 0.1,
+                   stim_param_lat_neg = 0.1,
+                   stim_param_end_pos = 0.3,
+                   stim_param_end_neg = 0.3,
+                   treatment = "lat10_end_30")
+
+# For an experiment using the box-shaped configuration where the tunnel is 1m
+# wide and 3m long and the visual stimuli on the lateral and end walls have a
+# cycle length of 0.2 and 0.3m, respectively, and the treatment is labeled
+# "lat20_end30".
+
+flydra_box &lt;-
+ flydra_data_full %&gt;%
+ insert_treatments(tunnel_config = "box",
+                   tunnel_width = 1,
+                   tunnel_length = 3,
+                   stim_param_lat_pos = 0.2,
+                   stim_param_lat_neg = 0.2,
+                   stim_param_end_pos = 0.3,
+                   stim_param_end_neg = 0.3,
+                   treatment = "lat20_end30")
+
+## Check out the new columns in the resulting objects
+names(motive_v)
+names(flydra_box)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,166 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>censoring_weights</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculations for inverse probability of censoring weights (IPCW)</h2>
+
+<h3>Description</h3>
+
+<p>The method of Graf <em>et al</em> (1999) is used to compute weights at specific
+evaluation times that can be used to help measure a model's time-dependent
+performance (e.g. the time-dependent Brier score or the area under the ROC
+curve). This is an internal function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">.censoring_weights_graf(object, ...)
+
+## Default S3 method:
+.censoring_weights_graf(object, ...)
+
+## S3 method for class 'model_fit'
+.censoring_weights_graf(
+  object,
+  predictions,
+  cens_predictors = NULL,
+  trunc = 0.05,
+  eps = 10^-10,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>A fitted parsnip model object or fitted workflow with a mode
+of "censored regression".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>predictions</code></td>
+<td>
+<p>A data frame with a column containing a <code>survival::Surv()</code>
+object as well as a list column called <code>.pred</code> that contains the data
+structure produced by <code>predict.model_fit()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cens_predictors</code></td>
+<td>
+<p>Not currently used. A potential future slot for models with
+informative censoring based on columns in <code>predictions</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trunc</code></td>
+<td>
+<p>A potential lower bound for the probability of censoring to avoid
+very large weight values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eps</code></td>
+<td>
+<p>A small value that is subtracted from the evaluation time when
+computing the censoring probabilities. See Details below.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>A probability that the data are censored immediately prior to a specific
+time is computed. To do this, we must determine what time to
+make the prediction. There are two time values for each row of the data set:
+the observed time (either censored or not) and the time that the model is
+being evaluated at (e.g. the survival function prediction at some time point),
+which is constant across rows. .
+</p>
+<p>From  Graf <em>et al</em> (1999) there are three cases:
+</p>
+
+<ul>
+<li>
+<p> If the observed time is a censoring time and that is before the
+evaluation time, the data point should make no contribution to the
+performance metric (their "category 3"). These values have a missing
+value for their probability estimate (and also for their weight column).
+</p>
+</li>
+<li>
+<p> If the observed time corresponds to an actual event, and that time is
+prior to the evaluation time (category 1), the probability of being
+censored is predicted at the observed time (minus an epsilon).
+</p>
+</li>
+<li>
+<p> If the observed time is <em>after</em> the evaluation time (category 2), regardless of
+the status, the probability of being censored is predicted at the evaluation
+time (minus an epsilon).
+</p>
+</li>
+</ul>
+<p>The epsilon is used since, we would not have actual information at time <code>t</code>
+for a data point being predicted at time <code>t</code> (only data prior to time <code>t</code>
+should be available).
+</p>
+<p>After the censoring probability is computed, the <code>trunc</code> option is used to
+avoid using numbers pathologically close to zero. After this, the weight is
+computed by inverting the censoring probability.
+</p>
+<p>The <code>eps</code> argument is used to avoid information leakage when computing the
+censoring probability. Subtracting a small number avoids using data that
+would not be known at the time of prediction. For example, if we are making
+survival probability predictions at <code>eval_time = 3.0</code>, we would <em>not</em> know the
+about the probability of being censored at that exact time (since it has not
+occurred yet).
+</p>
+<p>When creating weights by inverting probabilities, there is the risk that a few
+cases will have severe outliers due to probabilities close to zero. To
+mitigate this, the <code>trunc</code> argument can be used to put a cap on the weights.
+If the smallest probability is greater than <code>trunc</code>, the probabilities with
+values less than <code>trunc</code> are given that value. Otherwise,  <code>trunc</code> is
+adjusted to be half of the smallest probability and that value is used as the
+lower bound..
+</p>
+<p>Note that if there are <code>n</code> rows in <code>data</code> and <code>t</code> time points, the resulting
+data, once unnested, has <code>n * t</code> rows. Computations will not easily scale
+well as <code>t</code> becomes very large.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The same data are returned with the <code>pred</code> tibbles containing
+several new columns:
+</p>
+
+<ul>
+<li> <p><code>.weight_time</code>: the time at which the inverse censoring probability weights
+are computed. This is a function of the observed time and the time of
+analysis (i.e., <code>eval_time</code>). See Details for more information.
+</p>
+</li>
+<li> <p><code>.pred_censored</code>: the probability of being censored at <code>.weight_time</code>.
+</p>
+</li>
+<li> <p><code>.weight_censored</code>: The inverse of the censoring probability.
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Graf, E., Schmoor, C., Sauerbrei, W. and Schumacher, M. (1999),
+Assessment and comparison of prognostic classification schemes for survival
+data. <em>Statist. Med.</em>, 18: 2529-2545.
+</p>
+
+
+</div>

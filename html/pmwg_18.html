@@ -1,0 +1,123 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>init</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Initialise values for the random effects</h2>
+
+<h3>Description</h3>
+
+<p>Initialise the random effects for each subject using MCMC.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">init(
+  pmwgs,
+  start_mu = NULL,
+  start_sig = NULL,
+  display_progress = TRUE,
+  particles = 100
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pmwgs</code></td>
+<td>
+<p>The sampler object that provides the parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start_mu</code></td>
+<td>
+<p>An array of starting values for the group means</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start_sig</code></td>
+<td>
+<p>An array of starting values for the group covariance matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>display_progress</code></td>
+<td>
+<p>Display a progress bar during sampling</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>particles</code></td>
+<td>
+<p>The number of particles to generate in initialisation</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Before sampling can start the Particle Metropolis within Gibbs sampler needs
+initial values for the random effects. The <code>init</code> function generates
+these values using a Monte Carlo algorithm. One alternative methods would be
+setting the initial values randomly.
+</p>
+<p>Optionally takes starting values for the model parameters and the variance /
+covariance matrix. All arrays must match the appropriate shape.
+</p>
+<p>For example, with 5 parameters and 10 subjects, the model parameter start
+means must be a vector of length 5 and the covariance matrix must be an array
+of 5 x 5.
+</p>
+<p>If the start_mu and start_sig arguments are left at the default (NULL) then
+start_mu will be sampled from a normal distribution with mean as the prior
+mean for eac variable and sd as the square of the variance from the prior
+covariance matrix. start_sig by default is sampled from an inverse wishart
+(IW) distribution. For a model with the number of parameters N the degrees of
+freedom of the IW distribution is set to N*3 and the scale matrix is the
+identity matrix of size NxN.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The sampler object but with initial values set for <code>theta_mu</code>,
+<code>theta_sig</code>, <code>alpha</code> and other values for the first sample.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">lba_ll &lt;- function(x, data) {
+  x &lt;- exp(x)
+  if (any(data$rt &lt; x["t0"])) {
+    return(-1e10)
+  }
+  sum(
+    log(
+      rtdists::dLBA(
+        rt = data$rt,
+        response = data$correct,
+        A = x["A"],
+        b = x["A"] + x[c("b1", "b2", "b3")][data$condition],
+        t0 = x["t0"],
+        mean_v = x[c("v1", "v2")],
+        sd_v = c(1, 1),
+        silent = TRUE
+      )
+    )
+  )
+}
+sampler &lt;- pmwgs(
+  forstmann,
+  c("b1", "b2", "b3", "A", "v1", "v2", "t0"),
+  lba_ll
+)
+sampler &lt;- init(sampler, particles=10)
+</code></pre>
+
+
+</div>

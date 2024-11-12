@@ -1,0 +1,154 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pdCART</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Tree-structured trace thresholding of wavelet coefficients</h2>
+
+<h3>Description</h3>
+
+<p><code>pdCART</code> performs hard tree-structured thresholding of the Hermitian matrix-valued wavelet coefficients obtained with
+<code>WavTransf1D</code> or <code>WavTransf2D</code> based on the trace of the whitened wavelet coefficients, as explained in
+(Chau and von
+Sachs 2019) or (Chau 2018). This function is primarily written for internal use in other functions and
+is typically not used as a stand-alone function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pdCART(D, D.white, order, alpha = 1, tree = TRUE, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>D</code></td>
+<td>
+<p>a list of wavelet coefficients as obtained from the <code>$D</code> component of <code>WavTransf1D</code> or <code>WavTransf2D</code> .</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>D.white</code></td>
+<td>
+<p>a list of whitened wavelet coefficients as obtained from the <code>$D.white</code> component of <code>WavTransf1D</code> or <code>WavTransf2D</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>order</code></td>
+<td>
+<p>the order(s) of the intrinsic 1D or 2D AI refinement scheme as in <code>WavTransf1D</code> and <code>WavTransf2D</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alpha</code></td>
+<td>
+<p>tuning parameter specifying the penalty/sparsity parameter as <code>alpha</code> times the universal threshold.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tree</code></td>
+<td>
+<p>logical value, if <code>tree = TRUE</code> performs tree-structured thresholding, otherwise performs
+non-tree-structured hard thresholding of the coefficients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments for internal use.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Depending on the structure of the input list of arrays <code>D</code> the function performs 1D or 2D tree-structured thresholding of wavelet coefficients.
+The optimal tree of wavelet coefficients is found by minimization of the <em>complexity penalized residual sum of squares</em> (CPRESS) criterion
+in (Donoho 1997), via a fast tree-pruning algorithm. By default, the penalty parameter in the optimization procedure is set equal to
+<code>alpha</code> times the universal threshold <code class="reqn">\sigma_w\sqrt(2\log(n))</code>, where <code class="reqn">\sigma_w^2</code> is the noise variance of the traces of the whitened
+wavelet coefficients determined from the finest wavelet scale and <code class="reqn">n</code> is the total number of coefficients. By default, <code>alpha = 1</code>,
+if <code>alpha = 0</code>, the penalty parameter is zero and the coefficients remain untouched.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a list with two components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td>
+<code>w</code> </td>
+<td>
+<p> a list of logical values specifying which coefficients to keep, with each list component
+corresponding to an individual wavelet scale starting from the coarsest wavelet scale <code>j = 0</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>D_w</code> </td>
+<td>
+<p> the list of thresholded wavelet coefficients, with each list component corresponding
+to an individual wavelet scale.</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>For thresholding of 1D wavelet coefficients, the noise
+variance of the traces of the whitened wavelet coefficients is constant across scales as seen in (Chau and von
+Sachs 2019). For thresholding of 2D
+wavelet coefficients, there is a discrepancy between the constant noise variance of the traces of the whitened wavelet coefficients at the first
+<code>abs(J1 - J2)</code> scales and the remaining scales, as discussed in Chapter 5 of (Chau 2018), where <code class="reqn">J_1 = \log_2(n_1)</code> and
+<code class="reqn">J_2 = \log_2(n_2)</code> with <code class="reqn">n_1</code> and <code class="reqn">n_2</code> the dyadic number of observations in each marginal direction of the 2D rectangular tensor grid.
+The reason is that the variances of the traces of the whitened coefficients are not homogeneous between: (i) scales at which the 1D wavelet refinement
+scheme is applied and (ii) scales at which the 2D wavelet refinement scheme is applied. To correct for this discrepancy, the variances of the coefficients
+at the 2D wavelet scales are normalized by the noise variance determined from the finest wavelet scale. The variances of the coefficients at the 1D wavelet
+scales are normalized using the analytic noise variance of the traces of the whitened coefficients for a grid of complex random Wishart matrices, which
+corresponds to the asymptotic distributional behavior of the HPD periodogram matrices obtained with e.g., <code>pdPgram2D</code>. Note that if the
+time-frequency grid is square, i.e., <code class="reqn">n_1 = n_2</code>, the variances of the traces of the whitened coefficients are again homogeneous across all wavelet scales.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chau J (2018).
+<em>Advances in Spectral Analysis for Multivariate, Nonstationary and Replicated Time Series</em>.
+phdthesis, Universite catholique de Louvain.<br><br> Chau J, von
+Sachs R (2019).
+“Intrinsic wavelet regression for curves of Hermitian positive definite matrices.”
+<em>Journal of the American Statistical Association</em>.
+doi: <a href="https://doi.org/10.1080/01621459.2019.1700129">10.1080/01621459.2019.1700129</a>.<br><br> Donoho D (1997).
+“CART and best-ortho-basis: a connection.”
+<em>The Annals of Statistics</em>, <b>25</b>(5), 1870–1911.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>WavTransf1D</code>, <code>InvWavTransf1D</code>, <code>WavTransf2D</code>, <code>InvWavTransf2D</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## 1D tree-structured trace thresholding
+P &lt;- rExamples1D(2^8, example = "bumps")$P
+Coeffs &lt;- WavTransf1D(P)
+pdCART(Coeffs$D, Coeffs$D.white, order = 5)$w ## logical tree of non-zero coefficients
+
+## Not run: 
+## 2D tree-structured trace thresholding
+P &lt;- rExamples2D(c(2^6, 2^6), 2, example = "tvar")$P
+Coeffs &lt;- WavTransf2D(P)
+pdCART(Coeffs$D, Coeffs$D.white, order = c(3, 3))$w
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

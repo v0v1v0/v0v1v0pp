@@ -1,0 +1,477 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>peperr</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Parallelised Estimation of Prediction Error</h2>
+
+<h3>Description</h3>
+
+<p>Prediction error estimation for regression models via resampling techniques. Potentially parallelised, if compute cluster is available. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">peperr(response, x, 
+	indices = NULL, 
+	fit.fun, complexity = NULL, args.fit = NULL, args.complexity = NULL,
+	parallel = NULL, cpus = 2, clustertype=NULL, clusterhosts=NULL,
+	noclusterstart = FALSE, noclusterstop=FALSE,
+	aggregation.fun=NULL, args.aggregation = NULL, 
+	load.list = extract.fun(list(fit.fun, complexity, aggregation.fun)),
+	load.vars = NULL, load.all = FALSE, 
+	trace = FALSE, debug = FALSE,
+	peperr.lib.loc=NULL, 
+        RNG=c("RNGstream", "SPRNG", "fixed", "none"), seed=NULL, 
+        lb=FALSE, sr=FALSE, sr.name="default", sr.restore=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>response</code></td>
+<td>
+<p>Either a survival object (with <code>Surv(time, status)</code>, where time is an <code>n</code>-vector of censored survival times and status an <code>n</code>-vector containing event status, coded with 0 and 1) or a matrix with columns <code>time</code> containing survival times and <code>status</code> containing integers, where 0 indicates censoring, 1 the interesting event and larger numbers other competing risks. In case of binary response, vector with entries 0 and 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p><code>n*p</code> matrix of covariates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>indices</code></td>
+<td>
+<p>named list, with two elements (both expected to be lists) <code>sample.index</code>, containing the vector of indices of observations used to fit the model, and list <code>not.in.sample</code>, containing the vector of indices of observations used for assessment. One list entry per split.
+Function <code>resample.indices</code> provides the most common resampling methods. If argument <code>indices</code> is not specified (default), the indices are determined as follows: If number of observations in the passed data matrix is smaller than number of covariates, 500 bootstrap samples without replacement are generated ("subsampling"), else 500 bootstrap samples with replacement.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit.fun</code></td>
+<td>
+<p>function returning a fitted model, see Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>complexity</code></td>
+<td>
+<p>if the choice of a complexity parameter is necessary, for example the number of boosting steps in boosting techniques, a function returning complexity parameter for model fitted with fit.fun, see Details. Alternatively, one explicit value for the complexity or a vector of values can be passed. In the latter case, the model fit is carried out for each of the complexity parameters. Alternatively, a named list can be passed, if complexity is a tuple of different parameter values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>args.fit</code></td>
+<td>
+<p>named list of arguments to be passed to the function given in <code>fit.fun</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>args.complexity</code></td>
+<td>
+<p>if <code>complexity</code> is a function, a named list of arguments to be passed to this function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>the default setting corresponds to the case that sfCluster is used or if R runs sequential, i.e. without any parallelisation. If sfCluster is used, settings from sfCluster commandline call are taken, i.e. the required number of nodes has to be specified as option of the sfCluster call (and not using argument <code>cpus</code>). 
+If another cluster solution (specified by argument <code>clustertype</code>) shall be used, a cluster with <code>cpus</code> CPUs is started if <code>parallel=TRUE</code>. <code>parallel=FALSE</code> switches back to sequential execution. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cpus</code></td>
+<td>
+<p>number of nodes, i.e., number of parallel running R processes, to be set up in a cluster, if not specified by commandline call. Only needed if <code>parallel=TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clustertype</code></td>
+<td>
+<p>type of cluster, character. 'SOCK' for socket cluster, 'MPI', 'PVM' or 'NWS'. Only considered if <code>parallel=TRUE</code>. If so, a socket cluster, which does not require any additional installation, is started as default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clusterhosts</code></td>
+<td>
+<p>host list for socket and NWS clusters, if <code>parallel=TRUE</code>. Has to be specified only if using more than one machine.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>noclusterstart</code></td>
+<td>
+<p>if function is used in already parallelised code. If set to TRUE, no cluster is initialised even if a compute cluster is available and function works in sequential mode. Additionally usable if calls on the slaves should be executed before calling function <code>peperr</code>, for example to load data on slaves, see Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>noclusterstop</code></td>
+<td>
+<p>if TRUE, cluster stop is suppressed. Useful for debugging of sessions on slaves. Note that the next <code>peperr</code> call forces cluster stop, except if called with <code>noclusterstart=TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>aggregation.fun</code></td>
+<td>
+<p>function that evaluates the prediction error for a model fitted by the function given in <code>fit.fun</code>, see Details. If not specified, function <code>aggregation.pmpec</code> is taken if response is survival object, in case of binary response function <code>aggregation.brier</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>args.aggregation</code></td>
+<td>
+<p>named list of arguments to be passed to the function given in argument <code>aggregation.fun</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>load.list</code></td>
+<td>
+<p>a named list with element <code>packages</code>, <code>functions</code> and <code>variables</code> containing quoted names of libraries, functions and global variables required for computation on cluster nodes. The default extracts automatically the libraries, functions and global variables of the, potentially user-defined, functions <code>fit.fun</code>, <code>complexity</code> and <code>aggregation.fun</code>, see function <code>extract.fun</code>. Can be set to NULL, e.g. if no libraries, functions and variables are needed. Alternatively, use argument <code>load.all</code>. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>load.vars</code></td>
+<td>
+<p>a named list with global variables required for computation on cluster nodes. See Details. Relict, global variabels can now be passed as list element <code>variables</code> of argument <code>load.list</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>load.all</code></td>
+<td>
+<p>logical. If set to TRUE, all variables, functions and libraries of the current global environment are loaded on cluster nodes. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace</code></td>
+<td>
+<p>logical. If TRUE, output about the current execution step is printed (if running parallel: printed on nodes, that means not visible in master R process, see Details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>debug</code></td>
+<td>
+<p>if TRUE, information concerning export of variables is given.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>peperr.lib.loc</code></td>
+<td>
+<p>location of package <span class="pkg">peperr</span> if not in standard library search path (<code>.libPaths()</code>), to be specified for loading <span class="pkg">peperr</span> onto the cluster nodes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>RNG</code></td>
+<td>
+<p>type of RNG. <code>"fixed"</code> requires a specified <code>seed</code>. <code>"RNGstream"</code> and <code>"SPRNG"</code> use default seeds, if not specified. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>seed to allow reproducibility of results. Only considered if argument <code>RNG</code> is not <code>"none"</code>. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lb</code></td>
+<td>
+<p>if TRUE and a compute cluster is used, computation of slaves is executed load balanced. See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sr</code></td>
+<td>
+<p>if TRUE, intermediate results are saved. If execution is interrupted, they can be restored by setting argument sr.restore to TRUE. See documentation of package <span class="pkg">snowfall</span> for details</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sr.name</code></td>
+<td>
+<p>if <code>sr</code> is set to TRUE and more than one computation runs simultaneously, unique names need to be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sr.restore</code></td>
+<td>
+<p>if <code>sr</code> is set to TRUE, an interrupted computation is restarted.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Validation of new model fitting approaches requires the proper use of resampling techniques for prediction error estimation. Especially in high-dimensional data situations the computational demand might be huge. <code>peperr</code> accelerates computation through automatically parallelisation of the resampling procedure, if a compute cluster is available. A noticeable speed-up is reached even when using a dual-core processor.
+</p>
+<p>Resampling based prediction error estimation requires for each split in training and test data the following steps: a) selection of model complexity (if desired), using the training data set, b) fitting the model with the selected (or a given) complexity on the training set and c) measurement of prediction error on the corresponding test set.
+</p>
+<p>Functions for fitting the model, determination of model complexity, if required by the fitting procedure, and aggregating the prediction error are passed as arguments <code>fit.fun</code>, <code>complexity</code> and <code>aggregation.fun</code>. Already available functions are 
+</p>
+<p>for model fit:
+<code>fit.CoxBoost</code>, <code>fit.coxph</code>, <code>fit.LASSO</code>, <code>fit.rsf_mtry</code>
+</p>
+<p>to determine complexity:
+<code>complexity.mincv.CoxBoost</code>, <code>complexity.ipec.CoxBoost</code>, <code>complexity.LASSO</code>, <code>complexity.ipec.rsf_mtry</code>
+</p>
+<p>to aggregate prediction error:
+<code>aggregation.pmpec</code>, <code>aggregation.brier</code>, <code>aggregation.misclass</code>
+</p>
+<p>Function <code>peperr</code> is especially designed for evaluation of newly developed model fitting routines. For that, own routines can be passed as arguments to the <code>peperr</code> call. They are incorporated as follows (also compare existing functions, as named above):
+</p>
+
+<ol>
+<li>
+<p> Model fitting techniques, which require selection of one or more complexity parameters, often provide routines based on cross-validation or similar to determine this parameter. If this routine is already at hand, the complexity function needed for the <code>peperr</code> call is not more than a wrapper around that, which consists of providing the data in the required way, calling the routine and return the selected complexity value(s). 
+</p>
+</li>
+<li>
+<p> For a given model fitting routine the fitting function, which is passed to the <code>peperr</code> call as argument <code>fit.fun</code>, is not more than a wrapper around that. Explicitly, response and matrix of covariates have to be transformed to the required form, if necessary, the routine is called with the passed complexity value, if required, and the fitted prediction model is returned. 
+</p>
+</li>
+<li>
+<p> Prediction error is estimated using a fitted model and a data set, by any kind of comparison of the true and the predicted response values. In case of survival response, apparent error (type <code>apparent</code>), which means that the prediction error is estimated in the same data set as used for model fitting, and no-information error (type <code>noinf</code>), which calculates the prediction error in permuted data, have to be provided. Note that the aggregation function returns the error with an additional attribute called <code>addattr</code>. The evaluation time points have to be stored there to allow later access.  
+</p>
+</li>
+<li>
+<p> In case of survival response, the user may additionally provide a function for partial log likelihood calculation, if he uses an own function for model fit, called <code>PLL.class</code>. If prediction error curves are used for aggregation (<code>aggregation.pmpec</code>), a predictProb method has to be provided, i.e. for each model of class <code>class</code> <code>predictProb.class</code>, see there. 
+</p>
+</li>
+</ol>
+<p>Concerning parallelisation, there are three possibilities to run <code>peperr</code>:
+</p>
+
+<ul>
+<li>
+<p> Start R on commandline with sfCluster and preferred options, for example number of cpus. Leave the three arguments <code>parallel</code>, <code>clustertype</code> and <code>nodes</code> unchanged.
+</p>
+</li>
+<li>
+<p> Use any other cluster solution supported by <span class="pkg">snowfall</span>, i.e. LAM/MPI, socket, PVM, NWS (set argument <code>clustertype</code>). Argument <code>parallel</code> has to be set to TRUE and number of cpus can be chosen by argument <code>nodes</code>) 
+</p>
+</li>
+<li>
+<p> If no cluster is used, R works sequentially. Keep <code>parallel=NULL</code>. No parallelisation takes place and therefore no speed up can be obtained.
+</p>
+</li>
+</ul>
+<p>In general, if <code>parallel=NULL</code>, all information concerning the cluster set-up is taken from commandline, else, it can be specified using the three arguments <code>parallel</code>, <code>clustertype</code>, <code>nodes</code>, and, if necessary, <code>clusterhosts</code>. 
+</p>
+<p>sfCluster is a Unix tool for flexible and comfortable managment of parallel R processes. However, <span class="pkg">peperr</span> is usable with any other cluster solution supported by <span class="pkg">snowfall</span>, i.e. sfCluster has not to be installed to use package <span class="pkg">peperr</span>. Note that this may require cluster handling by the user, e.g. manually shut down with 'lamhalt' on commandline for <code>type="MPI"</code>. But, using a socket cluster (argument <code>parallel=TRUE</code> and <code>clustertype="SOCK"</code>), does not require any extra installation. 
+</p>
+<p>Note that the run time cannot speed up anymore if the number of nodes is chosen higher than the number of passed training/test samples plus one, as parallelisation takes place in the resampling procedure and one additional run is used for computation on the full sample.
+</p>
+<p>If not running in sequential mode, a specified number of R processes called nodes is spawned for parallel execution of the resampling procedure (see above). This requires to provide all variables, functions and libraries necessary for computation on each of these R processes, so explicitly all variables, functions and libraries required by the, potentially user-defined, functions <code>fit.fun</code>, <code>complexity</code> and <code>aggregation.fun</code>. The simplest possibility is to load the whole content of the global environment on each node and all loaded libraries. This is done by setting argument <code>load.all=TRUE</code>. This is not the default, as a huge amount of data is potentially loaded to each node unnecessarily. Function <code>extract.fun</code> is provided to extract the functions and libraries needed, automatically called at each call of function <code>peperr</code>. Note that all required libraries have to be located in the standard library search path (obtained by <code>.libPaths()</code>). Another alternative is to load required data manually on the slaves, using <span class="pkg">snowfall</span> functions <code>sfLibrary</code>, <code>sfExport</code> and <code>sfExportAll</code>. Then, argument <code>noclusterstart</code> has to be switched to TRUE. Additionally, argument <code>load.list</code> could be set to NULL, to avoid potentially overwriting of functions and variables loaded to the cluster nodes automatically.
+</p>
+<p>Note that a <code>set.seed</code> call before calling function <code>peperr</code> is not sufficient to allow reproducibility of results when running in parallel mode, as the slave R processes are not affected as they are own R instances. <code>peperr</code> provides two possibilities to make results reproducible: 
+</p>
+
+<ul>
+<li>
+<p> Use <code>RNG="RNGstream"</code> or <code>RNG="SPRNG"</code>. Independent parallel random number streams are initialized on the cluster nodes, using function <code>sfClusterSetupRNG</code> of package <span class="pkg">snowfall</span>. A seed can be specified using argument <code>seed</code>, else the default values are taken. A <code>set.seed</code> call on the master is required additionally and argument <code>lb=FALSE</code>, see below.
+</p>
+</li>
+<li>
+<p> If <code>RNG="fixed"</code>, a seed has to be specified. This can be either an integer or a vector of length number of samples +2.  In the second case, the first entry is used for the main R process, the next number of samples ones for each sample run (in parallel execution mode on slave R processes) and the last one for computation on full sample (as well on slave R process in parallel execution mode). Passing integer x is equivalent to passing vector <code>x+(0:(number of samples+1))</code>. This procedure allows reproducibility in any case, i.e. also if the number of parallel processes changes as well as in sequential execution.
+</p>
+</li>
+</ul>
+<p>Load balancing (argument <code>lb</code>) means, that a slave gets a new job immediately after the previous is finished. This speeds up computation, but may change the order of jobs. Due to that, results are only reproducible, if <code>RNG="fixed"</code> is used.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Object of class <code>peperr</code>
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>indices</code></td>
+<td>
+<p>list of resampling indices.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>complexity</code></td>
+<td>
+<p>passed complexity. If argument <code>complexity</code> not specified, 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>selected.complexity</code></td>
+<td>
+<p>selected complexity for the full data set, if <code>complexity</code> was passed as function. Else equal to value <code>complexity</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>response</code></td>
+<td>
+<p>passed response.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>full.model.fit</code></td>
+<td>
+<p>List, one entry per complexity value. Fitted model of the full data set by passed <code>fit.fun</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>full.apparent</code></td>
+<td>
+<p>full apparent error of the full data set. Matrix: One row per complexity value. In case of survival response, columns correspond to evaluation timepoints, which are returned in value <code>attribute</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>noinf.error</code></td>
+<td>
+<p>No information error of the full data set, i. e. evaluation in permuted data. Matrix: One row per complexity value. Columns correspond to evaluation timepoints, which are returned in <code>attribute</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>attribute</code></td>
+<td>
+<p>if response is survival: Evaluation time points. Passed in <code>args.aggregation</code> or automatically determined by aggregation function. Otherwise, if available, extra attribute returned by aggregation function, else <code>NULL</code>, see Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sample.error</code></td>
+<td>
+<p>list. Each entry contains matrix of prediction error for one resampling test sample. One row per complexity value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sample.complexity</code></td>
+<td>
+<p>vector of complexity values. Equals value <code>complexity</code>, if complexity value was passed explicitly, otherwise by function <code>complexity</code> selected complexity value for each resampling sample. If argument <code>complexity</code> not specified, 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sample.lipec</code></td>
+<td>
+<p>only, if response is survival. Lebesgue integrated prediction error curve for each sample. List with one entry per sample, each a matrix with one row per complexity value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sample.pll</code></td>
+<td>
+<p>only, if response is survival and PLL.class function available. Predictive partial log likelihood for each sample. List with one entry per sample, each a matrix with one row per complexity value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>null.model.fit</code></td>
+<td>
+<p>only, if response is survival or binary. Fit of null model, i.e. fit without information of covariates. In case of survival response Kaplan-Meier, else logistic regression model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>null.model</code></td>
+<td>
+<p>only, if response is survival or binary. Vector or scalar: Prediction error of the null model, in case of survival response at each evaluation time point.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sample.null.model</code></td>
+<td>
+<p>list. Prediction error of the null model for one resampling test sample. Matrix, one row per complexity value.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Christine Porzelius <a href="mailto:cp@fdm.uni-freiburg.de">cp@fdm.uni-freiburg.de</a>, Harald Binder</p>
+
+
+<h3>References</h3>
+
+<p>Binder, H. and Schumacher, M. (2008) Adapting prediction error estimates for biased complexity selection in high-dimensional bootstrap samples. Statistical Applications in Genetics and Molecular Biology, 7:1.
+</p>
+<p>Porzelius, C., Binder, H., Schumacher, M. (2008) Parallelised prediction error estimation for evaluation of high-dimensional models. Manuscript.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>perr</code>, <code>resample.indices</code>, <code>extract.fun</code></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Generate survival data with 10 informative covariates 
+## Not run: 
+n &lt;- 200
+p &lt;- 100
+beta &lt;- c(rep(1,10),rep(0,p-10))
+x &lt;- matrix(rnorm(n*p),n,p)
+real.time &lt;- -(log(runif(n)))/(10*exp(drop(x 
+cens.time &lt;- rexp(n,rate=1/10)
+status &lt;- ifelse(real.time &lt;= cens.time,1,0)
+time &lt;- ifelse(real.time &lt;= cens.time,real.time,cens.time)
+
+# A: R runs sequential or R is started on commandline with desired options 
+# (for example using sfCluster: sfCluster -i --cpus=5)
+# Example A1:
+# Obtain prediction error estimate fitting a Cox proportional hazards model
+# using CoxBoost 
+# through 10 bootstrap samples 
+# with fixed complexity 50 and 75
+# and aggregate using prediction error curves (default setting)
+
+peperr.object1 &lt;- peperr(response=Surv(time, status), x=x, 
+   fit.fun=fit.CoxBoost, complexity=c(50, 75), 
+   indices=resample.indices(n=length(time), method="sub632", sample.n=10))
+peperr.object1
+
+# Diagnostic plots
+plot(peperr.object1)
+
+# Extraction of prediction error curves (.632+ prediction error estimate), 
+# blue line corresponds to complexity 50, 
+# red one to complexity 75
+plot(peperr.object1$attribute,
+   perr(peperr.object1)[1,], type="l", col="blue",
+   xlab="Evaluation time points", ylab="Prediction error")
+lines(peperr.object1$attribute, 
+   perr(peperr.object1)[2,], col="red")
+
+# Example A2:
+# As Example A1, but
+# with complexity selected through a cross-validation procedure
+# and extra argument 'penalty' passed to fit function and complexity function
+peperr.object2 &lt;- peperr(response=Surv(time, status), x=x, 
+   fit.fun=fit.CoxBoost, args.fit=list(penalty=100),
+   complexity=complexity.mincv.CoxBoost, args.complexity=list(penalty=100),
+   indices=resample.indices(n=length(time), method="sub632", sample.n=10),
+   trace=TRUE)
+peperr.object2
+
+# Diagnostic plots
+plot(peperr.object2)
+
+# Example A3:
+# As Example A2, but
+# with extra argument 'times', specifying the evaluation times passed to aggregation.fun
+# and seed, for reproducibility of results
+# Note: set.seed() is required additional to argument 'seed', 
+# as function 'resample.indices' is used in peperr call.
+set.seed(123)
+peperr.object3 &lt;- peperr(response=Surv(time, status), x=x, 
+   fit.fun=fit.CoxBoost, args.fit=list(penalty=100),
+   complexity=complexity.mincv.CoxBoost, args.complexity=list(penalty=100),
+   indices=resample.indices(n=length(time), method="sub632", sample.n=10),
+   args.aggregation=list(times=seq(0, quantile(time, probs=0.9), length.out=100)),
+   trace=TRUE, RNG="fixed", seed=321)
+peperr.object3
+
+# Diagnostic plots
+plot(peperr.object3)
+
+# B: R is started sequential, desired cluster options are given as arguments
+# Example B1:
+# As example A1, but using a socket cluster and 3 CPUs
+peperr.object4 &lt;- peperr(response=Surv(time, status), x=x, 
+   fit.fun=fit.CoxBoost, complexity=c(50, 75), 
+   indices=resample.indices(n=length(time), method="sub632", sample.n=10),
+   parallel=TRUE, clustertype="SOCK", cpus=3)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,142 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tbl_source</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Obtain a table-prep formula from a table store</h2>
+
+<h3>Description</h3>
+
+<p>The <code>tbl_source()</code> function provides a convenient means to access a
+table-prep formula from either a <code>tbl_store</code> object or a table store YAML
+file (which can be created with the <code>yaml_write()</code> function). A call to
+<code>tbl_source()</code> is most useful as an input to the <code>tbl</code> argument of
+<code>create_agent()</code>, <code>create_informant()</code>, or <code>set_tbl()</code>.
+</p>
+<p>Should you need to obtain the table itself (that is generated via the
+table-prep formula), then the <code>tbl_get()</code> function should be used for that.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">tbl_source(tbl, store = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tbl</code></td>
+<td>
+<p>The table name associated with a table-prep formula. This is part
+of the table <code>store</code>. This table could be identified by its name (e.g.,
+<code>tbl = "large_table"</code>) or by supplying a reference using a subset (with
+<code>$</code>) of the <code>tbl_store</code> object (e.g., <code>tbl = store$large_table</code>). If using
+the latter method then nothing needs to be supplied to <code>store</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>store</code></td>
+<td>
+<p>Either a table store object created by the <code>tbl_store()</code>
+function or a path to a table store YAML file created by <code>yaml_write()</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A table-prep formula.
+</p>
+
+
+<h3>Examples</h3>
+
+<p>Let's create a <code>tbl_store</code> object by giving two table-prep formulas to
+<code>tbl_store()</code>.
+</p>
+<div class="sourceCode r"><pre>store &lt;- 
+  tbl_store(
+    small_table_duck ~ db_tbl(
+      table = small_table,
+      dbname = ":memory:",
+      dbtype = "duckdb"
+    ),
+    sml_table ~ pointblank::small_table
+  )
+</pre></div>
+<p>We can pass a table-prep formula to <code>create_agent()</code> via <code>tbl_source()</code>, add
+some validation steps, and interrogate the table shortly thereafter.
+</p>
+<div class="sourceCode r"><pre>agent_1 &lt;- 
+  create_agent(
+    tbl = ~ tbl_source("sml_table", store),
+    label = "`tbl_source()` example",
+    actions = action_levels(warn_at = 0.10)
+  ) %&gt;% 
+  col_exists(columns = c(date, date_time)) %&gt;%
+  interrogate()
+</pre></div>
+<p>The <code>agent_1</code> object can be printed to see the validation report in the
+Viewer.
+</p>
+<div class="sourceCode r"><pre>agent_1
+</pre></div>
+
+
+<img src="https://raw.githubusercontent.com/rstudio/pointblank/main/images/man_tbl_source_1.png" alt="This image was generated from the first code example in the `tbl_source()` help file." style="width:100%;"><p>The <code>tbl_store</code> object can be transformed to YAML with the <code>yaml_write()</code>
+function. The following statement writes the <code>tbl_store.yml</code> file by default
+(but a different name could be used with the <code>filename</code> argument):
+</p>
+<div class="sourceCode r"><pre>yaml_write(store)
+</pre></div>
+<p>Let's modify the agent's target to point to the table labeled as
+<code>"sml_table"</code> in the YAML representation of the <code>tbl_store</code>.
+</p>
+<div class="sourceCode r"><pre>agent_2 &lt;-
+  agent_1 %&gt;% 
+  set_tbl(
+    ~ tbl_source(
+        tbl = "sml_table",
+        store = "tbl_store.yml"
+      )
+  )
+</pre></div>
+<p>We can likewise write the agent to a YAML file with <code>yaml_write()</code> (writes to
+<code>agent-sml_table.yml</code> by default but the <code>filename</code> allows for any filename
+you want).
+</p>
+<div class="sourceCode r"><pre>yaml_write(agent_2)
+</pre></div>
+<p>Now that both the agent and the associated table store are present as on-disk
+YAML, interrogations can be done by using <code>yaml_agent_interrogate()</code>.
+</p>
+<div class="sourceCode r"><pre>agent &lt;- yaml_agent_interrogate(filename = "agent-sml_table.yml")
+</pre></div>
+
+
+<h3>Function ID</h3>
+
+<p>1-9
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Planning and Prep: 
+<code>action_levels()</code>,
+<code>create_agent()</code>,
+<code>create_informant()</code>,
+<code>db_tbl()</code>,
+<code>draft_validation()</code>,
+<code>file_tbl()</code>,
+<code>scan_data()</code>,
+<code>tbl_get()</code>,
+<code>tbl_store()</code>,
+<code>validate_rmd()</code>
+</p>
+
+
+</div>

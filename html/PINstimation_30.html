@@ -1,0 +1,152 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>initials_adjpin_cl</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>AdjPIN initial parameter sets of Cheng and Lai (2021)</h2>
+
+<h3>Description</h3>
+
+<p>Based on an extension of the algorithm in
+Cheng and Lai (2021), generates sets of initial
+parameters to be used in the maximum likelihood
+estimation of <code>AdjPIN</code> model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">initials_adjpin_cl(data, restricted = list(), verbose = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A dataframe with 2 variables: the first
+corresponds to buyer-initiated trades (buys), and the second corresponds
+to seller-initiated trades (sells).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>restricted</code></td>
+<td>
+<p>A binary list that allows estimating restricted
+AdjPIN models by specifying which model parameters are assumed to be equal.
+It contains one or multiple of the following four elements
+<code style="white-space: pre;">⁠{theta, mu, eps, d}⁠</code>. For instance, If <code>theta</code> is set to <code>TRUE</code>,
+then the probability of liquidity shock in no-information days, and in
+information days is assumed to be the same (<code class="reqn">\theta</code><code>=</code><code class="reqn">\theta'</code>). If any of
+the remaining rate elements <code style="white-space: pre;">⁠{mu, eps, d}⁠</code> is set to <code>TRUE</code>,
+(say  <code>mu=TRUE</code>), then the rate is assumed to be the same on the buy side,
+and on the sell side (<code class="reqn">\mu</code><sub>b</sub><code>=</code><code class="reqn">\mu</code><sub>s</sub>). If more than one element is set to
+<code>TRUE</code>, then the restrictions are combined. For instance, if the argument
+<code>restricted</code> is set to <code>list(theta=TRUE, eps=TRUE, d=TRUE)</code>, then the
+restricted AdjPIN model is estimated, where <code class="reqn">\theta</code><code>=</code><code class="reqn">\theta'</code>, <code class="reqn">\epsilon</code><sub>b</sub><code>=</code><code class="reqn">\epsilon</code><sub>s</sub>,
+and <code class="reqn">\Delta</code><sub>b</sub><code>=</code><code class="reqn">\Delta</code><sub>s</sub>. If the value of the argument <code>restricted</code> is the empty list,
+then all parameters of the model are assumed to be independent,
+and the unrestricted model is estimated. The default value is the empty
+list <code>list()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>a binary variable that determines whether information messages
+about the initial parameter sets, including the number of the initial
+parameter sets generated. No message is shown when <code>verbose</code> is set
+to <code>FALSE</code>. The default value is <code>TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The argument 'data' should be a numeric dataframe, and contain
+at least two variables. Only the first two variables will be considered:
+The first variable is assumed to correspond to the total number of
+buyer-initiated trades, while the second variable is assumed to
+correspond to the total number of seller-initiated trades. Each row or
+observation correspond to a trading day. <code>NA</code> values will be ignored.
+<br><br> The function implements an extension of the algorithm of
+Cheng and Lai (2021). In their paper, the authors
+assume that the probability of liquidity shock is the same in no-information,
+and information days, i.e., <code class="reqn">\theta</code><code>=</code><code class="reqn">\theta'</code>, and use a procedure similar to
+that of Yan and Zhang (2012) to generate 64 initial
+parameter sets. The function implements an extension of their algorithm,
+by relaxing the assumption of equality of liquidity shock probabilities,
+and generates thereby <code>256</code> initial parameter sets for the unrestricted
+<code>AdjPIN</code> model.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a dataframe of numerical vectors of ten elements
+{<code class="reqn">\alpha</code>, <code class="reqn">\delta</code>, <code class="reqn">\theta</code>, <code class="reqn">\theta'</code>,
+<code class="reqn">\epsilon</code><sub>b</sub>, <code class="reqn">\epsilon</code><sub>s</sub>, <code class="reqn">\mu</code><sub>b</sub>, <code class="reqn">\mu</code><sub>s</sub>, <code class="reqn">\Delta</code><sub>b</sub>, <code class="reqn">\Delta</code><sub>s</sub>}.
+</p>
+
+
+<h3>References</h3>
+
+<p>Cheng T, Lai H (2021).
+“Improvements in estimating the probability of informed trading models.”
+<em>Quantitative Finance</em>, <b>21</b>(5), 771-796.<br><br> Yan Y, Zhang S (2012).
+“An improved estimation method and empirical properties of the probability of informed trading.”
+<em>Journal of Banking and Finance</em>, <b>36</b>(2), 454–467.
+ISSN 03784266.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># There is a preloaded quarterly dataset called 'dailytrades' with 60
+# observations. Each observation corresponds to a day and contains the
+# total number of buyer-initiated trades ('B') and seller-initiated
+# trades ('S') on that day. To know more, type ?dailytrades
+
+xdata &lt;- dailytrades
+
+# The function adjpin(xdata, initialsets="CL") allows the user to directly
+# estimate the AdjPIN model using the full set of initial parameter sets
+# generated using the algorithm Cheng and Lai (2021)
+
+estimate.1 &lt;- adjpin(xdata,  initialsets="CL", verbose = FALSE)
+
+
+# Obtaining the set of initial parameter sets using initials_adjpin_cl
+# allows us to estimate the PIN model using a subset of these initial sets.
+
+# Use initials_adjpin_cl() to generate 256 initial parameter sets using the
+# algorithm of Cheng and Lai (2021).
+
+initials_cl &lt;- initials_adjpin_cl(xdata, verbose = FALSE)
+
+# Use 20 randonly chosen initial sets from the dataframe 'initials_cl' in
+# order to estimate the AdjPIN model using the function adjpin() with custom
+# initial parameter sets
+
+numberofsets &lt;- nrow(initials_cl)
+selectedsets &lt;- initials_cl[sample(numberofsets, 20),]
+
+estimate.2 &lt;- adjpin(xdata, initialsets = selectedsets, verbose = FALSE)
+
+# Compare the parameters and the pin values of both specifications
+
+comparison &lt;- rbind(
+c(estimate.1@parameters, adjpin = estimate.1@adjpin, psos = estimate.1@psos),
+c(estimate.2@parameters, estimate.2@adjpin, estimate.2@psos))
+
+rownames(comparison) &lt;- c("all", "50")
+
+show(comparison)
+
+
+</code></pre>
+
+
+</div>

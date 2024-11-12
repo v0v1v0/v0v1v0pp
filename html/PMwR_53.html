@@ -1,0 +1,482 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>returns</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Compute Returns
+</h2>
+
+<h3>Description</h3>
+
+<p>Convert prices into returns.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">returns(x, ...)
+
+## Default S3 method:
+returns(x, t = NULL, period = NULL, complete.first = TRUE,
+        pad = NULL, position = NULL,
+        weights = NULL, rebalance.when = NULL,
+        lag = 1, na.rm = TRUE, ...)
+
+## S3 method for class 'zoo'
+returns(x, period = NULL, complete.first = TRUE,
+        pad = NULL, position = NULL,
+        weights = NULL, rebalance.when = NULL, lag = 1, na.rm = TRUE, ...)
+
+## S3 method for class 'p_returns'
+print(x, ..., year.rows = TRUE, month.names = NULL,
+      zero.print = "0", plus = FALSE, digits = 1,
+      na.print = NULL)
+
+## S3 method for class 'p_returns'
+toLatex(object, ...,
+        year.rows = TRUE, ytd = "YTD", month.names = NULL,
+        eol = "\\\\", stand.alone = FALSE)
+
+## S3 method for class 'p_returns'
+toHTML(x, ...,
+       year.rows = TRUE, ytd = "YTD", month.names = NULL,
+       stand.alone = TRUE, table.style = NULL, table.class = NULL,
+       th.style = NULL, th.class = NULL,
+       td.style = "text-align:right; padding:0.5em;",
+       td.class = NULL, tr.style = NULL, tr.class = NULL,
+       browse = FALSE)
+
+.returns(x, pad = NULL, lag)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+
+<p>for the default method, a <code>numeric</code>
+vector (possibly with a <code>dim</code> attribute;
+i.e. a matrix) of prices.  <code>returns</code> also
+supports <code>x</code> of other classes, such as
+<code>zoo</code> or <code>NAVseries</code>. For
+time-series classes, argument <code>t</code> should be
+<code>NULL</code>.
+</p>
+<p>For <code>.returns</code>, <code>x</code> must be
+<code>numeric</code> (for other classes, <code>.returns</code>
+may not work properly).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>t</code></td>
+<td>
+
+<p>timestamps. See arguments <code>period</code> and
+<code>rebalance.when</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>period</code></td>
+<td>
+
+<p>Typically a string. Supported are
+<code>"hour"</code>, <code>"day"</code>, <code>"month"</code>,
+<code>"quarter"</code>, <code>"year"</code>,
+<code>"ann"</code> (annualised), <code>"ytd"</code>
+(year-to-date), <code>"mtd"</code> (month-to-date), <code>"itd"</code>
+(inception-to-date) or a single year, such as
+"2012". Instead of <code>"itd"</code>, <code>"total"</code> may also be used.
+The value of ‘period’ is used only
+when timestamp information is available: for
+instance, when <code>t</code> is not <code>NULL</code> or with
+<code>zoo</code>/<code>xts</code> objects. The exception is
+<code>"itd"</code>, which can be computed without timestamp information.
+Holding period <code>"ytd"</code> produces a
+warning if the current year (as obtained from
+<code>Sys.Date</code>) differs from the latest
+timestamp of the series.  Specifying period as
+<code>"ytd!"</code> suppresses the warning.
+</p>
+<p>All returns are computed as simple returns. They
+will only be annualised with option <code>"ann"</code>; they
+will not be annualised when the length of the time
+series is less than one year. To force annualising
+in such a case, use
+<code>"ann!"</code>. Annualisation can only work
+when the timestamp <code>t</code> can be coerced to class
+<code>Date</code>. The result will have an
+attribute <code>is.annualised</code>, which is a logical
+vector of length one.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>complete.first</code></td>
+<td>
+
+<p>logical. For holding-period returns such an monthly
+or yearly, should the first period (if incomplete)
+be used.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pad</code></td>
+<td>
+
+<p>either <code>NULL</code> (no padding of initial lost
+observation) or a value used for padding
+(reasonable values might be <code>NA</code> or
+<code>0</code>)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.rm</code></td>
+<td>
+
+<p>logical; see Details
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>position</code></td>
+<td>
+
+<p>either a numeric vector of the same length as the
+number of assets (i.e. <code>ncol(x)</code>), or a numeric
+matrix whose dimensions match those of prices
+(i.e. <code>dim(x)</code> must equal <code>dim(weights)</code>), or
+a matrix with as many rows as <code>rebalance.when</code> has
+elements
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+
+<p>either a numeric vector of the same length as the
+number of assets (i.e. <code>ncol(x)</code>), or a numeric
+matrix whose dimensions match those of prices
+(i.e. <code>dim(x)</code> must equal <code>dim(weights)</code>), or
+a matrix with as many rows as <code>rebalance.when</code> has
+elements
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rebalance.when</code></td>
+<td>
+
+<p>logical or numeric. If <code>x</code> is a time-series
+class (such as <code>zoo</code>), it may also be of the
+same class as the time index of <code>x</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>further arguments to be passed to methods
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>year.rows</code></td>
+<td>
+
+<p>logical. If <code>TRUE</code> (the default), print
+monthly returns with one row per year.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zero.print</code></td>
+<td>
+
+<p>character.  How to print zero values.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>na.print</code></td>
+<td>
+
+<p>character.  How to print <code>NA</code> values. (Not
+supported yet.)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plus</code></td>
+<td>
+
+<p>logical. Add a ‘<code>+</code>’ before positive
+numbers? Default is <code>FALSE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lag</code></td>
+<td>
+
+<p>The lag for computing returns. A positive integer,
+defaults to one; ignored for time-weighted returns
+or if <code>t</code> is supplied.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+
+<p>an object of class <code>p_returns</code> (‘period
+returns’)
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>month.names</code></td>
+<td>
+
+<p>character: names of months. Default is an
+abbreviated month name as provided by the
+locale. That may cause trouble, notably with
+<code>toLatex</code>, if such names contain
+non-<abbr><span class="acronym">ASCII</span></abbr> characters: a safe choice is
+either the numbers 1 to 12, or the character vector
+<code>month.abb</code>, which lives in the base
+package.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>digits</code></td>
+<td>
+
+<p>number of digits in table
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ytd</code></td>
+<td>
+
+<p>header for YTD
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>eol</code></td>
+<td>
+<p>character</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stand.alone</code></td>
+<td>
+<p>logical or character</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>table.class</code></td>
+<td>
+<p>character</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>table.style</code></td>
+<td>
+<p>character</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>th.class</code></td>
+<td>
+<p>character</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>th.style</code></td>
+<td>
+<p>character</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>td.class</code></td>
+<td>
+<p>character</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>td.style</code></td>
+<td>
+<p>character</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tr.class</code></td>
+<td>
+<p>character</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tr.style</code></td>
+<td>
+<p>character</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>browse</code></td>
+<td>
+
+<p>logical: open table in browser?
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>returns</code> is a generic function.  It computes
+simple returns: current values divided by prior
+values minus one.  The default method works for
+numeric vectors/matrices.  The function
+<code>.returns</code> does the actual computations and may
+be used when a ‘raw’ return computation is
+needed.
+</p>
+
+
+<h4>Holding-Period Returns</h4>
+
+<p>When a timestamp is available, <code>returns</code> can
+compute returns for specific calendar periods. See
+argument <code>period</code>.
+</p>
+
+
+
+<h4>Portfolio Returns</h4>
+
+<p><code>returns</code> may compute returns for a portfolio
+specified in <code>weights</code> or <code>position</code>. The
+portfolio is rebalanced at <code>rebalance.when</code>; the
+default is every period.  Weights need not sum to
+one. A zero-weight portfolio, or a portfolio that never
+rebalances (e.g. with <code>rebalance.when</code> set to
+<code>FALSE</code>), will result in a zero return.
+</p>
+<p><code>rebalance.when</code> may either be logical,
+integers or of the same class as a <code>timestamp</code>
+(e.g. <code>Date</code>).
+</p>
+
+
+
+<h4>Handling missing values</h4>
+
+<p>Removing missing values (i.e. setting <code>na.rm</code> to
+<code>TRUE</code>) only has effects when <code>period</code> is
+specified.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>If called as <code>returns(x)</code>: a numeric vector or
+matrix, possibly with a class attribute (e.g. for a
+<code>zoo</code> series).
+</p>
+<p>If called with a <code>period</code> argument: an object of
+class <code>"p_returns"</code> (period returns), which is a
+numeric vector of returns with attributes <code>t</code>
+(timestamp) and <code>period</code>.  Main use is to have
+methods that pretty-print such period returns; currently,
+there are methods for <code>toLatex</code> and
+<code>toHTML</code>.
+</p>
+<p>In some cases, additional attributes may be attached:
+when portfolio returns were computed (i.e. argument
+<code>weights</code> was specified), there are attributes
+<code>holdings</code> and <code>contributions</code>. For
+holding-period returns, there may be a logical attribute
+<code>is.annualised</code>, and an attribute <code>from.to</code>,
+which tells the start and end date of the holding period.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Enrico Schumann &lt;es@enricoschumann.net&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>Schumann, E. (2023) <em>Portfolio Management with R</em>.
+<a href="https://enricoschumann.net/R/packages/PMwR/">https://enricoschumann.net/R/packages/PMwR/</a>;
+in particular, see<br><a href="https://enricoschumann.net/R/packages/PMwR/manual/PMwR.html#computing-returns">https://enricoschumann.net/R/packages/PMwR/manual/PMwR.html#computing-returns</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>btest</code>, <code>pl</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">x &lt;- 101:105
+returns(x)
+returns(x, pad = NA)
+returns(x, pad = NA, lag = 2)
+
+
+## monthly returns
+t &lt;- seq(as.Date("2012-06-15"), as.Date("2012-12-31"), by = "1 day")
+x &lt;- seq_along(t) + 1000
+returns(x, t = t, period = "month")
+returns(x, t = t, period = "month", complete.first = FALSE)
+
+### formatting
+print(returns(x, t = t, period = "month"), plus = TRUE, digits = 0)
+
+## returns per year (annualised returns)
+returns(x, t = t, period = "ann")  ## less than one year, not annualised
+returns(x, t = t, period = "ann!") ## less than one year, *but* annualised
+
+is.ann &lt;- function(x)
+    attr(x, "is.annualised")
+
+is.ann(returns(x, t = t, period = "ann"))   ## FALSE
+is.ann(returns(x, t = t, period = "ann!"))  ## TRUE
+
+
+## with weights and fixed rebalancing times
+prices &lt;- cbind(p1 = 101:105,
+                p2 = rep(100, 5))
+R &lt;- returns(prices, weights = c(0.5, 0.5), rebalance.when = 1)
+## ... =&gt; resulting weights
+h &lt;- attr(R, "holdings")
+h*prices / rowSums(h*prices)
+##             p1        p2
+## [1,] 0.5000000 0.5000000  ## &lt;== only initial weights are .5/.5
+## [2,] 0.5024631 0.4975369
+## [3,] 0.5049020 0.4950980
+## [4,] 0.5073171 0.4926829
+## [5,] 0.5097087 0.4902913
+</code></pre>
+
+
+</div>

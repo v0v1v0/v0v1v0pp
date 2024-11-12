@@ -1,0 +1,174 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pmlMix</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Phylogenetic mixture model</h2>
+
+<h3>Description</h3>
+
+<p>Phylogenetic mixture model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pmlMix(formula, fit, m = 2, omega = rep(1/m, m),
+  control = pml.control(epsilon = 1e-08, maxit = 20, trace = 1), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a formula object (see details).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fit</code></td>
+<td>
+<p>an object of class <code>pml</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>m</code></td>
+<td>
+<p>number of mixtures.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>omega</code></td>
+<td>
+<p>mixing weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>A list of parameters for controlling the fitting process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Further arguments passed to or from other methods.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>formula</code> object allows to specify which parameter get optimized.
+The formula is generally of the form <code>edge + bf + Q ~ rate + shape +
+...{}</code>, on the left side are the parameters which get optimized over all
+mixtures, on the right the parameter which are optimized specific to each
+mixture. The parameters available are <code>"nni", "bf", "Q", "inv",
+"shape", "edge", "rate"</code>.  Each parameters can be used only once in the
+formula.  <code>"rate"</code> and <code>"nni"</code> are only available for the right
+side of the formula. On the other hand parameters for invariable sites are
+only allowed on the left-hand side.  The convergence of the algorithm is
+very slow and is likely that the algorithm can get stuck in local optima.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>pmlMix</code> returns a list with elements
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>logLik</code></td>
+<td>
+<p>log-likelihood of the fit</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>omega</code></td>
+<td>
+<p>mixing weights.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fits</code></td>
+<td>
+<p>fits for the final mixtures.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Klaus Schliep <a href="mailto:klaus.schliep@gmail.com">klaus.schliep@gmail.com</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pml</code>,<code>pmlPart</code>,<code>pmlCluster</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Not run: 
+X &lt;- allSitePattern(5)
+tree &lt;- read.tree(text = "((t1:0.3,t2:0.3):0.1,(t3:0.3,t4:0.3):0.1,t5:0.5);")
+fit &lt;- pml(tree,X, k=4)
+weights &lt;- 1000*exp(fit$siteLik)
+attr(X, "weight") &lt;- weights
+fit1 &lt;- update(fit, data=X, k=1)
+fit2 &lt;- update(fit, data=X)
+
+(fitMixture &lt;- pmlMix(edge~rate, fit1 , m=4))
+(fit2 &lt;- optim.pml(fit2, optGamma=TRUE))
+
+
+data(Laurasiatherian)
+dm &lt;- dist.logDet(Laurasiatherian)
+tree &lt;- NJ(dm)
+fit &lt;- pml(tree, Laurasiatherian)
+fit &lt;- optim.pml(fit)
+
+fit2 &lt;- update(fit, k=4)
+fit2 &lt;- optim.pml(fit2, optGamma=TRUE)
+
+fitMix &lt;- pmlMix(edge ~ rate, fit, m=4)
+fitMix
+
+
+#
+# simulation of mixture models
+#
+X &lt;- allSitePattern(5)
+tree1 &lt;- read.tree(text = "((t1:0.1,t2:0.5):0.1,(t3:0.1,t4:0.5):0.1,t5:0.5);")
+tree2 &lt;- read.tree(text = "((t1:0.5,t2:0.1):0.1,(t3:0.5,t4:0.1):0.1,t5:0.5);")
+tree1 &lt;- unroot(tree1)
+tree2 &lt;- unroot(tree2)
+fit1 &lt;- pml(tree1,X)
+fit2 &lt;- pml(tree2,X)
+
+weights &lt;- 2000*exp(fit1$siteLik) + 1000*exp(fit2$siteLik)
+attr(X, "weight") &lt;- weights
+
+fit1 &lt;- pml(tree1, X)
+fit2 &lt;- optim.pml(fit1)
+logLik(fit2)
+AIC(fit2, k=log(3000))
+
+fitMixEdge &lt;- pmlMix( ~ edge, fit1, m=2)
+logLik(fitMixEdge)
+AIC(fitMixEdge, k=log(3000))
+
+fit.p &lt;- pmlPen(fitMixEdge, .25)
+logLik(fit.p)
+AIC(fit.p, k=log(3000))
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

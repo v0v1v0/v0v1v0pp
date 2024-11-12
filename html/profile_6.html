@@ -1,0 +1,139 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>validate_profile</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Definition of the profile data format</h2>
+
+<h3>Description</h3>
+
+<p>The data format is stable between major releases.
+In case of major updates, compatibility functions will be provided.
+</p>
+<p>The <code>validate_profile()</code> function checks a profile data object
+for compatibility with the specification.
+Versioning information embedded in the data is considered.
+</p>
+<p>The <code>dm_from_profile()</code> function converts a profile to a dm object.
+The <span class="pkg">dm</span> package must be installed.
+See <code>dm::dm()</code> for more information.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">validate_profile(x)
+
+dm_from_profile(x)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Profile data, e.g., as returned by <code>read_pprof()</code> or <code>read_rprof()</code>.</p>
+</td>
+</tr></table>
+<h3>Details</h3>
+
+<p>The profile data is stored in an object of class <code>"profile_data"</code>,
+which is a named list of tibbles.
+This named list has the following components, subsequently referred to as
+<em>tables</em>:
+</p>
+
+<ul>
+<li> <p><code>meta</code>
+</p>
+</li>
+<li> <p><code>sample_types</code>
+</p>
+</li>
+<li> <p><code>samples</code>
+</p>
+</li>
+<li> <p><code>locations</code>
+</p>
+</li>
+<li> <p><code>functions</code>
+(Components with names starting with a dot are permitted
+after the required components, but will be ignored.)
+</p>
+</li>
+</ul>
+<p>The <code>meta</code> table has two character columns, <code>key</code> and <code>value</code>.
+Additional columns with a leading dot in the name are allowed
+after the required columns.
+It is currently restricted to one row with key <code>"version"</code> and a value
+that is accepted by <code>package_version()</code>.
+</p>
+<p>The <code>sample_types</code> table has two character columns, <code>type</code> and <code>unit</code>.
+Additional columns with a leading dot in the name are allowed
+after the required columns.
+It is currently restricted to one row with values <code>"samples"</code> and <code>"count"</code>,
+respectively.
+</p>
+<p>The <code>samples</code> table has two columns, <code>value</code> (integer) and <code>locations</code>
+(list).
+Additional columns with a leading dot in the name are allowed
+after the required columns.
+The <code>value</code> column describes the number of consecutive samples for the
+given location, and must be greater than zero.
+Each element of the <code>locations</code> column is a tibble with one integer column,
+<code>location_id</code>.
+For each <code>location_id</code> value a corresponding observation in the <code>locations</code>
+table must exist.
+The locations are listed in inner-first order, i.e., the first location
+corresponds to the innermost entry of the stack trace.
+</p>
+<p>The <code>locations</code> table has three integer columns, <code>location_id</code>,
+<code>function_id</code>, and <code>line</code>.
+Additional columns with a leading dot in the name are allowed
+after the required columns.
+All <code>location_id</code> values are unique.
+For each <code>function_id</code> value a corresponding observation in the <code>functions</code>
+table must exist. <code>NA</code> values are permitted.
+The <code>line</code> column describes the line in the source code this location
+corresponds to, zero if unknown. All values must be nonnegative.
+<code>NA</code> values are permitted.
+</p>
+<p>The <code>functions</code> table has five columns, <code>function_id</code> (integer),
+<code>name</code>, <code>system_name</code> and <code>file_name</code> (character), and <code>start_line</code> (integer).
+Additional columns with a leading dot in the name are allowed
+after the required columns.
+All <code>function_id</code> values are unique.
+The <code>name</code>, <code>system_name</code> and <code>filename</code> columns describe function names
+(demangled and mangled), and source file names for a function.
+Both <code>name</code> and <code>system_name</code> must not contain empty strings.
+The <code>start_line</code> column describes the start line of a function in its
+source file, zero if unknown. All values must be nonnegative.
+</p>
+
+
+<h3>Data model</h3>
+
+<p><img src="../help/figures/dm.png" alt="dm.png"></p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">rprof_file &lt;- system.file("samples/rprof/1.out", package = "profile")
+ds &lt;- read_rprof(rprof_file)
+validate_profile(ds)
+
+bad_ds &lt;- ds
+bad_ds$samples &lt;- NULL
+try(validate_profile(bad_ds))
+
+if (rlang::is_installed("dm")) {
+  dm &lt;- dm_from_profile(ds)
+  print(dm)
+  dm::dm_draw(dm)
+}
+</code></pre>
+
+
+</div>

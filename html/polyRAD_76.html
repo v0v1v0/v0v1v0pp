@@ -1,0 +1,112 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>MakeTasselVcfFilter</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Filter Lines of a VCF File By Call Rate and Allele Frequency
+</h2>
+
+<h3>Description</h3>
+
+<p>This function creates another function that can be used as a prefilter
+by the function <code>filterVcf</code> in the package <span class="pkg">VariantAnnotation</span>.
+The user can set a minimum number of indiviuals with reads and a minimum
+number of individuals with the minor allele (either the alternative or
+reference allele).  The filter can be used to generate a smaller VCF file 
+before reading with <code>VCF2RADdata</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">MakeTasselVcfFilter(min.ind.with.reads = 200, min.ind.with.minor.allele = 10)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>min.ind.with.reads</code></td>
+<td>
+
+<p>An integer indicating the minimum number of individuals that must have
+reads in order for a marker to be retained.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>min.ind.with.minor.allele</code></td>
+<td>
+
+<p>An integer indicating the minimum number of individuals that must have
+the minor allele in order for a marker to be retained.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function assumes the VCF file was output by the TASSEL GBSv2
+pipeline.  This means that each genotype field begins with two digits
+ranging from zero to three
+separated by a forward slash to indicate the called genotype, followed
+by a colon.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A function is returned.  The function takes as its only argument a character
+vector representing a set of lines from a VCF file, with each line representing
+one SNP.  The function returns a logical vector the same length as the
+character vector, with <code>TRUE</code> if the SNP meets the threshold for call rate
+and minor allele frequency, and <code>FALSE</code> if it does not.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>References</h3>
+
+<p><a href="https://bitbucket.org/tasseladmin/tassel-5-source/wiki/Tassel5GBSv2Pipeline">https://bitbucket.org/tasseladmin/tassel-5-source/wiki/Tassel5GBSv2Pipeline</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># make the filtering function
+filterfun &lt;- MakeTasselVcfFilter(300, 15)
+
+
+# Executable code excluded from CRAN testing for taking &gt;10 s:
+
+require(VariantAnnotation)
+# get the example VCF installed with polyRAD
+exampleVCF &lt;- system.file("extdata", "Msi01genes.vcf", package = "polyRAD")
+exampleBGZ &lt;- paste(exampleVCF, "bgz", sep = ".")
+
+# zip and index the file using Tabix (if not done already)
+if(!file.exists(exampleBGZ)){
+  exampleBGZ &lt;- bgzip(exampleVCF)
+  indexTabix(exampleBGZ, format = "vcf")
+}
+
+# make a temporary file
+# (for package checks; you don't need to do this in your own code)
+outfile &lt;- tempfile(fileext = ".vcf")
+
+# filter to a new file
+filterVcf(exampleBGZ, destination = outfile, 
+          prefilters = FilterRules(list(filterfun)))
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,147 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>seqTimeList</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Construct a Stochastic Sequenced Time-List from an Unsequenced Time-List</h2>
+
+<h3>Description</h3>
+
+<p>This function randomly samples from a <code>timeList</code> object (i.e. a list composed of a matrix of interval start and end
+dates and a matrix of taxon first and last intervals), to find a set of taxa and intervals that do not overlap,
+output as a new <code>timeList</code> object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">seqTimeList(timeList, nruns = 100, weightSampling = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>timeList</code></td>
+<td>
+<p>A list composed of two matrices, giving interval start and end 
+dates and taxon first and last occurrences within those intervals. Some intervals
+are expected to overlap (thus necessitating the use of this function), and datasets
+lacking overlapping intervals will return an error message.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nruns</code></td>
+<td>
+<p>Number of new <code>timeList</code> composed of non-overlapping intervals produced.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weightSampling</code></td>
+<td>
+<p>If <code>TRUE</code>, weight sampling of new intervals toward smaller intervals. 
+<code>FALSE</code> by default.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Many analyses of diversification and sampling in the fossil record require a dataset composed of sequential non-overlapping intervals,
+but the nature of the geologic record often makes this difficult, with taxa from different regions, environments and sedimentary basins
+having first and last appearances placed in entirely in-congruent systems of chronostratigraphic intervals. While one option is to convert
+such occurrences to a single, global stratigraphic system, this may still result in overlapping intervals when fossil collections are poorly
+constrained stratigraphically. (For example, this may often be the case in global datasets.) 
+This function offers an approach to avoid this issue in large datasets by randomly subsampling
+the available taxa and intervals to produce stochastic
+sets of ranges composed of data drawn from non-overlapping intervals. 
+</p>
+<p><code>seqTimeList</code> is stochastic and thus should be set for many runs to produce many such solutions. Additionally,
+all solutions found are returned, and users may wish to sort amongst these to maximize the number of intervals and 
+number of taxa returned. A single solution which maximizes returned taxa and intervals may not be a precise enough approach
+to estimating sampling rates, however, given the uncertainty in data. Thus, many runs should always be considered.
+</p>
+<p>By default, solutions are searched for without consideration to the length of intervals used (i.e. the selection of intervals is 'unweighted').
+Alternatively, we can 'weight' selection toward the smallest intervals in the set, using the argument <code>weightSampling</code>. Smaller
+intervals presumably overlap less and thus should retain more taxa and intervals of more equal length. However, in practice with empirical datasets,
+the package author finds these approaches do not seem to produce very different estimates.
+</p>
+<p>For some datasets, many solutions found using <code>seqTimeList</code> may return infinite sampling values. This is often due to saving too many taxa
+found in single intervals to the exclusion of longer-ranging taxa (see the example). This excess of single interval taxa is a clear artifact
+of the randomized <code>seqTimeList</code> procedure and such solutions should probably be ignored.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list, composed of three elements: <code>nIntervals</code>, a vector of the
+number of intervals in each solution, <code>nTaxa</code>, a vector of the number of
+taxa in each solution, and <code>timeLists</code>, a list composed of each new
+<code>timeList</code> object as an element.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David W. Bapst
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Resulting time-lists can be analyzed with <code>freqRat</code>, <code>durationFreq</code>, etc.
+</p>
+<p>Additionally, <code>binTimeData</code> can be useful for simulating interval data.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Simulate some fossil ranges with simFossilRecord
+set.seed(444)
+record &lt;- simFossilRecord(
+    p = 0.1, 
+    q = 0.1, 
+    nruns = 1,
+    nTotalTaxa = c(60,80), 
+    nExtant = 0
+    )
+taxa &lt;- fossilRecord2fossilTaxa(record)
+# simulate a fossil record with imperfect sampling with sampleRanges()
+rangesCont &lt;- sampleRanges(taxa,r = 0.1)
+
+# Now let's use binTimeData to get ranges in discrete overlapping intervals
+    # via pre-set intervals input
+presetIntervals &lt;- cbind(
+  c(1000, 995, 990, 980, 970, 975, 960, 950, 940, 930, 900, 890, 888, 879, 875),
+   c(995, 989, 960, 975, 960, 950, 930, 930, 930, 900, 895, 888, 880, 875, 870)
+  )
+rangesDisc1 &lt;- binTimeData(rangesCont, int.times = presetIntervals)
+
+seqLists &lt;- seqTimeList(rangesDisc1, nruns = 10)
+seqLists$nTaxa
+seqLists$nIntervals
+
+#apply freqRat as an example analysis
+sapply(seqLists$timeLists, freqRat)
+
+# notice the zero and infinite freqRat estimates? What's going on?
+
+freqRat(seqLists$timeLists[[4]], plot = TRUE)
+
+# too few taxa of two or three interval durations for the ratio to work properly
+    # perhaps ignore these estimates
+
+# with weighted selection of intervals
+seqLists &lt;- seqTimeList(rangesDisc1, nruns = 10, weightSampling = TRUE)
+
+seqLists$nTaxa
+seqLists$nIntervals
+sapply(seqLists$timeLists, freqRat)
+
+# didn't have much effect in this simulated example
+</code></pre>
+
+
+</div>

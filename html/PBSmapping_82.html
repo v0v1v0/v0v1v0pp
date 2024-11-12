@@ -1,0 +1,125 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>findCells</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Find Grid Cells that Contain Events</h2>
+
+<h3>Description</h3>
+
+<p>Find the grid cells in a PolySet that contain events specified in
+EventData.  Similar to <code>findPolys</code>, except this
+function requires a PolySet resulting from
+<code>makeGrid</code>.  This restriction allows this function to
+calculate the result with greater efficiency.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">findCells (events, polys, includeBdry=NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>events</code></td>
+<td>
+<p>EventData to use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>polys</code></td>
+<td>
+<p>PolySet to use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>includeBdry</code></td>
+<td>
+<p>numeric: determines how points on boundaries are handled: <br>
+if <code>NULL</code> then report all points on polygon boundaries (default behaviour); <br>
+if <code>0</code> then exclude all points on polygon boundaries; <br>
+if <code>1</code> then report only the first (lowest PID/SID) polygon boundary; <br>
+if <code>2,...,n</code> then report the last (highest PID/SID) polygon boundary.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The resulting data frame, a LocationSet, contains the columns
+<code>EID</code>, <code>PID</code>, <code>SID</code> (<em>if in</em> <code>polys</code>), and
+<code>Bdry</code>, where an event (<code>EID</code>) occurs in a polygon
+(<code>PID</code>, <code>SID</code>). The Boolean (0,1) variable <code>Bdry</code> indicates
+whether an event lies on a polygon's edge.  Note that if an event lies
+properly outside of all the polygons, then a record with (<code>EID</code>,
+<code>PID</code>, <code>SID</code>) does not occur in the output.  It may happen,
+however, that an event occurs in multiple polygons (i.e., on two or
+more boundaries).  Thus, the same <code>EID</code> can occur more than once
+in the output.
+</p>
+<p>If an event happens to lie at the boundary intersection of four (or two) grid cells 
+then one <code>EID</code> will be associated with four (or two) grid cells. A user
+can choose to manipulate this result by setting the argument <code>includeBdry</code>
+to a numeric value that constrains the association of a boundary event to 
+0 or 1 grid cell (see argument description above).
+</p>
+
+
+<h3>Value</h3>
+
+<p>LocationSet that links events with polygons.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p><a href="https://github.com/boersn/">Nicholas M. Boers</a>, Staff Software Engineer<br>
+Jobber, Edmonton AB<br>
+Last modified <code>Rd: 2014-12-15</code>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>findPolys</code>,
+<code>makeGrid</code>,
+<code>combineEvents</code>,
+<code>locateEvents</code>,
+<code>locatePolys</code>,
+LocationSet.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">local(envir=.PBSmapEnv,expr={
+  oldpar = par(no.readonly=TRUE)
+  #--- create some EventData: points in a diagonal line
+  events &lt;- data.frame(EID=1:11, X=seq(0, 2, length=11),
+     Y=seq(0, 2, length=11))
+  events &lt;- as.EventData(events, projection=1);
+  #--- create a PolySet (a grid)
+  polys &lt;- makeGrid (x=seq(0, 2, by=0.50), y=seq(0, 2, by=0.50), projection=1)
+  #--- show a picture
+  plotPolys(polys, xlim=range(polys$X)+c(-0.1, 0.1),
+    ylim=range(polys$Y)+c(-0.1, 0.1), projection=1)
+  addPoints(events, col=2)
+  #--- run findCells and print the results
+  fc &lt;- findCells(events, polys)
+  fc &lt;- fc[order(fc$EID, fc$PID, fc$SID), ]
+  fc$label &lt;- paste(fc$PID, fc$SID, sep=", ")
+  print (fc)
+  #--- add labels to the graph
+  addLabels(as.PolyData(fc[!duplicated(paste(fc$PID,fc$SID)), ],
+    projection=1), placement="CENTROID", 
+    polys=as.PolySet(polys, projection=1), col=4)
+  par(oldpar)
+})
+</code></pre>
+
+
+</div>

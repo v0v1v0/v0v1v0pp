@@ -1,0 +1,176 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>gsim</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>GSIM for binary data</h2>
+
+<h3>Description</h3>
+
+<p>The function <code>gsim</code> performs prediction using Lambert-Lacroix and Peyre's GSIM algorithm.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">gsim(Xtrain, Ytrain, Xtest=NULL, Lambda, hA, hB=NULL, NbIterMax=50)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Xtrain</code></td>
+<td>
+<p>a (ntrain x p) data matrix of predictors. <code>Xtrain</code> must be a matrix. 
+Each row corresponds to an observation and each column to a predictor variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Ytrain</code></td>
+<td>
+<p>a ntrain vector of responses. <code>Ytrain</code> must be a vector. 
+<code>Ytrain</code> is a {1,2}-valued vector and contains the response variable for each
+observation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Xtest</code></td>
+<td>
+<p>a (ntest x p) matrix containing the predictors for the test data
+set. <code>Xtest</code> may also be a vector of length p (corresponding to only one
+test observation). If <code>Xtest</code> is not equal to NULL, then the prediction 
+step is made for these new predictor variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Lambda</code></td>
+<td>
+<p>a positive real value. <code>Lambda</code> is the ridge regularization parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hA</code></td>
+<td>
+<p>a strictly positive real value. <code>hA</code> is the bandwidth for GSIM step A.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hB</code></td>
+<td>
+<p>a strictly positive real value. <code>hB</code> is the bandwidth for 
+GSIM step B. if <code>hB</code> is equal to NULL, then hB value is chosen using a
+plug-in method.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>NbIterMax</code></td>
+<td>
+<p>a positive integer. <code>NbIterMax</code> is the maximal number of
+iterations in the Newton-Rapson parts.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The columns of the data matrices <code>Xtrain</code> and <code>Xtest</code> may not be standardized, 
+since standardizing is performed by the function <code>gsim</code> as a preliminary step
+before the algorithm is run. 
+</p>
+<p>The procedure described in Lambert-Lacroix and Peyre (2005) is used to estimate 
+the projection direction beta. When <code>Xtest</code> 
+is not equal to NULL, the procedure predicts the labels for these new predictor variables.  
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with the following components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>Ytest</code></td>
+<td>
+<p>the ntest vector containing the predicted labels for the observations from 
+<code>Xtest</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>the p vector giving the projection direction estimated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hB</code></td>
+<td>
+<p>the value of hB used in step B of GSIM (value given by the user or
+estimated by plug-in if the argument value was equal to NULL)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>DeletedCol</code></td>
+<td>
+<p>the vector containing the column number of <code>Xtrain</code> when the 
+variance of the corresponding predictor variable is null. Otherwise <code>DeletedCol</code>=NULL</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Cvg</code></td>
+<td>
+<p>the 0-1 value indicating convergence of the algorithm (1 for convergence, 
+0 otherwise).</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Sophie Lambert-Lacroix 
+(<a href="http://membres-timc.imag.fr/Sophie.Lambert/">http://membres-timc.imag.fr/Sophie.Lambert/</a>) 
+and 
+Julie Peyre (<a href="https://membres-ljk.imag.fr/Julie.Peyre/">https://membres-ljk.imag.fr/Julie.Peyre/</a>).
+</p>
+
+
+<h3>References</h3>
+
+<p>S. Lambert-Lacroix,  J. Peyre . (2006) Local likelyhood regression in  generalized linear 
+single-index models with applications to microarrays data. Computational Statistics and 
+Data Analysis, vol 51, n 3, 2091-2113. 
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>gsim.cv</code>, <code>mgsim</code>, <code>mgsim.cv</code>.</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load plsgenomics library
+library(plsgenomics)
+
+# load Colon data
+data(Colon)
+IndexLearn &lt;- c(sample(which(Colon$Y==2),12),sample(which(Colon$Y==1),8))
+
+Xtrain &lt;- Colon$X[IndexLearn,]
+Ytrain &lt;- Colon$Y[IndexLearn]
+Xtest &lt;- Colon$X[-IndexLearn,]
+
+# preprocess data
+resP &lt;- preprocess(Xtrain= Xtrain, Xtest=Xtest,Threshold = c(100,16000),Filtering=c(5,500),
+		log10.scale=TRUE,row.stand=TRUE)
+
+# perform prediction by GSIM
+res &lt;- gsim(Xtrain=resP$pXtrain,Ytrain= Ytrain,Xtest=resP$pXtest,Lambda=10,hA=50,hB=NULL)
+   
+res$Cvg
+sum(res$Ytest!=Colon$Y[-IndexLearn])
+
+</code></pre>
+
+
+</div>

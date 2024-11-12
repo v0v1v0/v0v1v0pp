@@ -1,0 +1,259 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>GetWeightedMeanGenotypes</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Export Numeric Genotype Values from Posterior Probabilities
+</h2>
+
+<h3>Description</h3>
+
+<p>These functions calculate numerical genotype values using posterior
+probabilities in a <code>"RADdata"</code> object, and output
+those values as a matrix of taxa by alleles.
+<code>GetWeightedMeanGenotypes</code> returns continuous genotype values, 
+weighted by posterior genotype probabilities (<em>i.e.</em> posterior mean
+genotypes).  
+<code>GetProbableGenotypes</code> returns discrete genotype values indicating
+the most probable genotype.  If the <code>"RADdata"</code> 
+object includes more than one possible inheritance mode, the 
+<code>$ploidyChiSq</code> slot is used for selecting or weighting 
+inheritance modes for each allele.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">GetWeightedMeanGenotypes(object, ...)
+## S3 method for class 'RADdata'
+GetWeightedMeanGenotypes(object, minval = 0, maxval = 1, 
+                         omit1allelePerLocus = TRUE, 
+                         omitCommonAllele = TRUE,
+                         naIfZeroReads = FALSE, 
+                         onePloidyPerAllele = FALSE, ...)
+
+GetProbableGenotypes(object, ...)
+## S3 method for class 'RADdata'
+GetProbableGenotypes(object, omit1allelePerLocus = TRUE,
+                     omitCommonAllele = TRUE,
+                     naIfZeroReads = FALSE, 
+                     correctParentalGenos = TRUE,
+                     multiallelic = "correct", ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+
+<p>A <code>"RADdata"</code> object.  Posterior genotype probabilities should
+have been added with <code>AddGenotypePosteriorProb</code>, and if there is
+more than one possible ploidy,
+ploidy chi-squared values should have been added with 
+<code>AddPloidyChiSq</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>Additional arguments, listed below, to be passed to the method for
+<code>"RADdata"</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minval</code></td>
+<td>
+
+<p>The number that should be used for indicating that a taxon has zero
+copies of an allele.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxval</code></td>
+<td>
+
+<p>The number that should be used for indicating that a taxon has the
+maximum copies of an allele (equal to the ploidy of the locus).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>omit1allelePerLocus</code></td>
+<td>
+
+<p>A logical indicating whether one allele per locus should be omitted
+from the output, in order to reduce the number of variables and
+prevent singularities for 
+genome-wide association and genomic prediction.  The value for one
+allele can be predicted from the values from all other alleles at
+its locus.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>omitCommonAllele</code></td>
+<td>
+
+<p>A logical, passed to the <code>commonAllele</code> argument of 
+<code>OneAllelePerMarker</code>, indicating whether the most common allele
+for each locus should be omitted (as opposed to simply the first allele
+for each locus).  Ignored if <code>omit1allelePerLocus = FALSE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>naIfZeroReads</code></td>
+<td>
+
+<p>A logical indicating whether <code>NA</code> should be inserted into the 
+output matrix for any taxa and loci where the total read depth for
+the locus is zero.  If <code>FALSE</code>, the output for these genotypes is
+essentially calculated using prior genotype probabilities, since
+prior and posterior genotype probabilities are equal when there are no
+reads.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>onePloidyPerAllele</code></td>
+<td>
+
+<p>Logical.  If <code>TRUE</code>, for each allele the inheritance mode with the
+lowest <code class="reqn">\chi ^ 2</code> value is selected and is assumed to be
+the true inheritance mode.  If <code>FALSE</code>, inheritance modes are weighted
+by inverse <code class="reqn">\chi ^ 2</code> values for each allele, and mean
+genotypes that have been weighted across inheritance modes are returned.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>correctParentalGenos</code></td>
+<td>
+
+<p>Logical.  If <code>TRUE</code> and if the dataset was processed with
+<code>PipelineMapping2Parents</code>, the parental genotypes that are output
+are corrected according to the progeny allele frequencies, using the 
+<code>likelyGeno_donor</code> and <code>likelyGeno_recurrent</code> slots in <code>object</code>.
+For the ploidy of the marker, the appropriate ploidy for the parents is 
+selected using the <code>donorPloidies</code> and <code>recurrentPloidies</code> slots.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>multiallelic</code></td>
+<td>
+
+<p>A string indicating how to handle cases where allele copy number across all
+alleles at a locus does not sum to the ploidy.  To retain the most probable
+copy number for each allele, even if they don't sum to the ploidy across
+all alleles, use <code>"ignore"</code>.  To be conservative and convert these allele
+copy numbers to <code>NA</code>, use <code>"na"</code>.  To adjust allele copy numbers to
+match the ploidy (adding or subtracting allele copies while maximizing the
+product of posterior probabilities across alleles), use <code>"correct"</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For each inheritance mode <code class="reqn">m</code>, taxon <code class="reqn">t</code>, allele <code class="reqn">a</code>, allele copy number 
+<code class="reqn">i</code>, total ploidy <code class="reqn">k</code>, and posterior genotype probability <code class="reqn">p_{i,t,a,m}</code>,
+posterior mean genotype <code class="reqn">g_{t,a,m}</code> is estimated by <code>GetWeightedMeanGenotypes</code> as:
+</p>
+<p style="text-align: center;"><code class="reqn">g_{t,a,m} = \sum_{i = 0}^k p_{i,t,a,m} * \frac{i}{k}</code>
+</p>
+
+<p>For <code>GetProbableGenotypes</code>, the genotype is the one with the maximum posterior
+probability:
+</p>
+<p style="text-align: center;"><code class="reqn">g_{t,a,m} = i | \max_{i = 0}^k{p_{i,t,a,m}}</code>
+</p>
+
+<p>When there are multiple inheritance modes and <code>onePloidyPerAllele = FALSE</code>,
+the weighted genotype is estimated by <code>GetWeightedMeanGenotypes</code> as:
+</p>
+<p style="text-align: center;"><code class="reqn">g_{t,a} = \sum_m [ g_{t,a,m} * \frac{1}{\chi^2_{m,a}} / \sum_m \frac{1}{\chi^2_{m,a}}]</code>
+</p>
+
+<p>In <code>GetProbableGenotypes</code>, or <code>GetWeightedMeanGenotypes</code>
+when there are multiple inheritance modes and <code>onePloidyPerAllele = TRUE</code>,
+the genotype is simply the one corresponding to the inheritance mode with the minimum
+<code class="reqn">\chi ^2</code> value:
+</p>
+<p style="text-align: center;"><code class="reqn">g_{t,a} = g_{t,a,m} | \min_m{\chi^2_{m,a}}</code>
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>For <code>GetWeightedMeanGenotypes</code>,
+a named matrix, with taxa in rows and alleles in columns,
+and values ranging from <code>minval</code> to <code>maxval</code>.
+These values can be treated as continuous genotypes.
+</p>
+<p>For <code>GetProbableGenotypes</code>, a list:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>genotypes</code></td>
+<td>
+
+<p>A named integer matrix, with taxa in rows and alleles in columns,
+and values ranging from zero to the maximum ploidy for
+each allele.  These values can be treated as discrete genotypes.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ploidy_index</code></td>
+<td>
+
+<p>A vector with one value per allele.  It contains the index
+of the most likely inheritance mode of that allele in 
+<code>object$priorProbPloidies</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load dataset
+data(exampleRAD_mapping)
+
+# run a genotype calling pipeline; 
+# substitute with any pipeline and parameters
+exampleRAD_mapping &lt;- SetDonorParent(exampleRAD_mapping, "parent1")
+exampleRAD_mapping &lt;- SetRecurrentParent(exampleRAD_mapping, "parent2")
+exampleRAD_mapping &lt;- PipelineMapping2Parents(exampleRAD_mapping,
+                                 n.gen.backcrossing = 1, useLinkage = FALSE)
+
+
+# get weighted mean genotypes
+wmg &lt;- GetWeightedMeanGenotypes(exampleRAD_mapping)
+# examine the results
+wmg[1:10,]
+
+# get most probable genotypes
+pg &lt;- GetProbableGenotypes(exampleRAD_mapping, naIfZeroReads = TRUE)
+# examine the results
+pg$genotypes[1:10,]
+</code></pre>
+
+
+</div>

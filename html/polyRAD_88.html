@@ -1,0 +1,203 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PipelineMapping2Parents</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Run polyRAD Pipeline on a Mapping Population
+</h2>
+
+<h3>Description</h3>
+
+<p>This function is a wrapper for <code>AddAlleleFreqMapping</code>,
+<code>AddGenotypeLikelihood</code>, 
+<code>AddGenotypePriorProb_Mapping2Parents</code>,
+<code>AddPloidyChiSq</code>, and <code>AddGenotypePosteriorProb</code>.
+It covers the full pipeline for estimating genotype posterior probabilities
+from read depth in a <code>"RADdata"</code> object containing data from
+a mapping population.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PipelineMapping2Parents(object, n.gen.backcrossing = 0,
+                        n.gen.intermating = 0, n.gen.selfing = 0, 
+                        minLikelihoodRatio = 10, freqAllowedDeviation = 0.05, 
+                        freqExcludeTaxa = c(GetDonorParent(object), 
+                                            GetRecurrentParent(object), 
+                                            GetBlankTaxa(object)),
+                        useLinkage = TRUE, linkageDist = 1e7,
+                        minLinkageCorr = 0.5, overdispersion = 9)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+
+<p>A <code>"RADdata"</code> object.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.gen.backcrossing</code></td>
+<td>
+
+<p>An integer, zero or greater, indicating how many generations of 
+backcrossing to the recurrent parent were performed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.gen.intermating</code></td>
+<td>
+
+<p>An integer, zero or greater, indicating how many generations of 
+intermating within the population were performed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.gen.selfing</code></td>
+<td>
+
+<p>An integer, zero or greater, indicating how many generations of
+selfing were performed.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minLikelihoodRatio</code></td>
+<td>
+
+<p>The minimum likelihood ratio for determining parental genotypes with
+confidence, to be passed to <code>GetLikelyGen</code> for both
+parental taxa.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>freqAllowedDeviation</code></td>
+<td>
+
+<p>For <code>AddAlleleFreqMapping</code>, the amount by which an allele
+frequency can deviate from an expected allele frequency in order to be
+counted as that allele frequency.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>freqExcludeTaxa</code></td>
+<td>
+
+<p>A character vector indicating taxa to exclude from allele frequency
+estimates and ploidy <code class="reqn">\chi ^ 2</code> estimates.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>useLinkage</code></td>
+<td>
+
+<p>Boolean.  Should genotypes at nearby loci (according to genomic alignment
+data) be used for updating genotype priors?
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>linkageDist</code></td>
+<td>
+
+<p>A number, in basepairs, indicating the maximum distance for linked loci.
+Ignored if <code>useLinkage = FALSE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minLinkageCorr</code></td>
+<td>
+
+<p>A number ranging from zero to one.  Indicates the minimum correlation 
+coeffienct between weighted mean genotypes at two alleles in order for linkage
+data to be used for updating genotype priors. Ignored if 
+<code>useLinkage = FALSE</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overdispersion</code></td>
+<td>
+
+<p>Overdispersion parameter; see <code>AddGenotypeLikelihood</code>.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Unlike <code>IterateHWE</code> and <code>IteratePopStruct</code>,
+<code>PipelineMapping2Parents</code> only runs through each function once,
+rather than iteratively until convergence.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>"RADdata"</code> object identical to that passed to the function, with
+the following slots added: <code>$alleleFreq</code>, <code>depthSamplingPermutations</code>,
+<code>$genotypeLikelihood</code>,
+<code>likelyGeno_donor</code>, <code>likelyGeno_recurrent</code>, <code>$priorProb</code>,
+<code>$ploidyChiSq</code>, <code>$posteriorProb</code>, and if <code>useLinkage = TRUE</code>,
+<code>$alleleLinkages</code> and <code>$priorProbLD</code>.  See the documentation
+for the functions listed in the description for more details on the
+data contained in these slots.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>SetDonorParent</code> and <code>SetRecurrentParent</code> to indicate which
+individuals are the parents before running the function.
+</p>
+<p><code>AddGenotypePriorProb_Mapping2Parents</code> for how ploidy of parents and
+progeny is interpreted.
+</p>
+<p><code>GetWeightedMeanGenotypes</code> or <code>Export_polymapR</code> for
+exporting genotypes from the resulting object.
+</p>
+<p><code>StripDown</code> to remove memory-hogging slots that are no longer
+needed after the pipeline has been run.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># load data for the example
+data(exampleRAD_mapping)
+
+# specify donor and recurrent parents
+exampleRAD_mapping &lt;- SetDonorParent(exampleRAD_mapping, "parent1")
+exampleRAD_mapping &lt;- SetRecurrentParent(exampleRAD_mapping, "parent2")
+
+# run the pipeline
+exampleRAD_mapping &lt;- PipelineMapping2Parents(exampleRAD_mapping,
+                                 n.gen.backcrossing = 1)
+                                 
+# export results
+wmgeno &lt;- GetWeightedMeanGenotypes(exampleRAD_mapping)[-(1:2),]
+wmgeno
+</code></pre>
+
+
+</div>

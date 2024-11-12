@@ -1,0 +1,222 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ppgam</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit a generalised additive point process model</h2>
+
+<h3>Description</h3>
+
+<p>Fit a generalised additive point process model
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ppgam(
+  formula,
+  data,
+  nodes = NULL,
+  weights = 1,
+  nquad,
+  approx = c("midpoint", "exact"),
+  knots = NULL,
+  use.data = TRUE,
+  trace = 0,
+  weight.non.numeric = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a formula for a Poisson process log intensity function (compatible with gam)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a data frame</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nodes</code></td>
+<td>
+<p>a list or data frame; see ‘Details’</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weights</code></td>
+<td>
+<p>a scalar, list or vector; see ‘Details’</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nquad</code></td>
+<td>
+<p>a scalar giving the number of quadrature nodes for each variable</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>approx</code></td>
+<td>
+<p>a length 2 character string; see ‘Details’</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>knots</code></td>
+<td>
+<p>spline knots to pass to gam</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>use.data</code></td>
+<td>
+<p>should splines should be constructed from <code>data</code> (otherwise uses <code>nodes</code>)?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trace</code></td>
+<td>
+<p>integers controlling what's reported. Defaults to 0</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>weight.non.numeric</code></td>
+<td>
+<p>should nodes for non-numeric variables be weighted according how often they occur? Defaults to <code>FALSE</code></p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>ppgam</code> fits a Poisson process with intensity function <code class="reqn">\lambda({\bf x})</code> for covariate
+<code class="reqn">{\bf x} = (x_1, \ldots, x_d)</code>. The likelihood for this model with events occurring at <code class="reqn">{\bf x}_i</code>, 
+for <code class="reqn">i=1, \ldots, n</code>, is approximated by quadrature with 
+</p>
+<p style="text-align: center;"><code class="reqn">\exp\bigg[-\sum_{j=1}^m w_j \lambda({\bf x}_j^*)\bigg] \prod_{i=1}^n \lambda({\bf x}_i)</code>
+</p>
+
+<p>where <code class="reqn">{\bf x}_j^*</code> and <code class="reqn">w_j</code> are quadrature nodes and weights, for <code class="reqn">j=1, \ldots, m</code>,
+defined with <code>nodes</code> and <code>weights</code>.
+</p>
+<p><code>formula</code> gives the formula for the log intensity function of a Poisson process.
+It is passed to gam. If <code>formula</code> has no response, i.e. <code> ~ s(...)</code>,
+then <code>data</code> is assumed to give the times at which events occur. Then <code>nodes</code>
+is used to control integration of the intensity function. If <code>formula</code> has a response,
+e.g. <code>y ~ s(...)</code>, then <code>y</code> is assumed binary, comprising only zeros and ones.
+Then <code>data</code> is assumed to give the state space of the Poisson process,
+(e.g. daily time steps if occurrences of events are measured in days)
+and ones in <code>y</code> identify when events occur. Note that
+if <code>formula</code> has no response, <code>data</code> will have <code class="reqn">n</code> rows, and <code class="reqn">m</code> rows otherwise.
+</p>
+<p><code>nodes</code> is used to supply nodes for integrating the Poisson
+process intensity function by quadrature. It is supplied as a list or data 
+frame. 
+</p>
+<p>If <code>nodes</code> is a list, its names must correspond to variables on 
+the r.h.s. of formula. Elements of the list, <code>x</code>, say, can be a vector 
+or 2-column matrix, where <code>length(x) &gt; 1</code> or <code>nrow(x) &gt; 1</code>. If a 
+matrix, its first and second columns are taken as integration nodes and
+weights, respectively. If a vector of length 2, it is assumed to give the 
+range of the <code>nquad</code> midpoints used as integration nodes. If a longer vector,
+it is assumed to be the integration nodes, and <code>nquad</code> is ignored.
+</p>
+<p>If <code>nodes</code> is a data frame, it is assumed to give the integration nodes.
+</p>
+<p><code>nquad</code> specifies the number of integration nodes per variable, unless
+nodes are specified in <code>nodes</code>. If a single integer and 
+<code>is.null(names(nquad))</code> it is used for all variables. Otherwise, 
+names are matched to variables. An error is returned if any variables do not 
+have values specified.
+</p>
+<p><code>weights</code> controls the quadrature weights. If <code>nodes</code> is a list,
+a scalar multiplies any weights calculated alongside nodes, i.e. node separations.
+If <code>nodes</code> is a data frame, weights can be a scalar that is repeated
+<code>nrow(nodes)</code>, or a vector of length <code>nrow(nodes)</code> that gives the weights
+for each row of <code>nodes</code>.
+</p>
+<p><code>approx</code> controls quadrature details. Its first term controls the 
+integration method, which uses either midpoint (<code>"midpoint"</code>, default), 
+Simpson's (<code>"Simpson"</code>) or Gauss-Legendre (<code>"Gauss"</code>) rules. The second
+term of <code>approx</code> controls the integration range, which is either the
+range of the variable (<code>"exact"</code>), or by calling <code>pretty()</code> (<code>"pretty"</code>).
+</p>
+<p><code>trace</code> controls what is reported. Details of convergence are printed 
+with <code>trace = 1</code>, of nodes with <code>trace = 2</code>, and <code>trace = 3</code>
+prints both.
+</p>
+<p><code>weight.non.numeric</code> applied to any non-numeric variables, and gives non-equal 
+quadrature weights to different nodes if <code>TRUE</code>. So nodes get weights according
+to their frequency of occurrence in <code>data</code>. If <code>nquad</code> is invoked, only a
+subset of the unique values of the non-numeric variable are used, which are the <code>nquad</code>
+with largest weights.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>gam</code>, as returned by <code>mgcv::gam</code>, with parameters,
+covariance matrices and a few other things  swapped
+</p>
+
+
+<h3>References</h3>
+
+<p>Wood, S. N., Pya, N., &amp; Safken, B. (2016). Smoothing parameter and model selection for general 
+smooth models. Journal of the American Statistical Association, 111(516), 1548-1563.
+</p>
+<p>Youngman, B. D., &amp; Economou, T. (2017). Generalised additive point process models for natural 
+hazard occurrence. Environmetrics, 28(4), e2444.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Times of landfalling US hurricanes
+data(USlandfall)
+
+# convert dates to years, as a continuous variable
+year &lt;- as.integer(format(USlandfall$date, "%Y"))
+day &lt;- as.integer(format(USlandfall$date, "%j"))
+USlandfall$year &lt;- year + pmin(day / 365, 1)
+hits &lt;- subset(USlandfall, landfall == 1)
+
+# this creates nodes in the default way
+m1 &lt;- ppgam( ~ s(year), hits)
+
+# some examples of providing nodes
+nodes.year &lt;- list(year=pretty(USlandfall$year, 20))
+# as 2 is in trace, nodes and weights are printed
+m2 &lt;- ppgam( ~ s(year), hits, nodes = nodes.year, trace = 2)
+
+# alternatively, we might just want to specify how many nodes to use
+m3 &lt;- ppgam( ~ s(year), hits, nquad = 30)
+
+
+
+data(windstorm)
+m4 &lt;- ppgam(~ s(lon, lat, k=20), windstorm)
+
+## Storm peak locations, given the North Atlantic Oscillation (NAO) index
+# NAO values from https://crudata.uea.ac.uk/cru/data/nao/nao.dat
+# NAO midpoints and weights based on `hist'
+
+NAO.mids &lt;- c(-2.75, -2.25, -1.75, -1.25, -0.75, -0.25, 0.25, 0.75, 1.25, 1.75, 2.25)
+NAO.wts &lt;- c(0.002, 0.014, 0.057, 0.145, 0.302, 0.427, 0.463, 0.364, 0.171, 0.047, 0.007)
+
+m5 &lt;- ppgam(~ te(lat, lon, NAO, d = 2:1, k = c(40, 8), bs = c("ts", "cr")), windstorm, 
+  nodes = list(NAO = cbind(NAO.mids, NAO.wts)))
+
+
+
+</code></pre>
+
+
+</div>

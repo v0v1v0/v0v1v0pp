@@ -1,0 +1,97 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>genRandomFuns</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Generate multiple versions of a function with randomly chosen parameters</h2>
+
+<h3>Description</h3>
+
+<p>Portfolio functions usually contain some parameters that can be tuned. 
+This function creates multiple versions of a function with randomly chosen parameters.
+After backtesting those portfolios, the plotting function <code>plotPerformanceVsParams</code> 
+can be used to show the performance vs parameters.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">genRandomFuns(portfolio_fun, params_grid, name = "portfolio", N_funs = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>portfolio_fun</code></td>
+<td>
+<p>Portfolio function with parameters unspecified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params_grid</code></td>
+<td>
+<p>Named list containing for each parameter the possible values it can take.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>name</code></td>
+<td>
+<p>String with the name of the portfolio function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N_funs</code></td>
+<td>
+<p>Number of functions to be generated.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Daniel P. Palomar and Rui Zhou
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>plotPerformanceVsParams</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(portfolioBacktest)
+
+# define GMVP with parameters "delay", "lookback", and "regularize"
+GMVP_portfolio_fun &lt;- function(dataset, ...) {
+  prices &lt;- tail(lag(dataset$adjusted, delay), lookback)
+  X &lt;- diff(log(prices))[-1]
+  Sigma &lt;- cov(X)
+  if (regularize)
+    Sigma &lt;- Sigma + 0.1 * mean(diag(Sigma)) * diag(ncol(Sigma))
+  # design GMVP
+  w &lt;- solve(Sigma, rep(1, ncol(Sigma)))
+  return(w/sum(w))
+}
+
+# generate the functions with random parameters
+portfolio_list &lt;- genRandomFuns(portfolio_fun = GMVP_portfolio_fun, 
+                                params_grid = list(lookback = c(100, 120, 140, 160),
+                                                   delay = c(0, 5, 10, 15, 20),
+                                                   regularize = c(FALSE, TRUE)),
+                                name = "GMVP", 
+                                N_funs = 40)
+names(portfolio_list)
+portfolio_list[[1]]
+rlang::env_print(portfolio_list[[1]])
+rlang::fn_env(portfolio_list[[1]])$lookback
+rlang::fn_env(portfolio_list[[1]])$delay
+rlang::fn_env(portfolio_list[[1]])$regularize
+
+</code></pre>
+
+
+</div>

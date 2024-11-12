@@ -1,0 +1,173 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>SLoS</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>SLoS regression Model</h2>
+
+<h3>Description</h3>
+
+<p>Calculates functional regression using the Smooth and Locally Sparse (SLoS) method.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">SLoS(
+  Y,
+  X,
+  M,
+  d,
+  domain,
+  extra = list(Maxiter = 100, lambda = exp(seq(-20, -12, length.out = 10)), gamma =
+    10^(-9:0), absTol = 10^(-10), Cutoff = 10^(-6))
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>Vector, length n, centred response.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>Matrix of n x p, covariate matrix, should be dense, centred.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M</code></td>
+<td>
+<p>Integer, t1,..., tM are M equally spaced knots.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>d</code></td>
+<td>
+<p>Integer, the degree of B-Splines.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>domain</code></td>
+<td>
+<p>The range over which the function X(t) is evaluated and the coefficient function <code class="reqn">\beta</code>(t) is expanded by the B-spline basis functions.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extra</code></td>
+<td>
+<p>List of parameters which have default values:
+</p>
+
+<ul>
+<li>
+<p> Maxiter: Maximum number of iterations for convergence of beta, default is 100.
+</p>
+</li>
+<li>
+<p> lambda: Positive number, tuning parameter for fSCAD penalty, default is exp(seq(-20,-12, length.out = 10)).
+</p>
+</li>
+<li>
+<p> gamma: Positive number, tuning parameter for the roughness penalty, default is 10^(-9:0).
+</p>
+</li>
+<li>
+<p> absTol: Number, if max(norm(bHat)) is smaller than absTol, we stop another iteration, default is 10^(-10).
+</p>
+</li>
+<li>
+<p> Cutoff: Number, if bHat is smaller than Cutoff, set it to zero to avoid being numerically unstable, default is 10^(-6).
+</p>
+</li>
+</ul>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>beta: Estimated <code class="reqn">\beta</code>(t) at discrete points.
+</p>
+<p>extra: List containing other values which may be of use:
+</p>
+
+<ul>
+<li>
+<p> X: Matrix of n x p used for model.
+</p>
+</li>
+<li>
+<p> Y: Vector of length n used for model.
+</p>
+</li>
+<li>
+<p> M: Integer representing the number of knots used in the model calculation.
+</p>
+</li>
+<li>
+<p> d: Integer, degree of B-Splines used.
+</p>
+</li>
+<li>
+<p> domain: The range over which the function X(t) was evaluated and the coefficient function <code class="reqn">\beta</code>(t) was expanded by the B-spline basis functions.
+</p>
+</li>
+<li>
+<p> b: Estimated b values.
+</p>
+</li>
+<li>
+<p> delta: Estimated cutoff point.
+</p>
+</li>
+<li>
+<p> Optgamma: Optimal smoothing parameter selected by BIC.
+</p>
+</li>
+<li>
+<p> Optlambda: Optimal shrinkage parameter selected by BIC.</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(fda)
+betaind = 1
+snr  = 2
+nsim = 1
+n    = 50
+p    = 21
+Y = array(NA,c(n,nsim))
+X = array(NA,c(n,p,nsim))
+domain = c(0,1)
+
+M = 20
+d = 3
+norder   = d+1
+nknots   = M+1
+knots    = seq(domain[1],domain[2],length.out = nknots)
+nbasis   = nknots + norder - 2
+basis    = fda::create.bspline.basis(knots,nbasis,norder)
+V = eval.penalty(basis,int2Lfd(2))
+
+extra=list(lambda=exp(seq(-18,-12, length.out = 10)),gamma=10^(-8:-6))
+
+for(itersim in 1:nsim)
+{
+ dat = ngr.data.generator.bsplines(n=n,nknots=64,norder=4,p=p,domain=domain,snr=snr,betaind=betaind)
+  Y[,itersim]  = dat$Y
+  X[,,itersim] = dat$X
+}
+
+slosfit = SLoS(Y=Y[1:n,1],(X[1:n,,1]),M=M,d=d,domain=domain,extra=extra)
+
+
+</code></pre>
+
+
+</div>

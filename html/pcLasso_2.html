@@ -1,0 +1,384 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pcLasso</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Fit a model with principal components lasso</h2>
+
+<h3>Description</h3>
+
+<p>Fit a model using the principal components lasso for an entire regularization
+path indexed by the parameter <code>lambda</code>. Fits linear and logistic regression
+models.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pcLasso(x, y, w = rep(1, length(y)), family = c("gaussian",
+  "binomial"), ratio = NULL, theta = NULL, groups = vector("list",
+  1), lambda.min.ratio = ifelse(nrow(x) &lt; ncol(x), 0.01, 1e-04),
+  nlam = 100, lambda = NULL, standardize = F, SVD_info = NULL,
+  nv = NULL, propack = T, thr = 1e-04, maxit = 1e+05,
+  verbose = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Input matrix, of dimension <code>nobs</code> x <code>nvars</code>; each row is
+an observation vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Response variable. Quantitative for <code>family = "gaussian"</code>. For
+<code>family="binomial"</code>, should be a numeric vector consisting of 0s and 1s.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+<p>Observation weights. Default is 1 for each observation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>Response type. Either <code>"gaussian"</code> (default) for linear
+regression or <code>"binomial"</code> for logistic regression.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ratio</code></td>
+<td>
+<p>Ratio of shrinkage between the second and first principal components
+in the absence of the <code class="reqn">\ell_1</code> penalty. More convenient way to specify the
+strength of the quadratic penalty. A value between 0 and 1 (only 1 included).
+<code>ratio = 1</code> corresponds to the lasso, 0.5-0.9 are good values to use.
+Default is <code>NULL</code>. Exactly one of <code>ratio</code> or <code>theta</code> must be
+specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta</code></td>
+<td>
+<p>Multiplier for the quadratic penalty: a non-negative real number.
+<code>theta = 0</code> corresponds to the lasso, and larger <code>theta</code> gives
+strong shrinkage toward the top principal components. Default is <code>NULL</code>.
+Exactly one of <code>ratio</code> or <code>theta</code> must be specified.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groups</code></td>
+<td>
+<p>A list describing which features belong in each group. The
+length of the list should be equal to the number of groups, with
+<code>groups[[k]]</code> being a vector of feature/column numbers which belong to
+group k. Each feature must be assigned to at least one group. Features can
+belong to more than one group. By default, all the features belong to a
+single group.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.min.ratio</code></td>
+<td>
+<p>Smallest value for <code>lambda</code>, as a fraction of the
+largest <code>lambda</code> value. The default depends on the sample size <code>nobs</code>
+relative to the number of variables <code>nvars</code>. If <code>nobs &gt;= nvars</code>,
+the default is <code>0.0001</code>, close to zero. If <code>nobs &lt; nvars</code>, the default is
+<code>0.01</code>. This is only used when the user does not specify a <code>lambda</code>
+sequence.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlam</code></td>
+<td>
+<p>Number of <code>lambda</code> values; default is 100.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>A user supplied <code>lambda</code> sequence. Typical usage is to
+have the program compute its own <code>lambda</code> sequence based on <code>nlam</code>
+and <code>lambda.min.ratio</code>; supplying a value of lambda overrides this.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardize</code></td>
+<td>
+<p>If <code>TRUE</code>, the columns of the feature matrices are
+standardized before the algorithm is run. Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SVD_info</code></td>
+<td>
+<p>A list containing SVD information. Usually this should not
+be specified by the user: the function will compute it on its own by default.
+<code>SVD_info</code> is a list with three elements:
+</p>
+
+<ol>
+<li> <p><code>aa</code>: A row-wise concatenation of the k quadratic penalty matrices.
+</p>
+</li>
+<li> <p><code>d</code>: A list where the kth element is the vector of squared singular
+values of the input matrix corresponding to group k.
+</p>
+</li>
+<li> <p><code>dd</code>: A list where the kth element is the vector of
+<code class="reqn">d_{k1}^2 - d_{kj}^2</code> for the input matrix corresponding to group k.
+</p>
+</li>
+</ol>
+<p>Since the initial SVD of <code>x</code> can be the largest part of the overall 
+computation, we allow the user to compute it once and then re-use. See 
+example below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nv</code></td>
+<td>
+<p>Number of singular vectors to use in the singular value
+decompositions. If not specified, the full SVD is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>propack</code></td>
+<td>
+<p>If <code>TRUE</code> (default), uses <code>propack.svd</code> from the
+<code>svd</code> package to perform the singular value decompositions. If not, uses
+<code>svd</code> from base R.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thr</code></td>
+<td>
+<p>Convergence threhold for the coordinate descent algorithm. Default
+is <code>1e-4</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit</code></td>
+<td>
+<p>Maximum number of passes over the data for all lambda values;
+default is <code>1e5</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Print out progess along the way? Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The objective function for <code>"gaussian"</code> is
+</p>
+<p style="text-align: center;"><code class="reqn">1/2 RSS/nobs + \lambda*||\beta||_1 + \theta/2 \sum quadratic
+  penalty for group k,</code>
+</p>
+
+<p>where the sum is over the feature groups <code class="reqn">1, ..., K</code>. The objective function
+for <code>"binomial"</code> is
+</p>
+<p style="text-align: center;"><code class="reqn">-loglik/nobs + \lambda*||\beta||_1 + \theta/2 \sum quadratic
+  penalty for group k.</code>
+</p>
+
+<p><code>pcLasso</code> can handle overlapping groups. In this case, the original
+<code>x</code> matrix is expanded to a <code>nobs x p_1+...+p_K</code> matrix (where
+<code>p_k</code> is the number of features in group k) such that columns
+<code>p_1+...+p_{k-1}+1</code> to <code>p_1+...+p_k</code> represent the feature matrix for
+group k. <code>pcLasso</code> returns the model coefficients for both the expanded
+feature space and the original feature space.
+</p>
+<p>One needs to specify the strength of the quadratic penalty either by
+specifying <code>ratio</code>, which is the ratio of shrinkage between the second
+and first principal components in the absence of the <code class="reqn">\ell_1</code> penalty,
+or by specifying the multiplier <code>theta</code>. <code>ratio</code> is unitless and is
+more convenient.
+</p>
+<p><code>pcLasso</code> always mean centers the columns of the <code>x</code> matrix. If
+<code>standardize=TRUE</code>, <code>pcLasso</code> will also scale the columns to have
+standard deviation 1. In all cases, the <code>beta</code> coefficients returned are
+for the original <code>x</code> values (i.e. uncentered and unscaled).
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"pcLasso"</code>.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+<p>If the groups overlap, a <code>p_1+..._p_K x length(lambda)</code>
+matrix of coefficients in the expanded feature space. If not, a <code>nvars</code>
+x <code>length(lambda)</code> matrix of coefficients in the original feature space.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>origbeta</code></td>
+<td>
+<p>If the groups overlap, a <code>nvars</code> x
+<code>length(lambda)</code> matrix of coefficients in the original feature space.
+<code>NULL</code> if the groups do not overlap.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>a0</code></td>
+<td>
+<p>Intercept sequence of length <code>length(lambda)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>The actual sequence of <code>lambda</code> values used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nzero</code></td>
+<td>
+<p>If the groups overlap, the number of non-zero coefficients in the
+expanded feature space for each value of <code>lambda</code>. Otherwise, the number
+of non-zero coefficients in the original feature space.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>orignzero</code></td>
+<td>
+<p>If the groups are overlapping, this is the number of
+non-zero coefficients in the original feature space of the model for each
+<code>lambda</code>. If groups are not overlapping, it is <code>NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>jerr</code></td>
+<td>
+<p>Error flag for warnings and errors (largely for internal
+debugging).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta</code></td>
+<td>
+<p>Value of <code>theta</code> used in model fitting.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>origgroups</code></td>
+<td>
+<p>If the <code>groups</code> parameter was passed to the
+function call, this is a copy of that parameter. Otherwise, it is a list of
+length 1, with the first element being a vector of integers from 1 to
+<code>nvars</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>groups</code></td>
+<td>
+<p>If the groups are not overlapping, this has the same
+value as <code>groups</code>. If the groups are overlapping, then
+<code>groups[[k]]</code> is the vector from <code>p_1 + ... + p_{k-1} + 1</code> to
+<code>p_1 + ... p_k</code>, where <code>p_k</code> is the number of features in group k.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SVD_info</code></td>
+<td>
+<p>A list containing SVD information. See param <code>SVD_info</code>
+for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mx</code></td>
+<td>
+<p>If groups overlap, column means of the expanded <code>x</code>
+matrix. Otherwise, column means of the original <code>x</code> matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>origmx</code></td>
+<td>
+<p>Column means of the original <code>x</code> matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>my</code></td>
+<td>
+<p>If <code>family = "gaussian"</code>, mean of the responses <code>y</code>.
+Otherwise, it is <code>NA</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overlap</code></td>
+<td>
+<p>A logical flag indicating if the feature groups were
+overlapping or not.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlp</code></td>
+<td>
+<p>Actual number of passes over the data for all lambda values.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>Response type.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>The call that produced this object.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">set.seed(1)
+x &lt;- matrix(rnorm(100 * 20), 100, 20)
+y &lt;- rnorm(100)
+
+# all features in one group by default
+fit1 &lt;- pcLasso(x, y, ratio = 0.8)
+# print(fit1)  # Not run
+# features in groups
+groups &lt;- vector("list", 4)
+for (k in 1:4) {
+    groups[[k]] &lt;- 5 * (k-1) + 1:5
+}
+fit2 &lt;- pcLasso(x, y, groups = groups, ratio = 0.8)
+# groups can be overlapping
+groups[[1]] &lt;- 1:8
+fit3 &lt;- pcLasso(x, y, groups = groups, ratio = 0.8)
+
+# specify ratio or theta, but not both
+fit4 &lt;- pcLasso(x, y, groups = groups, theta = 10)
+
+# family = "binomial"
+y2 &lt;- sample(0:1, 100, replace = TRUE)
+fit5 &lt;- pcLasso(x, y2, ratio = 0.8, family = "binomial")
+
+# example where SVD is computed once, then re-used
+fit1 &lt;- pcLasso(x, y, ratio = 0.8)
+fit2 &lt;- pcLasso(x, y, ratio = 0.8, SVD_info = fit1$SVD_info)
+
+</code></pre>
+
+
+</div>

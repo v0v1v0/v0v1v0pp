@@ -1,0 +1,184 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>tt_time_slice</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Table Transformer: slice a table with a slice point on a time column</h2>
+
+<h3>Description</h3>
+
+<p>With any table object containing date, date-time columns, or a mixture
+thereof, any one of those columns can be used to effectively slice the data
+table in two with a <code>slice_point</code>: and you get to choose which of those
+slices you want to keep. The slice point can be defined in several ways. One
+method involves using a decimal value between <code>0</code> and <code>1</code>, which defines the
+slice point as the time instant somewhere between the earliest time value (at
+<code>0</code>) and the latest time value (at <code>1</code>). Another way of defining the slice
+point is by supplying a time value, and the following input types are
+accepted: (1) an ISO 8601 formatted time string (as a date or a date-time),
+(2) a <code>POSIXct</code> time, or (3) a <code>Date</code> object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">tt_time_slice(
+  tbl,
+  time_column = NULL,
+  slice_point = 0,
+  keep = c("left", "right"),
+  arrange = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tbl</code></td>
+<td>
+<p><em>A data table</em>
+</p>
+<p><code style="white-space: pre;">⁠obj:&lt;tbl_*&gt;⁠</code> // <strong>required</strong>
+</p>
+<p>A table object to be used as input for the transformation. This can be a
+data frame, a tibble, a <code>tbl_dbi</code> object, or a <code>tbl_spark</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>time_column</code></td>
+<td>
+<p><em>Column with time data</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;character&gt;⁠</code> // <em>default:</em> <code>NULL</code> (<code>optional</code>)
+</p>
+<p>The time-based column that will be used as a basis for the slicing. If no
+time column is provided then the first one found will be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>slice_point</code></td>
+<td>
+<p><code style="white-space: pre;">⁠scalar&lt;numeric|character|POSIXct|Date&gt;⁠</code> // <em>default:</em> <code>0</code>
+</p>
+<p>The location on the <code>time_column</code> where the slicing will occur. This can
+either be a decimal value from <code>0</code> to <code>1</code>, an ISO 8601 formatted time
+string (as a date or a date-time), a <code>POSIXct</code> time, or a <code>Date</code> object.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keep</code></td>
+<td>
+<p><em>Data slice to keep</em>
+</p>
+<p><code style="white-space: pre;">⁠singl-kw:[left|right]⁠</code> // <em>default:</em> <code>"left"</code>
+</p>
+<p>Which slice should be kept? The <code>"left"</code> side (the default) contains data
+rows that are earlier than the <code>slice_point</code> and the <code>"right"</code> side will
+have rows that are later.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>arrange</code></td>
+<td>
+<p><em>Arrange data slice by the time data?</em>
+</p>
+<p><code style="white-space: pre;">⁠scalar&lt;logical&gt;⁠</code> // <em>default:</em> <code>FALSE</code>
+</p>
+<p>Should the slice be arranged by the <code>time_column</code>? This may be useful if
+the input <code>tbl</code> isn't ordered by the <code>time_column</code>. By default, this is
+<code>FALSE</code> and the original ordering is retained.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>There is the option to <code>arrange</code> the table by the date or date-time values in
+the <code>time_column</code>. This ordering is always done in an ascending manner. Any
+<code>NA</code>/<code>NULL</code> values in the <code>time_column</code> will result in the corresponding rows
+can being removed (no matter which slice is retained).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A data frame, a tibble, a <code>tbl_dbi</code> object, or a <code>tbl_spark</code> object
+depending on what was provided as <code>tbl</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<p>Let's use the <code>game_revenue</code> dataset, included in the <strong>pointblank</strong> package,
+as the input table for the first demo. It has entries in the first 21 days of
+2015 and we'll elect to get all of the records where the <code>time</code> values are
+strictly for the first 15 days of 2015. The <code>keep</code> argument has a default of
+<code>"left"</code> so all rows where the <code>time</code> column is less than
+<code>"2015-01-16 00:00:00"</code> will be kept.
+</p>
+<div class="sourceCode r"><pre>tt_time_slice(
+  tbl = game_revenue,
+  time_column = "time",
+  slice_point = "2015-01-16"
+)
+#&gt; # A tibble: 1,208 x 11
+#&gt;    player_id       session_id  session_start       time                item_type
+#&gt;    &lt;chr&gt;           &lt;chr&gt;       &lt;dttm&gt;              &lt;dttm&gt;              &lt;chr&gt;    
+#&gt;  1 ECPANOIXLZHF896 ECPANOIXLZ~ 2015-01-01 01:31:03 2015-01-01 01:31:27 iap      
+#&gt;  2 ECPANOIXLZHF896 ECPANOIXLZ~ 2015-01-01 01:31:03 2015-01-01 01:36:57 iap      
+#&gt;  3 ECPANOIXLZHF896 ECPANOIXLZ~ 2015-01-01 01:31:03 2015-01-01 01:37:45 iap      
+#&gt;  4 ECPANOIXLZHF896 ECPANOIXLZ~ 2015-01-01 01:31:03 2015-01-01 01:42:33 ad       
+#&gt;  5 ECPANOIXLZHF896 ECPANOIXLZ~ 2015-01-01 11:50:02 2015-01-01 11:55:20 ad       
+#&gt;  6 ECPANOIXLZHF896 ECPANOIXLZ~ 2015-01-01 11:50:02 2015-01-01 12:08:56 ad       
+#&gt;  7 ECPANOIXLZHF896 ECPANOIXLZ~ 2015-01-01 11:50:02 2015-01-01 12:14:08 ad       
+#&gt;  8 ECPANOIXLZHF896 ECPANOIXLZ~ 2015-01-01 11:50:02 2015-01-01 12:21:44 ad       
+#&gt;  9 ECPANOIXLZHF896 ECPANOIXLZ~ 2015-01-01 11:50:02 2015-01-01 12:24:20 ad       
+#&gt; 10 FXWUORGYNJAE271 FXWUORGYNJ~ 2015-01-01 15:17:18 2015-01-01 15:19:36 ad       
+#&gt; # i 1,198 more rows
+#&gt; # i 6 more variables: item_name &lt;chr&gt;, item_revenue &lt;dbl&gt;,
+#&gt; #   session_duration &lt;dbl&gt;, start_day &lt;date&gt;, acquisition &lt;chr&gt;, country &lt;chr&gt;
+</pre></div>
+<p>Omit the first 25% of records from <code>small_table</code>, also included in the
+package, with a fractional <code>slice_point</code> of <code>0.25</code> on the basis of a timeline
+that begins at <code style="white-space: pre;">⁠2016-01-04 11:00:00⁠</code> and ends at <code style="white-space: pre;">⁠2016-01-30 11:23:00⁠</code>.
+</p>
+<div class="sourceCode r"><pre>small_table %&gt;%
+  tt_time_slice(
+    slice_point = 0.25,
+    keep = "right"
+  )
+#&gt; # A tibble: 8 x 8
+#&gt;   date_time           date           a b             c     d e     f    
+#&gt;   &lt;dttm&gt;              &lt;date&gt;     &lt;int&gt; &lt;chr&gt;     &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt; &lt;chr&gt;
+#&gt; 1 2016-01-11 06:15:00 2016-01-11     4 2-dhe-923     4 3291. TRUE  mid  
+#&gt; 2 2016-01-15 18:46:00 2016-01-15     7 1-knw-093     3  843. TRUE  high 
+#&gt; 3 2016-01-17 11:27:00 2016-01-17     4 5-boe-639     2 1036. FALSE low  
+#&gt; 4 2016-01-20 04:30:00 2016-01-20     3 5-bce-642     9  838. FALSE high 
+#&gt; 5 2016-01-20 04:30:00 2016-01-20     3 5-bce-642     9  838. FALSE high 
+#&gt; 6 2016-01-26 20:07:00 2016-01-26     4 2-dmx-010     7  834. TRUE  low  
+#&gt; 7 2016-01-28 02:51:00 2016-01-28     2 7-dmx-010     8  108. FALSE low  
+#&gt; 8 2016-01-30 11:23:00 2016-01-30     1 3-dka-303    NA 2230. TRUE  high
+</pre></div>
+
+
+<h3>Function ID</h3>
+
+<p>12-6
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other Table Transformers: 
+<code>get_tt_param()</code>,
+<code>tt_string_info()</code>,
+<code>tt_summary_stats()</code>,
+<code>tt_tbl_colnames()</code>,
+<code>tt_tbl_dims()</code>,
+<code>tt_time_shift()</code>
+</p>
+
+
+</div>

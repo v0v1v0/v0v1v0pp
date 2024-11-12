@@ -1,0 +1,143 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>lock_validate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Validate a specific renv lock file</h2>
+
+<h3>Description</h3>
+
+<p>This function will be especially useful when renv lock file is built manually.
+Checking if packages in the lock file have correct versions taking into account their DESCRIPTION files requirements (<code>c("Depends", "Imports", "LinkingTo")</code>).
+Moreover identifying which packages are newest releases.
+Optionally we could add life duration and CRAN check page status for each dependency.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">lock_validate(
+  path,
+  lifeduration = FALSE,
+  checkred = list(scope = character(0), flavors = NULL),
+  lib.loc = .libPaths(),
+  repos = biocran_repos()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>path</code></td>
+<td>
+<p><code>character</code> path to the shiny app. Default: <code>"."</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lifeduration</code></td>
+<td>
+<p><code>logical</code> if to assess life duration for each package in the library.
+For installed newest releases of packages, a local evaluation is used.
+<code style="white-space: pre;">⁠MEATCRAN CRANDB⁠</code> is used for libraries with less than 500 packages.
+Otherwise the direct web page download from CRAN is used.
+Default: 'FALSE“</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>checkred</code></td>
+<td>
+<p><code>list</code> with two named fields, <code>scope</code> and <code>flavor</code>. <code>scope</code> of R CRAN check pages statuses to consider, any of <code>c("ERROR", "FAIL", "WARN", "NOTE")</code>.
+<code>flavor</code> is a vector of CRAN machines to consider, which might be retrieved with <code>pacs::cran_flavors()$Flavor</code>.
+By default an empty scope field deactivated assessment for <code>checkred</code> column, and NULL flavor will results in checking all machines.
+Default: <code>list(scope = character(0), flavor = NULL)</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lib.loc</code></td>
+<td>
+<p><code>character</code> vector of search paths with local packages. Default: <code>.libPaths()</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>repos</code></td>
+<td>
+<p><code>character</code> vector of repositories URLs to use. By default checking CRAN and newest Bioconductor per R version. Default <code>pacs::biocran_repos()</code></p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>data.frame</code> with 2/6/7/8 columns.
+</p>
+
+<dl>
+<dt>Package</dt>
+<dd>
+<p>character a package name.</p>
+</dd>
+<dt>Version.expected.min</dt>
+<dd>
+<p>(conditional) (Internet needed) character expected by DESCRIPTION files minimal version. "" means not specified so the newest version.</p>
+</dd>
+<dt>Version.expected</dt>
+<dd>
+<p>character package version in the renv lock file.</p>
+</dd>
+<dt>version_status</dt>
+<dd>
+<p>(conditional) numeric -1/0/1 which comes from <code>utils::compareVersion</code> function.
+0 means that we have the same version as required by DESCRIPTION files. -1 means we have too low version installed, this is an error. 1 means we have higher version.</p>
+</dd>
+<dt>newest</dt>
+<dd>
+<p> logical (Internet needed) if the installed version is the newest one.</p>
+</dd>
+<dt>cran</dt>
+<dd>
+<p>logical (Internet needed) if the package is on CRAN, version is not taken into account here.</p>
+</dd>
+<dt>checkred</dt>
+<dd>
+<p>(Optional) (Internet needed) logical if the NEWEST package contains any specified statuses on CRAN check page.</p>
+</dd>
+<dt>lifeduration</dt>
+<dd>
+<p>(Optional) (Internet needed) integer number of days a package was released.</p>
+</dd>
+</dl>
+<h3>Note</h3>
+
+<p>Version.expected.min column not count packages which are not a dependency for any package, so could not be find in DESCRIPTION files.
+<code>Version.expected.min</code> and <code>version_status</code> are assessed only if there are less than 500 packages in the lock file.
+When turn on the <code>lifeduration</code> option, calculations might be time consuming when there is more than 500 packages.
+The <code>crandb</code> R packages database is a part of <code>METACRAN</code> project, source:
+Csárdi G, Salmon M (2022). <code>pkgsearch</code>: Search and Query CRAN R Packages. <code style="white-space: pre;">⁠https://github.com/r-hub/pkgsearch⁠</code>, <code style="white-space: pre;">⁠https://r-hub.github.io/pkgsearch/⁠</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# path or url
+url &lt;- "https://raw.githubusercontent.com/Polkas/pacs/master/tests/testthat/files/renv_test.lock"
+pacs::lock_validate(url)
+
+pacs::lock_validate(
+  url,
+  checkred = list(scope = c("ERROR", "FAIL"), flavors = pacs::match_flavors())
+)
+
+pacs::lock_validate(
+  url,
+  lifeduration = TRUE,
+  checkred = list(scope = c("ERROR", "FAIL"), flavors = NULL)
+)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

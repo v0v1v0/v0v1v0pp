@@ -1,0 +1,145 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ped_utils</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Pedigree utilities</h2>
+
+<h3>Description</h3>
+
+<p>Various utility functions for <code>ped</code> objects.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pedsize(x)
+
+generations(x, what = c("max", "compMax", "indiv", "depth"))
+
+hasUnbrokenLoops(x)
+
+hasInbredFounders(x, chromType = "autosomal")
+
+hasSelfing(x)
+
+hasCommonAncestor(x)
+
+subnucs(x)
+
+peelingOrder(x)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A <code>ped</code> object, or (in some functions - see Details) a list of such.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>what</code></td>
+<td>
+<p>Either "max", "compMax", "indiv" or "depth" (See Value.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chromType</code></td>
+<td>
+<p>Either "autosomal" (default) or "x".</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+
+<ul>
+<li> <p><code>pedsize(x)</code> returns the number of pedigree members in each component of
+<code>x</code>.
+</p>
+</li>
+<li> <p><code>generations(x)</code> by default returns the number of generations in <code>x</code>,
+defined as the number of individuals in the longest line of parent-child
+links. (Note that this is well-defined also if <code>x</code> has loops and/or
+cross-generational marriages.) For individual generation numbers, use <code>what = "indiv"</code> (generation numbering as in the plot) or <code style="white-space: pre;">⁠what = "depth" (length of the longest chain up to a founder). Finally, if ⁠</code>x<code style="white-space: pre;">⁠ has multiple components, and what = "compMax"⁠</code>, the function returns a vector with the generation
+count from each component.
+</p>
+</li>
+<li> <p><code>hasUnbrokenLoops(x)</code> returns TRUE if <code>x</code> has loops, otherwise FALSE. (No
+computation is done here; the function simply returns the value of
+<code>x$UNBROKEN_LOOPS</code>).
+</p>
+</li>
+<li> <p><code>hasInbredFounders(x)</code> returns TRUE is founder inbreeding is specified for
+<code>x</code> and at least one founder has positive inbreeding coefficient. See
+<code>founderInbreeding()</code> for details.
+</p>
+</li>
+<li> <p><code>hasSelfing(x)</code> returns TRUE if the pedigree contains selfing events. This
+is recognised by father and mother begin equal for some child. (Note that for
+this to be allowed, the gender code of the parent must be 0.)
+</p>
+</li>
+<li> <p><code>hasCommonAncestor(x)</code> computes a logical matrix <code>A</code> whose entry <code>A[i,j]</code>
+is TRUE if pedigree members i and j have a common ancestor in <code>x</code>, and FALSE
+otherwise. By convention, <code>A[i,i]</code> is TRUE for all i.
+</p>
+</li>
+<li> <p><code>subnucs(x)</code> returns a list of all nuclear sub-pedigrees of <code>x</code>, wrapped as
+<code>nucleus</code> objects. Each nucleus is a list with entries <code>father</code>, <code>mother</code> and
+<code>children</code>.
+</p>
+</li>
+<li> <p><code>peelingOrder(x)</code> calls <code>subnucs(x)</code> and extends each entry with a <code>link</code>
+individual, indicating a member linking the nucleus to the remaining
+pedigree. One application of this function is the fact that if <em>fails</em> to
+find a complete peeling order if and only if the pedigree has loops. (In fact
+it is called each time a new <code>ped</code> object is created by <code>ped()</code> in order to
+detect loops.) The main purpose of the function, however, is to prepare for
+probability calculations in other packages, as e.g. in
+<code>pedprobr::likelihood</code>.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">x = fullSibMating(1)
+stopifnot(pedsize(x) == 6)
+stopifnot(hasUnbrokenLoops(x))
+stopifnot(generations(x) == 3)
+
+# All members have common ancestors except the grandparents
+CA = hasCommonAncestor(x)
+stopifnot(!CA[1,2], !CA[2,1], sum(CA) == length(CA) - 2)
+
+# Effect of breaking the loop
+y = breakLoops(x)
+stopifnot(!hasUnbrokenLoops(y))
+stopifnot(pedsize(y) == 7)
+
+# A pedigree with selfing (note the necessary `sex = 0`)
+z1 = singleton(1, sex = 0)
+z2 = addChildren(z1, father = 1, mother = 1, nch = 1)
+stopifnot(!hasSelfing(z1), hasSelfing(z2))
+
+# Nucleus sub-pedigrees
+stopifnot(length(subnucs(z1)) == 0)
+peelingOrder(cousinPed(1))
+
+# Plot with generation numbers as labels
+w = cousinPed(1)
+g = generations(w, what = "indiv")
+labs = setNames(labels(w), g)
+plot(w, labs = labs)
+
+# ... compare with
+plot(relabel(w, "generations"))
+
+</code></pre>
+
+
+</div>

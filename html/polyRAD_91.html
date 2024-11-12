@@ -1,0 +1,163 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>RADdata2VCF</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Export RADdata Genotypes to VCF
+</h2>
+
+<h3>Description</h3>
+
+<p>Converts genotype calls from <span class="pkg">polyRAD</span> into VCF format. The user may send
+the results directly to a file, or to a
+<code>CollapsedVCF</code> for further manipulation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">RADdata2VCF(object, file = NULL, asSNPs = TRUE, hindhe = TRUE,
+            sampleinfo = data.frame(row.names = GetTaxa(object)),
+            contigs = data.frame(row.names = unique(object$locTable$Chr)))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+
+<p>A <code>RADdata</code> object in which genotype calling has been performed.
+It is also important for the data to have been imported in a way that preserves
+variant positions (i.e. <code>readProcessIsoloci</code>,
+<code>readTASSELGBSv2</code>,
+<code>VCF2RADdata</code> using the <code>refgenome</code> argument).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>file</code></td>
+<td>
+
+<p>An optional character string or connection indicating where to write the file.
+Append mode may be used with connections if multiple RADdata objects need to be
+written to one VCF.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>asSNPs</code></td>
+<td>
+
+<p>Boolean indicating whether to convert haplotypes to individual SNPs and indels.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hindhe</code></td>
+<td>
+
+<p>Boolean indicating whether to export a mean value of Hind/He
+(see <code>HindHe</code>) for every sample and locus.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sampleinfo</code></td>
+<td>
+
+<p>A data frame with optional columns indicating any sample metadata to export
+to "SAMPLE" header lines.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contigs</code></td>
+<td>
+
+<p>A data frame with optional columns providing information about contigs to
+export to "contig" header lines.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Currently, the FORMAT fields exported are GT (genotype), AD (allelic read depth),
+and DP (read depth).  Genotype posterior probabilities are not exported due to
+the mathematical intractability of converting pseudo-biallelic probabilities to
+multiallelic probabilities.
+</p>
+<p>Genotypes exported to the GT field are obtained internally using
+<code>GetProbableGenotypes</code>.
+</p>
+<p>INFO fields exported include the standard fields NS (number of samples with more
+than zero reads) and DP (total depth across samples) as well as the custom fields
+LU (index of the marker in the original RADdata object) and HH (Hind/He statistic
+for the marker).
+</p>
+<p>This function requires the BioConductor package <span class="pkg">VariantAnnotation</span>.
+See <a href="https://bioconductor.org/packages/release/bioc/html/VariantAnnotation.html">https://bioconductor.org/packages/release/bioc/html/VariantAnnotation.html</a>
+for installation instructions.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code>CollapsedVCF</code> object.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Lindsay V. Clark
+</p>
+
+
+<h3>References</h3>
+
+<p><a href="https://samtools.github.io/hts-specs/VCFv4.3.pdf">https://samtools.github.io/hts-specs/VCFv4.3.pdf</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>VCF2RADdata</code>, <code>ExportGAPIT</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Set up example dataset for export.
+# You DO NOT need to adjust attr or locTable in your own dataset.
+data(exampleRAD)
+attr(exampleRAD$alleleNucleotides, "Variable_sites_only") &lt;- FALSE
+exampleRAD$locTable$Ref &lt;- 
+  exampleRAD$alleleNucleotides[match(1:nLoci(exampleRAD), exampleRAD$alleles2loc)]
+exampleRAD &lt;- IterateHWE(exampleRAD)
+
+# An optional table of sample data
+sampleinfo &lt;- data.frame(row.names = GetTaxa(exampleRAD),
+                         Population = rep(c("North", "South"), each = 50))
+
+# Add contig information (fill in with actual data rather than random)
+mycontigs &lt;- data.frame(row.names = c("1", "4", "6", "9"), length = sample(1e8, 4),
+                        URL = rep("ftp://mygenome.com/mygenome.fa", 4))
+
+# Set up a file destination for this example
+# (It is not necessary to use tempfile with your own data)
+outfile &lt;- tempfile(fileext = ".vcf")
+
+
+# Export VCF
+testvcf &lt;- RADdata2VCF(exampleRAD, file = outfile, sampleinfo = sampleinfo,
+                       contigs = mycontigs)
+
+</code></pre>
+
+
+</div>

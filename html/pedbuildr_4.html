@@ -1,0 +1,303 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>reconstruct</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Pedigree reconstruction</h2>
+
+<h3>Description</h3>
+
+<p>Reconstructs the most likely pedigree from genotype data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">reconstruct(
+  x,
+  ids,
+  extra = "parents",
+  alleleMatrix = NULL,
+  loci = NULL,
+  pedlist = NULL,
+  inferPO = FALSE,
+  sex = NULL,
+  age = NULL,
+  knownPO = NULL,
+  knownSub = NULL,
+  allKnown = FALSE,
+  notPO = NULL,
+  noChildren = NULL,
+  connected = TRUE,
+  maxInbreeding = 1/16,
+  linearInb = FALSE,
+  sexSymmetry = TRUE,
+  sortResults = TRUE,
+  founderInb = 0,
+  numCores = 1,
+  verbose = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>A <code>pedtools::ped</code> object or a list of such.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ids</code></td>
+<td>
+<p>A vector of ID labels from <code>x</code>. By default, the genotyped members
+of <code>x</code> are used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>extra</code></td>
+<td>
+<p>Either the word "parents" (default), or a non-negative integer.
+See Details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alleleMatrix</code></td>
+<td>
+<p>A matrix with two columns for each marker. By default
+extracted from <code>x</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loci</code></td>
+<td>
+<p>A list of marker attributes. By default extracted from <code>x</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pedlist</code></td>
+<td>
+<p>A list of pedigrees to optimise over. If NULL, <code>buildPeds()</code>
+is used to generate a list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inferPO</code></td>
+<td>
+<p>A logical. If TRUE, an initial stage of pairwise IBD
+estimation is done to infer high-confidence parent/child pairs, and also
+<em>non</em>-parent/child pairs. When this option is used, arguments to <code>knownPO</code>
+and <code>notPO</code> are ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sex</code></td>
+<td>
+<p>A vector of the same length as <code>labs</code>, with entries 1 (male) or 2
+(female).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>age</code></td>
+<td>
+<p>A numeric or character vector. If numeric, and <code>age[i] &lt; age[j]</code>,
+then individual <code>i</code> will not be an ancestor of individual <code>j</code>. The numbers
+themselves are irrelevant, only the partial ordering. (No inference is made
+about individuals of equal age.) Alternatively, for finer control, <code>age</code>
+may be a character vector of inequalities, e.g., <code>age = c("1&gt;2", "1&gt;3")</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>knownPO</code></td>
+<td>
+<p>A list of vectors of length 2, containing the ID labels of
+pairs known to be parent-offspring. By default, both directions are
+considered; use <code>age</code> to force a specific direction.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>knownSub</code></td>
+<td>
+<p>A <code>ped</code> object involving a subset of the <code>labs</code> individuals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>allKnown</code></td>
+<td>
+<p>A logical. If TRUE, no other pairs than <code>knownPO</code> will be
+assigned as parent-offspring. If FALSE (default), all pairs except those in
+<code>notPO</code> are treated as potential parent-offspring.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>notPO</code></td>
+<td>
+<p>A list of vectors of length 2, containing the ID labels of pairs
+known <em>not</em> to be parent-offspring.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>noChildren</code></td>
+<td>
+<p>A vector of ID labels, indicating individuals without
+children of their own.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>connected</code></td>
+<td>
+<p>A logical. If TRUE (default), only connected pedigrees are
+returned.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxInbreeding</code></td>
+<td>
+<p>A single numeric indicating the highest permitted
+inbreeding coefficient. Default: 1/16 (as with first-cousin parents.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>linearInb</code></td>
+<td>
+<p>A parameter controlling the maximum separation of linearly
+related spouses. Either TRUE (allow all linear inbreeding), FALSE (disallow
+all) or a non-negative integer. For example, <code>linearInb = 1</code> allows
+parent/child mating, but not grandparent/grandchild or more distant linear
+relatives. Default: FALSE.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sexSymmetry</code></td>
+<td>
+<p>A logical. If TRUE (default), pedigrees which are equal
+except for the gender distribution of the <em>added</em> parents, are regarded as
+equivalent, and only one of each equivalence class is returned. Example:
+paternal vs. maternal half sibs.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sortResults</code></td>
+<td>
+<p>A logical. If TRUE (default), the output is sorted so that
+the most likely pedigree comes first.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>founderInb</code></td>
+<td>
+<p>A number in the interval <code style="white-space: pre;">⁠[0,1]⁠</code>, used as background
+inbreeding level in all founders. Default: 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>numCores</code></td>
+<td>
+<p>A positive integer. The number of cores used in
+parallelisation. Default: 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A logical.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The parameter <code>extra</code> controls which of two algorithms are used to create the
+pedigree list.
+</p>
+<p>If <code>extra</code> is a nonnegative integer, it determines the number of extra
+individuals allowed in the iterative pedigree construction. These extras
+start off with undetermined sex, meaning that both males and females are
+used. It should be noted that the final pedigrees may contain additional
+extras, since missing parents are added at the end.
+</p>
+<p>If <code>extra</code> is the word "parents", the algorithm is not iterative. It first
+generates all directed acyclic graphs between the original individuals. Then
+their parents are added and merged in all possible ways. This option has the
+advantage of not requiring an explicit/ad hoc number of "extras", but works
+best in smaller cases.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>pedrec</code>, which is essentially list with the
+following entries:
+</p>
+
+<ul>
+<li> <p><code>labs</code>: The individual labels as given in <code>ids</code>.
+</p>
+</li>
+<li> <p><code>pedlist</code>: A list of pedigrees, either built by <code>buildPeds()</code> or as
+supplied in the input argument <code>pedlist</code>. If <code>sortResults = TRUE</code>, the list
+is sorted so that the most likely pedigrees come first
+</p>
+</li>
+<li> <p><code>logliks</code>: A numerical vector of pedigree log-likelihoods
+</p>
+</li>
+<li> <p><code>kappa</code>: A data frame with pairwise estimates (if <code>inferPO = TRUE</code>)
+</p>
+</li>
+<li> <p><code>alleleMatrix</code>: A matrix of marker alleles
+</p>
+</li>
+<li> <p><code>loci</code>: A list of marker locus attributes
+</p>
+</li>
+<li> <p><code>errPeds</code>: A list of pedigrees for which the likelihood calculation
+failed
+</p>
+</li>
+<li> <p><code>errIdx</code>: The indices of pedigrees in <code>errPeds</code> as elements of <code>pedlist</code>
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">#-----------------
+# Example 1: Trio
+#-----------------
+
+# Built-in dataset `trioData`
+x = list(singleton(1), singleton(2), singleton(3)) |&gt;
+  setMarkers(alleleMatrix = trioData, locusAttributes ="snp12")
+
+res = reconstruct(x, inferPO = TRUE, age = "1 &gt; 2")
+
+# Plot most likely pedigrees
+plot(res, top = 6)
+
+
+#--------------------
+# Example 2: Siblings
+#--------------------
+library(forrel)
+
+ids = c("s1", "s2")
+
+# Create pedigree and simulate profiles with 20 STR markers
+y = nuclearPed(children = ids) |&gt;
+  profileSim(markers = NorwegianFrequencies[1:20], ids = ids, seed = 123)
+
+# Reconstruct allowing 2 extra individuals and any inbreeding
+res2 = reconstruct(y, extra = 2, maxInb = 1)
+plot(res2)
+
+# With mutation modelling
+y = setMutmod(y, model = "equal", rate = 0.01)
+res3 = reconstruct(y, extra = 2, maxInb = 1)
+plot(res3)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,142 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>deffCR</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Chen-Rust design effect
+</h2>
+
+<h3>Description</h3>
+
+<p>Chen-Rust design effect for an estimated mean from a stratified, clustered, two-stage samples
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">deffCR(w, strvar=NULL, clvar=NULL, Wh=NULL, nest=FALSE, y)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>w</code></td>
+<td>
+<p>vector of weights for a sample</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>strvar</code></td>
+<td>
+<p>vector of stratum identifiers; equal in length to that of <code>w</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>clvar</code></td>
+<td>
+<p>vector of cluster identifiers; equal in length to that of <code>w</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Wh</code></td>
+<td>
+<p>vector of the proportions of elements that are in each stratum; length is number of strata.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nest</code></td>
+<td>
+<p>Are cluster IDs numbered within strata (<code>TRUE</code> or <code>FALSE</code>)? If <code>TRUE</code>, cluster IDs can be restarted within strata, e.g., 1,2,3,1,2,3,...</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>vector of the sample values of an analysis variable</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The Chen-Rust <em>deff</em> for an estimated mean accounts for stratification, clustering, and unequal weights, but does not account for the use of any auxiliary data in the estimator of a mean. The Chen-Rust <em>deff</em> returned here is appropriate for stratified, two-stage sampling. Note that separate <em>deff</em>'s are produced for weighting, clustering, and stratification within each stratum. These cannot be added across strata unless the stratum values of the coefficient of variation of the weights, the sample size of clusters, and the intracluster correlation of <code>y</code> are equal across all strata (see Chen and Rust 2017, p.117).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>strata components</code></td>
+<td>
+<p>Matrix with number of sample first-stage units, intracluster correlation, coefficient of variation of the weights, and <em>deff</em>'s due to weighting (<code>deff.w</code>), clustering (<code>deff.c</code>), and stratification (<code>deff.s</code>)for each stratum. When <code>strvar</code> or <code>clvar</code> are <code>NULL</code> appropriate subsets of these are output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>overall deff</code></td>
+<td>
+<p>Design effect for full sample accounting for weighting, clustering, and stratification</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Richard Valliant, Jill A. Dever, Frauke Kreuter
+</p>
+
+
+<h3>References</h3>
+
+<p>Chen, S. and Rust, K. (2017). An Extension of Kish's Formula for Design Effects to Two- and Three-Stage Designs with Stratification. <em>Journal of Survey Statistics and Methodology</em>, 5(2), 111-130.
+</p>
+<p>Valliant, R., Dever, J., Kreuter, F. (2018, chap. 14). <em>Practical Tools for Designing and Weighting Survey Samples, 2nd edition</em>. New York: Springer.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>deff</code>, <code>deffH</code>, <code>deffK</code>, <code>deffS</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">require(sampling)
+require(reshape)
+data(MDarea.popA)
+Ni &lt;- table(MDarea.popA$TRACT)
+m &lt;- 20
+probi &lt;- m*Ni / sum(Ni)
+    # select sample of clusters
+set.seed(-780087528)
+sam &lt;- sampling::cluster(data=MDarea.popA, clustername="TRACT", size=m, method="systematic",
+                pik=probi, description=TRUE)
+    # extract data for the sample clusters
+samclus &lt;- getdata(MDarea.popA, sam)
+samclus &lt;- rename(samclus, c("Prob" = "pi1"))
+    # treat sample clusters as strata and select srswor from each
+nbar &lt;- 8
+s &lt;- sampling::strata(data = as.data.frame(samclus), stratanames = "TRACT",
+            size = rep(nbar,m), method="srswor")
+    # extracts the observed data
+samdat &lt;- getdata(samclus,s)
+samdat &lt;- rename(samdat, c("Prob" = "pi2"))
+    # add a fake stratum ID
+H &lt;- 2
+nh &lt;- m * nbar / H
+stratum &lt;- NULL
+for (h in 1:H){
+    stratum &lt;- c(stratum, rep(h,nh))
+}
+wt &lt;- 1/(samdat$pi1*samdat$pi2) * runif(m*nbar)
+samdat &lt;- cbind(subset(samdat, select = -c(stratum)), stratum, wt)
+deffCR(w = samdat$wt, strvar = samdat$stratum, clvar = samdat$TRACT, Wh=NULL, y=samdat$y2)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,420 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>picasso</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+PathwIse CAlibrated Sparse Shooting algOrithm (PICASSO)
+</h2>
+
+<h3>Description</h3>
+
+<p>The function "picasso" implements the user interface.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">picasso(X, Y, lambda = NULL, nlambda = 100, lambda.min.ratio =
+                 0.05, family = "gaussian", method = "l1",
+                 type.gaussian = "naive", gamma = 3, df = NULL,
+                 standardize = TRUE, intercept = TRUE, prec = 1e-07,
+                 max.ite = 1000, verbose = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+ <p><code>X</code> is an <code class="reqn">n</code> by <code class="reqn">d</code> design matrix where <code>n</code> is the sample size and <code>d</code> is the data dimension.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p><code>Y</code> is the <code class="reqn">n</code> dimensional response vector. Y is numeric vector for <code>family=``gaussian''</code> and <code>family=``sqrtlasso''</code>, or a two-level factor for <code>family=``binomial''</code>, or a non-negative integer vector representing counts for <code>family = ``gaussian''</code>. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>A sequence of decresing positive values to control the regularization. Typical usage is to leave the input <code>lambda = NULL</code> and have the program compute its own <code>lambda</code> sequence based on <code>nlambda</code> and <code>lambda.min.ratio</code>. Users can also specify a sequence to override this. Default value is from <code class="reqn">lambda.max</code> to <code>lambda.min.ratio*lambda.max</code>. The default value of <code class="reqn">lambda.max</code> is the minimum regularization parameter which yields an all-zero estimates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlambda</code></td>
+<td>
+<p>The number of values used in <code>lambda</code>. Default value is 100.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda.min.ratio</code></td>
+<td>
+<p>The smallest value for <code>lambda</code>, as a fraction of the uppperbound (<code>MAX</code>) of the regularization parameter. The program can automatically generate <code>lambda</code> as a sequence of length = <code>nlambda</code> starting from <code>MAX</code> to <code>lambda.min.ratio*MAX</code> in log scale. The default value is <code>0.05</code>.</p>
+</td>
+</tr>
+</table>
+<p> Caution: logistic and poisson regression can be ill-conditioned if lambda is too small for nonconvex penalty. We suggest the user to avoid using any lambda.min.raito smaller than 0.05 for logistic/poisson regression under nonconvex penalty.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>Options for model. Sparse linear regression and sparse multivariate regression is applied if <code>family = "gaussian"</code>, sqrt lasso is applied if <code>family = "sqrtlasso"</code>, sparse logistic regression is applied if <code>family = "binomial"</code> and sparse poisson regression is applied if <code>family = "poisson"</code>. The default value is <code>"gaussian"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Options for regularization. Lasso is applied if <code>method = "l1"</code>, MCP is applied if <code>method = "mcp"</code> and SCAD Lasso is applied if <code>method = "scad"</code>. The default value is <code>"l1"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type.gaussian</code></td>
+<td>
+<p>Options for updating residuals in sparse linear regression. The naive update rule is applied if <code>opt = "naive"</code>, and the covariance update rule is applied if <code>opt = "covariance"</code>. The default value is <code>"naive"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>gamma</code></td>
+<td>
+<p>The concavity parameter for MCP and SCAD. The default value is <code>3</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>Maximum degree of freedom for the covariance update. The default value is <code>2*n</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardize</code></td>
+<td>
+<p>Design matrix X will be standardized to have mean zero and unit standard deviation if <code>standardize = TRUE</code>. The default value is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intercept</code></td>
+<td>
+<p>Does the model has intercept term or not. Default value is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prec</code></td>
+<td>
+<p>Stopping precision. The default value is 1e-7.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max.ite</code></td>
+<td>
+<p>Max number of iterations for the algorithm. The default value is 1000.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Tracing information is disabled if <code>verbose = FALSE</code>. The default value is <code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For sparse linear regression,
+</p>
+<p style="text-align: center;"><code class="reqn">
+    \min_{\beta} {\frac{1}{2n}}|| Y - X \beta - \beta_0||_2^2 + \lambda R(\beta),
+    </code>
+</p>
+<p><br>
+where <code class="reqn">R(\beta)</code> can be <code class="reqn">\ell_1</code> norm, MCP, SCAD regularizers.
+</p>
+<p>For sparse logistic regression,
+</p>
+<p style="text-align: center;"><code class="reqn">
+    \min_{\beta} {\frac{1}{n}}\sum_{i=1}^n (\log(1+e^{x_i^T \beta+ \beta_0}) - y_i x_i^T \beta) + \lambda R(\beta),
+    </code>
+</p>
+<p><br>
+where <code class="reqn">R(\beta)</code> can be <code class="reqn">\ell_1</code> norm, MCP, and SCAD regularizers. 
+</p>
+<p>For sparse poisson regression,
+</p>
+<p style="text-align: center;"><code class="reqn">
+    \min_{\beta} {\frac{1}{n}}\sum_{i=1}^n (e^{x_i^T \beta + \beta_0} - y_i (x_i^T \beta+\beta_0) + \lambda R(\beta),
+    </code>
+</p>
+<p><br>
+where <code class="reqn">R(\beta)</code> can be <code class="reqn">\ell_1</code> norm, MCP or SCAD  regularizers.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object with S3 classes <code>"gaussian"</code>, <code>"binomial"</code>, and <code>"poisson"</code> corresponding to  sparse linear regression, sparse logistic regression, and sparse poisson regression respectively is returned: 
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>beta</code></td>
+<td>
+
+<p>A matrix of regression estimates whose columns correspond to regularization parameters for sparse linear regression and sparse logistic regression. A list of matrices of regression estimation corresponding to regularization parameters for sparse column inverse operator.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>intercept</code></td>
+<td>
+<p>The value of intercepts corresponding to regularization parameters for sparse linear regression, and sparse logistic regression. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>The value of <code>Y</code> used in the program. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>The value of <code>X</code> used in the program. </p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+
+<p>The sequence of regularization parameters <code>lambda</code> used in the program.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlambda</code></td>
+<td>
+
+<p>The number of values used in <code>lambda</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+
+<p>The <code>family</code> from the input. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+
+<p>The <code>method</code> from the input. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path</code></td>
+<td>
+
+<p>A list of <code>d</code> by <code>d</code> adjacency matrices of estimated graphs as a graph path corresponding to <code>lambda</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sparsity</code></td>
+<td>
+
+<p>The sparsity levels of the graph path for sparse inverse column operator.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>standardize</code></td>
+<td>
+<p>The <code>standardize</code> from the input.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+
+<p>The degree of freecom (number of nonzero coefficients) along the solution path for sparse linear regression, nd sparse logistic regression. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ite</code></td>
+<td>
+
+<p>A list of vectors where the i-th entries of ite[[1]] and ite[[2]] correspond to the outer iteration and inner iteration of i-th regularization parameter respectively.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>The <code>verbose</code> from the input.</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Jason Ge, Xingguo Li, Mengdi Wang, Tong Zhang, Han Liu and Tuo Zhao<br>
+Maintainer: Jason Ge &lt;jiange@princeton.edu&gt;
+</p>
+
+
+<h3>References</h3>
+
+<p>1. J. Friedman, T. Hastie and H. Hofling and R. Tibshirani. Pathwise coordinate optimization. <em>The Annals of Applied Statistics</em>, 2007.<br>
+2. C.H. Zhang. Nearly unbiased variable selection under minimax concave penalty. <em>Annals of Statistics</em>, 2010.<br>
+3. J. Fan and R. Li. Variable selection via nonconcave penalized likelihood and its oracle
+properties. <em>Journal of the American Statistical Association</em>, 2001.<br>
+4. R. Tibshirani, J. Bien, J. Friedman, T. Hastie, N. Simon, J. Taylor and R. Tibshirani. Strong rules for discarding predictors in lasso-type problems. <em>Journal of the Royal Statistical Society: Series B</em>, 2012.<br>
+5. T. Zhao, H. Liu, and T. Zhang. A General Theory of Pathwise Coordinate Optimization. Techinical Report, Princeton Univeristy.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>picasso-package</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">################################################################
+## Sparse linear regression
+## Generate the design matrix and regression coefficient vector
+n = 100 # sample number 
+d = 80 # sample dimension
+c = 0.5 # correlation parameter
+s = 20  # support size of coefficient
+set.seed(2016)
+X = scale(matrix(rnorm(n*d),n,d)+c*rnorm(n))/sqrt(n-1)*sqrt(n)
+beta = c(runif(s), rep(0, d-s))
+
+## Generate response using Gaussian noise, and fit sparse linear models
+noise = rnorm(n)
+Y = X%*%beta + noise
+
+## l1 regularization solved with naive update
+fitted.l1.naive = picasso(X, Y, nlambda=100, type.gaussian="naive")
+
+## l1 regularization solved with covariance update
+fitted.l1.covariance  = picasso(X, Y, nlambda=100, type.gaussian="covariance")
+
+## mcp regularization
+fitted.mcp = picasso(X, Y, nlambda=100, method="mcp")
+
+## scad regularization
+fitted.scad = picasso(X, Y, nlambda=100, method="scad")
+
+## lambdas used 
+print(fitted.l1.naive$lambda)
+
+## number of nonzero coefficients for each lambda
+print(fitted.l1.naive$df)
+
+## coefficients and intercept for the i-th lambda
+i = 30
+print(fitted.l1.naive$lambda[i])
+print(fitted.l1.naive$beta[,i])
+print(fitted.l1.naive$intercept[i])
+
+## Visualize the solution path
+plot(fitted.l1.naive)
+plot(fitted.l1.covariance)
+plot(fitted.mcp)
+plot(fitted.scad)
+
+
+################################################################
+## Sparse logistic regression
+## Generate the design matrix and regression coefficient vector
+n &lt;- 100  # sample number 
+d &lt;- 80   # sample dimension
+c &lt;- 0.5   # parameter controlling the correlation between columns of X
+s &lt;- 20    # support size of coefficient
+set.seed(2016)
+X &lt;- scale(matrix(rnorm(n*d),n,d)+c*rnorm(n))/sqrt(n-1)*sqrt(n)
+beta &lt;- c(runif(s), rep(0, d-s))
+
+## Generate response and fit sparse logistic models
+p = 1/(1+exp(-X%*%beta))
+Y = rbinom(n, rep(1,n), p)
+
+## l1 regularization
+fitted.l1 = picasso(X, Y, nlambda=100, family="binomial", method="l1")
+
+## mcp regularization
+fitted.mcp = picasso(X, Y, nlambda=100, family="binomial", method="mcp")
+
+## scad regularization
+fitted.scad = picasso(X, Y, nlambda=100, family="binomial", method="scad")
+
+## lambdas used 
+print(fitted.l1$lambda)
+
+## number of nonzero coefficients for each lambda
+print(fitted.l1$df)
+
+## coefficients and intercept for the i-th lambda
+i = 30
+print(fitted.l1$lambda[i])
+print(fitted.l1$beta[,i])
+print(fitted.l1$intercept[i])
+
+## Visualize the solution path
+plot(fitted.l1)
+
+## Estimate of Bernoulli parameters
+param.l1 = fitted.l1$p
+
+
+################################################################
+## Sparse poisson regression
+## Generate the design matrix and regression coefficient vector
+n &lt;- 100  # sample number 
+d &lt;- 80   # sample dimension
+c &lt;- 0.5   # parameter controlling the correlation between columns of X
+s &lt;- 20    # support size of coefficient
+set.seed(2016)
+X &lt;- scale(matrix(rnorm(n*d),n,d)+c*rnorm(n))/sqrt(n-1)*sqrt(n)
+beta &lt;- c(runif(s), rep(0, d-s))/sqrt(s)
+
+## Generate response and fit sparse poisson models
+p = X%*%beta+rnorm(n)
+Y = rpois(n, exp(p))
+
+## l1 regularization
+fitted.l1 = picasso(X, Y, nlambda=100, family="poisson", method="l1")
+
+## mcp regularization
+fitted.mcp = picasso(X, Y, nlambda=100, family="poisson", method="mcp")
+
+## scad regularization
+fitted.scad = picasso(X, Y, nlambda=100, family="poisson", method="scad")
+
+## lambdas used 
+print(fitted.l1$lambda)
+
+## number of nonzero coefficients for each lambda
+print(fitted.l1$df)
+
+## coefficients and intercept for the i-th lambda
+i = 30
+print(fitted.l1$lambda[i])
+print(fitted.l1$beta[,i])
+print(fitted.l1$intercept[i])
+
+## Visualize the solution path
+plot(fitted.l1)
+</code></pre>
+
+
+</div>

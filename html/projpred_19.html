@@ -1,0 +1,483 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>cv_varsel</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Run search and performance evaluation with cross-validation</h2>
+
+<h3>Description</h3>
+
+<p>Run the <em>search</em> part and the <em>evaluation</em> part for a projection predictive
+variable selection. The search part determines the predictor ranking (also
+known as solution path), i.e., the best submodel for each submodel size
+(number of predictor terms). The evaluation part determines the predictive
+performance of the submodels along the predictor ranking. In contrast to
+<code>varsel()</code>, <code>cv_varsel()</code> performs a cross-validation (CV) by running the
+search part with the training data of each CV fold separately (an exception
+is explained in section "Note" below) and by running the evaluation part on
+the corresponding test set of each CV fold. A special method is
+<code>cv_varsel.vsel()</code> because it re-uses the search results from an earlier
+<code>cv_varsel()</code> (or <code>varsel()</code>) run, as illustrated in the main vignette.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">cv_varsel(object, ...)
+
+## Default S3 method:
+cv_varsel(object, ...)
+
+## S3 method for class 'vsel'
+cv_varsel(
+  object,
+  cv_method = object$cv_method %||% "LOO",
+  nloo = object$nloo,
+  K = object$K %||% if (!inherits(object, "datafit")) 5 else 10,
+  cvfits = object$cvfits,
+  validate_search = object$validate_search %||% TRUE,
+  ...
+)
+
+## S3 method for class 'refmodel'
+cv_varsel(
+  object,
+  method = "forward",
+  cv_method = if (!inherits(object, "datafit")) "LOO" else "kfold",
+  ndraws = NULL,
+  nclusters = 20,
+  ndraws_pred = 400,
+  nclusters_pred = NULL,
+  refit_prj = !inherits(object, "datafit"),
+  nterms_max = NULL,
+  penalty = NULL,
+  verbose = TRUE,
+  nloo = object$nobs,
+  K = if (!inherits(object, "datafit")) 5 else 10,
+  cvfits = object$cvfits,
+  search_control = NULL,
+  lambda_min_ratio = 1e-05,
+  nlambda = 150,
+  thresh = 1e-06,
+  validate_search = TRUE,
+  seed = NA,
+  search_terms = NULL,
+  search_out = NULL,
+  parallel = getOption("projpred.prll_cv", FALSE),
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>An object of class <code>refmodel</code> (returned by <code>get_refmodel()</code> or
+<code>init_refmodel()</code>) or an object that can be passed to argument <code>object</code> of
+<code>get_refmodel()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>For <code>cv_varsel.default()</code>: Arguments passed to <code>get_refmodel()</code> as
+well as to <code>cv_varsel.refmodel()</code>. For <code>cv_varsel.vsel()</code>: Arguments passed
+to <code>cv_varsel.refmodel()</code>. For <code>cv_varsel.refmodel()</code>: Arguments passed to
+the divergence minimizer (see argument <code>div_minimizer</code> of <code>init_refmodel()</code>
+as well as section "Draw-wise divergence minimizers" of projpred-package)
+when refitting the submodels for the performance evaluation (if <code>refit_prj</code>
+is <code>TRUE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cv_method</code></td>
+<td>
+<p>The CV method, either <code>"LOO"</code> or <code>"kfold"</code>. In the <code>"LOO"</code>
+case, a Pareto-smoothed importance sampling leave-one-out CV (PSIS-LOO CV)
+is performed, which avoids refitting the reference model <code>nloo</code> times (in
+contrast to a standard LOO CV). In the <code>"kfold"</code> case, a <code class="reqn">K</code>-fold CV is
+performed. See also section "Note" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nloo</code></td>
+<td>
+<p><strong>Caution:</strong> Still experimental. Only relevant if <code>cv_method = "LOO"</code>. If <code>nloo</code> is smaller than the number of all observations,
+approximate full LOO CV using probability-proportional-to-size-sampling
+(PPS) to make accurate computation only for <code>nloo</code> (anything from 1 to the
+number of all observations) leave-one-out folds (Magnusson et al., 2019).
+Smaller values lead to faster computation but higher uncertainty in the
+evaluation part. If <code>NULL</code>, all observations are used (as by default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>K</code></td>
+<td>
+<p>Only relevant if <code>cv_method = "kfold"</code> and if <code>cvfits</code> is <code>NULL</code>
+(which is the case for reference model objects created by
+<code>get_refmodel.stanreg()</code> or <code>brms::get_refmodel.brmsfit()</code>). Number of
+folds in <code class="reqn">K</code>-fold CV.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cvfits</code></td>
+<td>
+<p>Only relevant if <code>cv_method = "kfold"</code>. The same as argument
+<code>cvfits</code> of <code>init_refmodel()</code>, but repeated here so that output from
+<code>run_cvfun()</code> can be inserted here straightforwardly.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>validate_search</code></td>
+<td>
+<p>A single logical value indicating whether to
+cross-validate also the search part, i.e., whether to run the search
+separately for each CV fold (<code>TRUE</code>) or not (<code>FALSE</code>). We strongly do not
+recommend setting this to <code>FALSE</code>, because this is known to bias the
+predictive performance estimates of the selected submodels. However,
+setting this to <code>FALSE</code> can sometimes be useful because comparing the
+results to the case where this argument is <code>TRUE</code> gives an idea of how
+strongly the search is (over-)fitted to the data (the difference
+corresponds to the search degrees of freedom or the effective number of
+parameters introduced by the search).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>The method for the search part. Possible options are
+<code>"forward"</code> for forward search and <code>"L1"</code> for L1 search. See also section
+"Details" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ndraws</code></td>
+<td>
+<p>Number of posterior draws used in the search part. Ignored if
+<code>nclusters</code> is not <code>NULL</code> or in case of L1 search (because L1 search always
+uses a single cluster). If both (<code>nclusters</code> and <code>ndraws</code>) are <code>NULL</code>, the
+number of posterior draws from the reference model is used for <code>ndraws</code>.
+See also section "Details" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nclusters</code></td>
+<td>
+<p>Number of clusters of posterior draws used in the search
+part. Ignored in case of L1 search (because L1 search always uses a single
+cluster). For the meaning of <code>NULL</code>, see argument <code>ndraws</code>. See also
+section "Details" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ndraws_pred</code></td>
+<td>
+<p>Only relevant if <code>refit_prj</code> is <code>TRUE</code>. Number of
+posterior draws used in the evaluation part. Ignored if <code>nclusters_pred</code> is
+not <code>NULL</code>. If both (<code>nclusters_pred</code> and <code>ndraws_pred</code>) are <code>NULL</code>, the
+number of posterior draws from the reference model is used for
+<code>ndraws_pred</code>. See also section "Details" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nclusters_pred</code></td>
+<td>
+<p>Only relevant if <code>refit_prj</code> is <code>TRUE</code>. Number of
+clusters of posterior draws used in the evaluation part. For the meaning of
+<code>NULL</code>, see argument <code>ndraws_pred</code>. See also section "Details" below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>refit_prj</code></td>
+<td>
+<p>For the evaluation part, should the submodels along the
+predictor ranking be fitted again (<code>TRUE</code>) or should their fits from the
+search part be re-used (<code>FALSE</code>)?</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nterms_max</code></td>
+<td>
+<p>Maximum submodel size (number of predictor terms) up to
+which the search is continued. If <code>NULL</code>, then <code>min(19, D)</code> is used where
+<code>D</code> is the number of terms in the reference model (or in <code>search_terms</code>, if
+supplied). Note that <code>nterms_max</code> does not count the intercept, so use
+<code>nterms_max = 0</code> for the intercept-only model. (Correspondingly, <code>D</code> above
+does not count the intercept.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>penalty</code></td>
+<td>
+<p>Only relevant for L1 search. A numeric vector determining the
+relative penalties or costs for the predictors. A value of <code>0</code> means that
+those predictors have no cost and will therefore be selected first, whereas
+<code>Inf</code> means those predictors will never be selected. If <code>NULL</code>, then <code>1</code> is
+used for each predictor.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A single logical value indicating whether to print out
+additional information during the computations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>search_control</code></td>
+<td>
+<p>A <code>list</code> of "control" arguments (i.e., tuning
+parameters) for the search. In case of forward search, these arguments are
+passed to the divergence minimizer (see argument <code>div_minimizer</code> of
+<code>init_refmodel()</code> as well as section "Draw-wise divergence minimizers" of
+projpred-package). In case of forward search, <code>NULL</code> causes <code>...</code> to be
+used not only for the performance evaluation, but also for the search. In
+case of L1 search, possible arguments are:
+</p>
+
+<ul>
+<li> <p><code>lambda_min_ratio</code>: Ratio between the smallest and largest lambda in the
+L1-penalized search (default: <code>1e-5</code>). This parameter essentially
+determines how long the search is carried out, i.e., how large submodels
+are explored. No need to change this unless the program gives a warning
+about this.
+</p>
+</li>
+<li> <p><code>nlambda</code>: Number of values in the lambda grid for L1-penalized search
+(default: <code>150</code>). No need to change this unless the program gives a warning
+about this.
+</p>
+</li>
+<li> <p><code>thresh</code>: Convergence threshold when computing the L1 path (default:
+<code>1e-6</code>). Usually, there is no need to change this.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda_min_ratio</code></td>
+<td>
+<p>Deprecated (please use <code>search_control</code> instead).
+Only relevant for L1 search. Ratio between the smallest and largest lambda
+in the L1-penalized search. This parameter essentially determines how long
+the search is carried out, i.e., how large submodels are explored. No need
+to change this unless the program gives a warning about this.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nlambda</code></td>
+<td>
+<p>Deprecated (please use <code>search_control</code> instead). Only
+relevant for L1 search. Number of values in the lambda grid for
+L1-penalized search. No need to change this unless the program gives a
+warning about this.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thresh</code></td>
+<td>
+<p>Deprecated (please use <code>search_control</code> instead). Only relevant
+for L1 search. Convergence threshold when computing the L1 path. Usually,
+there is no need to change this.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>Pseudorandom number generation (PRNG) seed by which the same
+results can be obtained again if needed. Passed to argument <code>seed</code> of
+<code>set.seed()</code>, but can also be <code>NA</code> to not call <code>set.seed()</code> at all. If not
+<code>NA</code>, then the PRNG state is reset (to the state before calling
+<code>cv_varsel()</code>) upon exiting <code>cv_varsel()</code>. Here, <code>seed</code> is used for
+clustering the reference model's posterior draws (if <code>!is.null(nclusters)</code>
+or <code>!is.null(nclusters_pred)</code>), for subsampling PSIS-LOO CV folds (if
+<code>nloo</code> is smaller than the number of observations), for sampling the folds
+in <code class="reqn">K</code>-fold CV, and for drawing new group-level effects when predicting
+from a multilevel submodel (however, not yet in case of a GAMM).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>search_terms</code></td>
+<td>
+<p>Only relevant for forward search. A custom character
+vector of predictor term blocks to consider for the search. Section
+"Details" below describes more precisely what "predictor term block" means.
+The intercept (<code>"1"</code>) is always included internally via <code>union()</code>, so
+there's no difference between including it explicitly or omitting it. The
+default <code>search_terms</code> considers all the terms in the reference model's
+formula.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>search_out</code></td>
+<td>
+<p>Intended for internal use.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>parallel</code></td>
+<td>
+<p>A single logical value indicating whether to run costly parts
+of the CV in parallel (<code>TRUE</code>) or not (<code>FALSE</code>). See also section "Note"
+below.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Arguments <code>ndraws</code>, <code>nclusters</code>, <code>nclusters_pred</code>, and <code>ndraws_pred</code>
+are automatically truncated at the number of posterior draws in the
+reference model (which is <code>1</code> for <code>datafit</code>s). Using less draws or clusters
+in <code>ndraws</code>, <code>nclusters</code>, <code>nclusters_pred</code>, or <code>ndraws_pred</code> than posterior
+draws in the reference model may result in slightly inaccurate projection
+performance. Increasing these arguments affects the computation time
+linearly.
+</p>
+<p>For argument <code>method</code>, there are some restrictions: For a reference model
+with multilevel or additive formula terms or a reference model set up for
+the augmented-data projection, only the forward search is available.
+Furthermore, argument <code>search_terms</code> requires a forward search to take
+effect.
+</p>
+<p>L1 search is faster than forward search, but forward search may be more
+accurate. Furthermore, forward search may find a sparser model with
+comparable performance to that found by L1 search, but it may also start
+overfitting when more predictors are added.
+</p>
+<p>An L1 search may select an interaction term before all involved lower-order
+interaction terms (including main-effect terms) have been selected. In
+<span class="pkg">projpred</span> versions &gt; 2.6.0, the resulting predictor ranking is
+automatically modified so that the lower-order interaction terms come
+before this interaction term, but if this is conceptually undesired, choose
+the forward search instead.
+</p>
+<p>The elements of the <code>search_terms</code> character vector don't need to be
+individual predictor terms. Instead, they can be building blocks consisting
+of several predictor terms connected by the <code>+</code> symbol. To understand how
+these building blocks work, it is important to know how <span class="pkg">projpred</span>'s
+forward search works: It starts with an empty vector <code>chosen</code> which will
+later contain already selected predictor terms. Then, the search iterates
+over model sizes <code class="reqn">j \in \{0, ..., J\}</code> (with <code class="reqn">J</code>
+denoting the maximum submodel size, not counting the intercept). The
+candidate models at model size <code class="reqn">j</code> are constructed from those elements
+from <code>search_terms</code> which yield model size <code class="reqn">j</code> when combined with the
+<code>chosen</code> predictor terms. Note that sometimes, there may be no candidate
+models for model size <code class="reqn">j</code>. Also note that internally, <code>search_terms</code> is
+expanded to include the intercept (<code>"1"</code>), so the first step of the search
+(model size 0) always consists of the intercept-only model as the only
+candidate.
+</p>
+<p>As a <code>search_terms</code> example, consider a reference model with formula <code>y ~ x1 + x2 + x3</code>. Then, to ensure that <code>x1</code> is always included in the
+candidate models, specify <code>search_terms = c("x1", "x1 + x2", "x1 + x3", "x1 + x2 + x3")</code> (or, in a simpler way that leads to the same results,
+<code>search_terms = c("x1", "x1 + x2", "x1 + x3")</code>, for which helper function
+<code>force_search_terms()</code> exists). This search would start with <code>y ~ 1</code> as the
+only candidate at model size 0. At model size 1, <code>y ~ x1</code> would be the only
+candidate. At model size 2, <code>y ~ x1 + x2</code> and <code>y ~ x1 + x3</code> would be the
+two candidates. At the last model size of 3, <code>y ~ x1 + x2 + x3</code> would be
+the only candidate. As another example, to exclude <code>x1</code> from the search,
+specify <code>search_terms = c("x2", "x3", "x2 + x3")</code> (or, in a simpler way
+that leads to the same results, <code>search_terms = c("x2", "x3")</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>vsel</code>. The elements of this object are not meant
+to be accessed directly but instead via helper functions (see the main
+vignette and projpred-package).
+</p>
+
+
+<h3>Note</h3>
+
+<p>If <code>validate_search</code> is <code>FALSE</code>, the search is not included in the CV
+so that only a single full-data search is run.
+</p>
+<p>For PSIS-LOO CV, <span class="pkg">projpred</span> calls <code>loo::psis()</code> (or, exceptionally,
+<code>loo::sis()</code>, see below) with <code>r_eff = NA</code>. This is only a problem if there
+was extreme autocorrelation between the MCMC iterations when the reference
+model was built. In those cases however, the reference model should not
+have been used anyway, so we don't expect <span class="pkg">projpred</span>'s <code>r_eff = NA</code> to
+be a problem.
+</p>
+<p>PSIS cannot be used if the draws have different (i.e., nonconstant) weights
+or if the number of draws is too small. In such cases, <span class="pkg">projpred</span>
+resorts to standard importance sampling (SIS) and throws a warning about
+this. Throughout the documentation, the term "PSIS" is used even though in
+fact, <span class="pkg">projpred</span> resorts to SIS in these special cases.
+</p>
+<p>With <code>parallel = TRUE</code>, costly parts of <span class="pkg">projpred</span>'s CV are run in
+parallel. Costly parts are the fold-wise searches and performance
+evaluations in case of <code>validate_search = TRUE</code>. (Note that in case of
+<code class="reqn">K</code>-fold CV, the <code class="reqn">K</code> reference model refits are not affected by
+argument <code>parallel</code>; only <span class="pkg">projpred</span>'s CV is affected.) The
+parallelization is powered by the <span class="pkg">foreach</span> package. Thus, any parallel
+(or sequential) backend compatible with <span class="pkg">foreach</span> can be used, e.g.,
+the backends from packages <span class="pkg">doParallel</span>, <span class="pkg">doMPI</span>, or
+<span class="pkg">doFuture</span>. For GLMs, this CV parallelization should work reliably, but
+for other models (such as GLMMs), it may lead to excessive memory usage
+which in turn may crash the R session (on Unix systems, setting an
+appropriate memory limit via <code>unix::rlimit_as()</code> may avoid crashing the
+whole machine). However, the problem of excessive memory usage is less
+pronounced for the CV parallelization than for the projection
+parallelization described in projpred-package. In that regard, the CV
+parallelization is recommended over the projection parallelization.
+</p>
+
+
+<h3>References</h3>
+
+<p>Magnusson, Måns, Michael Andersen, Johan Jonasson, and Aki Vehtari. 2019.
+"Bayesian Leave-One-Out Cross-Validation for Large Data." In <em>Proceedings of
+the 36th International Conference on Machine Learning</em>, edited by Kamalika
+Chaudhuri and Ruslan Salakhutdinov, 97:4244–53. Proceedings of Machine
+Learning Research. PMLR.
+<a href="https://proceedings.mlr.press/v97/magnusson19a.html">https://proceedings.mlr.press/v97/magnusson19a.html</a>.
+</p>
+<p>Vehtari, Aki, Andrew Gelman, and Jonah Gabry. 2017. "Practical Bayesian Model
+Evaluation Using Leave-One-Out Cross-Validation and WAIC." <em>Statistics and
+Computing</em> 27 (5): 1413–32. <a href="https://doi.org/10.1007/s11222-016-9696-4">doi:10.1007/s11222-016-9696-4</a>.
+</p>
+<p>Vehtari, Aki, Daniel Simpson, Andrew Gelman, Yuling Yao, and Jonah Gabry.
+2022. "Pareto Smoothed Importance Sampling." arXiv.
+<a href="https://doi.org/10.48550/arXiv.1507.02646">doi:10.48550/arXiv.1507.02646</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>varsel()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Data:
+dat_gauss &lt;- data.frame(y = df_gaussian$y, df_gaussian$x)
+
+# The `stanreg` fit which will be used as the reference model (with small
+# values for `chains` and `iter`, but only for technical reasons in this
+# example; this is not recommended in general):
+fit &lt;- rstanarm::stan_glm(
+  y ~ X1 + X2 + X3 + X4 + X5, family = gaussian(), data = dat_gauss,
+  QR = TRUE, chains = 2, iter = 1000, refresh = 0, seed = 9876
+)
+
+# Run cv_varsel() (with L1 search and small values for `K`, `nterms_max`, and
+# `nclusters_pred`, but only for the sake of speed in this example; this is
+# not recommended in general):
+cvvs &lt;- cv_varsel(fit, method = "L1", cv_method = "kfold", K = 2,
+                  nterms_max = 3, nclusters_pred = 10, seed = 5555)
+# Now see, for example, `?print.vsel`, `?plot.vsel`, `?suggest_size.vsel`,
+# and `?ranking` for possible post-processing functions.
+
+</code></pre>
+
+
+</div>

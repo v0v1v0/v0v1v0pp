@@ -1,0 +1,158 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>glue_apa_results</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a New <code>apa_results</code> Object</h2>
+
+<h3>Description</h3>
+
+<p>Typeset the contents of an object according to the specified expression
+strings and create a new or extend an existing <code>apa_results</code> object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">glue_apa_results(x = NULL, term_names = NULL, ...)
+
+add_glue_to_apa_results(
+  ...,
+  est_glue,
+  stat_glue,
+  container,
+  sublist = NULL,
+  term_names = NULL,
+  in_paren = FALSE,
+  est_first = TRUE,
+  simplify = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>An environment, list or data frame used to look up values for
+substitution.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>term_names</code></td>
+<td>
+<p>Character. Used as names for the <code>estimate</code>-,
+<code>statistics</code>-, and <code>full_result</code> sub-lists, if multiple estimates or
+statistics are glued. Defaults to <code>attr(x, "sanitized_term_names")</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>[<code>expressions</code>]<br> Unnamed arguments are taken to be expression
+string(s) to format. Multiple inputs are concatenated together before formatting.
+Named arguments are taken to be temporary variables available for substitution.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est_glue</code></td>
+<td>
+<p>Character. (Named vector of) expressions string(s) to
+format. Each string creates a new (named) element in the
+<code>estimate</code> sub-list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stat_glue</code></td>
+<td>
+<p>Character. (Named vector of) expressions string(s) to
+format. Each string creates a new (named) element in the
+<code>statistic</code> sub-list.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>container</code></td>
+<td>
+<p>List of class <code>apa_results</code> to add the glued results to.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sublist</code></td>
+<td>
+<p>Character. Name of (new) sub-list in <code>estimate</code>
+<code>statistics</code>, and <code>full_result</code> to append glued results to (e.g.,
+<code>modelfit</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>in_paren</code></td>
+<td>
+<p>Logical. Whether the formatted string is to be reported in
+parentheses. If <code>TRUE</code>, parentheses in the formatted string (e.g., those
+enclosing degrees of freedom) are replaced with brackets.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>est_first</code></td>
+<td>
+<p>Logical. Determines in which order <code>estimate</code> and
+<code>statistic</code> are glued together to <code>full_result</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>simplify</code></td>
+<td>
+<p>Logical. Determines whether the <code>estimate</code>, <code>statistic</code>, and
+<code>full_result</code> sub-lists should be simplified if only one term is
+available from the model object.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Returns a list of class <code>apa_results</code>, see <code>apa_print()</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Tidy and typeset output
+iris_lm &lt;- lm(Sepal.Length ~ Petal.Length + Petal.Width, iris)
+tidy_iris_lm &lt;- broom::tidy(iris_lm, conf.int = TRUE)
+tidy_iris_lm$p.value &lt;- apa_p(tidy_iris_lm$p.value)
+
+glance_iris_lm &lt;- broom::glance(iris_lm)
+glance_iris_lm$p.value &lt;- apa_p(glance_iris_lm$p.value, add_equals = TRUE)
+glance_iris_lm$df &lt;- apa_num(as.integer(glance_iris_lm$df))
+glance_iris_lm$df.residual &lt;- apa_num(as.integer(glance_iris_lm$df.residual))
+
+# Create `apa_results`-list
+lm_results &lt;- glue_apa_results(
+    x = tidy_iris_lm
+    , df = glance_iris_lm$df.residual
+    , est_glue = "$b = &lt;&lt;estimate&gt;&gt;, 95% CI $[&lt;&lt;conf.low&gt;&gt;,~&lt;&lt;conf.high&gt;&gt;]$"
+    , stat_glue = "$t(&lt;&lt;df&gt;&gt;) = &lt;&lt;statistic&gt;&gt;$, $p &lt;&lt;p.value&gt;&gt;$"
+    , term_names = make.names(names(coef(iris_lm)))
+)
+
+# Add modelfit information
+add_glue_to_apa_results(
+    .x = glance_iris_lm
+    , container = lm_results
+    , sublist = "modelfit"
+    , est_glue = c(
+        r2 = "$R^2 = &lt;&lt;r.squared&gt;&gt;$"
+        , aic = ""
+    )
+    , stat_glue = c(
+        r2 = "$F(&lt;&lt;df&gt;&gt;, &lt;&lt;df.residual&gt;&gt;) = &lt;&lt;statistic&gt;&gt;$, $p &lt;&lt;add_equals(p.value)&gt;&gt;$"
+        , aic = "$\\mathrm{AIC} = &lt;&lt;AIC&gt;&gt;$"
+    )
+)
+</code></pre>
+
+
+</div>

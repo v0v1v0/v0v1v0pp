@@ -1,0 +1,152 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predict</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Compute the probability of categorical sequences using a probabilistic suffix tree
+</h2>
+
+<h3>Description</h3>
+
+<p>Compute the probability (likelihood) of categorical sequences using a Probabilistic Suffix Tree
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S4 method for signature 'PSTf'
+predict(object, data, cdata, group, L=NULL, p1=NULL, output="prob", decomp=FALSE, base=2)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+
+<p>a probabilistic suffix tree, i.e., an object of class <code>"PSTf"</code> as returned by the <code>pstree</code>, <code>prune</code> or <code>tune</code> function.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+
+<p>a sequence object, i.e., an object of class <code>'stslist'</code> as created by TraMineR <code>seqdef</code> function, containing the sequences to predict.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cdata</code></td>
+<td>
+
+<p>not implemented yet.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>group</code></td>
+<td>
+<p>if <code>object</code> is a segmented PST, providing a vector of group membership so that each sequence probability will be predicted with the conditional probability distributions for the group it belongs to. If <code>object</code> is a segmented PST and <code>group</code> is not provided, each sequence will be predicted by each of the submodel, and the output will be a matrix with <code>nbgroup</code> columns, where <code>nbgroup</code> is the number of segments in the PST.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L</code></td>
+<td>
+
+<p>integer. Maximal context length for sequence prediction. This is the same as pruning the PST by removing all nodes of depth&lt;L before prediction.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p1</code></td>
+<td>
+
+<p>vector. A probability distribution for the first position in the sequence that will be used instead of the root node of the tree.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>output</code></td>
+<td>
+
+<p>character. One of <code>'prob'</code>, <code>'logloss'</code>,  <code>'SIMn'</code> or <code>'SIMo'</code>. See details.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>decomp</code></td>
+<td>
+
+<p>logical. If <code>TRUE</code> the predicted probability for each state in the sequence(s) is returned instead of the whole sequence probability.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>base</code></td>
+<td>
+
+<p>integer. Base for the logarithm if a logarithm is used in the used prediction measure.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>A probabilistic suffix tree (PST) allows to compute the likelihood of any sequence built on the alphabet of the learning sample. This feature is called sequence prediction. The likelihood of the sequence <code>a-b-a-a-b</code> given a PST <code>S1</code> fitted to the example sequence <code>s1</code> (see example) is
+</p>
+<p style="text-align: center;"><code class="reqn">
+P^{S1}(abaab)= P^{S1}(a) \times P^{S1}(b|a) \times P^{S1}(a|ab) \times P^{S1}(a|aba) \times P^{S1}(b|abaa)
+</code>
+</p>
+
+<p>The probability of each of the state is retrieved from the PST. To get for example <code>P(a|a-b-a)</code>, the tree is scanned for the node labelled with the string <code>a-b-a</code>, and if this node does not exist, it is scanned for the node labelled with the longest suffix of this string, that is <code>b-a</code>, and so on. The node <code>a-b-a</code> is not found in the tree (it has been removed during the pruning stage), and the longest suffix of <code>a-b-a</code> found is <code>b-a</code>. The probability <code>P(a|b-a)</code> is then used instead of <code>P(a|a-b-a)</code>. <br></p>
+<p>The sequence likelihood is returned by the <code>predict</code> function. By setting <code>decomp=TRUE</code> the output is a matrix containing the probability of each of the symbol composing the sequence. The score <code class="reqn">P^S(x)</code> of a sequence <code class="reqn">x</code> represents the probability that the VLMC model stored by the PST <code class="reqn">S</code> generates <code class="reqn">x</code>. It can be turned into a more readable prediction quality measure such as the <em>average log-loss</em>
+</p>
+<p style="text-align: center;"><code class="reqn">
+logloss(S,x)=-\frac{1}{\ell} \sum_{i=1}^{\ell} \log_{2} P^{S}(x_{i}| x_{1}, \ldots, x_{i-1})=-\frac{1}{\ell} \log_{2} P^{S}(x)
+</code>
+</p>
+
+<p>by using <code>'output=logloss'</code>.
+The returned value is the average log-loss of each state in the sequence, which allows to compare the prediction for sequences of unequal lengths. The average log-loss can be interpreted as a residual, that is the distance between the prediction of a sequence by a PST <code class="reqn">S</code> and the perfect prediction  <code class="reqn">P(x)=1</code> yielding <code class="reqn">logloss(P^{S},x)=0</code>. The lower the value of <code class="reqn">logloss(P^{S},s)</code> the better the sequence is predicted. For more details, see <cite>Gabadinho 2016</cite>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Either a vector of sequence probabilities (decomp=FALSE) or a matrix (if decomp=FALSE) containing for each sequence (row) the probability of each state in columns.   
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Alexis Gabadinho
+</p>
+
+
+<h3>References</h3>
+
+<p>Gabadinho, A. &amp; Ritschard, G. (2016) Analyzing State Sequences with Probabilistic Suffix Trees: The PST R Package. <em>Journal of Statistical Software</em>, <b>72</b>(3), 1-39.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(s1)
+s1 &lt;- seqdef(s1)
+
+S1 &lt;- pstree(s1, L=3, nmin=2, ymin=0.001)
+S1 &lt;- prune(S1, gain="G1", C=1.20, delete=FALSE)
+
+predict(S1, s1, decomp=TRUE)
+predict(S1, s1)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,142 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>dmeasure_spec</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>dmeasure specification</h2>
+
+<h3>Description</h3>
+
+<p>Specification of the measurement model density function, dmeasure.
+</p>
+
+
+<h3>Details</h3>
+
+<p>The measurement model is the link between the data and the unobserved state process.
+It can be specified either by using one or both of the <code>rmeasure</code> and <code>dmeasure</code> arguments.
+</p>
+<p>Suppose you have a procedure to compute the probability density of an observation given the value of the latent state variables.
+Then you can furnish </p>
+<pre>
+   dmeasure = f</pre>
+<p>to <span class="pkg">pomp</span> algorithms,
+where <code>f</code> is a C snippet or <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function that implements your procedure.
+</p>
+<p>Using a C snippet is much preferred, due to its much greater computational efficiency.
+See <code>Csnippet</code> for general rules on writing C snippets.
+The goal of a <dfn>dmeasure</dfn> C snippet is to fill the variable <code>lik</code> with the either the probability density or the log probability density, depending on the value of the variable <code>give_log</code>.
+</p>
+<p>In writing a <code>dmeasure</code> C snippet, observe that:
+</p>
+
+<ol>
+<li>
+<p> In addition to the states, parameters, covariates (if any), and observables, the variable <code>t</code>, containing the time of the observation will be defined in the context in which the snippet is executed.
+</p>
+</li>
+<li>
+<p> Moreover, the Boolean variable <code>give_log</code> will be defined.
+</p>
+</li>
+<li>
+<p> The goal of a dmeasure C snippet is to set the value of the <code>lik</code> variable to the likelihood of the data given the state, if <code>give_log == 0</code>.
+If <code>give_log == 1</code>, <code>lik</code> should be set to the log likelihood.
+</p>
+</li>
+</ol>
+<p>If <code>dmeasure</code> is to be provided instead as an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function, this is accomplished by supplying </p>
+<pre>
+  dmeasure = f</pre>
+<p>to <code>pomp</code>, where <code>f</code> is a function.
+The arguments of <code>f</code> should be chosen from among the observables, state variables, parameters, covariates, and time.
+It must also have the arguments <code>...</code>, and <code>log</code>.
+It can take additional arguments via the userdata facility.
+<code>f</code> must return a single numeric value, the probability density (or log probability density if <code>log = TRUE</code>) of <code>y</code> given <code>x</code> at time <code>t</code>.
+</p>
+
+
+<h3>Important note</h3>
+
+<p><strong>It is a common error to fail to account for both <code>log = TRUE</code> and <code>log = FALSE</code> when writing the <code>dmeasure</code> C snippet or function.</strong>
+</p>
+
+
+<h3>Default behavior</h3>
+
+<p>If <code>dmeasure</code> is left unspecified, calls to <code>dmeasure</code> will return missing values (<code>NA</code>).
+</p>
+
+
+<h3>Note for Windows users</h3>
+
+<p>Some Windows users report problems when using C snippets in parallel computations.
+These appear to arise when the temporary files created during the C snippet compilation process are not handled properly by the operating system.
+To circumvent this problem, use the <code>cdir</code> and <code>cfile</code> options to cause the C snippets to be written to a file of your choice, thus avoiding the use of temporary files altogether.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>dmeasure</code>
+</p>
+<p>More on implementing POMP models: 
+<code>Csnippet</code>,
+<code>accumvars</code>,
+<code>basic_components</code>,
+<code>betabinomial</code>,
+<code>covariates</code>,
+<code>dinit_spec</code>,
+<code>dprocess_spec</code>,
+<code>emeasure_spec</code>,
+<code>eulermultinom</code>,
+<code>parameter_trans()</code>,
+<code>pomp-package</code>,
+<code>pomp_constructor</code>,
+<code>prior_spec</code>,
+<code>rinit_spec</code>,
+<code>rmeasure_spec</code>,
+<code>rprocess_spec</code>,
+<code>skeleton_spec</code>,
+<code>transformations</code>,
+<code>userdata</code>,
+<code>vmeasure_spec</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+  ## We start with the pre-built Ricker example:
+  ricker() -&gt; po
+
+  ## To change the measurement model density, dmeasure,
+  ## we use the 'dmeasure' argument in any 'pomp'
+  ## elementary or estimation function.
+  ## Here, we pass the dmeasure specification to 'pfilter'
+  ## as an R function.
+
+  po |&gt;
+    pfilter(
+      dmeasure=function (y, N, phi, ..., log) {
+        dpois(y,lambda=phi*N,log=log)
+      },
+      Np=100
+    ) -&gt; pf
+
+  ## We can also pass it as a C snippet:
+
+  po |&gt;
+    pfilter(
+      dmeasure=Csnippet("lik = dpois(y,phi*N,give_log);"),
+      paramnames="phi",
+      statenames="N",
+      Np=100
+    ) -&gt; pf
+
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,104 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>gblup</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Function to calculate breeding values using an animal model and a
+relationship matrix calculated from the markers (G matrix)</h2>
+
+<h3>Description</h3>
+
+<p>Fit an animal model to data, use a given variance ratio
+(<code class="reqn">\alpha = \frac{\sigma^2_e}{\sigma^ 2_a}</code>). Calculate genetic
+relationship matrix using the function <code>calcG</code> of this package.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">gblup(formula, data, M, lambda)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>formula of the model, do not include the random effect
+due to animal (generally ID).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p><code>data.frame</code> with columns corresponding to ID and the
+columns mentioned in the formula.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>M</code></td>
+<td>
+<p>Matrix of marker genotypes, usually the count of one of the
+two SNP alleles at each markers (0, 1, or 2).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>Variance ratio (<code class="reqn">\frac{\sigma^2_e}{\sigma^ 2_a}</code>)</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Vector of solutions to the model, including random animal effects.</p>
+
+
+<h3>See Also</h3>
+
+<p><code>SamplePedigree</code>, <code>gblup</code>,
+<code>makeAinv</code>,<code>blup</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Example Code from SampleHaplotypes
+hList &lt;- HaploSim::SampleHaplotypes(nHaplotypes = 20,genDist =
+1,nDec = 3,nLoc = 20) ## create objects
+h &lt;- HaploSim::SampleHaplotype(H0 = hList[[1]],H1 = hList[[2]],genDist =
+1,nDec = 3)
+
+## code from the Example SamplePedigree
+ID &lt;- 1:10
+pID0 &lt;- c(rep(0,5),1,1,3,3,5)
+pID1 &lt;- c(rep(0,4),2,2,2,4,4,6)
+ped &lt;- data.frame(ID,pID0,pID1)
+phList &lt;- HaploSim::SamplePedigree(orig = hList,ped = ped)
+
+## own code
+h2 &lt;- 0.5
+ped &lt;- phList$ped
+hList &lt;- phList$hList
+qtlList &lt;- HaploSim::ListQTL(hList = hList,frqtl = 0.1,sigma2qtl = 1)
+qtl &lt;- tapply(unlist(qtlList),list(rep(names(qtlList),times = unlist(lapply(qtlList,length))),
+                   unlist(lapply(qtlList,function(x)seq(1,length(x))))),mean,na.rm = TRUE)
+qtl &lt;- reshape::melt(qtl)
+names(qtl) &lt;- c("POS","TRAIT","a")
+HH &lt;- HaploSim::getAll(hList,translatePos = FALSE)
+rownames(HH) &lt;- sapply(hList,function(x)x@hID)
+QQ &lt;- HH[,match(qtl$POS,colnames(HH))]
+g &lt;- QQ
+ped$G &lt;- with(ped,g[match(hID0,rownames(g))]+g[match(hID1,rownames(g))])
+sigmae &lt;- sqrt(var(ped$G)/h2 - var(ped$G))
+ped$P &lt;- ped$G + rnorm(nrow(ped),0,sigmae)
+M &lt;- with(ped,HH[match(hID0,rownames(HH)),] + HH[match(hID1,rownames(HH)),]) 
+rownames(M) &lt;- ped$ID
+sol &lt;- gblup(P~1,data = ped[,c('ID','P')],M = M,lambda = 1/h2 - 1)
+</code></pre>
+
+
+</div>

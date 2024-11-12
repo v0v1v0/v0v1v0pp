@@ -1,0 +1,227 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>scoreScale</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Flexible function to score a single PRO or other psychometric scale</h2>
+
+<h3>Description</h3>
+
+<p><code>scoreScale</code> is a flexible function that can be used to
+calculate a single scale score from a set of items.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">scoreScale(
+  df,
+  items = NULL,
+  revitems = FALSE,
+  minmax = NULL,
+  okmiss = 0.5,
+  type = c("pomp", "100", "sum", "mean"),
+  scalename = "scoredScale",
+  keepNvalid = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>A data frame containing the items you wish to score.  It can
+contain only the items, or the items plus other non-scored variables.  If
+it contains non-scored variables, then you must use the <code>items</code>
+argument to let the function know how to find your items in <code>df</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>items</code></td>
+<td>
+<p>(optional) A character vector with the item names, or a numeric
+vector indicating the column numbers of the items in <code>df</code>.  If
+<code>items</code> is omitted, then <code>scoreScale</code> will assume that <code>df</code>
+contains only the items to be scored and no non-scored variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>revitems</code></td>
+<td>
+<p>(optional) either <code>TRUE</code>, <code>FALSE</code>, or
+a vector indicating which items in <code>df</code> should be reverse coded before
+scoring.  If omitted or <code>FALSE</code> (the default), no items are reverse
+coded.  If <code>TRUE</code>, all items are reverse coded before scoring.  If
+only some of the items should be reverse coded, provide either a character
+vector with names of the items or a numeric vector with column numbers of
+the items in <code>df</code> that should be reverse coded before scoring.  If
+this argument is anything but <code>FALSE</code>, then the <code>minmax</code> argument
+is required.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minmax</code></td>
+<td>
+<p>(optional) A vector of 2 integers of the format
+<code>c(itemMin, itemMax)</code>, indicating the minimum and maximum possible
+item responses, e.g., <code>c(0, 4)</code>.  This argument is required if
+<code>type</code> equals <code>"pomp"</code> (the default <code>type</code>) or <code>"100"</code>.
+This is also required only <code>revitems</code> is used and not set to
+<code>FALSE</code>.  This function assumes that all items have the same response
+range.  If this is not the case, then manually reverse code your items in
+<code>df</code> before using this function, and omit the <code>revitems</code> and
+<code>minmax</code> arguments.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>okmiss</code></td>
+<td>
+<p>The maximum proportion of items that a respondent is allowed to
+have missing and still have their non-missing items scored (and prorated).
+If the proportion of missing items for a respondent is greater than
+<code>okmiss</code>, then the respondent will be assigned a value of <code>NA</code>
+for their scale score.  The default value is <code>0.50</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>The type of score that <code>scoreScale</code> should produce.  Must be
+one of either <code>"sum"</code> (for the sum of the item scores), <code>"mean"</code>
+(for the mean of the item scores), <code>"100"</code> (for the score transformed
+to range from 0 to 100), or <code>"pomp"</code> (for a score representing the
+"Percent Of the Maximum Possible", which is exactly the same as
+<code>"100"</code> but with a better name).  The default is <code>"pomp"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scalename</code></td>
+<td>
+<p>The quoted variable name you want the function to give your
+scored scale.  If this argument is omitted, the scale will be named
+<code>"scoredScale"</code> by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>keepNvalid</code></td>
+<td>
+<p>Logical value indicating whether a variable containing the
+number of valid, non-missing items for each respondent should be returned
+in a data frame with the scale score.  The default is <code>FALSE</code>.  Set to
+<code>TRUE</code> to return this variable, which will be named <code>"scalename_N"</code>
+(with whatever name you gave to the <code>scalename</code> argument).  Most users
+should probably omit this argument entirely.  This argument might be
+removed from future versions of the package, so please let me know if you
+think this argument useful and would rather it remain a part of the
+function.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <code>scoreScale</code> function is the workhorse of the
+<span class="pkg">PROscorerTools</span> package, and it is intended to be the building
+block of other, more complex scoring functions tailored to specific PRO
+measures.  It can handle items that need to be reverse coded before
+scoring, and it has options for handling missing item responses.  It can
+use three different methods to score the items: (1) sum scoring (the sum of
+the item scores), mean scoring (the mean of the item scores), and 0-100
+scoring (like sum or mean scoring, except that the scores are rescaled to
+range from 0 to 100).  This latter method is also called "POMP" scoring
+(Percent Of the Maximum Possible), and is the default scoring method of
+<code>scoreScale</code> since it has numerous advantages over other scoring
+methods (see References).
+</p>
+<p>This function assumes that all items have the same numeric response range.
+It can still be used to score scales comprised of items with different
+response ranges with two caveats:
+</p>
+
+<ul>
+<li>
+<p> First, if your items have different ranges of possible response
+values AND some need to be reverse coded before scoring, you should not
+use this function's <code>revitems</code> plus <code>minmax</code> arguments to
+reverse your items.  Instead, you should manually reverse code your
+items (see <code>revcode</code>) before using <code>scoreScale</code>, and omit the
+<code>revitems</code> and <code>minmax</code> arguments.
+</p>
+</li>
+<li>
+<p> Second, depending on how the different item response options are
+numerically coded, some items might contribute more/less to the scale
+score than others.  For example, consider a questionnaire where the
+first item has responses coded as "0 = No, 1 = Yes" and the rest of the
+items are coded as "0 = Never, 1 = Sometimes, 2 = Always".  The first
+item will contribute relatively less weight to the scale score than the
+other items because its maximum value is only 1, compared to 2 for the
+other items.  This state of affairs is not ideal, and you might want to
+reconsider including items with different response ranges in one scale
+score (if you have that option).
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>A data frame with a variable containing the scale score.  Optionally,
+the data frame can additionally have a variable containing the number of
+valid item responses for each respondent.
+</p>
+
+
+<h3>Further Explanation of Arguments</h3>
+
+<p>The <code>scoreScale</code> function technically has only 1 required argument,
+<code>df</code>.  If none of your items need to be reverse coded before scoring,
+your items are in a data frame named <code>myData</code>, and <code>myData</code>
+contains ONLY the items to be scored and no non-scored variables, then
+<code>scoreScale(myData)</code> is sufficient to score your items.
+</p>
+<p>In most real-world situations, however, you will likely have a data frame
+containing a mix of items and other variables.  In this case, you should
+additionally use the <code>items</code> argument to indicate which variables in
+your data frame are the items to be scored.  For example, assume that
+<code>myData</code> contains an ID variable named "ID", followed by three items
+named "Q1", "Q2", and "Q3", none of which need to be reverse coded.  You
+can score the scale by providing the <code>items</code> argument with either
+<strong>(1)</strong> a numeric vector with the column indexes of the items, like
+<code>scoreScale(myData, items = 2:4)</code> or <code>scoreScale(myData, items =
+  c(2, 3, 4)</code>, or <strong>(2)</strong> a character vector with the item names, like
+<code>scoreScale(myData, items = c("Q1", "Q2", "Q3")</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Cohen, P, Cohen, J, Aiken, LS, &amp; West, SG (1999). The problem of units and
+the circumstance for POMP. <em>Multivariate Behavioral Research</em>, 34(3),
+315-346.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># Make a data frame using default settings of makeFakeData() function
+# (20 respondents, 9 items with values 0 to 4, and about 20% missing)
+dat &lt;- makeFakeData()
+
+# First "sum" score the items, then "mean" score them
+scoreScale(dat, type = "sum")
+scoreScale(dat, type = "mean")
+
+# Must use "minmax" argument if the "type" argument is "100"
+scoreScale(dat, type = "100", minmax = c(0, 4))
+# If you omit "type", the default is "pomp" (which is identical to "100")
+scoreScale(dat, minmax = c(0, 4))
+
+# "minmax" is also required if any items need to be reverse coded for scoring
+#  Below, the first two items are reverse coded before scoring
+scoreScale(dat, type = "sum", revitems = c("q1", "q2"), minmax = c(0, 4))
+</code></pre>
+
+
+</div>

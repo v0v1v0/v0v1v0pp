@@ -1,0 +1,240 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>probe</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Probes (AKA summary statistics)</h2>
+
+<h3>Description</h3>
+
+<p>Probe a partially-observed Markov process by computing summary statistics
+and the synthetic likelihood.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">## S4 method for signature 'data.frame'
+probe(
+  data,
+  probes,
+  nsim,
+  seed = NULL,
+  params,
+  rinit,
+  rprocess,
+  rmeasure,
+  ...,
+  verbose = getOption("verbose", FALSE)
+)
+
+## S4 method for signature 'pomp'
+probe(
+  data,
+  probes,
+  nsim,
+  seed = NULL,
+  ...,
+  verbose = getOption("verbose", FALSE)
+)
+
+## S4 method for signature 'probed_pomp'
+probe(
+  data,
+  probes,
+  nsim,
+  seed = NULL,
+  ...,
+  verbose = getOption("verbose", FALSE)
+)
+
+## S4 method for signature 'probe_match_objfun'
+probe(data, seed, ..., verbose = getOption("verbose", FALSE))
+
+## S4 method for signature 'objfun'
+probe(data, seed = NULL, ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>either a data frame holding the time series data,
+or an object of class ‘pomp’,
+i.e., the output of another <span class="pkg">pomp</span> calculation.
+Internally, <code>data</code> will be coerced to an array with storage-mode <code>double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>probes</code></td>
+<td>
+<p>a single probe or a list of one or more probes.
+A probe is simply a scalar- or vector-valued function of one argument that can be applied to the data array of a ‘pomp’.
+A vector-valued probe must always return a vector of the same size.
+A number of useful probes are provided with the package:
+see basic probes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsim</code></td>
+<td>
+<p>the number of model simulations to be computed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>optional integer;
+if set, the pseudorandom number generator (RNG) will be initialized with <code>seed</code>.
+The RNG will be restored to its original state afterward.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params</code></td>
+<td>
+<p>optional; named numeric vector of parameters.
+This will be coerced internally to storage mode <code>double</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rinit</code></td>
+<td>
+<p>simulator of the initial-state distribution.
+This can be furnished either as a C snippet, an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function, or the name of a pre-compiled native routine available in a dynamically loaded library.
+Setting <code>rinit=NULL</code> sets the initial-state simulator to its default.
+For more information, see rinit specification.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rprocess</code></td>
+<td>
+<p>simulator of the latent state process, specified using one of the rprocess plugins.
+Setting <code>rprocess=NULL</code> removes the latent-state simulator.
+For more information, see rprocess specification for the documentation on these plugins.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rmeasure</code></td>
+<td>
+<p>simulator of the measurement model, specified either as a C snippet, an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function, or the name of a pre-compiled native routine available in a dynamically loaded library.
+Setting <code>rmeasure=NULL</code> removes the measurement model simulator.
+For more information, see rmeasure specification.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional arguments are passed to <code>pomp</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>logical; if <code>TRUE</code>, diagnostic messages will be printed to the console.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>probe</code> applies one or more “probes” to time series data and
+model simulations and compares the results.  It can be used to diagnose
+goodness of fit and/or as the basis for “probe-matching”, a
+generalized method-of-moments approach to parameter estimation.
+</p>
+<p>A call to <code>probe</code> results in the evaluation of the probe(s) in
+<code>probes</code> on the data.  Additionally, <code>nsim</code> simulated data sets
+are generated (via a call to <code>simulate</code>) and
+the probe(s) are applied to each of these.  The results of the probe
+computations on real and simulated data are stored in an object of class
+‘probed_pomp’.
+</p>
+<p>When <code>probe</code> operates on a probe-matching objective function (a ‘probe_match_objfun’ object), by default, the
+random-number generator seed is fixed at the value given when the objective function was constructed.
+Specifying <code>NULL</code> or an integer for <code>seed</code> overrides this behavior.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>probe</code> returns an object of class ‘probed_pomp’, which contains the data and the model, together with the results of the <code>probe</code> calculation.
+</p>
+
+
+<h3>Methods</h3>
+
+<p>The following methods are available.
+</p>
+
+<dl>
+<dt><code>plot</code></dt>
+<dd>
+<p> displays diagnostic plots.  </p>
+</dd>
+<dt><code>summary</code></dt>
+<dd>
+<p> displays summary information.
+The summary includes quantiles (fractions of simulations with probe values less than those realized on the data) and the corresponding two-sided p-values.
+In addition, the “synthetic likelihood” (Wood 2010) is computed,
+under the assumption that the probe values are multivariate-normally distributed.  </p>
+</dd>
+<dt><code>logLik</code></dt>
+<dd>
+<p> returns the synthetic likelihood for the probes.
+NB: in general, this is not the same as the likelihood.  </p>
+</dd>
+<dt><code>as.data.frame</code></dt>
+<dd>
+<p>coerces a ‘probed_pomp’ to a ‘data.frame’.
+The latter contains the realized values of the probes on the data and on the simulations.
+The variable <code>.id</code> indicates whether the probes are from the data or simulations.  </p>
+</dd>
+</dl>
+<h3>Note for Windows users</h3>
+
+<p>Some Windows users report problems when using C snippets in parallel computations.
+These appear to arise when the temporary files created during the C snippet compilation process are not handled properly by the operating system.
+To circumvent this problem, use the <code>cdir</code> and <code>cfile</code> options to cause the C snippets to be written to a file of your choice, thus avoiding the use of temporary files altogether.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Daniel C. Reuman, Aaron A. King
+</p>
+
+
+<h3>References</h3>
+
+<p>B.E. Kendall, C.J. Briggs, W.W. Murdoch, P. Turchin, S.P. Ellner, E. McCauley, R.M. Nisbet, and S.N. Wood. Why do populations cycle? A synthesis of statistical and mechanistic modeling approaches. <em>Ecology</em> <b>80</b>, 1789–1805, 1999. <a href="https://doi.org/10.2307/176658">doi:10.2307/176658</a>.
+</p>
+<p>S. N. Wood Statistical inference for noisy nonlinear ecological dynamic systems. <em>Nature</em> <b>466</b>, 1102–1104, 2010. <a href="https://doi.org/10.1038/nature09319">doi:10.1038/nature09319</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>More on <span class="pkg">pomp</span> elementary algorithms: 
+<code>elementary_algorithms</code>,
+<code>kalman</code>,
+<code>pfilter()</code>,
+<code>pomp-package</code>,
+<code>simulate()</code>,
+<code>spect()</code>,
+<code>trajectory()</code>,
+<code>wpfilter()</code>
+</p>
+<p>More on methods based on summary statistics: 
+<code>abc()</code>,
+<code>basic_probes</code>,
+<code>nlf</code>,
+<code>probe_match</code>,
+<code>spect()</code>,
+<code>spect_match</code>
+</p>
+
+
+</div>

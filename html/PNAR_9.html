@@ -1,0 +1,201 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>lin_estimnarpq</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Estimation of the linear Poisson NAR(p) model model with p lags and q
+covariates (PNAR(p))
+</h2>
+
+<h3>Description</h3>
+
+<p>Estimation of the linear Poisson Network Autoregressive model of order <code class="reqn">p</code>
+with <code class="reqn">q</code> covariates (PNAR(<code class="reqn">p</code>)).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">lin_estimnarpq(y, W, p, Z = NULL, uncons = FALSE, init = NULL,
+xtol_rel = 1e-8, maxeval = 100)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+
+<p>A <code class="reqn">TT \times N</code> time series object or a <code class="reqn">TT \times N</code> numerical matrix with the <code class="reqn">N</code> multivariate count time series over <code class="reqn">TT</code> time periods.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>W</code></td>
+<td>
+
+<p>The <code class="reqn">N \times N</code> row-normalized non-negative adjacency matrix describing
+the network. The main diagonal entries of the matrix should be zeros, all the
+other entries should be non-negative and the maximum sum of elements over the
+rows should equal one. The function row-normalizes the matrix if a non-normalized
+adjacency matrix is provided.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p</code></td>
+<td>
+
+<p>The number of lags in the model.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Z</code></td>
+<td>
+
+<p>An <code class="reqn">N \times q</code> matrix of covariates (one for each column), where <code class="reqn">q</code>
+is the number of covariates in the model. Note that they must be non-negative.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>uncons</code></td>
+<td>
+
+<p>logical, if TRUE an unconstrained optimization is run (default is FALSE).
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init</code></td>
+<td>
+
+<p>A vector of starting values for the optimization algorithm. If this is NULL,
+the function computes them internally.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xtol_rel</code></td>
+<td>
+
+<p>The stopping tolerance of the optimization algorithm.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxeval</code></td>
+<td>
+
+<p>The maximum number of evalutions the optimization algorithm will perform.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function performs constrained estimation of the linear Poisson NAR(<code class="reqn">p</code>) model with <code class="reqn">q</code> non-negative valued covariates, for each node of the network <code class="reqn">i=1,...,N</code> over the time sample <code class="reqn">t=1,...,TT</code>, defined as
+</p>
+<p style="text-align: center;"><code class="reqn">
+\lambda_{i,t}=\beta_{0}+\sum_{h=1}^{p}(\beta_{1h}X_{i,t-h}+\beta_{2h}Y_{i,t-h})+\sum_{l=1}^{q}\delta_{l}Z_{i,l},
+</code>
+</p>
+
+<p>where <code class="reqn">X_{i,t}=\sum_{j=1}^{N}W_{ij}Y_{j,t}</code> is the network effect, i.e. the weighted average impact of node <code class="reqn">i</code> connections, with the weights of the mean being <code class="reqn">W_{ij}</code>, the single element of the network matrix <code class="reqn">W</code>. The sequence <code class="reqn">\lambda_{i,t}</code> is the expecation of <code class="reqn">Y_{i,t}</code>, conditional to its past values. The parameter <code class="reqn">\beta_{0}</code> is the intercept of the model, <code class="reqn">\beta_{1h}</code> are the network coefficients, <code class="reqn">\beta_{2h}</code> are the autoregressive parameters, and <code class="reqn">\delta_{l}</code> are the coefficients assocciated to the covariates <code class="reqn">Z_{i,l}</code>.
+</p>
+<p>The estimation of the parameters of the model is performed by Quasi Maximum Likelihood Estimation (QMLE), maximizing the following quasi log-likelihood
+</p>
+<p style="text-align: center;"><code class="reqn">
+l(\theta)=\sum_{t=1}^{TT}\sum_{i=1}^{N}\left[Y_{i,t}\log\lambda_{i,t}(\theta)-\lambda_{i,t}(\theta)\right]
+</code>
+</p>
+
+<p>with respect to the vector of unknown parameters <code class="reqn">\theta</code> described above. The coefficients are defined only in the non-negative real line.
+</p>
+<p>By default, the optimization is constrained in the stationary region where <code class="reqn">\sum_{h=1}^{p}(\beta_{1h}+\beta_{2h})&lt;1</code>; this can be removed by setting <code>uncons = TRUE</code>. However, the model estimates might be inconsistent if the estimated parameters lie outside the stationary region.
+</p>
+<p>The ordinary least squares estimates are employed as starting values of the optimization procedure. Robust standard errors and z-tests are also returned.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with attribute class "PNAR" including:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>coefs</code></td>
+<td>
+
+<p>A matrix with the estimated QMLE coefficients, their standard errors their Z-test statistics and the relevant p-values computed via the standard normal approximation.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>score</code></td>
+<td>
+
+<p>The value of the quasi score function at the optimization point.
+It should be close to 0 if the optimization is successful.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loglik</code></td>
+<td>
+
+<p>The value of the maximized quasi log-likelihood.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ic</code></td>
+<td>
+
+<p>A vector with the Akaike information criterion (AIC), the Bayesian information criterion (BIC) and the Quasi information criterion (QIC).
+</p>
+</td>
+</tr>
+</table>
+<p>Alternatively, these can be printed via the function <code>summary.PNAR</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Mirko Armillotta, Michail Tsagris and Konstantinos Fokianos.
+</p>
+
+
+<h3>References</h3>
+
+<p>Armillotta, M. and K. Fokianos (2023). Nonlinear network autoregression. <em>Annals of Statistics</em>, 51(6): 2526–2552.
+</p>
+<p>Armillotta, M. and K. Fokianos (2024). Count network autoregression. <em>Journal of Time Series Analysis</em>, 45(4): 584–612.
+</p>
+<p>Armillotta, M., Tsagris, M. and Fokianos, K. (2024). Inference for Network Count Time Series with the R Package PNAR. <em>The R Journal</em>, 15/4: 255–269..
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>log_lin_estimnarpq
+</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(crime)
+data(crime_W)
+mod1 &lt;- lin_estimnarpq(crime, crime_W, p = 2)
+summary(mod1)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,186 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ph_anomaly</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Detect anomalies.</h2>
+
+<h3>Description</h3>
+
+<p>The <code>ph_anomaly</code> function detects and removes anomalies with an autoencoder. Because it is general
+purpose, it can be applied to a variety of data types. The parameters in this function (e.g., activation,
+hidden, dropout_ratio) can be supplied as lists or vectors (see parameter details) to perform a grid search
+for the optimal hyperparameter combination. The autoencoder with the lowest reconstruction error is selected as
+the best model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ph_anomaly(
+  df,
+  ids_col,
+  class_col,
+  method = "ae",
+  scale = FALSE,
+  center = NULL,
+  sd = NULL,
+  max_mem_size = "15g",
+  port = 54321,
+  train_seed = 123,
+  hyper_params = list(),
+  search = "random",
+  tune_length = 100
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>A <code>data.frame</code> containing a column of ids, a column of classes, and an arbitrary number of predictors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ids_col</code></td>
+<td>
+<p>A <code>character</code> value for the name of the ids column.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>class_col</code></td>
+<td>
+<p>A <code>character</code> value for the name of the class column.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>A <code>character</code> value for the anomaly detection method: "ae" (default), "iso" (abbv. for extended isolation forest).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>scale</code></td>
+<td>
+<p>A <code>logical</code> value for whether to scale the data: FALSE (default). Recommended if <code>method = "ae"</code> and if user intends to train other models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>center</code></td>
+<td>
+<p>Either a <code>logical</code> value or numeric-alike vector of length equal to the number of columns of data to scale in <code>df</code>, where ‘numeric-alike’ means that as.numeric(.) will be applied successfully if is.numeric(.) is not true: NULL (default). If <code>scale = TRUE</code>, this is set to <code>TRUE</code> and is used to subtract the mean.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sd</code></td>
+<td>
+<p>Either a <code>logical</code> value or a numeric-alike vector of length equal to the number of columns of data to scale in <code>df</code>: NULL (default). If <code>scale = TRUE</code>, this is set to <code>TRUE</code> and is used to divide by the standard deviation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_mem_size</code></td>
+<td>
+<p>A <code>character</code> value for the memory of an h2o session: "15g" (default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>port</code></td>
+<td>
+<p>A <code>numeric</code> value for the port number of the H2O server.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>train_seed</code></td>
+<td>
+<p>A <code>numeric</code> value to set the control the randomness of creating resamples: 123 (default).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hyper_params</code></td>
+<td>
+<p>A <code>list</code> of hyperparameters to perform a grid search.
+</p>
+
+<ul>
+<li>
+<p> If <code>method = "ae"</code>, the "default" list is: list(missing_values_handling = "Skip", activation = c("Rectifier", "Tanh"), hidden = list(5, 25, 50, 100, 250, 500, nrow(df_h2o)), input_dropout_ratio = c(0, 0.1, 0.2, 0.3), rate = c(0, 0.01, 0.005, 0.001))
+</p>
+</li>
+<li>
+<p> If <code>method = "iso"</code>, the "default" list is: list(ntrees = c(50, 100, 150, 200), sample_size = c(64, 128, 256, 512))
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>search</code></td>
+<td>
+<p>A <code>character</code> value for the hyperparameter search strategy: "random" (default), "grid".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tune_length</code></td>
+<td>
+<p>A <code>numeric</code> value (integer) for either the maximum number of hyperparameter combinations ("random") or individual hyperparameter depth ("grid"): 100 (default).</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list containing the following components:</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+<code>df</code> </td>
+<td style="text-align: left;"> The data frame with anomalies removed. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>model</code> </td>
+<td style="text-align: left;"> The best model from the grid search used to detect anomalies. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+<td style="text-align: left;"> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+<code>anom_score</code> </td>
+<td style="text-align: left;"> A data frame of predicted anomaly scores. </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Import data.
+data(ph_crocs)
+
+## Remove anomalies with autoencoder.
+rm_outs &lt;- ph_anomaly(df = ph_crocs, ids_col = "Biosample",
+                      class_col = "Species", method = "ae")
+## Alternatively, remove anomalies with extended isolation forest. Notice
+## that port is defined, because running H2O sessions one after another
+## can return connection errors.
+rm_outs &lt;- ph_anomaly(df = ph_crocs, ids_col = "Biosample",
+                      class_col = "Species", method = "iso",
+                      port = 50001)
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,228 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>dropRollCall</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>drop user-specified elements from a rollcall object</h2>
+
+<h3>Description</h3>
+
+<p>Drop user-specified elements of rollcall object, returning a roll
+call object. 
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">dropRollCall(object, dropList,debug=FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>an object of class <code>rollcall</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dropList</code></td>
+<td>
+<p>a <code>list</code> (or <code>alist</code>) with
+some (or all) of the following components:
+</p>
+
+<dl>
+<dt>codes</dt>
+<dd>
+<p>character or numeric, possibly a vector.  If
+character, it should match the names of <code>object$codes</code>,
+indicating the set of entries in <code>object$votes</code> to be set to
+<code>NA</code>.  If numeric, then <code>codes</code> indicates the entries in
+<code>object$votes</code> that will be set to <code>NA</code>.</p>
+</dd>
+<dt>lop</dt>
+<dd>
+<p>numeric, non-negative integer, less than number of
+legislators represented in <code>object</code>.  Roll calls with <code>lop</code>
+or fewer legislators voting in the minority are dropped.</p>
+</dd>
+<dt>legisMin</dt>
+<dd>
+<p>numeric, non-negative integer, less than
+number of roll calls represented in <code>object</code>.  Legislators with
+<code>legisMin</code> or fewer votes are dropped.</p>
+</dd>
+<dt>dropLegis</dt>
+<dd>
+<p>an <code>expression</code> that evaluates to
+mode <code>logical</code>, vector of length equal to the number of
+legislators represented in <code>object</code>.  The expression is evaluated
+in the <code>legis.data</code> component of the rollcall <code>object</code>.
+Legislators for whom the expression evaluates to <code>TRUE</code> are
+dropped.</p>
+</dd>
+<dt>dropVotes</dt>
+<dd>
+<p>an <code>expression</code> that evaluates to
+mode <code>logical</code>, vector of length equal to the number of
+rollcalls represented in <code>object</code>.  The expression is evaluated
+in the <code>vote.data</code> component of the rollcall <code>object</code>.
+Rollcalls for which the expression evaluates to <code>TRUE</code> are
+dropped.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>debug</code></td>
+<td>
+<p><code>logical</code>, set to <code>TRUE</code> to see messages
+printed to the console as inspection and subsetting of the
+<code>rollcall</code> object takes place</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>It is often desirable to restrict the analysis of roll call
+data in various ways.  For one thing, unanimous votes provide no
+information discriminating among legislators: hence, 
+summary and analysis should almost always use <code>dropList=list(lop=0)</code>.
+See the examples for other possibilities, limited only by the
+information supplied in <code>legis.data</code> and <code>votes.data</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>rollcall</code> with components modified/added by
+the subsetting indicated in the <code>dropList</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>With the exception of <code>codes</code>, each component of
+<code>dropList</code> generates a vector of mode <code>logical</code>,
+either with respect to legislators or votes.  These logical
+vectors are then combined element-wise, such that if any one of
+the subsetting restrictions is <code>TRUE</code> for a particular
+legislator or vote, then that legislator or vote is dropped.  Some
+summaries are reported to the console along the way if <code>debug=TRUE</code>.
+</p>
+<p><code>dropRollCall</code> adds a component
+named <code>dropInfo</code> to the <code>rollcall</code> object it returns.  This
+component is itself a list containing named components
+</p>
+
+<dl>
+<dt>legislators</dt>
+<dd>
+<p>a vector of mode <code>logical</code>, with each
+element <code>TRUE</code> if the legislator is retained in the returned
+<code>rollcall</code> object.</p>
+</dd>
+<dt>votes</dt>
+<dd>
+<p>a vector of mode <code>logical</code>, with each element
+<code>TRUE</code> if the corresponding is retained in the returned
+<code>rollcall</code> object.</p>
+</dd>
+<dt>dropList</dt>
+<dd>
+<p>the <code>dropList</code> supplied as input to
+<code>dropRollCall</code>.</p>
+</dd> 
+</dl>
+<p>If the input <code>rollcall</code> object is itself the product of a call to
+<code>dropRollCall</code>, the <code>dropInfo</code> component on output is a list
+with named components 
+</p>
+
+<dl>
+<dt>previous</dt>
+<dd>
+<p>the <code>dropInfo</code> component of the input
+<code>rollcall</code> object.</p>
+</dd>
+<dt>new</dt>
+<dd>
+<p>the <code>dropInfo</code> list created by the current call to
+<code>dropRollCall</code>.</p>
+</dd>
+</dl>
+<p>Functions like <code>summary.rollcall</code> try to handle this information
+sensibly.
+</p>
+<p>When <code>dropList</code> uses the <code>dropLegis</code> or <code>dropVotes</code>
+components then <code>dropList</code> should be constructed via the
+<code>alist</code> command; this ensures that the
+<code>dropLegis</code> and <code>dropVotes</code> components of
+<code>dropList</code> are objects of mode <code>expression</code>, and
+<code>eval</code>uated to mode <code>logical</code> in the
+<code>legis.data</code> and <code>vote.data</code> <code>environments</code> by
+the function, if possible (rather than being evaluated immediately in
+the environment calling <code>dropRollCall</code> or constructing
+<code>dropList</code>).  See the examples.  This is not entirely
+satisfactory, and behavior more like the <code>subset</code> argument in
+function <code>lm</code> would be preferable.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Simon Jackman <a href="mailto:simon.jackman@sydney.edu.au">simon.jackman@sydney.edu.au</a></p>
+
+
+<h3>See Also</h3>
+
+<p><code>dropUnanimous</code>, <code>summary.rollcall</code>,
+<code>ideal</code>, <code>alist</code>.</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(s109)
+s109.working &lt;- dropRollCall(s109,
+                             dropList=list(lop=0))
+summary(s109.working)
+
+s109.working &lt;- dropRollCall(s109,
+                             dropList=list(lop=0,
+                               code="notInLegis"))
+summary(s109.working)
+
+s109.working &lt;- dropRollCall(s109,
+                             dropList=list(lop=3,
+                               code="notInLegis"))
+summary(s109.working)
+
+## note use of alist, since dropLegis is an expression
+dropList &lt;- alist(lop=3,
+                 dropLegis=party!="D",
+                 code="notInLegis")
+s109.working &lt;- dropRollCall(s109,dropList=dropList,debug=TRUE)
+summary(s109.working)
+
+s109.working &lt;- dropRollCall(s109.working,dropList=list(legisMin=25))
+summary(s109.working)
+
+
+## Not run: 
+## read 102nd House from Poole web site
+h102 &lt;- readKH("ftp://voteview.ucsd.edu/dtaord/hou102kh.ord")
+
+## drop President from roll call matrix
+h102 &lt;- dropRollCall(h102,
+                     dropList=alist(dropLegis=state=="USA"))
+summary(h102)
+
+## End(Not run)
+</code></pre>
+
+
+</div>

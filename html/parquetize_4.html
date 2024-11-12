@@ -1,0 +1,177 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>dbi_to_parquet</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Convert a SQL Query on a DBI connection to parquet format</h2>
+
+<h3>Description</h3>
+
+<p>This function allows to convert a SQL query from a DBI to parquet format.<br></p>
+<p>It handles all DBI supported databases.
+</p>
+<p>Two conversions possibilities are offered :
+</p>
+
+<ul>
+<li>
+<p>Convert to a single parquet file. Argument 'path_to_parquet' must then be used;
+</p>
+</li>
+<li>
+<p>Convert to a partitioned parquet file. Additionnal arguments 'partition' and 'partitioning' must then be used;
+</p>
+</li>
+</ul>
+<p>Examples explain how to convert a query to a chunked dataset
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">dbi_to_parquet(
+  conn,
+  sql_query,
+  path_to_parquet,
+  max_memory,
+  max_rows,
+  chunk_memory_sample_lines = 10000,
+  partition = "no",
+  compression = "snappy",
+  compression_level = NULL,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>conn</code></td>
+<td>
+<p>A DBIConnection object, as return by DBI::dbConnect</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sql_query</code></td>
+<td>
+<p>a character string containing an SQL query (this argument is passed to DBI::dbSendQuery)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>path_to_parquet</code></td>
+<td>
+<p>String that indicates the path to the directory where the parquet files will be stored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_memory</code></td>
+<td>
+<p>Memory size (in Mb) in which data of one parquet file should roughly fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>max_rows</code></td>
+<td>
+<p>Number of lines that defines the size of the chunk.
+This argument can not be filled in if max_memory is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>chunk_memory_sample_lines</code></td>
+<td>
+<p>Number of lines to read to evaluate max_memory. Default to 10 000.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>partition</code></td>
+<td>
+<p>String ("yes" or "no" - by default) that indicates whether you want to create a partitioned parquet file.
+If "yes", '"partitioning"' argument must be filled in. In this case, a folder will be created for each modality of the variable filled in '"partitioning"'.
+Be careful, this argument can not be "yes" if 'max_memory' or 'max_rows' argument are not NULL.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compression</code></td>
+<td>
+<p>compression algorithm. Default "snappy".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>compression_level</code></td>
+<td>
+<p>compression level. Meaning depends on compression algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>additional format-specific arguments, see <a href="https://arrow.apache.org/docs/r/reference/write_parquet.html">arrow::write_parquet()</a>
+and <a href="https://arrow.apache.org/docs/r/reference/write_dataset.html">arrow::write_dataset()</a> for more informations.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A parquet file, invisibly
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Conversion from a sqlite dbi connection to a single parquet file :
+
+dbi_connection &lt;- DBI::dbConnect(RSQLite::SQLite(),
+  system.file("extdata","iris.sqlite",package = "parquetize"))
+
+# Reading iris table from local sqlite database
+# and conversion to one parquet file :
+
+dbi_to_parquet(
+  conn = dbi_connection,
+  sql_query = "SELECT * FROM iris",
+  path_to_parquet = tempfile(fileext=".parquet"),
+)
+
+# Reading iris table from local sqlite database by chunk (using
+# `max_memory` argument) and conversion to multiple parquet files
+
+dbi_to_parquet(
+  conn = dbi_connection,
+  sql_query = "SELECT * FROM iris",
+  path_to_parquet = tempdir(),
+  max_memory = 2 / 1024
+)
+
+# Using chunk and partition together is not possible directly but easy to do :
+# Reading iris table from local sqlite database by chunk (using
+# `max_memory` argument) and conversion to arrow dataset partitioned by
+# species
+
+# get unique values of column "iris from table "iris"
+partitions &lt;- get_partitions(dbi_connection, table = "iris", column = "Species")
+
+# loop over those values
+for (species in partitions) {
+  dbi_to_parquet(
+    conn = dbi_connection,
+    # use glue_sql to create the query filtering the partition
+    sql_query = glue::glue_sql("SELECT * FROM iris where Species = {species}",
+                               .con = dbi_connection),
+    # add the partition name in the output dir to respect parquet partition schema
+    path_to_parquet = file.path(tempdir(), "iris", paste0("Species=", species)),
+    max_memory = 2 / 1024,
+  )
+}
+
+# If you need a more complicated query to get your partitions, you can use
+# dbGetQuery directly :
+col_to_partition &lt;- DBI::dbGetQuery(dbi_connection, "SELECT distinct(`Species`) FROM `iris`")[,1]
+
+</code></pre>
+
+
+</div>

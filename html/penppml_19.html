@@ -1,0 +1,221 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>hdfeppml_int</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>PPML Estimation with HDFE</h2>
+
+<h3>Description</h3>
+
+<p><code>hdfeppml_int</code> is the internal algorithm called by <code>hdfeppml</code> to fit an (unpenalized)
+Poisson Pseudo Maximum Likelihood (PPML) regression with high-dimensional fixed effects (HDFE). It
+takes a vector with the dependent variable, a regressor matrix and a set of fixed effects (in list
+form: each element in the list should be a separate HDFE).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">hdfeppml_int(
+  y,
+  x = NULL,
+  fes = NULL,
+  tol = 1e-08,
+  hdfetol = 1e-04,
+  mu = NULL,
+  saveX = TRUE,
+  colcheck = TRUE,
+  colcheck_x = colcheck,
+  colcheck_x_fes = colcheck,
+  init_z = NULL,
+  verbose = FALSE,
+  maxiter = 1000,
+  cluster = NULL,
+  vcv = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>Dependent variable (a vector)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>Regressor matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fes</code></td>
+<td>
+<p>List of fixed effects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+<p>Tolerance parameter for convergence of the IRLS algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hdfetol</code></td>
+<td>
+<p>Tolerance parameter for the within-transformation step,
+passed on to <code>collapse::fhdwithin</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>A vector of initial values for mu that can be passed to the command.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>saveX</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, it returns the values of x and z after partialling out the
+fixed effects.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colcheck</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, performs both checks in <code>colcheck_x</code> and <code>colcheck_x_fes</code>.
+If the user specifies <code>colcheck_x</code> and <code>colcheck_x_fes</code> individually, this option is overwritten.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colcheck_x</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, this checks collinearity between the independent variables and drops the
+collinear variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>colcheck_x_fes</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, this checks whether the independent variables are perfectly explained
+by the fixed effects drops those that are perfectly explained.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>init_z</code></td>
+<td>
+<p>Optional: initial values of the transformed dependent variable, to be used in the
+first iteration of the algorithm.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>Logical. If <code>TRUE</code>, it prints information to the screen while evaluating.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxiter</code></td>
+<td>
+<p>Maximum number of iterations (a number).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cluster</code></td>
+<td>
+<p>Optional: a vector classifying observations into clusters (to use when calculating SEs).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vcv</code></td>
+<td>
+<p>Logical. If <code>TRUE</code> (the default), it returns standard errors.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>More formally, <code>hdfeppml_int</code> performs iteratively re-weighted least squares (IRLS) on a
+transformed model, as described in Correia, Guimarães and Zylkin (2020) and similar to the
+<code>ppmlhdfe</code> package in Stata. In each iteration, the function calculates the transformed dependent
+variable, partials out the fixed effects (calling <code>collapse::fhdwithin</code>, which uses the algorithm in
+Gaure (2013)) and then solves a weighted least squares problem (using fast C++ implementation).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with the following elements:
+</p>
+
+<ul>
+<li> <p><code>coefficients</code>: a 1 x <code>ncol(x)</code> matrix with coefficient (beta) estimates.
+</p>
+</li>
+<li> <p><code>residuals</code>: a 1 x <code>length(y)</code> matrix with the residuals of the model.
+</p>
+</li>
+<li> <p><code>mu</code>: a 1 x <code>length(y)</code> matrix with the final values of the conditional mean <code class="reqn">\mu</code>.
+</p>
+</li>
+<li> <p><code>deviance</code>:
+</p>
+</li>
+<li> <p><code>bic</code>: Bayesian Information Criterion.
+</p>
+</li>
+<li> <p><code>x_resid</code>: matrix of demeaned regressors.
+</p>
+</li>
+<li> <p><code>z_resid</code>: vector of demeaned (transformed) dependent variable.
+</p>
+</li>
+<li> <p><code>se</code>: standard errors of the coefficients.
+</p>
+</li>
+</ul>
+<h3>References</h3>
+
+<p>Breinlich, H., Corradi, V., Rocha, N., Ruta, M., Santos Silva, J.M.C. and T. Zylkin (2021).
+"Machine Learning in International Trade Research: Evaluating the Impact of Trade Agreements",
+Policy Research Working Paper; No. 9629. World Bank, Washington, DC.
+</p>
+<p>Correia, S., P. Guimaraes and T. Zylkin (2020). "Fast Poisson estimation with high dimensional
+fixed effects", <em>STATA Journal</em>, 20, 90-115.
+</p>
+<p>Gaure, S (2013). "OLS with multiple high dimensional category variables",
+<em>Computational Statistics &amp; Data Analysis</em>, 66, 8-18.
+</p>
+<p>Friedman, J., T. Hastie, and R. Tibshirani (2010). "Regularization paths for generalized linear
+models via coordinate descent", <em>Journal of Statistical Software</em>, 33, 1-22.
+</p>
+<p>Belloni, A., V. Chernozhukov, C. Hansen and D. Kozbur (2016). "Inference in high dimensional panel
+models with an application to gun control", <em>Journal of Business &amp; Economic Statistics</em>, 34, 590-605.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Not run: 
+# To reduce run time, we keep only countries in the Americas:
+americas &lt;- countries$iso[countries$region == "Americas"]
+trade &lt;- trade[(trade$imp %in% americas) &amp; (trade$exp %in% americas), ]
+# Now generate the needed x, y and fes objects:
+y &lt;- trade$export
+x &lt;- data.matrix(trade[, -1:-6])
+fes &lt;- list(exp_time = interaction(trade$exp, trade$time),
+            imp_time = interaction(trade$imp, trade$time),
+            pair     = interaction(trade$exp, trade$imp))
+# Finally, the call to hdfeppml_int:
+reg &lt;- hdfeppml_int(y = y, x = x, fes = fes)
+
+## End(Not run)
+
+</code></pre>
+
+
+</div>

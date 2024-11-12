@@ -1,0 +1,295 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>prodestOP</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Estimate productivity - Olley-Pakes method
+</h2>
+
+<h3>Description</h3>
+
+<p>The <code>prodestOP()</code> function accepts at least 6 objects (id, time, output, free, state and proxy variables), and returns a <code>prod</code> object of class <code>S4</code> with three elements: (i) a list of model-related objects, (ii) a list with the data used in the estimation and estimated vectors of first-stage residuals, and (iii) a list with the estimated parameters and their bootstrapped standard errors .
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">  prodestOP(Y, fX, sX, pX, idvar, timevar, R = 20, cX = NULL,
+            opt = 'optim', theta0 = NULL, cluster = NULL, tol = 1e-100, exit = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>Y      </code></td>
+<td>
+
+<p>the vector of value added log output.</p>
+</td>
+</tr></table>
+<table><tr style="vertical-align: top;">
+<td><code>fX     </code></td>
+<td>
+
+<p>the vector/matrix/dataframe of log free variables.</p>
+</td>
+</tr></table>
+<table><tr style="vertical-align: top;">
+<td><code>sX     </code></td>
+<td>
+
+<p>the vector/matrix/dataframe of log state variables.</p>
+</td>
+</tr></table>
+<table><tr style="vertical-align: top;">
+<td><code>pX    </code></td>
+<td>
+
+<p>the vector/matrix/dataframe of log proxy variables.</p>
+</td>
+</tr></table>
+<table><tr style="vertical-align: top;">
+<td><code>cX     </code></td>
+<td>
+
+<p>the vector/matrix/dataframe of control variables. By default <code>cX= NULL</code>.</p>
+</td>
+</tr></table>
+<table><tr style="vertical-align: top;">
+<td><code>idvar  </code></td>
+<td>
+
+<p>the vector/matrix/dataframe identifying individual panels.</p>
+</td>
+</tr></table>
+<table><tr style="vertical-align: top;">
+<td><code>timevar</code></td>
+<td>
+
+<p>the vector/matrix/dataframe identifying time.</p>
+</td>
+</tr></table>
+<table><tr style="vertical-align: top;">
+<td><code>R      </code></td>
+<td>
+
+<p>the number of block bootstrap repetitions to be performed in the standard error estimation. By default <code>R = 20</code>.</p>
+</td>
+</tr></table>
+<table><tr style="vertical-align: top;">
+<td><code>opt    </code></td>
+<td>
+
+<p>a string with the optimization algorithm to be used during the estimation. By default <code>opt = 'optim'</code>.</p>
+</td>
+</tr></table>
+<table><tr style="vertical-align: top;">
+<td><code>theta0 </code></td>
+<td>
+
+<p>a vector with the second stage optimization starting points. By default <code>theta0 = NULL</code> and the optimization is run starting from the first stage estimated parameters + <code class="reqn">N(\mu=0,\sigma=0.01)</code> noise.</p>
+</td>
+</tr></table>
+<table><tr style="vertical-align: top;">
+<td><code>cluster</code></td>
+<td>
+
+<p>an object of class <code>"SOCKcluster"</code> or <code>"cluster"</code>. By default <code>cluster = NULL</code>.</p>
+</td>
+</tr></table>
+<table><tr style="vertical-align: top;">
+<td><code>tol</code></td>
+<td>
+
+<p>optimizer tolerance. By default <code>tol = 1e-100</code>.</p>
+</td>
+</tr></table>
+<table><tr style="vertical-align: top;">
+<td><code>exit</code></td>
+<td>
+
+<p>Indicator for attrition in the data - i.e., if firms exit the market. By default <code>exit = FALSE</code>; if <code>exit = TRUE</code>, an indicator function for firms whose last appearance is before the last observation's date is generated and used in the second stage. The user can even specify an indicator variable/matrix/dataframe with the exit years.</p>
+</td>
+</tr></table>
+<h3>Details</h3>
+
+<p>Consider a Cobb-Douglas production technology for firm <code class="reqn">i</code> at time <code class="reqn">t</code>
+</p>
+
+<ul><li> <p><code class="reqn">y_{it} = \alpha + w_{it}\beta + k_{it}\gamma + \omega_{it} + \epsilon_{it}</code>
+</p>
+</li></ul>
+<p>where <code class="reqn">y_{it}</code> is the (log) output, w_it a 1xJ vector of (log) free variables, k_it is a 1xK vector of state variables and <code class="reqn">\epsilon_{it}</code> is a normally distributed idiosyncratic error term.
+The unobserved technical efficiency parameter <code class="reqn">\omega_{it}</code> evolves according to a first-order Markov process:
+</p>
+
+<ul><li> <p><code class="reqn">\omega_{it} = E(\omega_{it} | \omega_{it-1}) + u_{it} = g(\omega_{it-1}) + u_{it}</code>
+</p>
+</li></ul>
+<p>and <code class="reqn">u_{it}</code> is a random shock component assumed to be uncorrelated with the technical efficiency, the state variables in <code class="reqn">k_{it}</code> and the lagged free variables <code class="reqn">w_{it-1}</code>.
+The OP method relies on the following set of assumptions:
+</p>
+
+<ul>
+<li>
+<p> a) <code class="reqn">i_{it} = i(k_{it},\omega_{it})</code> - investments are a function of both the state variable and the technical efficiency parameter;
+</p>
+</li>
+<li>
+<p> b) <code class="reqn">i_{it}</code> is strictly monotone in <code class="reqn">\omega_{it}</code>;
+</p>
+</li>
+<li>
+<p> c) <code class="reqn">\omega_{it}</code> is scalar unobservable in <code class="reqn">i_{it} = i(.)</code> ;
+</p>
+</li>
+<li>
+<p> d) the levels of <code class="reqn">i_{it}</code> and <code class="reqn">k_{it}</code> are decided at time <code class="reqn">t-1</code>; the level of the free variable, <code class="reqn">w_{it}</code>, is decided after the shock <code class="reqn">u_{it}</code> realizes.
+</p>
+</li>
+</ul>
+<p>Assumptions a)-d) ensure the invertibility of <code class="reqn">i_{it}</code> in <code class="reqn">\omega_{it}</code> and lead to the partially identified model:
+</p>
+
+<ul><li> <p><code class="reqn">y_{it} = \alpha + w_{it}\beta + k_{it}\gamma + h(i_{it}, k_{it}) + \epsilon_{it} = \alpha + w_{it}\beta  + \phi(i_{it}, k_{it}) + \epsilon_{it} </code>
+</p>
+</li></ul>
+<p>which is estimated by a non-parametric approach - First Stage.
+Exploiting the Markovian nature of the productivity process one can use assumption d) in order to set up the relevant moment conditions and estimate the production function parameters - Second stage.
+Exploiting the residual <code class="reqn">e_{it}</code> of:
+</p>
+
+<ul><li> <p><code class="reqn">y_{it} - w_{it}\hat{\beta} = \alpha + k_{it}\gamma + g(\omega_{it-1}, \chi_{it}) + \epsilon_{it} </code>
+</p>
+</li></ul>
+<p>and <code class="reqn">g(.)</code> is typically left unspecified and approximated by a <code class="reqn">n^{th}</code> order polynomial and <code class="reqn">\chi_{it}</code> is an indicator function for the attrition in the market.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The output of the function <code>prodestOP</code> is a member of the <code>S3</code> class <span class="pkg">prod</span>. More precisely, is a list (of length 3) containing the following elements:
+</p>
+<p><code>Model</code>, a list containing:
+</p>
+
+<ul>
+<li> <p><code>method:</code> a string describing the method ('OP').
+</p>
+</li>
+<li> <p><code>boot.repetitions:</code> the number of bootstrap repetitions used for standard errors' computation.
+</p>
+</li>
+<li> <p><code>elapsed.time:</code> time elapsed during the estimation.
+</p>
+</li>
+<li> <p><code>theta0:</code> numeric object with the optimization starting points - second stage.
+</p>
+</li>
+<li> <p><code>opt:</code> string with the optimization routine used - 'optim', 'solnp' or 'DEoptim'.
+</p>
+</li>
+<li> <p><code>opt.outcome:</code> optimization outcome.
+</p>
+</li>
+<li> <p><code>FSbetas:</code> first stage estimated parameters.
+</p>
+</li>
+</ul>
+<p><code>Data</code>, a list containing:
+</p>
+
+<ul>
+<li> <p><code>Y:</code> the vector of value added log output.
+</p>
+</li>
+<li> <p><code>free:</code> the vector/matrix/dataframe of log free variables.
+</p>
+</li>
+<li> <p><code>state:</code> the vector/matrix/dataframe of log state variables.
+</p>
+</li>
+<li> <p><code>proxy:</code> the vector/matrix/dataframe of log proxy variables.
+</p>
+</li>
+<li> <p><code>control:</code> the vector/matrix/dataframe of log control variables.
+</p>
+</li>
+<li> <p><code>idvar:</code> the vector/matrix/dataframe identifying individual panels.
+</p>
+</li>
+<li> <p><code>timevar:</code> the vector/matrix/dataframe identifying time.
+</p>
+</li>
+<li> <p><code>FSresiduals:</code> numeric object with the residuals of the first stage.
+</p>
+</li>
+</ul>
+<p><code>Estimates</code>, a list containing:
+</p>
+
+<ul>
+<li> <p><code>pars:</code> the vector of estimated coefficients.
+</p>
+</li>
+<li> <p><code>std.errors:</code> the vector of bootstrapped standard errors.
+</p>
+</li>
+</ul>
+<p>Members of class <code>prod</code> have an <code>omega</code> method returning a numeric object with the estimated productivity - that is: <code class="reqn">\omega_{it} = y_{it} - (\alpha + w_{it}\beta + k_{it}\gamma)</code>.
+<code>FSres</code> method returns a numeric object with the residuals of the first stage regression, while <code>summary</code>, <code>show</code> and <code>coef</code> methods are implemented and work as usual.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Gabriele Rovigatti</p>
+
+
+<h3>References</h3>
+
+<p>Olley, S G and Pakes, A (1996).
+"The dynamics of productivity in the telecommunications equipment industry."
+Econometrica, 64(6), 1263-1297.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">    require(prodest)
+
+    ## Chilean data on production.The full version is Publicly available at
+    ## http://www.ine.cl/canales/chile_estadistico/estadisticas_economicas/industria/
+    ## series_estadisticas/series_estadisticas_enia.php
+
+    data(chilean)
+
+    # we fit a model with two free (skilled and unskilled), one state (capital)
+    # and one proxy variable (electricity)
+
+    OP.fit &lt;- prodestOP(chilean$Y, fX = cbind(chilean$fX1, chilean$fX2), chilean$sX,
+                        chilean$inv, chilean$idvar, chilean$timevar)
+    OP.fit.solnp &lt;- prodestOP(chilean$Y, fX = cbind(chilean$fX1, chilean$fX2),
+                              chilean$sX, chilean$inv, chilean$idvar,
+                              chilean$timevar, opt='solnp')
+    OP.fit.control &lt;- prodestOP(chilean$Y, fX = cbind(chilean$fX1, chilean$fX2),
+                                chilean$sX, chilean$inv, chilean$idvar,
+                                chilean$timevar, cX = chilean$cX)
+    OP.fit.attrition &lt;- prodestOP(chilean$Y, fX = cbind(chilean$fX1, chilean$fX2),
+                                chilean$sX, chilean$inv, chilean$idvar,
+                                chilean$timevar, exit = TRUE)
+
+    # show results
+    summary(OP.fit)
+    summary(OP.fit.solnp)
+    summary(OP.fit.control)
+
+    # show results in .tex tabular format
+     printProd(list(OP.fit, OP.fit.solnp, OP.fit.control, OP.fit.attrition))
+</code></pre>
+
+
+</div>

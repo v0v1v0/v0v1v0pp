@@ -1,0 +1,269 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>powerComp</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Comparison of the power of TSS under different models</h2>
+
+<h3>Description</h3>
+
+<p><code>powerComp</code> - Compare the power of a set of TSS to identify trees
+generated under different alternative models given a null model.
+</p>
+<p><code>powerComp_RegAcc</code> - Compare the power of a set of TSS to identify trees
+generated under different alternative models given a the region(s) of
+acceptance.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">powerComp(
+  tss,
+  null_model = "yule",
+  alt_models,
+  n,
+  distribs = "exact_if_possible",
+  N_null = 10000L,
+  N_alt = 1000L,
+  test_type = "two-tailed",
+  correction = "small-sample",
+  sig_lvl = 0.05
+)
+
+powerComp_RegAcc(
+  tss,
+  accept_regions,
+  null_model,
+  alt_models,
+  n,
+  distribs = "exact_if_possible",
+  N_null = 10000L,
+  N_alt = 1000L,
+  test_type = "two-tailed",
+  correction = "small-sample",
+  sig_lvl = 0.05
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tss</code></td>
+<td>
+<p>Vector containing the names (as character) of the tree shape
+statistics that should be compared. You may either use the short names
+provided in <code>tssInfo</code> to use the already included TSS, or use the
+name of a list object containing similar information as the entries in
+<code>tssInfo</code>. Example:<br>
+Use <code>"new_tss"</code> as the name for the list object
+<code>new_tss</code> containing at least the function
+<code>new_tss$func = function(tree){...}</code>,
+and optionally also the information <code>new_tss$short</code>,
+<code>new_tss$simple</code>, <code>new_tss$name</code>, <code>new_tss$type</code>,
+<code>new_tss$only_binary</code>, and <code>new_tss$safe_n</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>null_model</code></td>
+<td>
+<p>The null model that is to be used to determine the power
+of the tree shape statistics. In general, it must be a function that
+produces rooted binary trees in <code>phylo</code> format. <br>
+If the respective model is included in this
+package, then specify the model and its parameters by using a character
+or list. Available are all options listed under parameter <code>tm</code> in
+the documentation of function <code>genTrees</code> (type <code>?genTrees</code>).<br>
+If you want to include your own tree model, then use the
+name of a list object containing the function (dependent on one parameter
+<code>n</code>). Example: <br>
+Use <code>"new_tm"</code> for the list object <br><code>new_tm &lt;- list(func = function(n, Ntrees){...})</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>alt_models</code></td>
+<td>
+<p>List containing the alternative models that are to be
+used to determine the power of the tree shape statistics. Functions that
+produce rooted binary trees in <code>phylo</code> format. The information of each
+single model must be in the format described for <code>null_model</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n</code></td>
+<td>
+<p>Integer value that specifies the desired number of leaves, i.e.,
+vertices with in-degree 1 and out-degree 0.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>distribs</code></td>
+<td>
+<p>Determines how the distributions (and with that the
+bounds of the critical region) are computed. Available are: <br></p>
+
+<ul>
+<li>
+<p> "exact_if_possible" (default): Tries to compute the exact distribution
+under the null model if possible. Currently, this is only implemented for
+<code>null_model = "yule"</code>, <code>"pda"</code>, or <code>"etm"</code>, and
+<code>n</code>&lt;=20. In all other cases the distribution is approximated
+by sampling <code>N_null</code> many trees under the null model as in the
+option "sampled" below. <br></p>
+</li>
+<li>
+<p> "sampled": <code>N_null</code> many trees are sampled under the
+null model to approximate the distribution.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N_null</code></td>
+<td>
+<p>Sample size (integer &gt;=10) if distributions are sampled
+(default = 10000L).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N_alt</code></td>
+<td>
+<p>Sample size (integer &gt;=10) for the alternative models to
+estimate the power (default = 1000L).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>test_type</code></td>
+<td>
+<p>Determines the method. Available are: <br></p>
+
+<ul>
+<li>
+<p> "two-tailed" (default): The lower and upper bound of the region of
+acceptance are determined based on the (empirical) distribution function
+such that P(TSS &lt; lower bound) &lt;= <code>sig_lvl</code>/2 and
+P(TSS &gt; upper bound) &lt;= <code>sig_lvl</code>/2. See parameter <code>correction</code>
+for specifying how conservative the test should be: the null
+hypothesis can either be rejected only if the values are strictly outside of
+this region of acceptance (can be too conservative) or it can also be
+rejected (with certain probabilities) if the value equals the lower or
+upper bound.<br></p>
+</li>
+<li>
+<p> "two-tailed-unbiased": Experimental - Use with caution!<br>
+The region of acceptance is optimized to yield an unbiased test, i.e., a test
+that identifies non-null models with a probability of at least
+<code>sig_lvl</code>.
+The region of acceptance is determined similar to the default method.
+However, it need not be symmetrical, i.e., not necessarily
+cutting off <code>sig_lvl</code>/2 on both sides. Also see parameter
+<code>correction</code> for specifying how conservative the test should be.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>correction</code></td>
+<td>
+<p>Specifies the desired correction method.
+Available are: <br></p>
+
+<ul>
+<li>
+<p> "small-sample" (default): This method tries to ensure that the critical
+region, i.e. the range of values for which the null hypothesis is rejected,
+is as close to <code>sig_lvl</code> as possible (compared with "none" below, which
+can be too conservative). The idea is that the null hypothesis is also
+rejected with certain probabilities if the value matches the value of a
+quantile. <br></p>
+</li>
+<li>
+<p> "none": No correction method is applied. With that the test might be
+slightly too conservative as the null hypothesis is maintained if the values
+is &gt;= the lower and &lt;= the upper quantile.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sig_lvl</code></td>
+<td>
+<p>Level of significance (default = 0.05, must be &gt;0 and &lt;1).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>accept_regions</code></td>
+<td>
+<p>Numeric matrix (one row per TSS) with two or four
+columns: The first two columns contain the interval limits of the region
+of acceptance, i.e., we reject the null hypothesis for values strictly
+outside of this interval. The third and fourth columns contain the
+probabilities to reject the null hypothesis if values equal the lower or
+upper bound, respectively. If the last two columns are missing they are
+interpreted as zeroes. See return value of <code>getAccRegion()</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>powerComp</code>  Returns an object of class 'poweRbal_data' which
+is a list containing the following objects:<br></p>
+
+<ul>
+<li>
+<p> power: Numeric matrix containing the power values (one row per TSS and one
+column per alternative model).<br></p>
+</li>
+<li>
+<p> accept_regions: Numeric matrix containing the information on the region of
+acceptance (one row per TSS and four columns).<br></p>
+</li>
+<li>
+<p> CIradius: Numeric matrix containing the confidence interval radii (one row
+per TSS and one column per alternative model).<br></p>
+</li>
+<li>
+<p> actual_sample_sizes: Numeric vector containing the actual sample sizes
+under each alternative model as some models do not always successfully
+generate trees. <br></p>
+</li>
+<li>
+<p> other input data.
+</p>
+</li>
+</ul>
+<p><code>powerComp_RegAcc</code> Returns an object of class 'poweRbal_data'
+similar to <code>powerComp</code>.
+</p>
+
+
+<h3>References</h3>
+
+
+<ul><li>
+<p> S. J. Kersting, K. Wicke, and M. Fischer. Tree balance in phylogenetic models.
+arXiv:2406.05185, 2024.
+</p>
+</li></ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">powerComp(tss = c("Sackin", "Colless", "B1I"),
+          alt_models = list(list("aldous",-1), "pda", "etm"), n = 10L,
+          distribs = "sampled", N_null = 40L, N_alt = 20L)
+powerComp_RegAcc(tss = c("Sackin", "Colless", "B1I"),
+          accept_regions = getAccRegion(tss = c("Sackin", "Colless", "B1I"),
+                                        n = 6L, null_model = "etm",
+                                        N_null = 20L, distribs = "sampled"),
+          null_model = "etm", distribs = "sampled",
+          alt_models = list(list("aldous",-1), "pda", "yule"), n = 6L,
+          N_null = 20L, N_alt = 20L)
+</code></pre>
+
+
+</div>

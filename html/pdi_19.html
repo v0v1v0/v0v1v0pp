@@ -1,0 +1,92 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>rf</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Random forest analysis</h2>
+
+<h3>Description</h3>
+
+<p>Perform random forest repetitions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">rf(analysisTable, cls, params = list(), nreps = 100, seed = 1234)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>analysisTable</code></td>
+<td>
+<p>tibble of phenotype data suitable for random forest analysis as returned by <code>preparePhenotypeData</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cls</code></td>
+<td>
+<p>analysisTable column to use as response vector. NULL for unsupervised analyses.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>params</code></td>
+<td>
+<p>additional arguments to pass to randomForest::randomForest</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nreps</code></td>
+<td>
+<p>number of repetitions</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>random number seed</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(dplyr)
+
+## Retrieve file paths for example data
+files &lt;- list.files(system.file('phenotypeDataCollectionSheets',
+  package = 'pdi'),full.names = TRUE)
+
+## Prepare data
+d &lt;- map(files,readPhenotypeSheet) %&gt;%
+  map(preparePhenotypeData) %&gt;%
+  bind_rows() %&gt;%
+  siteAdjustment() %&gt;%
+   mutate(`Live crown ratio (%)` = liveCrownRatio(`Total height (m)`,
+     `Lower crown height (m)`),
+     `Crown condition (%)` = crownCondition(`Missing crown (%)`,
+                               `Crown transparency (%)`),
+     `Crown volume (m^3)` = crownVolume(`Crown radius (m)`,
+                               `Total height (m)`,
+                               `Lower crown height (m)`,
+                               `Crown condition (%)`),
+     `Bleed prevalence (%)` = bleedPrevalence(`Active bleed length (mm)`,
+                               `Active bleeds`,
+                               `Black staining length (mm)`,
+                               `Black staining`,
+                               `Diameter at breast height (m)`),
+     `Agrilus exit hole density (m^-2)` = agrilusExitHoleDensity(`Agrilus exit holes`,
+                               `Diameter at breast height (m)`)
+)
+
+t &lt;- makeAnalysisTable(d)
+
+## Generate random forest models
+m &lt;- rf(t,cls = NULL,nreps = 10)
+</code></pre>
+
+
+</div>

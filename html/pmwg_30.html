@@ -1,0 +1,171 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>run_stage</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Run a stage of the PMwG sampler</h2>
+
+<h3>Description</h3>
+
+<p>Run one of burnin, adaptation or sampling phase from the PMwG
+sampler. Each stage involves slightly different processes, so for the
+full PMwG sampling we need to run this three times.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">run_stage(
+  pmwgs,
+  stage,
+  iter = 1000,
+  particles = 100,
+  display_progress = TRUE,
+  n_cores = 1,
+  n_unique = ifelse(stage == "adapt", 100, NA),
+  epsilon = NULL,
+  p_accept = 0.8,
+  mix = NULL,
+  pdist_update_n = ifelse(stage == "sample", 50, NA)
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pmwgs</code></td>
+<td>
+<p>A Particle Metropolis within Gibbs sampler which has been set
+up and initialised</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stage</code></td>
+<td>
+<p>The sampling stage to run. Must be one of <code>'burn'</code>,
+<code>'adapt'</code> or <code>'sample'</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iter</code></td>
+<td>
+<p>The number of iterations to run for the sampler. For
+<code>'burn'</code> and <code>'sample'</code> all iterations will run. However for
+<code>'adapt'</code> if all subjects have enough unique samples to create the
+conditional distribution then the stage will finish early.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>particles</code></td>
+<td>
+<p>The default here is 1000 particles to be generated for each
+iteration, however during the sample phase this should be reduced.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>display_progress</code></td>
+<td>
+<p>Display a progress bar during sampling.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_cores</code></td>
+<td>
+<p>Set to more than 1 to use <code>mclapply</code>. Setting
+<code>n_cores</code> greater than 1 is only permitted on Linux and Mac OS X
+machines.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_unique</code></td>
+<td>
+<p>A number representing the number of unique samples to check
+for on each iteration of the sampler (An initial test for the generation
+of the proposal distribution). Only used during the <code>'adapt'</code> stage.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>epsilon</code></td>
+<td>
+<p>A value between 0 and 1 that controls the extent to which the
+covariance matrix is scaled when generating particles from the previous
+random effect. The default will be chosen based on the number of random
+effects in the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>p_accept</code></td>
+<td>
+<p>A value between 0 and 1 that will flexibly tune epsilon to
+achieve an acceptance ratio close to what you set p_accept to. The default
+is set at 0.8.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mix</code></td>
+<td>
+<p>A vector of floats that controls the mixture of different sources
+for particles. The function <code>numbers_from_proportion</code> is
+passed this value and includes extra details on what is accepted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pdist_update_n</code></td>
+<td>
+<p>The number of iterations in the sample stage after
+which the proposal distribution will be recomputed.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The <strong>burnin</strong> stage by default selects 50
+parameter sample (selected through a Gibbs step) and 50
+the previous random effect of each subject. It assesses each particle with
+the log-likelihood function and samples from all particles weighted by their
+log-likelihood.
+</p>
+<p>The <strong>adaptation</strong> stage selects and assesses particle in the same was
+as burnin, however on each iteration it also checks whether each subject has
+enough unique random effect samples to attempt to create a conditional
+distribution for efficient sampling in the next stage. If the attempt at
+creating a conditional distribution fails, then the number of unique samples
+is increased and sampling continues. If the attempt succeeds then the stage
+is finished early.
+</p>
+<p>The <strong>final</strong> stage (sampling) by default samples predominantly from the
+conditional distribution created at the end of adaptation. This is more
+efficient and allows the number of particles to be reduced whilst still
+getting a high enough acceptance rate of new samples.
+</p>
+<p>Once complete each stage will return a sampler object with the new samples
+stored within it.
+</p>
+<p>The progress bar (which is displayed by default) shows the number of
+iterations out of those requested which have been completed. It also contains
+additional information at the end about the number of newly generated
+particles that have been accepted. This is show as New(XXX
+average across subjects of newly sampled random effects accept rate. See
+<code>accept_rate</code> for more detail on getting individual accept rate
+values per subject.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A pmwgs object with the newly generated samples in place.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(rtdists)
+sampled_forstmann$data &lt;- forstmann
+run_stage(sampled_forstmann, "sample", iter = 1, particles = 10)
+</code></pre>
+
+
+</div>

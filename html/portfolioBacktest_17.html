@@ -1,0 +1,294 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>portfolioBacktest</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Backtest multiple portfolios over multiple datasets of stock prices in a rolling-window basis</h2>
+
+<h3>Description</h3>
+
+<p>Automated backtesting of multiple portfolios over multiple 
+datasets of stock prices in a rolling-window fashion. 
+Each portfolio design is easily defined as a
+function that takes as input a window of the stock prices and outputs the 
+portfolio weights. Multiple portfolios can be easily specified as a list 
+of functions or as files in a folder. Multiple datasets can be conveniently 
+obtained with the function <code>financialDataResample</code> that resamples
+the data downloaded with the function <code>stockDataDownload</code>.
+The results can be later assessed and arranged with tables and plots.
+The backtesting can be highly time-consuming depending on the number of 
+portfolios and datasets can be performed with parallel computation over
+multiple cores. Errors in functions are properly catched and handled so
+that the execution of the overal backtesting is not stopped (error messages
+are stored for debugging purposes). See 
+<a href="https://CRAN.R-project.org/package=portfolioBacktest/vignettes/PortfolioBacktest.html">vignette</a>
+for a detailed explanation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">portfolioBacktest(
+  portfolio_funs = NULL,
+  dataset_list,
+  folder_path = NULL,
+  source_to_local = TRUE,
+  price_name = NULL,
+  paral_portfolios = 1,
+  paral_datasets = 1,
+  show_progress_bar = FALSE,
+  benchmarks = NULL,
+  shortselling = TRUE,
+  leverage = Inf,
+  lookback = 252,
+  T_rolling_window = NULL,
+  optimize_every = 20,
+  rebalance_every = 1,
+  bars_per_year = 252,
+  execution = c("same period", "next period"),
+  cost = list(buy = 0, sell = 0, short = 0, long_leverage = 0),
+  cpu_time_limit = Inf,
+  return_portfolio = TRUE,
+  return_returns = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>portfolio_funs</code></td>
+<td>
+<p>List of functions (can also be a single function), each of them taking as input 
+a dataset containing a list of <code>xts</code> objects (following the format of each 
+element of the argument <code>dataset_list</code>) properly windowed (following the
+rolling-window approach) and returning the portfolio as a vector of normalized
+weights. See 
+<a href="https://CRAN.R-project.org/package=portfolioBacktest/vignettes/PortfolioBacktest.html">vignette</a>
+for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dataset_list</code></td>
+<td>
+<p>List of datasets, each containing a list of <code>xts</code> objects, as generated
+by the function <code>financialDataResample</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>folder_path</code></td>
+<td>
+<p>If <code>portfolio_funs</code> is not defined, this should contain the path to a folder 
+containing the portfolio functions saved in files. See 
+<a href="https://CRAN.R-project.org/package=portfolioBacktest/vignettes/PortfolioBacktest.html">vignette</a>
+for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>source_to_local</code></td>
+<td>
+<p>Logical value indicating whether to source files to local environment (default is <code>TRUE</code>).
+It might be dangerous to set it to <code>FALSE</code> as in such case the global environment may be changed.
+We suggest only to allow <code>FALSE</code> when the code in the source files does not work when locally 
+sourced, e.g., with some versions of package <code>CVXR</code>. In that case, we further recommend to set 
+<code>paral_portfolios &gt; 1</code> to avoid changing the global environment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>price_name</code></td>
+<td>
+<p>Name of the <code>xts</code> object in each dataset that contains the prices to be used in the portfolio return 
+computation (default is the name of the first <code>xts</code> object).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>paral_portfolios</code></td>
+<td>
+<p>Interger indicating number of portfolios to be evaluated in parallel (default is <code>1</code>),
+see <a href="https://CRAN.R-project.org/package=portfolioBacktest/vignettes/PortfolioBacktest.html#parallel-backtesting">vignette-paralle-mode</a> for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>paral_datasets</code></td>
+<td>
+<p>Interger indicating number of datasets to be evaluated in parallel (default is <code>1</code>),
+see <a href="https://CRAN.R-project.org/package=portfolioBacktest/vignettes/PortfolioBacktest.html#parallel-backtesting">vignette-paralle-mode</a> for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>show_progress_bar</code></td>
+<td>
+<p>Logical value indicating whether to show progress bar (default is <code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>benchmarks</code></td>
+<td>
+<p>String vector indicating the benchmark portfolios to be incorporated, currently supports:
+</p>
+<ul>
+<li>
+<p><code>1/N</code> - the 1/N portfolio, <code class="reqn">w = [1/N, ..., 1/N]</code> with <code class="reqn">N</code> be number of stocks;
+</p>
+</li>
+<li>
+<p><code>IVP</code> - the inverse-volatility portfolio, with weights be inversely proportional the standard deviation of returns;
+</p>
+</li>
+<li>
+<p><code>index</code> - the market index, requires an <code>xts</code> named 'index' in the datasets.</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shortselling</code></td>
+<td>
+<p>Logical value indicating whether shortselling is allowed or not 
+(default is <code>TRUE</code>, so no control for shorselling in the backtesting).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>leverage</code></td>
+<td>
+<p>Amount of leverage as in <code class="reqn">||w||_1 &lt;= leverage</code> 
+(default is <code>Inf</code>, so no control for leverage in the backtesting).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lookback</code></td>
+<td>
+<p>Length of the lookback rolling window in periods (default is <code>252</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>T_rolling_window</code></td>
+<td>
+<p>Deprecated: use <code>lookback</code> instead.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimize_every</code></td>
+<td>
+<p>How often the portfolio is to be optimized in periods (default is <code>20</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>rebalance_every</code></td>
+<td>
+<p>How often the portfolio is to be rebalanced in periods (default is <code>1</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bars_per_year</code></td>
+<td>
+<p>Number of bars/periods per year. By default it will be calculated automatically 
+(e.g., for daily data there are 252 bars/periods per year).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>execution</code></td>
+<td>
+<p>String that can be either <code>"same period"</code> (default) or <code>"next period"</code>. 
+At the rebalancing period <code>t</code>, the portfolio has used information up to (and including)
+period <code>t</code>. Same period execution means one can get into the position at that period <code>t</code>,
+whereas the next period execution means that one can only get into the position the following period.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cost</code></td>
+<td>
+<p>List containing four different types of transaction costs (common for all assets) 
+for buying, selling, shorting, and long leveraging. The default is 
+<code>cost = list(buy = 0e-4, sell = 0e-4, short = 0e-4, long_leverage = 0e-4)</code>.
+If some elements are not specified then they will be automatically set to zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cpu_time_limit</code></td>
+<td>
+<p>Time limit for executing each portfolio function over a single data set 
+(default is <code>Inf</code>, so no time limit).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_portfolio</code></td>
+<td>
+<p>Logical value indicating whether to return the portfolios (default is <code>TRUE</code>).
+Three portfolio series are returned: 
+<code>w_optimized</code> is the optimized portfolio at each given optimization period 
+(using all the information up to and including that period, which can be executed 
+either on the same period or the following period), 
+<code>w_rebalanced</code> is the rebalanced portfolio at each given rebalancing period,
+and <code>w_bop</code> is the "beginning-of-period" portfolio (i.e., at each period it contains 
+the weights held in the market in the previous period so that the portfolio return at 
+that period is just the product of the asset returns and <code>w_bop</code> at that period.)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_returns</code></td>
+<td>
+<p>Logical value indicating whether to return the portfolio returns (default is <code>TRUE</code>).
+Three series are returned: 
+<code>return</code> with the portfolio returns, 
+<code>wealth</code> with the portfolio wealth (aka cumulative P&amp;L), and
+<code>X_lin</code> with the returns of the assets in the universe (note that the portfolio returns
+can also be obtained as <code>rowSums(X_lin * w_bop)</code> in the absence of transaction costs).</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>List with the portfolio backtest results, see 
+<a href="https://CRAN.R-project.org/package=portfolioBacktest/vignettes/PortfolioBacktest.html#result-format">vignette-result-format</a>
+for details. It can be accessed directly, but we highly recommend the use of the package specific functions to extract 
+any required information, namely, <code>backtestSelector</code>, <code>backtestTable</code>, 
+<code>backtestBoxPlot</code>, <code>backtestLeaderboard</code>,
+<code>backtestSummary</code>, <code>summaryTable</code>, <code>summaryBarPlot</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Daniel P. Palomar and Rui Zhou
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>stockDataDownload</code>, <code>financialDataResample</code>,
+<code>backtestSelector</code>, <code>backtestTable</code>, 
+<code>backtestBoxPlot</code>, <code>backtestLeaderboard</code>,
+<code>backtestSummary</code>, <code>summaryTable</code>, <code>summaryBarPlot</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+library(portfolioBacktest)
+data(dataset10)  # load dataset
+
+# define your own portfolio function
+ewp_portfolio &lt;- function(dataset, ...) {
+  N &lt;- ncol(dataset$adjusted)
+  return(rep(1/N, N))
+}
+
+# do backtest
+bt &lt;- portfolioBacktest(list("EWP" = ewp_portfolio), dataset10)
+
+# check your result
+names(bt)
+backtestSelector(bt, portfolio_name = "EWP", measures = c("Sharpe ratio", "max drawdown"))
+backtestTable(bt, measures = c("Sharpe ratio", "max drawdown"))
+bt_summary &lt;- backtestSummary(bt)
+summaryTable(bt_summary)
+
+
+</code></pre>
+
+
+</div>

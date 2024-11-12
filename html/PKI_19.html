@@ -1,0 +1,117 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PKI.crypt</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+PKI encryption/decryption functions
+</h2>
+
+<h3>Description</h3>
+
+<p><code>PKI.encrypt</code> encrypts a raw vector
+</p>
+<p><code>PKI.decrypt</code> decrypts a raw vector
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PKI.encrypt(what, key, cipher = NULL, iv = NULL)
+PKI.decrypt(what, key, cipher = NULL, iv = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>what</code></td>
+<td>
+<p>raw vector to encrypt/decrypt. It must not exceed the key
+size minus padding</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>key</code></td>
+<td>
+<p>key to use for encryption/decryption</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cipher</code></td>
+<td>
+<p>cipher to use for encryption/decryption</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iv</code></td>
+<td>
+<p>initialization vector for ciphers that use it (e.g.,
+CBC). <code>NULL</code> corresponds to all-zeroes IV, otherwise must be
+either a string or a raw vector with sufficiently many bytes to
+match the IV length for the cipher.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>Raw vector (encrypted/decrypted)
+</p>
+
+
+<h3>Note</h3>
+
+<p>The cipher is optional for key objects that already contain the
+cipher information such as RSA keys (in fact it is ignored in that
+case).
+</p>
+<p>Supported symmetric ciphers are AES-128, AES-256 and BF
+(blowfish). Each cipher can be used in CBC (default), ECB or OFB
+modes which are specified as suffix, so <code>"aes256ofb"</code> would
+specify AES-256 in OFB mode. Case and non-alphanumeric characters are
+ignored, so the same could be specified as <code>"AES-256-OFB"</code>.
+PKCS padding is used to fill up to the block size. Analogously, PKCS
+padding is expected when decoding.
+</p>
+<p>Note that the payload for RSA encryption should be very small since
+it must fit into the key size including padding. For example, 1024-bit
+key can only encrypt 87 bytes, while 2048-bit key can encrypt 215
+bytes. Therefore a typical use is to use RSA to transfer a symmeric
+key to the peer and subsequently use symmetric ciphers like AES for
+encryption of larger amounts of data.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Simon Urbanek
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>PKI.genRSAkey</code>, <code>PKI.pubkey</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">  key &lt;- PKI.genRSAkey(2048)
+  x &lt;- charToRaw("Hello, world!")
+  e &lt;- PKI.encrypt(x, key)
+  y &lt;- PKI.decrypt(e, key)
+  stopifnot(identical(x, y))
+  print(rawToChar(y))
+
+  ## AES symmetric - use SHA256 to support arbitrarily long key strings
+  key &lt;- PKI.digest(charToRaw("hello"), "SHA256")
+  ae &lt;- PKI.encrypt(x, key, "aes256")
+  ae
+  ad &lt;- PKI.decrypt(ae, key, "aes256")
+  stopifnot(identical(x, ad))
+</code></pre>
+
+
+</div>

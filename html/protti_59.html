@@ -1,0 +1,126 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>predict_alphafold_domain</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Predict protein domains of AlphaFold predictions</h2>
+
+<h3>Description</h3>
+
+<p>Uses the predicted aligned error (PAE) of AlphaFold predictions to find possible protein domains.
+A graph-based community clustering algorithm (Leiden clustering) is used on the predicted error
+(distance) between residues of a protein in order to infer pseudo-rigid groups in the protein. This is
+for example useful in order to know which parts of protein predictions are likely in a fixed relative
+position towards each other and which might have varying distances.
+This function is based on python code written by Tristan Croll. The original code can be found on his
+<a href="https://github.com/tristanic/pae_to_domains">GitHub page</a>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">predict_alphafold_domain(
+  pae_list,
+  pae_power = 1,
+  pae_cutoff = 5,
+  graph_resolution = 1,
+  return_data_frame = FALSE,
+  show_progress = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>pae_list</code></td>
+<td>
+<p>a list of proteins that contains aligned errors for their AlphaFold predictions.
+This list can be retrieved with the <code>fetch_alphafold_aligned_error()</code> function. It should contain a
+column containing the scored residue (<code>scored_residue</code>), the aligned residue (<code>aligned_residue</code>) and
+the predicted aligned error (<code>error</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pae_power</code></td>
+<td>
+<p>a numeric value, each edge in the graph will be weighted proportional to (<code>1 / pae^pae_power</code>).
+Default is <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pae_cutoff</code></td>
+<td>
+<p>a numeric value, graph edges will only be created for residue pairs with <code>pae &lt; pae_cutoff</code>.
+Default is <code>5</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>graph_resolution</code></td>
+<td>
+<p>a numeric value that regulates how aggressive the clustering algorithm is. Smaller values
+lead to larger clusters. Value should be larger than zero, and values larger than 5 are unlikely to be useful.
+Higher values lead to stricter (i.e. smaller) clusters. The value is provided to the Leiden clustering algorithm
+of the <code>igraph</code> package as <code>graph_resolution / 100</code>. Default is <code>1</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>return_data_frame</code></td>
+<td>
+<p>a logical value; if <code>TRUE</code> a data frame instead of a list
+is returned. It is recommended to only use this if information for few proteins is retrieved.
+Default is <code>FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>show_progress</code></td>
+<td>
+<p>a logical value that specifies if a progress bar will be shown. Default
+is <code>TRUE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A list of the provided proteins that contains domain assignments for each residue. If <code>return_data_frame</code> is
+<code>TRUE</code>, a data frame with this information is returned instead. The data frame contains the
+following columns:
+</p>
+
+<ul>
+<li>
+<p> residue: The protein residue number.
+</p>
+</li>
+<li>
+<p> domain: A numeric value representing a distinct predicted domain in the protein.
+</p>
+</li>
+<li>
+<p> accession: The UniProt protein identifier.
+</p>
+</li>
+</ul>
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Fetch aligned errors
+aligned_error &lt;- fetch_alphafold_aligned_error(
+  uniprot_ids = c("F4HVG8", "O15552"),
+  error_cutoff = 4
+)
+
+# Predict protein domains
+af_domains &lt;- predict_alphafold_domain(
+  pae_list = aligned_error,
+  return_data_frame = TRUE
+)
+
+head(af_domains, n = 10)
+
+</code></pre>
+
+
+</div>

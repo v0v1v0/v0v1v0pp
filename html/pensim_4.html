@@ -1,0 +1,213 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>create.data</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+simulate correlated predictors with time-to-event or binary outcome
+</h2>
+
+<h3>Description</h3>
+
+<p>This function creates multiple groups of predictor variables which may
+be correlated within each group, and binary or survival time (without
+censoring) response according to specified weights of the predictors.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">create.data(nvars = c(100, 100, 100, 100, 600),
+            cors = c(0.8, 0, 0.8, 0, 0),
+            associations = c(0.5, 0.5, 0.3, 0.3, 0),
+            firstonly = c(TRUE, FALSE, TRUE, FALSE, FALSE),
+            nsamples = 100,
+            censoring = "none",
+            labelswapprob = 0,
+            response = "timetoevent",
+            basehaz = 0.2,
+            logisticintercept = 0)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>nvars</code></td>
+<td>
+<p>integer vector giving the number of variables of each
+variable type.  The number of variable types is equal to the length
+of this vector.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cors</code></td>
+<td>
+<p>integer vector of the same length as nvars, giving the population pairwise Pearson
+correlation within each group.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>associations</code></td>
+<td>
+<p>integer vector of the same length as nvars, giving the associations of each
+type with outcome</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>firstonly</code></td>
+<td>
+<p>logical vector of the same length as nvars, specifying whether only the first variable
+of each type is associated with outcome (TRUE) or all variables of that
+type (FALSE)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nsamples</code></td>
+<td>
+<p>an integer giving the number of observations</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>censoring</code></td>
+<td>
+<p>"none" for no censoring, or a vector of length two c(a,b)
+for uniform U(a,b) censoring.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>labelswapprob</code></td>
+<td>
+<p>This provides an option to add uncertainty to
+binary outcomes by randomly switching labels with probability
+labelswapprob.  The probability of a label being swapped is
+independent for each observation.  The value is ignored if
+response is "timetoevent"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>response</code></td>
+<td>
+<p>either "timetoevent" or "binary"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>basehaz</code></td>
+<td>
+<p>baseline hazard, used for "timetoevent"</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>logisticintercept</code></td>
+<td>
+<p>intercept which is added to X%*%Beta for "binary"</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function simulates "predictor" variables in one or more groups, which are standard
+normally distributed.  The user can specify the population correlation
+within each variable group, the association of each variable group to
+outcome, and whether the first or all variables of that type should be
+associated with outcome.  The simulated response variable can be time to event
+with an exponential distribution, or binary survival with a logistic distribution.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns a list with items:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>summary</code></td>
+<td>
+<p>a summary of the variable
+types produced</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>associations</code></td>
+<td>
+<p>weights of each variable in
+computing the outcome</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>covariance</code></td>
+<td>
+<p>covariance matrix used for
+generating potentially correlated random predictors</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>dataframe containing the predictors and response.
+Response is the last column for binary outcome ("outcome"), and the
+last two columns for timetoevent outcome ("time" and "cens")</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>Depends on the MASS package for correlated random number generation</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Levi Waldron et al.</p>
+
+
+<h3>References</h3>
+
+<p>Waldron L., Pintilie M., Tsao M.-S., Shepherd F. A., Huttenhower C.*, and Jurisica I.*   Optimized
+application of penalized regression methods to diverse genomic
+data. (2010). Under review.  (*equal contribution)
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">##binary outcome example
+set.seed(9)
+x &lt;-
+  create.data(
+    nvars = c(15, 5),
+    cors = c(0, 0.8),
+    associations = c(0, 2),
+    firstonly = c(TRUE, TRUE),
+    nsamples = 50,
+    response = "binary",
+    logisticintercept = 0.5
+  )
+summary(x)
+x$summary
+model &lt;- glm(outcome ~ .,  data = x$data, family = binomial)
+summary(model)
+dat &lt;- t(as.matrix(x$data[, -match("outcome", colnames(x$data))]))
+heatmap(dat, ColSideColors = ifelse(x$data$outcome == 0, "black", "white"))
+
+##censored survival outcome example:
+set.seed(1)
+x &lt;- create.data(
+  nvars = c(15, 5),
+  cors = c(0, 0.8),
+  associations = c(0, 2),
+  firstonly = c(TRUE, TRUE),
+  nsamples = 50,
+  censoring = c(2, 10),
+  response = "timetoevent"
+)
+sum(x$data$cens == 0) / nrow(x$data)  #34 percent censoring
+
+library(survival)
+surv.obj &lt;- Surv(x$data$time, x$data$cens)
+plot(survfit(surv.obj ~ 1), ylab = "Survival probability", xlab = "time")
+</code></pre>
+
+
+</div>

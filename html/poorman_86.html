@@ -1,0 +1,154 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>recode</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Recode values</h2>
+
+<h3>Description</h3>
+
+<p>This is a vectorised version of <code>switch()</code>: you can replace <code>numeric</code> values based on their position or their name,
+and <code>character</code> or <code>factor</code> values only by their name. This is an S3 generic: <code>{poorman}</code> provides methods for
+<code>numeric</code>,  <code>character</code>, and <code>factor</code>s. For <code>logical</code> vectors, use <code>if_else()</code>. For more complicated criteria, use
+<code>case_when()</code>.
+</p>
+<p>You can use <code>recode()</code> directly with <code>factor</code>s; it will preserve the existing order of levels while changing the
+values. Alternatively, you can use <code>recode_factor()</code>, which will change the order of levels to match the order of
+replacements.
+</p>
+<p>This is a direct port of the <code>dplyr::recode()</code> function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">recode(.x, ..., .default = NULL, .missing = NULL)
+
+recode_factor(.x, ..., .default = NULL, .missing = NULL, .ordered = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>.x</code></td>
+<td>
+<p>A vector to modify</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Replacements. For <code>character</code> and <code>factor</code> <code>.x</code>, these should be named and replacement is based only on
+their name. For <code>numeric</code> <code>.x</code>, these can be named or not. If not named, the replacement is done based on position
+i.e. <code>.x</code> represents positions to look for in replacements. See examples.
+</p>
+<p>When named, the argument names should be the current values to be replaced, and the argument values should be the new
+(replacement) values.
+</p>
+<p>All replacements must be the same type, and must have either length one or the same length as <code>.x</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.default</code></td>
+<td>
+<p>If supplied, all values not otherwise matched will be given this value. If not supplied and if the
+replacements are the same type as the original values in <code>.x</code>, unmatched values are not changed. If not supplied and
+if the replacements are not compatible, unmatched values are replaced with <code>NA</code>.
+</p>
+<p><code>.default</code> must be either length 1 or the same length as <code>.x</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.missing</code></td>
+<td>
+<p>If supplied, any missing values in <code>.x</code> will be replaced by this value. Must be either length 1 or
+the same length as <code>.x</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>.ordered</code></td>
+<td>
+<p><code>logical(1)</code>. If <code>TRUE</code>, <code>recode_factor()</code> creates an ordered <code>factor</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>A vector the same length as <code>.x</code>, and the same type as
+the first of <code>...</code>, <code>.default</code>, or <code>.missing</code>.
+<code>recode_factor()</code> returns a factor whose levels are in the same order as
+in <code>...</code>. The levels in <code>.default</code> and <code>.missing</code> come last.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>na_if()</code> to replace specified values with a <code>NA</code>.
+</p>
+<p><code>coalesce()</code> to replace missing values with a specified value.
+</p>
+<p><code>replace_na()</code> to replace <code>NA</code> with a value.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># For character values, recode values with named arguments only. Unmatched
+# values are unchanged.
+char_vec &lt;- sample(c("a", "b", "c"), 10, replace = TRUE)
+recode(char_vec, a = "Apple")
+recode(char_vec, a = "Apple", b = "Banana")
+
+# Use .default as replacement for unmatched values. Note that NA and
+# replacement values need to be of the same type.
+recode(char_vec, a = "Apple", b = "Banana", .default = NA_character_)
+
+# Throws an error as NA is logical, not character.
+## Not run: 
+recode(char_vec, a = "Apple", b = "Banana", .default = NA)
+
+## End(Not run)
+
+# For numeric values, named arguments can also be used
+num_vec &lt;- c(1:4, NA)
+recode(num_vec, `2` = 20L, `4` = 40L)
+
+# Or if you don't name the arguments, recode() matches by position.
+# (Only works for numeric vector)
+recode(num_vec, "a", "b", "c", "d")
+# .x (position given) looks in (...), then grabs (... value at position)
+# so if nothing at position (here 5), it uses .default or NA.
+recode(c(1, 5, 3), "a", "b", "c", "d", .default = "nothing")
+
+# Note that if the replacements are not compatible with .x,
+# unmatched values are replaced by NA and a warning is issued.
+recode(num_vec, `2` = "b", `4` = "d")
+# use .default to change the replacement value
+recode(num_vec, "a", "b", "c", .default = "other")
+# use .missing to replace missing values in .x
+recode(num_vec, "a", "b", "c", .default = "other", .missing = "missing")
+
+# For factor values, use only named replacements
+# and supply default with levels()
+factor_vec &lt;- factor(c("a", "b", "c"))
+recode(factor_vec, a = "Apple", .default = levels(factor_vec))
+
+# Use recode_factor() to create factors with levels ordered as they
+# appear in the recode call. The levels in .default and .missing
+# come last.
+recode_factor(num_vec, `1` = "z", `2` = "y", `3` = "x")
+recode_factor(num_vec, `1` = "z", `2` = "y", `3` = "x", .default = "D")
+recode_factor(num_vec, `1` = "z", `2` = "y", `3` = "x", .default = "D", .missing = "M")
+
+# When the input vector is a compatible vector (character vector or
+# factor), it is reused as default.
+recode_factor(letters[1:3], b = "z", c = "y")
+recode_factor(factor(letters[1:3]), b = "z", c = "y")
+
+</code></pre>
+
+
+</div>

@@ -1,0 +1,181 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>Tileries</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Production of Tileries in Egypt</h2>
+
+<h3>Description</h3>
+
+<p>weeklyly observations of 25 firms from 1982 to 1983
+</p>
+<p><em>number of observations</em> : 483
+</p>
+<p><em>number of  time-series </em> :  22 
+</p>
+<p><em>country</em> :  Egypt 
+</p>
+<p><em>package</em> : panelproduction
+</p>
+<p><em>JEL codes: </em>D24, C13, C51, C23, J31
+</p>
+<p><em>Chapter</em> : 01, 03
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">data(Tileries)</code></pre>
+
+
+<h3>Format</h3>
+
+<p>A dataframe containing:
+</p>
+
+<dl>
+<dt>id</dt>
+<dd>
+<p>firm id</p>
+</dd>
+<dt>week</dt>
+<dd>
+<p>week (3 weeks aggregated)</p>
+</dd>
+<dt>area</dt>
+<dd>
+<p>one of <code>"fayoum"</code> and <code>"kalyubiya"</code></p>
+</dd>
+<dt>output</dt>
+<dd>
+<p>output</p>
+</dd>
+<dt>labor</dt>
+<dd>
+<p>labor hours</p>
+</dd>
+<dt>machine</dt>
+<dd>
+<p>machine hours</p>
+</dd>
+</dl>
+<h3>Source</h3>
+
+<p>Journal of Applied Econometrics Data Archive : <a href="http://qed.econ.queensu.ca/jae/">http://qed.econ.queensu.ca/jae/</a></p>
+
+
+<h3>References</h3>
+
+<p>Horrace and Schmidt (1996) “Confidence Statements for Efficiency Estimates From Stochastic Frontier Models”, <em>Journal of Productity Analysis</em>, <b>7</b>, 257–282, doi: <a href="https://doi.org/10.1007/BF00157044">10.1007/BF00157044</a>
+.
+</p>
+<p>Horrace and Schmidt (2012) “Multiple Comparisons with the Best, with Economic Applications”, <em>Journal of Applied Econometrics</em>, <b>15(1)</b>, 1–26, doi: <a href="https://doi.org/10.1002/(SICI)1099-1255(200001/02)15:1%3C1::AID-JAE551%3E3.0.CO;2-Y">10.1002/(SICI)1099-1255(200001/02)15:1&lt;1::AID-JAE551&gt;3.0.CO;2-Y</a>
+.
+</p>
+<p>Seale J.L. (1990) “Estimating Stochastic Frontier Systems with Unbalanced Panel Data: the Case of Floor Tile Manufactories in Egypt”, <em>Journal of Applied Econometrics</em>, <b>5</b>, 59–79, doi: <a href="https://doi.org/10.1002/jae.3950050105">10.1002/jae.3950050105</a>
+.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#### Example 1-2
+
+## ------------------------------------------------------------------------
+data("Tileries", package = "pder")
+library("plm")
+coef(summary(plm(log(output) ~ log(labor) + machine, data = Tileries,
+             subset = area == "fayoum")))
+
+## ------------------------------------------------------------------------
+coef(summary(plm(log(output) ~ log(labor) + machine, data = Tileries,
+             model = "pooling", subset = area == "fayoum")))
+
+
+#### Example 1-5
+
+## ------------------------------------------------------------------------
+data("Tileries", package = "pder")
+til.fm &lt;- log(output) ~ log(labor) + log(machine)
+lm.mod &lt;- lm(til.fm, data = Tileries, subset = area == "fayoum")
+
+## ------------------------------------------------------------------------
+if (requireNamespace("car")){
+    library("car")
+    lht(lm.mod, "log(labor) + log(machine) = 1")
+
+## ------------------------------------------------------------------------
+    library("car")
+    lht(lm.mod, "log(labor) + log(machine) = 1", vcov=vcovHC)
+}
+
+
+#### Example 1-6
+
+## ------------------------------------------------------------------------
+plm.mod &lt;- plm(til.fm, data = Tileries, subset = area == "fayoum")
+
+## ------------------------------------------------------------------------
+if (requireNamespace("car")){
+    library("car")
+    lht(plm.mod, "log(labor) + log(machine) = 1", vcov = vcovHC)
+}
+
+#### Example 3-1
+
+## ------------------------------------------------------------------------
+library(plm)
+data("Tileries", package = "pder")
+head(Tileries, 3)
+pdim(Tileries)
+
+## ------------------------------------------------------------------------
+Tileries &lt;- pdata.frame(Tileries)
+plm.within &lt;- plm(log(output) ~ log(labor) + log(machine), Tileries)
+y &lt;- log(Tileries$output)
+x1 &lt;- log(Tileries$labor)
+x2 &lt;- log(Tileries$machine)
+lm.within &lt;- lm(I(y - Between(y)) ~ I(x1 - Between(x1)) + I(x2 - Between(x2)) - 1)
+lm.lsdv &lt;- lm(log(output) ~ log(labor) + log(machine) + factor(id), Tileries)
+coef(lm.lsdv)[2:3]
+coef(lm.within)
+coef(plm.within)
+
+## ------------------------------------------------------------------------
+tile.r &lt;- plm(log(output) ~ log(labor) + log(machine), Tileries, model = "random")
+summary(tile.r)
+
+## ------------------------------------------------------------------------
+plm.within &lt;- plm(log(output) ~ log(labor) + log(machine),
+                  Tileries, effect = "twoways")
+lm.lsdv &lt;- lm(log(output) ~ log(labor) + log(machine) +
+                  factor(id) + factor(week), Tileries)
+y &lt;- log(Tileries$output)
+x1 &lt;- log(Tileries$labor)
+x2 &lt;- log(Tileries$machine)
+y &lt;- y - Between(y, "individual") - Between(y, "time") + mean(y)
+x1 &lt;- x1 - Between(x1, "individual") - Between(x1, "time") + mean(x1)
+x2 &lt;- x2 - Between(x2, "individual") - Between(x2, "time") + mean(x2)
+lm.within &lt;- lm(y ~ x1 + x2 - 1)
+coef(plm.within)
+coef(lm.within)
+coef(lm.lsdv)[2:3]
+
+## ------------------------------------------------------------------------
+wh &lt;- plm(log(output) ~ log(labor) + log(machine), Tileries,
+          model = "random", random.method = "walhus",
+          effect = "twoways")
+am &lt;- update(wh, random.method = "amemiya")
+sa &lt;- update(wh, random.method = "swar")
+ercomp(sa)
+
+## ------------------------------------------------------------------------
+re.models &lt;- list(walhus = wh, amemiya = am, swar = sa)
+sapply(re.models, function(x) sqrt(ercomp(x)$sigma2))
+sapply(re.models, coef)
+
+</code></pre>
+
+
+</div>

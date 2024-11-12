@@ -1,0 +1,484 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PLreg</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Power Logit Regression Models for Bounded Variables</h2>
+
+<h3>Description</h3>
+
+<p><code>PLreg</code> is used to fit power logit regression model for continuous and bounded variables via maximum likelihood approach.
+Both median and dispersion of the response variable are modeled through
+parametric functions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PLreg(
+  formula,
+  data,
+  subset,
+  na.action,
+  family = c("NO", "LO", "TF", "PE", "SN", "SLASH", "Hyp"),
+  zeta = NULL,
+  link = c("logit", "probit", "cloglog", "cauchit", "loglog"),
+  link.sigma = NULL,
+  type = c("pML", "ML"),
+  control = PLreg.control(...),
+  model = TRUE,
+  y = TRUE,
+  x = FALSE,
+  ...
+)
+
+PLreg.fit(
+  X,
+  y,
+  S = NULL,
+  family,
+  type = "pML",
+  zeta = zeta,
+  link = "logit",
+  link.sigma = "log",
+  control = PLreg.control()
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>a symbolic description of the model. See details for further information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data, subset, na.action</code></td>
+<td>
+<p>arguments controlling formula processing via <code>model.frame</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>a description of the symmetric distribution to be used for generating the power logit model.
+Supported families include "<code>NO</code>", "<code>LO</code>", "<code>TF</code>", "<code>PE</code>", "<code>Hyp</code>", <code>SHN</code>"
+and "<code>SLASH</code>", which correspond to the power logit normal, type II logistic,
+Student-t, power exponential, hyperbolic, sinh-normal, and slash distributions, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zeta</code></td>
+<td>
+<p>a numeric value or numeric vector that represents the extra parameter of the distribution. For the
+PL-NO and PL-LO models, no extra parameter is needed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>link</code></td>
+<td>
+<p>an optional character that specifies the link function of the median submodel (mu).
+The "<code>logit</code>", "<code>probit</code>", "<code>cloglog</code>", "<code>cauchit</code>",
+"<code>loglog</code>" functions are supported. The <code>logit</code> function is the default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>link.sigma</code></td>
+<td>
+<p>an optional character that specifies the link function of the dispersion submodel (sigma).
+The "<code>log</code>", "<code>sqrt</code>" functions are supported. The default is <code>log</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>character specifying the type of estimator for the skewness parameter.
+Currently, penalized maximum likelihood ("<code>pML</code>") and maximum likelihood ("<code>ML</code>") are supported.
+If the skewness parameter is fixed, <code>ML</code> type is used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>a list of control arguments specified via <code>PLreg.control</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model, y, x</code></td>
+<td>
+<p>logicals. If <code>TRUE</code> the corresponding components of the fit
+(model frame, response, model matrix) are returned.  For <code>PLreg.fit</code>, <code>y</code> must
+be the numeric response vector (with values in (0,1)).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>arguments passed to <code>PLreg.control</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>numeric regressor matrix for the median submodel.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>S</code></td>
+<td>
+<p>numeric regressor matrix for the dispersion submodel.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The power logit regression models, proposed by Queiroz and Ferrari (2022), is useful in
+situations when the response variable is continuous and bounded on the unit interval (0, 1).
+The median and the dispersion parameters are modeled through parametric link
+functions. The models depend on a skewness parameter (called <code class="reqn">\lambda</code>). When the skewness parameter is fixed
+and equal to 1, the power logit models coincide with the GJS regression models
+(Lemonte and Bazan, 2016). Queiroz and Ferrari (2022)  suggest using a penalized maximum
+likelihood method to estimate the parameters. This method is implemented in
+<code>PLreg</code> by default when <code class="reqn">\lambda</code> is not fixed. If convergence is not reached,
+maximum likelihood estimation is performed. The estimation
+process uses <code>optim</code>. If no starting values are specified,
+the <code>PLreg</code> function uses those suggested by Queiroz and Ferrari (2022).
+This function also fits the log-log regression models by setting <code class="reqn">\lambda</code>
+at zero (<code class="reqn">\lambda = 0</code> represents <code class="reqn">\lambda \rightarrow 0^+</code>).<br><br>
+The formulation of the model has the same structure as in the usual functions
+<code>lm</code> and <code>glm</code>. The argument
+<code>formula</code> could comprise of three parts (separated by the symbols "<code class="reqn">~</code>" and "<code class="reqn">|</code>"),
+namely: observed response variable in the unit interval, predictor of the median submodel,
+with link function <code>link</code> and predictor of the dispersion submodel, with <code>link.sigma</code>
+link function. If the model has constant dispersion, the third part may be omitted and the link function for sigma
+is "<code>log</code>" by default. The skewness parameter <code>lambda</code> may be
+treated as fixed or not (default). If <code>lambda</code> is fixed, its value
+must be specified in the <code>control</code> argument. <br><br>
+Some methods are available for objects of class "<code>PLreg</code>",
+see <code>plot.PLreg</code>, <code>summary.PLreg</code>,
+<code>coef.PLreg</code>, <code>vcov.PLreg</code>, and
+<code>residuals.PLreg</code>, for details and other methods.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>PLreg</code> returns an object of class "<code>PLreg</code>" with the following
+components (the <code>PLreg.fit</code> returns elements up to <code>v</code>).
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>coefficients</code></td>
+<td>
+<p>a list with the "<code>median</code>", "<code>dispersion</code>" and
+"<code>skewness</code>" (if <code>lambda = NULL</code>) coefficients.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>residuals</code></td>
+<td>
+<p>a vector of the raw residuals (the difference between the
+observed and the fitted response).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fitted.values</code></td>
+<td>
+<p>a vector with the fitted values of the median submodel.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optim</code></td>
+<td>
+<p>a list with the output from <code>optim</code>. When lambda is not fixed,
+if <code>type = "pML"</code>, the output refers to the iterative process of
+the median and dispersion parameters only and, if <code>type = "ML"</code>,
+on the maximization of the likelihood for all the parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>a character specifying the <code>family</code> used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>the method argument passed to the optim call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>control</code></td>
+<td>
+<p>the control arguments passed to the optim call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start</code></td>
+<td>
+<p>a vector with the starting values used in the iterative process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nobs</code></td>
+<td>
+<p>number of observations.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df.null</code></td>
+<td>
+<p>residual degrees of freedom in the null model
+(constant median and dispersion), i.e., <code class="reqn">n-3</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>df.residual</code></td>
+<td>
+<p>residual degrees of freedom in the fitted model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lambda</code></td>
+<td>
+<p>value of the skewness parameter lambda
+(<code>NULL</code> when lambda is not fixed).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loglik</code></td>
+<td>
+<p>log-likelihood of the fitted model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>loglikp</code></td>
+<td>
+<p>penalized profile log-likelihood for lambda. If lambda is
+equal to zero, <code>loglikp</code> returns 1.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>vcov</code></td>
+<td>
+<p>covariance matrix of all the parameters.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pseudo.r.squared</code></td>
+<td>
+<p>pseudo R-squared value.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Upsilon.zeta</code></td>
+<td>
+<p>an overall goodness-of-fit measure.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>link</code></td>
+<td>
+<p>a list with elements "<code>median</code>" and "<code>dispersion</code>" containing the
+link objects for the respective models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>converged</code></td>
+<td>
+<p>logical indicating successful convergence of the
+iterative process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zeta</code></td>
+<td>
+<p>a numeric specifying the value of zeta used in the estimation
+process.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>a character specifying the estimation method used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>v</code></td>
+<td>
+<p>a vector with the v(z) values for all the observations (see Queiroz and
+Ferrari(2021)).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>call</code></td>
+<td>
+<p>the original function call.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>the formula used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>terms</code></td>
+<td>
+<p>a list with elements "<code>median</code>", "<code>dispersion</code>" and "<code>full</code>" containing
+the term objects for the respective models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>levels</code></td>
+<td>
+<p>a list with elements "<code>median</code>", "<code>dispersion</code>" and "<code>full</code>" containing
+the levels of the categorical regressors.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contrasts</code></td>
+<td>
+<p>a list with elements "<code>median</code>" and "<code>dispersion</code>"
+containing the contrasts corresponding to levels from the respective models.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>model</code></td>
+<td>
+<p>the full model frame (if <code>y = TRUE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y</code></td>
+<td>
+<p>the response variable (if <code>y = TRUE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a list with elements "<code>median</code>" and "<code>dispersion</code>" with the matrices from
+the median and dispersion submodels (if <code>x = TRUE</code>).</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Francisco Felipe de Queiroz (<a href="mailto:ffelipeq@outlook.com">ffelipeq@outlook.com</a>) and Silvia L. P. Ferrari.
+</p>
+
+
+<h3>References</h3>
+
+<p>Queiroz, F. F. and Ferrari, S. L. P. (2022). Power logit regression
+for modeling bounded data. <em>arXiv</em>:2202.01697. <br><br>
+Lemonte, A. J. and Bazan, J. L. (2015). New class of Johnson SB distributions
+and its associated regression model for rates and proportions. <em>Biometrical Journal</em>. 58:727-746.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>summary.PLreg</code>, <code>PLreg.control</code>, <code>residuals.PLreg</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">#### Body fat data
+data("bodyfat_Aeolus")
+
+#Initial model with zeta = 2
+fit1 &lt;- PLreg(percentfat ~ days + sex + year, data = bodyfat_Aeolus,
+             family = "PE", zeta = 2)
+summary(fit1)
+# Choosing the best value for zeta
+# extra.parameter(fit1, lower = 1, upper = 4, grid = 15)
+
+# Using zeta = 1.7
+fit2 &lt;- PLreg(percentfat ~ days + sex + year, data = bodyfat_Aeolus,
+             family = "PE", zeta = 1.7)
+summary(fit2)
+
+# Fixing lambda = 1
+fit3 &lt;- PLreg(percentfat ~ days + sex + year, data = bodyfat_Aeolus,
+             family = "PE", zeta = 1.7,
+             control = PLreg.control(lambda = 1))
+summary(fit3)
+
+# Comparing the AIC and Upsilon values between fit2 and fit3
+AIC(fit2) &lt; AIC(fit3) # TRUE
+fit2$Upsilon.zeta &lt; fit3$Upsilon.zeta #TRUE
+
+#### Firm cost data
+data("Firm")
+
+fitPL &lt;- PLreg(firmcost ~ sizelog + indcost | sizelog + indcost,
+              data = Firm,
+              family = "SLASH",
+              zeta = 2.13)
+summary(fitPL)
+#extra.parameter(fitPL, lower = 1.2, upper = 4, grid = 10)
+#plot(fitPL, type = "standardized")
+#envelope(fitPL, type = "standardized")
+
+fitPL_wo72 &lt;- PLreg(firmcost ~ sizelog + indcost | sizelog + indcost,
+                   data = Firm[-72,],
+                   family = "SLASH",
+                   zeta = 2.13)
+fitPL_wo15 &lt;- PLreg(firmcost ~ sizelog + indcost | sizelog + indcost,
+                   data = Firm[-15,],
+                   family = "SLASH",
+                   zeta = 2.13)
+fitPL_wo16 &lt;- PLreg(firmcost ~ sizelog + indcost | sizelog + indcost,
+                   data = Firm[-16,],
+                   family = "SLASH",
+                   zeta = 2.13)
+
+coef.mu      &lt;- coef(fitPL)[1:3]
+coef.mu_wo72 &lt;- coef(fitPL_wo72)[1:3]
+coef.mu_wo15 &lt;- coef(fitPL_wo15)[1:3]
+coef.mu_wo16 &lt;- coef(fitPL_wo16)[1:3]
+
+plot(Firm$indcost, Firm$firmcost,
+    pch = "+",
+    xlab = "indcost",
+    ylab = "firmcost")
+#identify(Firm$indcost, Firm$firmcost)
+covariate = matrix(c(rep.int(1, 1000),
+                    rep(median(Firm$sizelog), 1000),
+                    seq(0, 1.22, length.out = 1000)),
+                  ncol = 3)
+lines(covariate[,3],
+     as.vector(fitPL$link$median$linkinv(covariate%*%coef.mu)),
+     type = "l")
+lines(covariate[,3],
+     as.vector(fitPL$link$median$linkinv(covariate%*%coef.mu_wo72)),
+     type = "l", lty = 2, col = "blue")
+lines(covariate[,3],
+     as.vector(fitPL$link$median$linkinv(covariate%*%coef.mu_wo15)),
+     type = "l", lty = 3, col = "red")
+lines(covariate[,3],
+     as.vector(fitPL$link$median$linkinv(covariate%*%coef.mu_wo16)),
+     type = "l", lty = 4, col = "green")
+parameters = c("pML",
+              "pML w/o 72",
+              "pML w/o 15",
+              "pML w/o 16")
+legend(x = 0.5,
+      y = 0.8,
+      legend = parameters,
+      col = c("black", "blue", "red", "green"),
+      lty = c(1, 2, 3, 4),
+      cex = 0.6)
+
+</code></pre>
+
+
+</div>

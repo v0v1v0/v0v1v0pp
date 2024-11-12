@@ -1,0 +1,158 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>form_estimate</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a pdqr-function for distribution of sample estimate</h2>
+
+<h3>Description</h3>
+
+<p>Based on pdqr-function, statistic function, and sample size describe the
+distribution of sample estimate. This might be useful for statistical
+inference.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">form_estimate(f, stat, sample_size, ..., n_sample = 10000,
+  args_new = list())
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>f</code></td>
+<td>
+<p>A pdqr-function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stat</code></td>
+<td>
+<p>Statistic function. Should be able to accept numeric vector of
+size <code>sample_size</code> and return single numeric or logical output.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sample_size</code></td>
+<td>
+<p>Size of sample for which distribution of sample estimate
+is needed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Other arguments for <code>stat</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n_sample</code></td>
+<td>
+<p>Number of elements to generate from distribution of sample
+estimate.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>args_new</code></td>
+<td>
+<p>List of extra arguments for new_*() function to
+control <code>density()</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>General idea is to create a sample from target distribution by
+generating <code>n_sample</code> samples of size <code>sample_size</code> and compute for each of
+them its estimate by calling input <code>stat</code> function. If created sample is
+logical, <strong>boolean</strong> pdqr-function (type "discrete" with elements being
+exactly 0 and 1) is created with probability of being true estimated as share
+of <code>TRUE</code> values (after removing possible <code>NA</code>). If sample is numeric, it is
+used as input to <code style="white-space: pre;">⁠new_*()⁠</code> of appropriate class with <code>type</code> equal to type of
+<code>f</code> (if not forced otherwise in <code>args_new</code>).
+</p>
+<p><strong>Notes</strong>:
+</p>
+
+<ul>
+<li>
+<p> This function may be very time consuming for large values of <code>n_sample</code> and
+<code>sample_size</code>, as total of <code>n_sample*sample_size</code> numbers are generated and
+<code>stat</code> function is called <code>n_sample</code> times.
+</p>
+</li>
+<li>
+<p> Output distribution might have a bias compared to true distribution of
+sample estimate. One useful technique for bias correction: compute mean value
+of estimate using big <code>sample_size</code> (with <code>mean(as_r(f)(sample_size))</code>) and
+then recenter distribution to actually have that as a mean.
+</p>
+</li>
+</ul>
+<h3>Value</h3>
+
+<p>A pdqr-function of the same class and
+type (if not forced otherwise in <code>args_new</code>) as <code>f</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Other form functions: 
+<code>form_mix()</code>,
+<code>form_regrid()</code>,
+<code>form_resupport()</code>,
+<code>form_retype()</code>,
+<code>form_smooth()</code>,
+<code>form_tails()</code>,
+<code>form_trans()</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># These examples take some time to run, so be cautious
+
+set.seed(101)
+
+# Type "discrete"
+d_dis &lt;- new_d(data.frame(x = 1:4, prob = 1:4 / 10), "discrete")
+## Estimate of distribution of mean
+form_estimate(d_dis, stat = mean, sample_size = 10)
+## To change type of output, supply it in `args_new`
+form_estimate(
+  d_dis, stat = mean, sample_size = 10,
+  args_new = list(type = "continuous")
+)
+
+# Type "continuous"
+d_unif &lt;- as_d(dunif)
+## Supply extra named arguments for `stat` in `...`
+plot(form_estimate(d_unif, stat = mean, sample_size = 10, trim = 0.1))
+lines(
+  form_estimate(d_unif, stat = mean, sample_size = 10, trim = 0.3),
+  col = "red"
+)
+lines(
+  form_estimate(d_unif, stat = median, sample_size = 10),
+  col = "blue"
+)
+
+# Statistic can return single logical value
+d_norm &lt;- as_d(dnorm)
+all_positive &lt;- function(x) {
+  all(x &gt; 0)
+}
+## Probability of being true should be around 0.5^5
+form_estimate(d_norm, stat = all_positive, sample_size = 5)
+
+
+</code></pre>
+
+
+</div>

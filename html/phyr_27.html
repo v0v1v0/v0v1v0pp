@@ -1,0 +1,961 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pglmm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Phylogenetic Generalized Linear Mixed Model for Community Data</h2>
+
+<h3>Description</h3>
+
+<p>This function performs Generalized Linear Mixed Models for binary, count,
+and continuous data, estimating regression coefficients with
+approximate standard errors. It is specifically designed for community data
+in which species occur within multiple sites (locations).
+A Bayesian version of PGLMM uses the package <code>INLA</code>,
+which is not available on CRAN yet. If you wish to use this option,
+you must first install <code>INLA</code> from <a href="https://www.r-inla.org/">https://www.r-inla.org/</a> by running
+<code>install.packages('INLA', repos='https://www.math.ntnu.no/inla/R/stable')</code> in R.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pglmm(
+  formula,
+  data = NULL,
+  family = "gaussian",
+  cov_ranef = NULL,
+  random.effects = NULL,
+  REML = TRUE,
+  optimizer = c("nelder-mead-nlopt", "bobyqa", "Nelder-Mead", "subplex"),
+  repulsion = FALSE,
+  add.obs.re = TRUE,
+  verbose = FALSE,
+  cpp = TRUE,
+  bayes = FALSE,
+  s2.init = NULL,
+  B.init = NULL,
+  reltol = 10^-6,
+  maxit = 500,
+  tol.pql = 10^-6,
+  maxit.pql = 200,
+  marginal.summ = "mean",
+  calc.DIC = TRUE,
+  calc.WAIC = TRUE,
+  prior = "inla.default",
+  prior_alpha = 0.1,
+  prior_mu = 1,
+  ML.init = FALSE,
+  tree = NULL,
+  tree_site = NULL,
+  sp = NULL,
+  site = NULL,
+  bayes_options = NULL,
+  bayes_nested_matrix_as_list = FALSE
+)
+
+communityPGLMM(
+  formula,
+  data = NULL,
+  family = "gaussian",
+  cov_ranef = NULL,
+  random.effects = NULL,
+  REML = TRUE,
+  optimizer = c("nelder-mead-nlopt", "bobyqa", "Nelder-Mead", "subplex"),
+  repulsion = FALSE,
+  add.obs.re = TRUE,
+  verbose = FALSE,
+  cpp = TRUE,
+  bayes = FALSE,
+  s2.init = NULL,
+  B.init = NULL,
+  reltol = 10^-6,
+  maxit = 500,
+  tol.pql = 10^-6,
+  maxit.pql = 200,
+  marginal.summ = "mean",
+  calc.DIC = TRUE,
+  calc.WAIC = TRUE,
+  prior = "inla.default",
+  prior_alpha = 0.1,
+  prior_mu = 1,
+  ML.init = FALSE,
+  tree = NULL,
+  tree_site = NULL,
+  sp = NULL,
+  site = NULL,
+  bayes_options = NULL,
+  bayes_nested_matrix_as_list = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>A two-sided linear formula object describing the
+mixed effects of the model.
+</p>
+<p>To specify that a random term should have phylogenetic covariance matrix along
+with non-phylogenetic one, add <code>__</code> (two underscores) at the end of the group variable;
+e.g., <code>+ (1 | sp__)</code> will construct two random terms,
+one with phylogenetic covariance matrix and another with non-phylogenetic (identity) matrix.
+In contrast, <code>__</code> in the nested terms (below) will only create a phylogenetic covariance matrix.
+Nested random terms have the general form <code>(1|sp__@site__)</code> which represents
+phylogenetically related species nested within correlated sites.
+This form can be used for bipartite questions. For example, species could be
+phylogenetically related pollinators and sites could be phylogenetically related plants, leading to
+the random effect <code>(1|insects__@plants__)</code>. If more than one phylogeny is used, remember to add
+all to the argument <code>cov_ranef = list(insects = insect_phylo, plants = plant_phylo)</code>. Phylogenetic correlations can
+be dropped by removing the <code>__</code> underscores. Thus, the form <code>(1|sp@site__)</code> excludes the phylogenetic
+correlations among species, while the form <code>(1|sp__@site)</code> excludes the correlations among sites.
+</p>
+<p>Note that correlated random terms are not allowed. For example,
+<code>(x|g)</code> will be the same as <code>(0 + x|g)</code> in the <code>lme4::lmer</code> syntax. However,
+<code>(x1 + x2|g)</code> won't work, so instead use  <code>(x1|g) + (x2|g)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A <code>data.frame</code> containing the variables named in formula.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>Either "gaussian" for a Linear Mixed Model, or
+"binomial" or "poisson" for Generalized Linear Mixed Models.
+"family" should be specified as a character string (i.e., quoted). For binomial and
+Poisson data, we use the canonical logit and log link functions, respectively.
+Binomial data can be either presence/absence, or a two-column array of 'successes' and 'failures'.
+For both binomial  and Poisson data, we add an observation-level
+random term by default via <code>add.obs.re = TRUE</code>. If <code>bayes = TRUE</code> there are
+two additional families available: "zeroinflated.binomial", and "zeroinflated.poisson",
+which add a zero inflation parameter; this parameter gives the probability that the response is
+a zero. The rest of the parameters of the model then reflect the "non-zero" part part
+of the model. Note that "zeroinflated.binomial" only makes sense for success/failure
+response data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cov_ranef</code></td>
+<td>
+<p>A named list of covariance matrices of random terms. The names should be the
+group variables that are used as random terms with specified covariance matrices
+(without the two underscores, e.g. <code>list(sp = tree1, site = tree2)</code>). The actual object
+can be either a phylogeny with class "phylo" or a prepared covariance matrix. If it is a phylogeny,
+<code>pglmm</code> will prune it and then convert it to a covariance matrix assuming Brownian motion evolution.
+<code>pglmm</code> will also standardize all covariance matrices to have determinant of one. Group variables
+will be converted to factors and all covariance matrices will be rearranged so that rows and
+columns are in the same order as the levels of their corresponding group variables.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>random.effects</code></td>
+<td>
+<p>Optional pre-build list of random effects. If <code>NULL</code> (the default),
+the function <code>prep_dat_pglmm</code> will prepare the random effects for you from the information
+in <code>formula</code>, <code>data</code>, and <code>cov_ranef</code>. <code>random.effect</code> allows a list of
+pre-generated random effects terms to increase flexibility; for example, this makes it
+possible to construct models with both phylogenetic correlation and spatio-temporal autocorrelation.
+In preparing <code>random.effect</code>, make sure that the orders of rows and columns of
+covariance matrices in the list are the same as their corresponding group variables
+in the data. Also, this should be <em>a list of lists</em>, e.g.
+<code>random.effects = list(re1 = list(matrix_a), re2 = list(1, sp = sp, covar = Vsp))</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>REML</code></td>
+<td>
+<p>Whether REML or ML is used for model fitting the random effects. Ignored if
+<code>bayes = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimizer</code></td>
+<td>
+<p>nelder-mead-nlopt (default), bobyqa, Nelder-Mead, or subplex.
+Nelder-Mead is from the stats package and the other optimizers are from the nloptr package.
+Ignored if <code>bayes = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>repulsion</code></td>
+<td>
+<p>When there are nested random terms specified, <code>repulsion = FALSE</code> tests
+for phylogenetic underdispersion while <code>repulsion = FALSE</code> tests for overdispersion.
+This argument is a logical vector of length either 1 or &gt;1.
+If its length is 1, then all covariance matrices in nested terms will be either
+inverted (overdispersion) or not. If its length is &gt;1, then you can select
+which covariance matrix in the nested terms to be inverted. Make sure to get
+the length right: for all the terms with <code>@</code>, count the number of "__"
+to determine the length of repulsion. For example, <code>sp__@site</code> and <code>sp@site__</code>
+will each require one element of <code>repulsion</code>, while <code>sp__@site__</code> will take two
+elements (repulsion for sp and repulsion for site). Therefore, if your nested terms are
+<code>(1|sp__@site) + (1|sp@site__) + (1|sp__@site__)</code>, then you should set the
+repulsion to be something like <code>c(TRUE, FALSE, TRUE, TRUE)</code> (length of 4).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add.obs.re</code></td>
+<td>
+<p>Whether to add an observation-level random term for binomial or Poisson
+distributions. Normally it would be a good idea to add this to account for overdispersion,
+so <code>add.obs.re = TRUE</code> by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If <code>TRUE</code>, the model deviance and running
+estimates of <code>s2</code> and <code>B</code> are plotted each iteration
+during optimization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cpp</code></td>
+<td>
+<p>Whether to use C++ function for optim. Default is TRUE. Ignored if <code>bayes = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bayes</code></td>
+<td>
+<p>Whether to fit a Bayesian version of the PGLMM using <code>r-inla</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2.init</code></td>
+<td>
+<p>An array of initial estimates of s2 for each random
+effect that scales the variance. If s2.init is not provided for
+<code>family="gaussian"</code>, these are estimated using <code>lm</code> assuming
+no phylogenetic signal. A better approach might be to run <code>link[lme4:lmer]{lmer}</code>
+and use the output random effects for <code>s2.init</code>. If <code>s2.init</code> is not
+provided for <code>family = "binomial"</code>, these are set to 0.25.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.init</code></td>
+<td>
+<p>Initial estimates of <code class="reqn">B</code>, a matrix containing
+regression coefficients in the model for the fixed effects. This
+matrix must have <code>dim(B.init) = c(p + 1, 1)</code>, where <code>p</code> is the
+number of predictor (independent) variables; the first element of
+<code>B</code> corresponds to the intercept, and the remaining elements
+correspond in order to the predictor (independent) variables in the
+formula. If <code>B.init</code> is not provided, these are estimated
+using <code>lm</code> or <code>glm</code> assuming no phylogenetic signal.
+A better approach might be to run <code>lmer</code> and use the
+output fixed effects for <code>B.init</code>. When <code>bayes = TRUE</code>, initial values are estimated
+using the maximum likelihood fit unless <code>ML.init = FALSE</code>, in
+which case the default <code>INLA</code> initial values will be used.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reltol</code></td>
+<td>
+<p>A control parameter dictating the relative tolerance
+for convergence in the optimization; see <code>optim</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit</code></td>
+<td>
+<p>A control parameter dictating the maximum number of
+iterations in the optimization; see <code>optim</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol.pql</code></td>
+<td>
+<p>A control parameter dictating the tolerance for
+convergence in the PQL estimates of the mean components of the
+GLMM. Ignored if <code>family = "gaussian"</code> or <code>bayes = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit.pql</code></td>
+<td>
+<p>A control parameter dictating the maximum number
+of iterations in the PQL estimates of the mean components of the
+GLMM. Ignored if <code>family = "gaussian"</code> or <code>bayes = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>marginal.summ</code></td>
+<td>
+<p>Summary statistic to use for the estimate of coefficients when
+doing a Bayesian PGLMM (when <code>bayes = TRUE</code>). Options are: "mean",
+"median", or "mode", referring to different characterizations of the central
+tendency of the Bayesian posterior marginal distributions. Ignored if <code>bayes = FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>calc.DIC</code></td>
+<td>
+<p>Should the Deviance Information Criterion be calculated and returned
+when doing a Bayesian PGLMM? Ignored if <code>bayes = FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>calc.WAIC</code></td>
+<td>
+<p>Should the WAIC be calculated and returned
+when doing a Bayesian PGLMM? Ignored if <code>bayes = FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior</code></td>
+<td>
+<p>Which type of default prior should be used by <code>pglmm</code>?
+Only used if <code>bayes = TRUE</code>. There are currently four options:
+"inla.default", which uses the default <code>INLA</code> priors; "pc.prior.auto", which uses a
+complexity penalizing prior (as described in
+<a href="https://arxiv.org/abs/1403.4630v3">Simpson et al. (2017)</a>) designed to automatically
+choose good parameters (only available for gaussian and binomial responses); "pc.prior", which
+allows the user to set custom parameters on the "pc.prior" prior, using the <code>prior_alpha</code>
+and <code>prior_mu</code> parameters (Run <code>INLA::inla.doc("pc.prec")</code> for details on these
+parameters); and "uninformative", which sets a very uninformative prior
+(nearly uniform) by using a very flat exponential distribution. The last option is generally
+not recommended but may in some cases give estimates closer to the maximum likelihood estimates.
+"pc.prior.auto" is only implemented for <code>family = "gaussian"</code> and <code>family = "binomial"</code>
+currently.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior_alpha</code></td>
+<td>
+<p>Only used if <code>bayes = TRUE</code> and <code>prior = "pc.prior"</code>, in
+which case it sets the alpha parameter of <code>INLA</code>'s complexity penalizing prior for the
+random effects. The prior is an exponential distribution where prob(sd &gt; mu) = alpha,
+where sd is the standard deviation of the random effect.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior_mu</code></td>
+<td>
+<p>Only used if <code>bayes = TRUE</code> and <code>prior = "pc.prior"</code>, in
+which case it sets the mu parameter of <code>INLA</code>'s complexity penalizing prior for the
+random effects. The prior is an exponential distribution where prob(sd &gt; mu) = alpha,
+where sd is the standard deviation of the random effect.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ML.init</code></td>
+<td>
+<p>Only relevant if <code>bayes = TRUE</code>. Should maximum
+likelihood estimates be calculated and used as initial values for
+the Bayesian model fit? Sometimes this can be helpful, but it may not help; thus,
+we set the default to <code>FALSE</code>. Also, it
+does not work with the zero-inflated families.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tree</code></td>
+<td>
+<p>A phylogeny for column sp, with "phylo" class, or a covariance matrix for sp.
+Make sure to have all species in the matrix; if the matrix is not standardized,
+(i.e., det(tree) != 1), <code>pglmm</code> will try to standardize it for you.
+No longer used: keep here for compatibility.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tree_site</code></td>
+<td>
+<p>A second phylogeny for "site". This is required only if the
+site column contains species instead of sites. This can be used for bipartitie
+questions; tree_site can also be a covariance matrix. Make sure to have all sites
+in the matrix; if the matrix is not standardized (i.e., det(tree_site) != 1),
+pglmm' will try to standardize it for you. No longer used: keep here for compatibility.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>sp</code></td>
+<td>
+<p>No longer used: keep here for compatibility.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>site</code></td>
+<td>
+<p>No longer used: keep here for compatibility.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bayes_options</code></td>
+<td>
+<p>Additional options to pass to INLA for if <code>bayes = TRUE</code>. A named list where the names
+correspond to parameters in the <code>inla</code> function. One special option is <code>diagonal</code>: if an element in
+the options list is names <code>diagonal</code> this tells <code>INLA</code> to add its value to the diagonal of the random effects
+precision matrices. This can help with numerical stability if the model is ill-conditioned (if you get a lot of warnings,
+try setting this to <code>list(diagonal = 1e-4)</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bayes_nested_matrix_as_list</code></td>
+<td>
+<p>For <code>bayes = TRUE</code>, prepare the nested terms as a list of length of 4 as the old way?</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For Gaussian data, <code>pglmm</code> analyzes the phylogenetic linear mixed model
+</p>
+<p style="text-align: center;"><code class="reqn">Y = \beta_0 + \beta_1x + b_0 + b_1x</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">b_0 ~ Gaussian(0, \sigma_0^2I_{sp})</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">b_1 ~ Gaussian(0, \sigma_0^2V_{sp})</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\eta ~ Gaussian(0,\sigma^2)</code>
+</p>
+
+<p>where <code class="reqn">\beta_0</code> and <code class="reqn">\beta_1</code> are fixed
+effects, and <code class="reqn">V_{sp}</code> is a variance-covariance matrix
+derived from a phylogeny (typically under the assumption of
+Brownian motion evolution). Here, the variation in the mean
+(intercept) for each species is given by the random effect
+<code class="reqn">b_0</code> that is assumed to be independent among
+species. Variation in species' responses to predictor variable
+<code class="reqn">x</code> is given by a random effect <code class="reqn">b_0</code> that is
+assumed to depend on the phylogenetic relatedness among species
+given by <code class="reqn">V_{sp}</code>; if species are closely related,
+their specific responses to <code class="reqn">x</code> will be similar. This
+particular model would be specified as
+</p>
+<p><code>z &lt;- pglmm(Y ~ X + (1|sp__), data = data, family = "gaussian", cov_ranef = list(sp = phy))</code>
+</p>
+<p>Or you can prepare the random terms manually (not recommended for simple models but may be necessary for complex models):
+</p>
+<p><code>re.1 &lt;- list(1, sp = dat$sp, covar = diag(nspp))</code>
+</p>
+<p><code>re.2 &lt;- list(dat$X, sp = dat$sp, covar = Vsp)</code>
+</p>
+<p><code>z &lt;- pglmm(Y ~ X, data = data, family = "gaussian", random.effects = list(re.1, re.2))</code>
+</p>
+<p>The covariance matrix covar is standardized to have its determinant
+equal to 1. This in effect standardizes the interpretation of the
+scalar <code class="reqn">\sigma^2</code>. Although mathematically this is
+not required, it is a very good idea to standardize the predictor
+(independent) variables to have mean 0 and variance 1. This will
+make the function more robust and improve the interpretation of the
+regression coefficients. For categorical (factor) predictor
+variables, you will need to construct 0-1 dummy variables, and
+these should not be standardized (for obvious reasons).
+</p>
+<p>For binary generalized linear mixed models (<code>family =
+'binomial'</code>), the function estimates parameters for the model of
+the form, for example,
+</p>
+<p style="text-align: center;"><code class="reqn">y = \beta_0 + \beta_1x + b_0 + b_1x</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">Y = logit^{-1}(y)</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">b_0 ~ Gaussian(0, \sigma_0^2I_{sp})</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">b_1 ~ Gaussian(0, \sigma_0^2V_{sp})</code>
+</p>
+
+<p>where <code class="reqn">\beta_0</code> and <code class="reqn">\beta_1</code> are fixed
+effects, and <code class="reqn">V_{sp}</code> is a variance-covariance matrix
+derived from a phylogeny (typically under the assumption of
+Brownian motion evolution).
+</p>
+<p><code>z &lt;- pglmm(Y ~ X + (1|sp__), data = data, family = "binomial", cov_ranef = list(sp = phy))</code>
+</p>
+<p>As with the linear mixed model, it is a very good idea to
+standardize the predictor (independent) variables to have mean 0
+and variance 1. This will make the function more robust and improve
+the interpretation of the regression coefficients.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object (list) of class <code>communityPGLMM</code> with the following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>the formula for fixed effects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula_original</code></td>
+<td>
+<p>the formula for both fixed effects and random effects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>the dataset</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p><code>gaussian</code>, <code>binomial</code>, or <code>poisson</code> depending on the model fit</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>random.effects</code></td>
+<td>
+<p>the list of random effects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>estimates of the regression coefficients</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.se</code></td>
+<td>
+<p>approximate standard errors of the fixed effects regression coefficients.
+This is set to NULL if <code>bayes = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.ci</code></td>
+<td>
+<p>approximate Bayesian credible interval of the fixed effects regression coefficients.
+This is set to NULL if <code>bayes = FALSE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.cov</code></td>
+<td>
+<p>approximate covariance matrix for the fixed effects regression coefficients</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.zscore</code></td>
+<td>
+<p>approximate Z scores for the fixed effects regression coefficients. This is set to NULL if <code>bayes = TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.pvalue</code></td>
+<td>
+<p>approximate tests for the fixed effects regression coefficients being different from zero. This is set to NULL if <code>bayes = TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ss</code></td>
+<td>
+<p>standard deviations of the random effects for the covariance matrix <code class="reqn">\sigma^2V</code> for each random effect in order. For the linear mixed model, the residual variance is listed last.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2r</code></td>
+<td>
+<p>random effects variances for non-nested random effects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2n</code></td>
+<td>
+<p>random effects variances for nested random effects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2resid</code></td>
+<td>
+<p>for linear mixed models, the residual variance</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2r.ci</code></td>
+<td>
+<p>Bayesian credible interval for random effects variances for non-nested random effects.
+This is set to NULL if <code>bayes = FALSE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2n.ci</code></td>
+<td>
+<p>Bayesian credible interval for random effects variances for nested random effects.
+This is set to NULL if <code>bayes = FALSE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2resid.ci</code></td>
+<td>
+<p>Bayesian credible interval for linear mixed models, the residual variance.
+This is set to NULL if <code>bayes = FALSE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>logLik</code></td>
+<td>
+<p>for linear mixed models, the log-likelihood for either the restricted likelihood (<code>REML=TRUE</code>) or the overall likelihood (<code>REML=FALSE</code>). This is set to NULL for generalized linear mixed models. If <code>bayes = TRUE</code>, this is the marginal log-likelihood</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AIC</code></td>
+<td>
+<p>for linear mixed models, the AIC for either the restricted likelihood (<code>REML = TRUE</code>) or the overall likelihood (<code>REML = FALSE</code>). This is set to NULL for generalised linear mixed models</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>BIC</code></td>
+<td>
+<p>for linear mixed models, the BIC for either the restricted likelihood (<code>REML = TRUE</code>) or the overall likelihood (<code>REML = FALSE</code>). This is set to NULL for generalised linear mixed models</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>DIC</code></td>
+<td>
+<p>for Bayesian PGLMM, this is the Deviance Information Criterion metric of model fit. This is set to NULL if <code>bayes = FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>REML</code></td>
+<td>
+<p>whether or not REML is used (<code>TRUE</code> or <code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bayes</code></td>
+<td>
+<p>whether or not a Bayesian model was fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>marginal.summ</code></td>
+<td>
+<p>The specified summary statistic used to summarize the Bayesian marginal distributions.
+Only present if <code>bayes = TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2.init</code></td>
+<td>
+<p>the user-provided initial estimates of <code>s2</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.init</code></td>
+<td>
+<p>the user-provided initial estimates of <code>B</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>the response (dependent) variable returned in matrix form</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>the predictor (independent) variables returned in matrix form (including 1s in the first column)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>H</code></td>
+<td>
+<p>the residuals. For linear mixed models, this does not account for random terms,
+To get residuals after accounting for both fixed and random terms, use <code>residuals()</code>.
+For the generalized linear mixed model, these are the predicted residuals in the
+logit -1 space.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iV</code></td>
+<td>
+<p>the inverse of the covariance matrix for the entire system (of dimension (<code>nsp</code> * <code>nsite</code>)
+by (<code>nsp</code> * <code>nsite</code>)). This is NULL if <code>bayes = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>predicted mean values for the generalized linear mixed model (i.e., similar to <code>fitted(merMod)</code>).
+Set to NULL for linear mixed models, for which we can use <code>fitted()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nested</code></td>
+<td>
+<p>matrices used to construct the nested design matrix. This is set to NULL if <code>bayes = TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Zt</code></td>
+<td>
+<p>the design matrix for random effects. This is set to NULL if <code>bayes = TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>St</code></td>
+<td>
+<p>diagonal matrix that maps the random effects variances onto the design matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convcode</code></td>
+<td>
+<p>the convergence code provided by <code>optim</code>. This is set to NULL if <code>bayes = TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>niter</code></td>
+<td>
+<p>number of iterations performed by <code>optim</code>. This is set to NULL if <code>bayes = TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inla.model</code></td>
+<td>
+<p>Model object fit by underlying <code>inla</code> function. Only returned
+if <code>bayes = TRUE</code></p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Anthony R. Ives, Daijiang Li, Russell Dinnage
+</p>
+
+
+<h3>References</h3>
+
+<p>Ives, A. R. and M. R. Helmus. 2011. Generalized linear
+mixed models for phylogenetic analyses of community
+structure. Ecological Monographs 81:511-525.
+</p>
+<p>Ives A. R. 2018. Mixed and phylogenetic models: a conceptual introduction to correlated data.
+https://leanpub.com/correlateddata.
+</p>
+<p>Rafferty, N. E., and A. R. Ives. 2013. Phylogenetic
+trait-based analyses of ecological networks. Ecology 94:2321-2333.
+</p>
+<p>Simpson, Daniel, et al. 2017. Penalising model component complexity:
+A principled, practical approach to constructing priors.
+Statistical science 32(1): 1-28.
+</p>
+<p>Li, D., Ives, A. R., &amp; Waller, D. M. 2017.
+Can functional traits account for phylogenetic signal in community composition?
+New Phytologist, 214(2), 607-618.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Structure of examples:
+# First, a (brief) description of model types, and how they are specified
+# - these are *not* to be run 'as-is'; they show how models should be organised
+# Second, a run-through of how to simulate, and then analyse, data
+# - these *are* to be run 'as-is'; they show how to format and work with data
+
+
+#############################################
+### Brief summary of models and their use ###
+#############################################
+## Model structures from Ives &amp; Helmus (2011)
+if(FALSE){
+  # dat = data set for regression (note: must have a column "sp" and a column "site")
+  # phy = phylogeny of class "phylo"
+  # repulsion = to test phylogenetic repulsion or not
+  
+  # Model 1 (Eq. 1)
+  z &lt;- pglmm(freq ~ sp + (1|site) + (1|sp__@site), data = dat, family = "binomial",
+             cov_ranef = list(sp = phy), REML = TRUE, verbose = TRUE, s2.init = .1)
+  
+  # Model 2 (Eq. 2)
+  z &lt;- pglmm(freq ~ sp + X + (1|site) + (X|sp__), data = dat, family = "binomial",
+             cov_ranef = list(sp = phy), REML = TRUE, verbose = TRUE, s2.init = .1)
+  
+  # Model 3 (Eq. 3)
+  z &lt;- pglmm(freq ~ sp*X + (1|site) + (1|sp__@site), data = dat, family = "binomial",
+             cov_ranef = list(sp = phy), REML = TRUE, verbose = TRUE, s2.init = .1)
+  
+  ## Model structure from Rafferty &amp; Ives (2013) (Eq. 3)
+  # dat = data set
+  # phyPol = phylogeny for pollinators (pol)
+  # phyPlt = phylogeny for plants (plt)
+  
+  z &lt;- pglmm(freq ~ pol * X + (1|pol__) + (1|plt__) + (1|pol__@plt) +
+               (1|pol@plt__) + (1|pol__@plt__),
+             data = dat, family = "binomial",
+             cov_ranef = list(pol = phyPol, plt = phyPlt),
+             REML = TRUE, verbose = TRUE, s2.init = .1)
+}
+
+#####################################################
+### Detailed analysis showing covariance matrices ###
+#####################################################
+
+# This is the example from section 4.3 in Ives, A. R. (2018) Mixed 
+# and phylogenetic models: a conceptual introduction to correlated data.
+
+library(ape)
+library(mvtnorm)
+
+# Investigating covariance matrices for different types of model structure
+nspp &lt;- 6
+nsite &lt;- 4
+
+# Simulate a phylogeny that has a lot of phylogenetic signal (power = 1.3)
+phy &lt;- compute.brlen(rtree(n = nspp), method = "Grafen", power = 1.3)
+
+# Simulate species means
+sd.sp &lt;- 1
+mean.sp &lt;- rTraitCont(phy, model = "BM", sigma=sd.sp^2)
+
+# Replicate values of mean.sp over sites
+Y.sp &lt;- rep(mean.sp, times=nsite)
+
+# Simulate site means
+sd.site &lt;- 1
+mean.site &lt;- rnorm(nsite, sd=sd.site)
+
+# Replicate values of mean.site over sp
+Y.site &lt;- rep(mean.site, each=nspp)
+
+# Compute a covariance matrix for phylogenetic attraction
+sd.attract &lt;- 1
+Vphy &lt;- vcv(phy)
+
+# Standardize the phylogenetic covariance matrix to have determinant = 1. 
+# (For an explanation of this standardization, see subsection 4.3.1 in Ives (2018))
+Vphy &lt;- Vphy/(det(Vphy)^(1/nspp))
+
+# Construct the overall covariance matrix for phylogenetic attraction. 
+# (For an explanation of Kronecker products, see subsection 4.3.1 in the book)
+V &lt;- kronecker(diag(nrow = nsite, ncol = nsite), Vphy)
+Y.attract &lt;- array(t(rmvnorm(n = 1, sigma = sd.attract^2*V)))
+
+# Simulate residual errors
+sd.e &lt;- 1
+Y.e &lt;- rnorm(nspp*nsite, sd = sd.e)
+
+# Construct the dataset
+d &lt;- data.frame(sp = rep(phy$tip.label, times = nsite), 
+                site = rep(1:nsite, each = nspp))
+
+# Simulate abundance data
+d$Y &lt;- Y.sp + Y.site + Y.attract + Y.e
+
+# Analyze the model
+pglmm(Y ~ 1 + (1|sp__) + (1|site) + (1|sp__@site), data = d, cov_ranef = list(sp = phy))
+
+# Display random effects: the function `pglmm_plot_ranef()` does what 
+# the name implies. You can set `show.image = TRUE` and `show.sim.image = TRUE` 
+# to see the matrices and simulations.
+re &lt;- pglmm_plot_ranef(Y ~ 1 + (1|sp__) + (1|site) + (1|sp__@site), data = d, 
+                    cov_ranef = list(sp = phy), show.image = FALSE, 
+                    show.sim.image = FALSE)
+
+#################################################
+### Example of a bipartite phylogenetic model ###
+#################################################
+
+# Investigating covariance matrices for different types of model structure
+nspp &lt;- 20
+nsite &lt;- 15
+
+# Simulate a phylogeny that has a lot of phylogenetic signal (power = 1.3)
+phy.sp &lt;- compute.brlen(rtree(n = nspp), method = "Grafen", power = 1.3)
+phy.site &lt;- compute.brlen(rtree(n = nsite), method = "Grafen", power = 1.3)
+
+# Simulate species means
+mean.sp &lt;- rTraitCont(phy.sp, model = "BM", sigma = 1)
+
+# Replicate values of mean.sp over sites
+Y.sp &lt;- rep(mean.sp, times = nsite)
+
+# Simulate site means
+mean.site &lt;- rTraitCont(phy.site, model = "BM", sigma = 1)
+
+# Replicate values of mean.site over sp
+Y.site &lt;- rep(mean.site, each = nspp)
+
+# Generate covariance matrix for phylogenetic attraction among species
+sd.sp.attract &lt;- 1
+Vphy.sp &lt;- vcv(phy.sp)
+Vphy.sp &lt;- Vphy.sp/(det(Vphy.sp)^(1/nspp))
+V.sp &lt;- kronecker(diag(nrow = nsite, ncol = nsite), Vphy.sp)
+Y.sp.attract &lt;- array(t(rmvnorm(n = 1, sigma = sd.sp.attract^2*V.sp)))
+# Generate covariance matrix for phylogenetic attraction among sites
+sd.site.attract &lt;- 1
+Vphy.site &lt;- vcv(phy.site)
+Vphy.site &lt;- Vphy.site/(det(Vphy.site)^(1/nsite))
+V.site &lt;- kronecker(Vphy.site, diag(nrow = nspp, ncol = nspp))
+Y.site.attract &lt;- array(t(rmvnorm(n = 1, sigma = sd.site.attract^2*V.site)))
+
+# Generate covariance matrix for phylogenetic attraction of species:site interaction
+sd.sp.site.attract &lt;- 1
+V.sp.site &lt;- kronecker(Vphy.site, Vphy.sp)
+Y.sp.site.attract &lt;- array(t(rmvnorm(n = 1, sigma = sd.sp.site.attract^2*V.sp.site)))
+
+# Simulate residual error
+sd.e &lt;- 0.5
+Y.e &lt;- rnorm(nspp*nsite, sd = sd.e)
+
+# Construct the dataset
+d &lt;- data.frame(sp = rep(phy.sp$tip.label, times = nsite), 
+                site = rep(phy.site$tip.label, each = nspp))
+
+# Simulate abundance data
+d$Y &lt;- Y.sp + Y.site + Y.sp.attract + Y.site.attract + Y.sp.site.attract + Y.e
+
+# Plot random effects covariance matrices and then add phylogenies
+# Note that, if show.image and show.sim are not specified, pglmm_plot_ranef() shows
+# the covariance matrices if nspp * nsite &lt; 200 and shows simulations 
+# if nspp * nsite &gt; 100
+re &lt;- pglmm_plot_ranef(Y ~ 1 + (1|sp__) + (1|site__) + (1|sp__@site) + 
+                    (1|sp@site__) + (1|sp__@site__),
+                    data=d, cov_ranef = list(sp = phy.sp, site = phy.site))
+
+# This flips the phylogeny to match to covariance matrices
+rot.phy.site &lt;- phy.site
+for(i in (nsite+1):(nsite+Nnode(phy.site))) 
+   rot.phy.site &lt;- rotate(rot.phy.site, node = i)
+
+plot(phy.sp, main = "Species", direction = "upward")
+plot(rot.phy.site, main = "Site")
+
+# Analyze the simulated data and compute a P-value for the (1|sp__@site__) 
+# random effect using a LRT. It is often better to fit the reduced model before
+# the full model, because it s numerically easier to fit the reduced model, 
+# and then the parameter estimates from the reduced model can be given to the
+# full model. In this case, I have used the estimates of the random effects 
+# from the reduce model, mod.r$ss, as the initial estimates for the same 
+# parameters in the full model in the statement s2.init=c(mod.r$ss, 0.01)^2. 
+# The final 0.01 is for the last random effect in the full model, (1|sp__@site__). 
+# Note also that the output of the random effects from communityPGLMM(), mod.r$ss, 
+# are the standard deviations, so they have to be squared for use as initial 
+# values of variances in mod.f.
+
+mod.r &lt;- pglmm(Y ~ 1 + (1|sp__) + (1|site__) + (1|sp__@site) + (1|sp@site__), 
+                        data = d, cov_ranef = list(sp = phy.sp, site = phy.site))
+mod.f &lt;- pglmm(Y ~ 1 + (1|sp__) + (1|site__) + (1|sp__@site) + (1|sp@site__) + 
+               (1|sp__@site__), data = d, 
+               cov_ranef = list(sp = phy.sp, site = phy.site), 
+               s2.init = c(mod.r$ss, 0.01)^2)
+mod.f
+pvalue &lt;- pchisq(2*(mod.f$logLik - mod.r$logLik), df = 1, lower.tail = FALSE)
+pvalue
+ 
+</code></pre>
+
+
+</div>

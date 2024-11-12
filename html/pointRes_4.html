@@ -1,0 +1,186 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pointer.norm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Calculate pointer years using the normalization in a moving window method</h2>
+
+<h3>Description</h3>
+
+<p>The function calculates event and pointer years on a <code>data.frame</code> with tree-ring series using the normalization in a moving window method introduced by Cropper (1979; cf. Schweingruber et al. 1990, Jetschke et al. 2019). This method locally z-transforms tree growth in year <code><var>i</var></code> within a symmetric moving window of <code><var>n</var></code> years, thereby providing the number of standard deviations that tree growth deviates in individual years (Cropper values, Ct) from the window average. To identify event years, one absolute threshold on the number of standard deviations can be set (Cropper 1979), or, alternatively, three intensity classes (Neuwirth et al. 2007). Threshold values for defining event and pointer years can be adjusted.
+</p>
+<p>Prior to the calculation of event and pointer years with <code>pointer.norm</code>, a 13-year weighted low-pass filter, as described by Fritts (1976), may be applied on the tree-ring series using <code>lowpass13</code>. According to Cropper (1979), such a filter improves the detection of event and pointer years for complacent series, whereas for sensitive series filtering has little effect. Alternatively, a flexible detrending (e.g., using a cubic-smoothing spline with a 50% frequency cut-off at 15 years) may be applied prior to <code>pointer.norm</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pointer.norm(data, period = NULL, window = 13, method.thresh = c("Cropper", "Neuwirth"),
+             C.thresh = 0.75, N.thresh = c(1, 1.28, 1.645), series.thresh = 75, 
+             make.plot = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a <code>data.frame</code> with detrended tree-ring series as columns and years as rows (e.g., output of <code>detrend</code> of package dplR), or a <code>data.frame</code> with filtered series (output of <code>lowpass13</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>period</code></td>
+<td>
+<p>a <code>vector</code> specifying the start and end year of the analysis. Defaults to the full period covered by the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>window</code></td>
+<td>
+<p>an <code>integer</code> specifying the window size (i.e. number of years) to be used to calculate normalized growth deviations. Must be an odd number (&gt;=3). Defaults to 13.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method.thresh</code></td>
+<td>
+<p>a <code>character</code> string of <code>"Cropper"</code> or <code>"Neuwirth"</code>, specifying whether one absolute threshold or three intensity classes should be used for defining event years. Argument matching is performed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>C.thresh</code></td>
+<td>
+<p>a (positive) <code>numeric</code> specifying the threshold for identification of event years using method <code>"Cropper"</code>. Defaults to 0.75.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>N.thresh</code></td>
+<td>
+<p>a <code>vector</code> specifying the (positive) thresholds for identification of weak, strong and extreme event years using method <code>"Neuwirth"</code>. Defaults to 1, 1.28 and 1.645, respectively.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>series.thresh</code></td>
+<td>
+<p>a <code>numeric</code> specifying the minimum percentage of trees that should display a positive (or negative) event year for that year to be considered as positive (or negative) pointer year. Defaults to 75.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>make.plot</code></td>
+<td>
+<p>a <code>logical</code> specifying whether a bar plot, showing mean Cropper values, should be created. Pointer years are indicated with dark-gray bars. If event years were defined using <code>method.thresh "Neuwirth"</code> (<code>pointer.norm</code>), different tones of gray indicate weak, strong and extreme pointer years, based on the most common event year class. Defaults to FALSE.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function locally z-transforms tree growth in year <code><var>i</var></code> within a symmetric moving window of <code><var>n</var></code> years. For <code>method.thresh</code> <code>"Cropper"</code>, event years are defined as those years having absolute Cropper values (Ct) above a specified threshold (defaults to |Ct| &gt; 0.75). For <code>method.thresh</code> <code>"Neuwirth"</code>, three classes of distinct growth deviations can be defined, being 'weak', 'strong' and 'extreme' (defaults to |Ct| &gt; 1, |Ct| &gt; 1.28, and |Ct| &gt; 1.645). The window size can be adjusted (defaults to 13 years), as well as the minimum percentage of trees that should display a positive (or negative) event year for that year to be considered as positive (or negative) pointer year (defaults to 75%).
+</p>
+<p>Note that the resulting time series are truncated by <code><var>(window-1)/2</var></code> at both ends inherent to the calculation method.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function returns a <code>list</code> containing the following components:
+</p>
+<ul><li>
+<p>for <code>method.thresh</code> <code>"Cropper"</code>:</p>
+</li></ul>
+<table>
+<tr style="vertical-align: top;">
+<td><code>Cvalues</code></td>
+<td>
+<p>a <code>matrix</code> with Cropper values for individual tree-ring series</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>EYvalues</code></td>
+<td>
+<p>a <code>matrix</code> indicating positive (1), negative (-1) and non-event years (0) for individual tree-ring series</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>out</code></td>
+<td>
+<p>a <code>data.frame</code> containing the following columns: <code>year</code> - time stamp, <code>nb.series</code> - number of series considered, <code>perc.pos</code> - percentage of trees showing a positive event year, <code>perc.neg</code> - percentage of trees showing a negative event year, <code>nature</code> - number indicating whether the year is a positive (1), negative (-1) or no pointer year (0), <code>Cvalues_mean</code> - mean Cropper value over the available series, and <code>Cvalues_sd</code> - standard deviation of Cropper values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spec.param</code></td>
+<td>
+<p>a <code>data.frame</code> specifying the arguments used in the calculation</p>
+</td>
+</tr>
+</table>
+<ul><li>
+<p>for <code>method.thresh</code> <code>"Neuwirth"</code>:</p>
+</li></ul>
+<table>
+<tr style="vertical-align: top;">
+<td><code>Cvalues</code></td>
+<td>
+<p>a <code>matrix</code> with Cropper values for individual tree-ring series</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>EYvalues</code></td>
+<td>
+<p>a <code>matrix</code> indicating weak (1/-1), strong (2/-2) and extreme (3/-3) positive/negative event years, as well as non-event years (0) for individual tree-ring series</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>out</code></td>
+<td>
+<p>a <code>data.frame</code> containing the following columns: <code>year</code> - time stamp, <code>nb.series</code> - number of series considered, <code>perc.pos.extreme</code> - percentage of trees showing a positive extreme event year, <code>perc.pos.strong</code> - percentage of trees showing a positive strong event year, <code>perc.pos.weak</code> - percentage of trees showing a positive weak event year, <code>perc.neg.weak</code> - percentage of trees showing a negative weak event year, <code>perc.neg.strong</code> - percentage of trees showing a negative strong event year, <code>perc.neg.extreme</code> - percentage of trees showing a negative extreme event year, <code>nature</code> - number indicating whether the year is a positive (1), negative (-1) or no pointer year (0), <code>Cvalues_mean</code> - mean Cropper value over the available series, <code>Cvalues_sd</code> - standard deviation of Cropper values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>spec.param</code></td>
+<td>
+<p>a <code>data.frame</code> specifying the arguments used in the calculation</p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Marieke van der Maaten-Theunissen and Ernst van der Maaten.
+</p>
+
+
+<h3>References</h3>
+
+<p>Cropper, J.P. (1979) Tree-ring skeleton plotting by computer. <em>Tree-Ring Bulletin</em> 39: 47-59.
+</p>
+<p>Jetschke, G., van der Maaten, E. and van der Maaten-Theunissen, M. (2019) Towards the extremes: A critical analysis of pointer year detection methods. <em>Dendrochronologia</em> 53: 55-62.
+</p>
+<p>Fritts, H.C. (1976) Tree rings and climate. Academic Press Inc. (London) Ltd.
+</p>
+<p>Neuwirth, B., Schweingruber, F.H. and Winiger, M. (2007) Spatial patterns of central European pointer years from 1901 to 1971. <em>Dendrochronologia</em> 24: 79-89.
+</p>
+<p>Schweingruber, F.H., Eckstein, D., Serre-Bachet, F. and Bräker, O.U. (1990) Identification, presentation and interpretation of event years and pointer years in dendrochronology. <em>Dendrochronologia</em> 8: 9-38.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Calculate pointer years on detrended tree-ring series using method.thresh "Cropper"
+## and a user-defined threshold for event-year definition of 1
+data(s033)
+detr_s033 &lt;- detrend(s033, method = "Spline", nyrs = 30)
+pyc &lt;- pointer.norm(detr_s033, method.thresh = "Cropper", C.thresh = 1)
+head(pyc$out)
+
+## Calculate pointer years on detrended tree-ring series using method.thresh "Neuwirth"
+## and a user-defined window of 11 years
+data(s033)
+detr_s033 &lt;- detrend(s033, method = "Spline", nyrs = 30)
+pyn &lt;- pointer.norm(detr_s033, window = 11, method.thresh = "Neuwirth", make.plot = TRUE)
+head(pyn$out)
+
+</code></pre>
+
+
+</div>

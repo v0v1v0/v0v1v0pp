@@ -1,0 +1,136 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>size.effect</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Executing estimation statistics based on bootstrap-coupled approach
+</h2>
+
+<h3>Description</h3>
+
+<p>Assessing the size effect on selected microbiome features found to be differentially abundant between classes. This analysis is based on the Data Analysis using Bootstrap-Coupled Estimation (dabestr) R package and gives you the option to create Gardner-Altman estimation plots individually all features found to be differentially presented in your dataset.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">size.effect(category = "", replicates = 5000, 
+paired = FALSE, plot.file = "tiff", id.pairs = NULL)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>category</code></td>
+<td>
+
+<p>Name of the microbiome feature, which differential abundance between classes will be further explored. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>replicates</code></td>
+<td>
+
+<p>The number of bootstrap resamples that have to be generated. Integer, default 5000. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>paired</code></td>
+<td>
+
+<p>If TRUE, the two groups are treated as paired samples, please add an extra column (id.pairs) to parse identity of the datapoint. Default FALSE, the control_group group is treated as pre-intervention and the test_group group is considered post-intervention. 
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot.file</code></td>
+<td>
+
+<p>Extension for plot graphics (ps, pdf, jpeg, tiff, png, bmp). Default "tiff".
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>id.pairs</code></td>
+<td>
+
+<p>Column name for information to parse identity of the datapoint in case of paired data.
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>Be careful to type the "category" correctly to be analyzed in order to that matches with the table contained information.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Alfonso Benitez-Paez
+</p>
+
+
+<h3>References</h3>
+
+<p>Benitez-Paez A. 2023. Permubiome: an R package to perform permutation based test for biomarker discovery in microbiome analyses. [https://cran.r-project.org].
+Benitez-Paez A, et al. mSystems. 2020;5:e00857-19. doi: 10.1128/mSystems.00857-19.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## The function is currently defined as
+function (category = "", replicates = 5000, 
+    paired = FALSE, plot.file = "tiff", id.pairs = NULL)
+{
+    Class &lt;- NULL
+    ref &lt;- NULL
+    loadNamespace("dabestr")
+    loadNamespace("rlang")
+    loadNamespace("dplyr")
+    load("permubiome.RData")
+    df_norm &lt;- df_norm
+    if (paired == TRUE) {
+        print(paste("You declared paired data, be sure to include the correct -id.column- argument 
+	to parse the identity of the datapoint!"))
+    }
+    classes &lt;- levels(df_norm$Class)
+    if (REFERENCE == "") {
+        REFERENCE &lt;- classes[1]
+    }
+    else if (REFERENCE == classes[2]) {
+        classes[2] &lt;- classes[1]
+        classes[1] &lt;- REFERENCE
+    }
+    df_norm&lt;-tibble(df_norm)
+    prepare.stats &lt;- load(df_norm, Class, category, paired = paired, 
+        idx = c(classes[1], classes[2]), id_col = id.pairs)
+    prepare.stats$y&lt;-quo_set_expr(prepare.stats$y, as.symbol(category))
+    print(prepare.stats)
+    if (category == "") {
+        category &lt;- colnames(df_norm[3])
+        print(paste("As you declared no categories, the very first one of your dataset will be 
+	processed!"))
+    }
+    estimation.stats&lt;-median_diff(prepare.stats, perm_count = replicates)
+    e_plot &lt;- plot(estimation.stats, group.summaries = "median_quartiles", 
+        palette = "Set1", rawplot.ylabel = paste(category, "normalized reads", 
+            sep = " "), tick.fontsize = 12, axes.title.fontsize = 18)
+    tiff(filename = paste(category, "estimation", plot.file, sep = "."), 
+        width = 650, height = 600, res = 100, units = "px")
+    e_plot
+    dev.off()
+    print(e_plot)
+    save(df, df_norm, REFERENCE, classes, file = "permubiome.RData")
+  }
+</code></pre>
+
+
+</div>

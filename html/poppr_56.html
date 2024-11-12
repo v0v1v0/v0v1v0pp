@@ -1,0 +1,145 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>fix_replen</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Find and fix inconsistent repeat lengths</h2>
+
+<h3>Description</h3>
+
+<p>Attempts to fix inconsistent repeat lengths found by <code>test_replen</code>
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">fix_replen(gid, replen, e = 1e-05, fix_some = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>gid</code></td>
+<td>
+<p>a <code>genind</code> or <code>genclone</code> object</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>replen</code></td>
+<td>
+<p>a numeric vector of repeat motif lengths.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>e</code></td>
+<td>
+<p>a number to be subtracted or added to inconsistent repeat lengths to
+allow for proper rounding.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fix_some</code></td>
+<td>
+<p>if <code>TRUE</code> (default), when there are inconsistent repeat 
+lengths that cannot be fixed by subtracting or adding e, those than can be 
+fixed will. If <code>FALSE</code>, the original repeat lengths will not be fixed.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function is modified from the version used in 
+<a href="https://doi.org/10.5281/zenodo.13007">doi:10.5281/zenodo.13007</a>.<br> Before being fed into the
+algorithm to calculate Bruvo's distance, the amplicon length is divided by
+the repeat unit length. Because of the amplified primer sequence attached
+to sequence repeat, this division does not always result in an integer and
+so the resulting numbers are rounded. The rounding also protects against
+slight mis-calls of alleles. Because we know that </p>
+<p style="text-align: center;"><code class="reqn">\frac{(A - e) - (B
+  - e)}{r}</code>
+</p>
+<p> is equivalent to </p>
+<p style="text-align: center;"><code class="reqn">\frac{A - B}{r}</code>
+</p>
+<p>, we know that the primer sequence will not alter the relationships
+between the alleles. Unfortunately for nucleotide repeats that have powers
+of 2, rounding in R is based off of the IEC 60559 standard (see
+<code>round</code>), that means that any number ending in 5 is rounded to
+the nearest <em>even</em> digit. This function will attempt to alleviate this
+problem by adding a very small amount to the repeat length so that division
+will not result in a 0.5. If this fails, the same amount will be
+subtracted. If neither of these work, a warning will be issued and it is up
+to the user to determine if the fault is in the allele calls or the repeat
+lengths.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a numeric vector of corrected repeat motif lengths.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Zhian N. Kamvar
+</p>
+
+
+<h3>References</h3>
+
+<p>Zhian N. Kamvar, Meg M. Larsen, Alan M. Kanaskie, Everett M. 
+Hansen, &amp; Niklaus J. Grünwald. Sudden_Oak_Death_in_Oregon_Forests: Spatial
+and temporal population dynamics of the sudden oak death epidemic in Oregon
+Forests. ZENODO, <a href="https://doi.org/10.5281/zenodo.13007">doi:10.5281/zenodo.13007</a>, 2014.
+</p>
+<p>Kamvar, Z. N., Larsen, M. M., Kanaskie, A. M., Hansen, E. M., &amp; Grünwald,
+N. J. (2015). Spatial and temporal analysis of populations of the sudden
+oak death pathogen in Oregon forests. Phytopathology 105:982-989.
+doi: <a href="https://doi.org/10.1094/PHYTO-12-14-0350-FI">doi:10.1094/PHYTO-12-14-0350-FI</a>
+</p>
+<p>Ruzica Bruvo, Nicolaas K. Michiels, Thomas G. D'Souza, and Hinrich 
+Schulenburg. A simple method for the calculation of microsatellite genotype
+distances irrespective of ploidy level. Molecular Ecology, 13(7):2101-2106,
+2004.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>test_replen</code> <code>bruvo.dist</code>
+<code>bruvo.msn</code> <code>bruvo.boot</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+data(Pram)
+(Pram_replen &lt;- setNames(c(3, 2, 4, 4, 4), locNames(Pram)))
+fix_replen(Pram, Pram_replen)
+# Let's start with an example of a tetranucleotide repeat motif and imagine
+# that there are twenty alleles all 1 step apart:
+(x &lt;- 1:20L * 4L)
+# These are the true lengths of the different alleles. Now, let's add the
+# primer sequence to them. 
+(PxP &lt;- x + 21 + 21)
+# Now we make sure that x / 4 is equal to 1:20, which we know each have
+# 1 difference.
+x/4
+# Now, we divide the sequence with the primers by 4 and see what happens.
+(PxPc &lt;- PxP/4)
+(PxPcr &lt;- round(PxPc))
+diff(PxPcr) # we expect all 1s
+
+# Let's try that again by subtracting a tiny amount from 4
+(PxPc &lt;- PxP/(4 - 1e-5))
+(PxPcr &lt;- round(PxPc))
+diff(PxPcr)
+</code></pre>
+
+
+</div>

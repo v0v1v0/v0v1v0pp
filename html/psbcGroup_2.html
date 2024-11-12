@@ -1,0 +1,193 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>aftGL_LT</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Function to Fit the Penalized Parametric Bayesian Accelerated Failure Time Model with Group Lasso Prior for Left-Truncated and Interval-Censored Data
+</h2>
+
+<h3>Description</h3>
+
+<p>Penalized parametric Bayesian accelerated failure time model with group lasso prior is implemented to analyze left-truncated and interval-censored survival data with high-dimensional covariates.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">aftGL_LT(Y, X, XC, grpInx, hyperParams, startValues, mcmcParams)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+
+<p>Outcome matrix with three column vectors corresponding to lower and upper bounds of interval-censored data and left-truncation time
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+
+<p>Covariate matrix <code class="reqn">p</code> covariate vectors from <code>n</code> subjects. It is of dimension <code class="reqn">n\times p</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>XC</code></td>
+<td>
+
+<p>Matrix for confound variables: <code class="reqn">q</code> variable vectors from <code>n</code> subjects. It is of dimension <code class="reqn">n\times q</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>grpInx</code></td>
+<td>
+
+<p>a vector of <code class="reqn">p</code> group indicator for each variable
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>hyperParams</code></td>
+<td>
+
+<p>a list containing hyperparameter values in hierarchical models:
+(<code>a.sigSq</code>, <code>a.sigSq</code>): hyperparameters for the prior of <code class="reqn">\sigma^2</code>; (<code>mu0</code>, <code>h0</code>): hyperparameters for the prior of <code class="reqn">\mu</code>; (<code>v</code>): hyperparameter for the prior of <code class="reqn">\beta_C</code>.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>startValues</code></td>
+<td>
+
+<p>a list containing starting values for model parameters. See Examples below.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mcmcParams</code></td>
+<td>
+
+<p>a list containing variables required for MCMC sampling. Components include,
+<code>numReps</code>, total number of scans; <code>thin</code>, extent of thinning; <code>burninPerc</code>, the proportion of burn-in. See Examples below.
+</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p><code>aftGL_LT</code> returns an object of class <code>aftGL_LT</code>. <br></p>
+
+
+<h3>Author(s)</h3>
+
+<p>Kyu Ha Lee, Harrison Reeder
+</p>
+
+
+<h3>References</h3>
+
+<p>Reeder, H., Haneuse, S., Lee, K. H. (2024+). 
+Group Lasso Priors for Bayesian Accelerated Failure Time Models with Left-Truncated and Interval-Censored Data. <em>under review</em> <br></p>
+
+
+<h3>See Also</h3>
+
+<p><code>VS</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Not run: 
+
+data(survData)
+X &lt;- survData[,c(4:5)]
+XC &lt;- NULL
+
+n &lt;- dim(survData)[1]
+p &lt;- dim(X)[2]
+q &lt;- 0
+
+c0 &lt;- rep(0, n)
+yL &lt;- yU &lt;- survData[,1]
+yU[which(survData[,2] == 0)] &lt;- Inf
+Y &lt;- cbind(yL, yU, c0)
+
+grpInx &lt;- 1:p
+K &lt;- length(unique(grpInx))
+
+#####################
+## Hyperparameters
+
+a.sigSq= 0.7
+b.sigSq= 0.7
+
+mu0 &lt;- 0
+h0 &lt;- 10^6
+
+v = 10^6
+
+hyperParams &lt;- list(a.sigSq=a.sigSq, b.sigSq=b.sigSq, mu0=mu0, h0=h0, v=v)
+
+###################
+## MCMC SETTINGS
+
+## Setting for the overall run
+##
+numReps    &lt;- 100
+thin    &lt;- 1
+burninPerc &lt;- 0.5
+
+## Tuning parameters for specific updates
+##
+
+L.beC &lt;- 50
+M.beC &lt;- 1
+eps.beC &lt;- 0.001
+
+L.be &lt;- 100
+M.be &lt;- 1
+eps.be &lt;- 0.001
+
+mu.prop.var    &lt;- 0.5
+sigSq.prop.var    &lt;- 0.01
+
+##
+
+mcmcParams &lt;- list(run=list(numReps=numReps, thin=thin, burninPerc=burninPerc),
+tuning=list(mu.prop.var=mu.prop.var, sigSq.prop.var=sigSq.prop.var,
+L.beC=L.beC, M.beC=M.beC, eps.beC=eps.beC,
+L.be=L.be, M.be=M.be, eps.be=eps.be))
+
+#####################
+## Starting Values
+
+w        &lt;- log(Y[,1])
+mu     &lt;- 0.1
+beta     &lt;- rep(2, p)
+sigSq    &lt;- 0.5
+tauSq &lt;- rep(0.4, p)
+lambdaSq &lt;- 100
+betaC     &lt;- rep(0.11, q)
+
+startValues &lt;- list(w=w, beta=beta, tauSq=tauSq, mu=mu, sigSq=sigSq,
+lambdaSq=lambdaSq, betaC=betaC)
+
+fit &lt;- aftGL_LT(Y, X, XC, grpInx, hyperParams, startValues, mcmcParams)
+
+
+## End(Not run)
+</code></pre>
+
+
+</div>

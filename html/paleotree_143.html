@@ -1,0 +1,305 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>resolveTreeChar</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Resolve Polytomies Using Parsimony-Based Reconstruction of a Discrete Character</h2>
+
+<h3>Description</h3>
+
+<p>This function resolves a set of given topology with less than fully-binary phylogenetic resolution so that
+lineages are shifted and internal nodes added that minimize the number of independent character transitions needed to explain
+an observed distribution of discrete character states for the taxa on such a tree, under various maximum-parsimony algorithms of 
+ancestral character reconstruction, powered ultimately by function <code>ancestral.pars</code> in library <code>phangorn</code>.
+This function is mainly designed for use with poorly resolved trees which are being assessed with the function
+<code>minCharChange</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">resolveTreeChar(
+  tree,
+  trait,
+  orderedChar = FALSE,
+  stateBias = NULL,
+  iterative = TRUE,
+  cost = NULL,
+  ambiguity = c(NA, "?"),
+  dropAmbiguity = FALSE,
+  polySymbol = "&amp;",
+  contrast = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>tree</code></td>
+<td>
+<p>A cladogram of type <code>phylo</code>. Any branch lengths are ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trait</code></td>
+<td>
+<p>A vector of trait values for a discrete character, preferably named with taxon names
+identical to the tip labels on the input tree.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>orderedChar</code></td>
+<td>
+<p>Is the character of interest given for <code>trait</code> ordered or not?
+If <code>FALSE</code> (the default), then for each polytomy, all child nodes that appear to have the
+same state as the ancestor node will remain in the polytomy, and any additional states held by child nodes will
+each be grouped into their own unique polytomy that forms from a descendant node of the original polytomy.
+If <code>TRUE</code>, then the character will be reconstructed with a cost (step)
+matrix of a linear, ordered character, and polytomies will be resolved so that lineages with different
+states will be placed into a nested ladder that reflects the ordered character. As with the unordered option,
+child nodes with a state equivalent to the ancestral node will remain in the polytomy, while more primitive
+or more derived states will be sorted into their own separate ladders composed of paraphyletic groups, ordered
+so to move 'away' state-by-state from the ancestral node's inferred character state.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stateBias</code></td>
+<td>
+<p>This argument controls how <code>resolveTreeChar</code> handles ancestral node reconstructions that have
+multiple states competing for the maximum weight of any state (i.e. if states 0 and 1 both have 0.4 of the weight). The
+default, where <code>stateBias = NULL</code> causes uncertainty at nodes among states to be treated as a single 'group' identical
+to any states within it. Essentially, this means that for the example polytomy where the ancestor has maximum weight for both 0 and 1, 
+any child nodes with 0, 1 or both of these states will be considered to have an identical state for the purpose of grouping nodes
+for the purpose of further resolving polytomies. If and only if <code>orderedChar = TRUE</code>, then additional options of
+<code>stateBias = 'primitive'</code> and <code>stateBias = 'derived'</code> become available, which instead force uncertain node
+assignments to either be the most primitive (i.e. the minimum) or the most derived (i.e. the maximum) among the
+maximum-weight states. In particular, <code>stateBias = 'primitive'</code> should favor gains and bias any analysis of
+character transitions against finding reversals.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iterative</code></td>
+<td>
+<p>A logical argument which, if <code>TRUE</code> (the default), causes the function to repeat the polytomy-resolving
+functionality across the entire tree until the number of nodes stabilizes. If <code>FALSE</code>, polytomies are only passed a single
+time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cost</code></td>
+<td>
+<p>A matrix of the cost (i.e. number of steps) necessary to
+change between states of the input character trait.
+If <code>NULL</code> (the default), the character is assumed to be
+unordered with equal cost to change from any state to another.
+Cost matrices only impact the "MPR" algorithm; if a cost matrix
+is given but <code>type = "ACCTRAN"</code>, an error is issued.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ambiguity</code></td>
+<td>
+<p>A vector of values which indicate ambiguous
+(i.e. missing or unknown) character state codings
+in supplied <code>trait</code> data. Taxa coded ambiguously as treated
+as being equally likely to be any state coding.
+By default, <code>NA</code> values and "?" symbols are treated as
+ambiguous character codings, in agreement with behavior 
+of functions in packages <code>phangorn</code> and <code>Claddis</code>. 
+This argument is designed to mirror an hidden argument with
+an identical name in function <code>phyDat</code> in package <code>phangorn</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>dropAmbiguity</code></td>
+<td>
+<p>A logical. If <code>TRUE</code> (which is not
+the default), all taxa with ambiguous codings as defined
+by argument <code>ambiguity</code> will be dropped prior to ancestral
+nodes being inferred. This may result in too few taxa.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>polySymbol</code></td>
+<td>
+<p>A single symbol which separates alternative
+states for polymorphic codings; the default symbol is
+<code>"&amp;"</code>, following the output by <code>Claddis</code>'s
+<code>ReadMorphNexus</code> function, where polymorphic taxa are indicated
+by default with a string with state labels separated by an <code>"&amp;"</code> symbol.
+For example, a taxon coded as polymorphic for states
+1 or 2, would be indicated by the string <code>"1&amp;2"</code>.
+<code>polySymbol</code> is used to break up these strings
+and automatically construct a fitting <code>contrast</code> table
+for use with this data, including for ambiguous character state codings.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>contrast</code></td>
+<td>
+<p>A matrix of type integer with cells of 0
+and 1, where each row is labeled with a string value
+used for indicating character states in <code>trait</code>,
+and each column is labeled with the formal state label to
+be used for assign taxa to particular character states.
+A value of 1 indicates that the respective coding string for
+that row should be interpreted as reflecting the character
+state listed for that column. A coding could reflect multiple
+states (such as might occur when taxa are polymorphic for
+some morphological character), so the sums of rows and
+columns can sum to more than 1.  If <code>contrast</code> is
+not <code>NULL</code> (the default), the arguments will nullify
+This argument is designed to mirror an hidden argument with
+an identical name in function <code>phyDat</code> in package <code>phangorn</code>.
+This structure is based on <code>phangorn</code>'s use of
+<code>contrasts</code> table used for statistical evaluation of factors.
+See the <code>phangorn</code> vignette "Special features of phangorn" for more details
+on its implementation within <code>phangorn</code> including an example.
+See examples below for the construction of an example contrast
+matrix for character data with polymorphisms, coded as character
+data output by <code>Claddis</code>'s <code>ReadMorphNexus</code> function,
+where polymorphic taxa are indicated with a string with
+state labels separated by an <code>"&amp;"</code> symbol.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>As shown in the example code below, this function offers a wide variety of options for manipulating the
+maximum-parsimony algorithm used (i.e. MPR versus ACCTRAN), the ordering (or not) of character states,
+and potential biasing of uncertainty character state reconstructions (when ordered characters are
+assessed). This allows for a wide variety of possible resolutions for a given tree with polytomies
+and a discrete character. In general, the author expects that use of this function will be optimal
+when applied to ordered characters using one of the <code>stateBias</code> options, perhaps
+<code>stateBias = "primitive"</code> (based on theoretical expectations for slow evolving characters). However,
+anecdotal use of this function with various simulation datasets suggests that the results are quite
+variable, and so the best option needs to be assessed based on the prior assumptions regarding the
+data and the performance of the dataset with the various arguments of this function.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Returns the resulting tree, which may be fully resolved, partly more resolved or not more resolved at all
+(i.e. have less polytomies) depending on what was possible, as constrained by ambiguities in character
+reconstructions. Applying <code>multi2di</code> is suggested as a post-step to obtain a fully-resolved
+cladogram, if one is desired.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>David W. Bapst
+</p>
+
+
+<h3>References</h3>
+
+<p>Hanazawa, M., H. Narushima, and N. Minaka. 1995. Generating most parsimonious reconstructions on
+a tree: A generalization of the Farris-Swofford-Maddison method. Discrete Applied Mathematics
+56(2-3):245-265.
+</p>
+<p>Narushima, H., and M. Hanazawa. 1997. A more efficient algorithm for MPR problems in phylogeny.
+Discrete Applied Mathematics 80(2-3):231-238.
+</p>
+<p>Schliep, K. P. 2011. phangorn: phylogenetic analysis in R. <em>Bioinformatics</em> 27(4):592-593.
+</p>
+<p>Swofford, D. L., and W. P. Maddison. 1987. Reconstructing ancestral character states under
+Wagner parsimony. Mathematical Biosciences 87(2):199-229.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>ancPropStateMat</code> which is used internally by this function. This function was
+intentionally designed for use with <code>minCharChange</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+
+
+# let's write a quick&amp;dirty ancestral trait plotting function
+
+quickAncPlot &lt;- function(tree, trait, cex, orderedChar = FALSE, type = "MPR", cost = NULL){
+	 ancData &lt;- ancPropStateMat(tree = tree, trait = trait, orderedChar = orderedChar)
+	 ancCol &lt;- (1:ncol(ancData))+1
+ 	plot(tree,show.tip.label = FALSE,no.margin = TRUE,direction = "upwards")
+ 	tiplabels(pch = 16,pie = ancData[(1:Ntip(tree)),],cex = cex,piecol = ancCol,
+		col = 0)
+ 	nodelabels(pie = ancData[-(1:Ntip(tree)),],cex = cex,piecol = ancCol)	
+ 	}
+
+##########
+
+# examples with simulated data
+
+set.seed(2)
+tree &lt;- rtree(50)
+#simulate under a likelihood model
+trait &lt;- rTraitDisc(tree,k = 3,rate = 0.7)
+tree &lt;- degradeTree(tree,prop_collapse = 0.6)
+tree &lt;- ladderize(tree,right = FALSE)
+
+#a bunch of type = MPR (default) examples
+treeUnord &lt;- resolveTreeChar(tree,trait,orderedChar = FALSE)
+treeOrd &lt;- resolveTreeChar(tree,trait,orderedChar = TRUE,stateBias = NULL)
+treeOrdPrim &lt;- resolveTreeChar(tree,trait,orderedChar = TRUE,stateBias = "primitive")
+treeOrdDer &lt;- resolveTreeChar(tree,trait,orderedChar = TRUE,stateBias = "derived")
+
+#compare number of nodes
+Nnode(tree)			#original
+Nnode(treeUnord)		#unordered, biasStates = NULL, MPR
+Nnode(treeOrd)		#ordered, biasStates = NULL
+Nnode(treeOrdPrim)	#ordered, biasStates = 'primitive'
+Nnode(treeOrdDer)	#ordered, biasStates = 'derived'
+
+#let's compare original tree with unordered-resolved tree
+layout(1:2)
+quickAncPlot(tree,trait,orderedChar = FALSE,cex = 0.3)
+text(x = 43,y = 10,"Original",cex = 1.5)
+quickAncPlot(treeUnord,trait,orderedChar = FALSE,cex = 0.3)
+text(x = 43,y = 10,"orderedChar = FALSE",cex = 1.5)
+#some resolution gained
+
+#now let's compare the original and ordered, both biasStates = NULL
+layout(1:2)
+quickAncPlot(tree,trait,orderedChar = FALSE,cex = 0.3)
+text(x = 43,y = 10,"Original",cex = 1.5)
+quickAncPlot(treeOrd,trait,orderedChar = TRUE,cex = 0.3)
+text(x = 43,y = 10,"orderedChar = TRUE",cex = 1.5)
+
+#now let's compare the three ordered trees
+layout(1:3)
+quickAncPlot(treeOrd,trait,orderedChar = TRUE,cex = 0.3)
+text(x = 41,y = 8,"ordered, biasStates = NULL",cex = 1.5)
+quickAncPlot(treeOrdPrim,trait,orderedChar = TRUE,cex = 0.3)
+text(x = 41.5,y = 8,"ordered, biasStates = 'primitive'",cex = 1.5)
+quickAncPlot(treeOrdDer,trait,orderedChar = TRUE,cex = 0.3)
+text(x = 42,y = 8,"ordered, biasStates = 'derived'",cex = 1.5)
+
+#let's compare unordered with ordered, biasStates = 'primitive'
+layout(1:2)
+quickAncPlot(treeUnord,trait,orderedChar = FALSE,cex = 0.3)
+text(x = 41,y = 8,"orderedChar = FALSE",cex = 1.5)
+quickAncPlot(treeOrdPrim,trait,orderedChar = TRUE,cex = 0.3)
+text(x = 40,y = 11,"orderedChar = TRUE",cex = 1.5)
+text(x = 40,y = 4,"biasStates = 'primitive'",cex = 1.5)
+
+
+#these comparisons will differ greatly between datasets
+	# need to try them on your own
+
+layout(1)
+
+
+
+</code></pre>
+
+
+</div>

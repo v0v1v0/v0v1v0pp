@@ -1,0 +1,123 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>S_map_Sugihara1994</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Apply S-mapping algorithm from Sugihara 1994</h2>
+
+<h3>Description</h3>
+
+<p>Carries out an S-mapping analysis, following the algorithm outlined in Sugihara (1994).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">S_map_Sugihara1994(Y, E, theta, X = NULL, lib = NULL, trimNA = FALSE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>a timeseries vector from which to build the embedding.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>E</code></td>
+<td>
+<p>a positive integer, specifying the embedding dimension</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>theta</code></td>
+<td>
+<p>a positive numeric scalar, specifying the nonlinearity parameter for the analysis. A value of 0 indicates
+a fully linear analysis; higher numbers indicate greater nonlinearity.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>an optional matrix of time-delayed embeddings to use for the analysis</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lib</code></td>
+<td>
+<p>an optional matrix of library positions, for specifying cases where
+Y is a composite timeseries made up of multiple separate observations (e.g. spatial replicates).
+Matrix should have two columns, with the first row in each column specifying the start of the
+timeseries section, and the second column specifying the end.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>trimNA</code></td>
+<td>
+<p>a logical specifying whether NA values should be removed from Y and X - defaults to FALSE</p>
+</td>
+</tr>
+</table>
+<h3>Value</h3>
+
+<p>a list, including the timeseries used for S-mapping (Y), the delay embedding matrix used for S-mapping (X),
+a vector of predictions (Y_hat), a matrix of S-mapping coefficients (C), the standard errors for the S-mapping
+coefficients (C_SE), and goodness of fit metrics R-squared (R2) and root mean square error (RMSE).
+</p>
+
+
+<h3>Source</h3>
+
+<p>Sugihara, G. (1994). Nonlinear forecasting for the classification of natural time-series. Philos. Trans. R. Soc. -Math. Phys. Eng. Sci., 348, 477–495.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># create an example timeseries
+n = 100
+set.seed(1234)
+datout&lt;-makedynamics_general(n = n+2,
+                             pdet=log(c(0.8,1)),
+                             proc = -2.5,
+                             detfun = detfun0_sin)
+plot(datout$true, type = "l") # plot timeseries
+Y = datout$true # extract true values
+
+# run s-mapping
+sout = S_map_Sugihara1994(Y = Y, E = 2, theta = 0.5)
+s_coef = process_scof(sout$C) # process coefficients from the S-mapping output
+
+# find best E/theta
+fitout = data.frame(E = 1:5, theta = NA, RMSE = NA)
+
+for(i in 1:nrow(fitout)) {
+   E = fitout$E[i]
+   Ytmp = Y[-c(1:E)]
+   optout = optimize(f = function(x) {S_map_Sugihara1994(Ytmp, E, x)$RMSE}, interval = c(0,10))
+  
+  fitout$theta[i] = optout$minimum # get best theta for given E
+  fitout$RMSE[i] = optout$objective # get error
+}
+ps = which.min(fitout$RMSE)
+
+E = fitout$E[ps] # get best E
+theta = fitout$theta[ps] # get best theta
+X = makeblock(Y, E) # get X for analysis
+Y = Y[-c(1:E)] # trim NA values (corresponding to positions in X)
+X = X[(E+1):nrow(X),] # trim NA values
+sout = S_map_Sugihara1994(Y = Y, E = E,
+  theta = theta, X = X) # run S-mapping for best paramter combination
+sout$R2 # look at R-squared
+
+# check fit
+plot(sout$Y_hat, Y)
+abline(a=0, b=1, lty=2)
+</code></pre>
+
+
+</div>

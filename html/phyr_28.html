@@ -1,0 +1,626 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pglmm_compare</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Phylogenetic Generalized Linear Mixed Model for Comparative Data</h2>
+
+<h3>Description</h3>
+
+<p><code>pglmm_compare</code> performs linear regression for Gaussian, binomial and Poisson
+phylogenetic data, estimating regression coefficients with approximate standard
+errors. It simultaneously estimates the strength of phylogenetic signal in the
+residuals and gives an approximate conditional likelihood ratio test for the
+hypothesis that there is no signal. Therefore, when applied without
+predictor (independent) variables, it gives a test for phylogenetic signal.
+<code>pglmm_compare</code> is a wrapper for <code>pglmm</code> tailored for comparative data in
+which each value of the response (dependent) variable corresponds to a single tip
+on a phylogenetic tree. If there are multiple measures for each species, <code>pglmm</code>
+will be helpful.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pglmm_compare(
+  formula,
+  family = "gaussian",
+  data = list(),
+  phy,
+  REML = TRUE,
+  optimizer = c("nelder-mead-nlopt", "bobyqa", "Nelder-Mead", "subplex"),
+  add.obs.re = TRUE,
+  verbose = FALSE,
+  cpp = TRUE,
+  bayes = FALSE,
+  reltol = 10^-6,
+  maxit = 500,
+  tol.pql = 10^-6,
+  maxit.pql = 200,
+  marginal.summ = "mean",
+  calc.DIC = FALSE,
+  prior = "inla.default",
+  prior_alpha = 0.1,
+  prior_mu = 1,
+  ML.init = FALSE,
+  s2.init = 1,
+  B.init = NULL
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>A two-sided linear formula object describing the
+fixed-effects of the model; for example, Y ~ X. Binomial data can be either
+presence/absence, or a two-column array of 'successes' and 'failures'.
+For both binomial and Poisson data, we add an observation-level
+random term by default via <code>add.obs.re = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>Either "gaussian" for a Linear Mixed Model, or
+"binomial" or "poisson" for Generalized Linear Mixed Models.
+<code>family</code> should be specified as a character string (i.e., quoted). For binomial and
+Poisson data, we use the canonical logit and log link functions, respectively.
+Binomial data can be either presence/absence, or a two-column array of 'successes' and 'failures'.
+For both Poisson and binomial data, we add an observation-level
+random term by default via <code>add.obs.re = TRUE</code>. If <code>bayes = TRUE</code> there are
+two additional families available: "zeroinflated.binomial", and "zeroinflated.poisson",
+which add a zero inflation parameter; this parameter gives the probability that the response is
+a zero. The rest of the parameters of the model then reflect the "non-zero" part
+of the model. Note that "zeroinflated.binomial" only makes sense for success/failure
+response data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame containing the variables named in formula. It must has
+the tip labels of the phylogeny as row names; if they are not in the same order,
+the data frame will be arranged so that row names match the order of tip labels.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>phy</code></td>
+<td>
+<p>A phylogenetic tree as an object of class "phylo".</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>REML</code></td>
+<td>
+<p>Whether REML or ML is used for model fitting the random effects. Ignored if
+<code>bayes = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>optimizer</code></td>
+<td>
+<p>nelder-mead-nlopt (default), bobyqa, Nelder-Mead, or subplex.
+Nelder-Mead is from the stats package and the other optimizers are from the nloptr package.
+Ignored if <code>bayes = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>add.obs.re</code></td>
+<td>
+<p>Whether to add observation-level random term for binomial and  Poisson
+families. Normally it would be a good idea to add this to account for overdispersion,
+so <code>add.obs.re = TRUE</code> by default.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If <code>TRUE</code>, the model deviance and running
+estimates of <code>s2</code> and <code>B</code> are plotted each iteration
+during optimization.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cpp</code></td>
+<td>
+<p>Whether to use C++ function for optim. Default is TRUE. Ignored if <code>bayes = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bayes</code></td>
+<td>
+<p>Whether to fit a Bayesian version of the PGLMM using <code>r-inla</code>. We recommend
+against Bayesian fitting for non-Gaussian data unless sample sizes are large (&gt;1000), because
+the phylogenetic variance tends to get trapped near zero.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>reltol</code></td>
+<td>
+<p>A control parameter dictating the relative tolerance
+for convergence in the optimization; see <code>optim</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit</code></td>
+<td>
+<p>A control parameter dictating the maximum number of
+iterations in the optimization; see <code>optim</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tol.pql</code></td>
+<td>
+<p>A control parameter dictating the tolerance for
+convergence in the PQL estimates of the mean components of the
+GLMM. Ignored if <code>family = "gaussian"</code> or <code>bayes = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxit.pql</code></td>
+<td>
+<p>A control parameter dictating the maximum number
+of iterations in the PQL estimates of the mean components of the
+GLMM. Ignored if <code>family = "gaussian"</code> or <code>bayes = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>marginal.summ</code></td>
+<td>
+<p>Summary statistic to use for the estimate of coefficients when
+doing a Bayesian PGLMM (when <code>bayes = TRUE</code>). Options are: "mean",
+"median", or "mode", referring to different characterizations of the central
+tendency of the Bayesian posterior marginal distributions. Ignored if <code>bayes = FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>calc.DIC</code></td>
+<td>
+<p>Should the Deviance Information Criterion be calculated and returned,
+when doing a Bayesian PGLMM? Ignored if <code>bayes = FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior</code></td>
+<td>
+<p>Which type of default prior should be used by <code>pglmm</code>?
+Only used if <code>bayes = TRUE</code>. There are currently four options:
+"inla.default", which uses the default <code>INLA</code> priors; "pc.prior.auto", which uses a
+complexity penalizing prior (as described in
+<a href="https://arxiv.org/abs/1403.4630v3">Simpson et al. (2017)</a>) designed to automatically
+choose good parameters (only available for gaussian and binomial responses); "pc.prior", which
+allows the user to set custom parameters on the "pc.prior" prior, using the <code>prior_alpha</code>
+and <code>prior_mu</code> parameters (Run <code>INLA::inla.doc("pc.prec")</code> for details on these
+parameters); and "uninformative", which sets a very uninformative prior
+(nearly uniform) by using a very flat exponential distribution. The last option is generally
+not recommended but may in some cases give estimates closer to the maximum likelihood estimates.
+"pc.prior.auto" is only implemented for <code>family = "gaussian"</code> and <code>family = "binomial"</code>
+currently.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior_alpha</code></td>
+<td>
+<p>Only used if <code>bayes = TRUE</code> and <code>prior = "pc.prior"</code>, in
+which case it sets the alpha parameter of <code>INLA</code>'s complexity penalizing prior for the
+random effects.The prior is an exponential distribution where prob(sd &gt; mu) = alpha,
+where sd is the standard deviation of the random effect.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior_mu</code></td>
+<td>
+<p>Only used if <code>bayes = TRUE</code> and <code>prior = "pc.prior"</code>, in
+which case it sets the mu parameter of <code>INLA</code>'s complexity penalizing prior for the
+random effects.The prior is an exponential distribution where prob(sd &gt; mu) = alpha,
+where sd is the standard deviation of the random effect.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ML.init</code></td>
+<td>
+<p>Only relevant if <code>bayes = TRUE</code>. Should maximum
+likelihood estimates be calculated and used as initial values for
+the bayesian model fit? Sometimes this can be helpful, but most of the
+time it may not help; thus, we set the default to <code>FALSE</code>. Also, it
+does not work with the zero-inflated families.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2.init</code></td>
+<td>
+<p>An array of initial estimates of s2. If s2.init is not provided for
+<code>family="gaussian"</code>, these are estimated using <code>lm</code> assuming
+no phylogenetic signal. If <code>s2.init</code> is not
+provided for <code>family = "binomial"</code>, these are set to 0.25.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.init</code></td>
+<td>
+<p>Initial estimates of <code class="reqn">B</code>, a matrix containing
+regression coefficients in the model for the fixed effects. This
+matrix must have <code>dim(B.init) = c(p + 1, 1)</code>, where <code>p</code> is the
+number of predictor (independent) variables; the first element of
+<code>B</code> corresponds to the intercept, and the remaining elements
+correspond in order to the predictor (independent) variables in the
+formula. If <code>B.init</code> is not provided, these are estimated
+using <code>lm</code> or <code>glm</code> assuming no phylogenetic signal.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p><code>pglmm_compare</code> in the package <code>phyr</code> is similar to <code>binaryPGLMM</code> in
+the package <code>ape</code>, although it has much broader functionality, including
+accepting more than just binary data, implementing Bayesian analyses, etc.
+</p>
+<p>For non-Gaussian data, the function estimates parameters for the model
+</p>
+<p style="text-align: center;"><code class="reqn">Pr(Y = 1) = \theta </code>
+</p>
+ <p style="text-align: center;"><code class="reqn">\theta = inverse.link(b0 + b1 * x1 + b2 * x2 + \dots
++ \epsilon)</code>
+</p>
+ <p style="text-align: center;"><code class="reqn">\epsilon ~ Gaussian(0, s2 * V) </code>
+</p>
+
+<p>where <code class="reqn">V</code> is a covariance matrix derived from a phylogeny
+(typically under the assumption of Brownian motion evolution). Although
+mathematically there is no requirement for <code class="reqn">V</code> to be ultrametric,
+forcing <code class="reqn">V</code> into ultrametric form can aide in the interpretation of the
+model. This is especially true for binary data, because in regression for
+binary dependent variables, only the off-diagonal elements (i.e., covariances)
+of matrix <code class="reqn">V</code> are biologically meaningful (see Ives &amp; Garland 2014).
+The function converts a phylo tree object into a covariance matrix,
+and further standardizes this matrix to have determinant = 1. This in effect
+standardizes the interpretation of the scalar <code>s2</code>. Although mathematically
+not required, it is a very good idea to standardize the predictor
+(independent) variables to have mean 0 and variance 1. This will make the
+function more robust and improve the interpretation of the regression
+coefficients.
+</p>
+<p>For Gaussian data, the function estimates parameters for the model
+</p>
+<p style="text-align: center;"><code class="reqn">Y = b0 + b1 * x1 + b2 * x2 + \dots + \epsilon)</code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\epsilon ~ Gaussian(0, s2 * V + s2resid * I) </code>
+</p>
+
+<p>where <code class="reqn">s2resid * I</code> gives the non-phylogenetic residual variance. Note that this
+is equivalent to a model with Pagel's lambda transformation.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object (list) of class <code>pglmm_compare</code> with the following elements:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>the formula for fixed effects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>formula_original</code></td>
+<td>
+<p>the formula for both fixed effects and random effects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>the dataset</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>family</code></td>
+<td>
+<p>either <code>gaussian</code> or <code>binomial</code> or <code>poisson</code> depending on the model fit</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>estimates of the regression coefficients</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.se</code></td>
+<td>
+<p>approximate standard errors of the fixed effects regression coefficients.
+This is set to NULL if <code>bayes = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.ci</code></td>
+<td>
+<p>approximate bayesian credible interval of the fixed effects regression coefficients.
+This is set to NULL if <code>bayes = FALSE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.cov</code></td>
+<td>
+<p>approximate covariance matrix for the fixed effects regression coefficients</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.zscore</code></td>
+<td>
+<p>approximate Z scores for the fixed effects regression coefficients. This is set to NULL if <code>bayes = TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.pvalue</code></td>
+<td>
+<p>approximate tests for the fixed effects regression coefficients being different from zero. This is set to NULL if <code>bayes = TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ss</code></td>
+<td>
+<p>random effects' standard deviations for the covariance matrix <code class="reqn">\sigma^2V</code> for each random effect in order. For the linear mixed model, the residual variance is listed last</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2r</code></td>
+<td>
+<p>random effects variances for non-nested random effects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2n</code></td>
+<td>
+<p>random effects variances for nested random effects</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2resid</code></td>
+<td>
+<p>for linear mixed models, the residual variance</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2r.ci</code></td>
+<td>
+<p>Bayesian credible interval for random effects variances for non-nested random effects.
+This is set to NULL if <code>bayes = FALSE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2n.ci</code></td>
+<td>
+<p>Bayesian credible interval for random effects variances for nested random effects.
+This is set to NULL if <code>bayes = FALSE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2resid.ci</code></td>
+<td>
+<p>Bayesian credible interval for linear mixed models, the residual variance.
+This is set to NULL if <code>bayes = FALSE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>logLik</code></td>
+<td>
+<p>for linear mixed models, the log-likelihood for either the restricted likelihood (<code>REML=TRUE</code>) or the overall likelihood (<code>REML=FALSE</code>). This is set to NULL for generalised linear mixed models. If <code>bayes = TRUE</code>, this is the marginal log-likelihood</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>AIC</code></td>
+<td>
+<p>for linear mixed models, the AIC for either the restricted likelihood (<code>REML=TRUE</code>) or the overall likelihood (<code>REML=FALSE</code>). This is set to NULL for generalised linear mixed models</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>BIC</code></td>
+<td>
+<p>for linear mixed models, the BIC for either the restricted likelihood (<code>REML=TRUE</code>) or the overall likelihood (<code>REML=FALSE</code>). This is set to NULL for generalised linear mixed models</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>DIC</code></td>
+<td>
+<p>for bayesian PGLMM, this is the Deviance Information Criterion metric of model fit. This is set to NULL if <code>bayes = FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>REML</code></td>
+<td>
+<p>whether or not REML is used (<code>TRUE</code> or <code>FALSE</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bayes</code></td>
+<td>
+<p>whether or not a Bayesian model was fit.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>marginal.summ</code></td>
+<td>
+<p>The specified summary statistic used to summarise the Bayesian marginal distributions.
+Only present if <code>bayes = TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>s2.init</code></td>
+<td>
+<p>the user-provided initial estimates of <code>s2</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B.init</code></td>
+<td>
+<p>the user-provided initial estimates of <code>B</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y</code></td>
+<td>
+<p>the response (dependent) variable returned in matrix form</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>the predictor (independent) variables returned in matrix form (including 1s in the first column)</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>H</code></td>
+<td>
+<p>the residuals. For linear mixed models, this does not account for random terms,
+To get residuals after accounting for both fixed and random terms, use <code>residuals()</code>.
+For the generalized linear mixed model, these are the predicted residuals in the
+logit -1 space.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>iV</code></td>
+<td>
+<p>the inverse of the covariance matrix. This is NULL if <code>bayes = TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mu</code></td>
+<td>
+<p>predicted mean values for the generalized linear mixed model (i.e. similar to <code>fitted(merMod)</code>).
+Set to NULL for linear mixed models, for which we can use <code>fitted()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Zt</code></td>
+<td>
+<p>the design matrix for random effects. This is set to NULL if <code>bayes = TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>St</code></td>
+<td>
+<p>diagonal matrix that maps the random effects variances onto the design matrix</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>convcode</code></td>
+<td>
+<p>the convergence code provided by <code>optim</code>. This is set to NULL if <code>bayes = TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>niter</code></td>
+<td>
+<p>number of iterations performed by <code>optim</code>. This is set to NULL if <code>bayes = TRUE</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>inla.model</code></td>
+<td>
+<p>Model object fit by underlying <code>inla</code> function. Only returned
+if <code>bayes = TRUE</code></p>
+</td>
+</tr>
+</table>
+<h3>Author(s)</h3>
+
+<p>Anthony R. Ives
+</p>
+
+
+<h3>References</h3>
+
+<p>Ives, A. R. and Helmus, M. R. (2011) Generalized linear mixed
+models for phylogenetic analyses of community structure. <em>Ecological
+Monographs</em>, <b>81</b>, 511–525.
+</p>
+<p>Ives, A. R. and Garland, T., Jr. (2014) Phylogenetic regression for binary
+dependent variables. Pages 231–261 <em>in</em> L. Z. Garamszegi, editor.
+<em>Modern Phylogenetic Comparative Methods and Their Application in
+Evolutionary Biology</em>. Springer-Verlag, Berlin Heidelberg.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pglmm</code>; package <span class="pkg">ape</span> and its function <code>binaryPGLMM</code>;
+package <span class="pkg">phylolm</span> and its function <code>phyloglm</code>; package <span class="pkg">MCMCglmm</span>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+## Illustration of `pglmm_compare` with simulated data
+
+# Generate random phylogeny
+
+library(ape)
+
+n &lt;- 100
+phy &lt;- compute.brlen(rtree(n=n), method = "Grafen", power = 1)
+
+# Generate random data and standardize to have mean 0 and variance 1
+X1 &lt;- rTraitCont(phy, model = "BM", sigma = 1)
+X1 &lt;- (X1 - mean(X1))/var(X1)
+
+# Simulate binary Y
+sim.dat &lt;- data.frame(Y = array(0, dim = n), X1 = X1, row.names = phy$tip.label)
+sim.dat$Y &lt;- ape::binaryPGLMM.sim(Y ~ X1, phy = phy, data=sim.dat, s2 = 1,
+                             B = matrix(c(0, .25), nrow = 2, ncol = 1), 
+                             nrep = 1)$Y
+
+# Fit model
+pglmm_compare(Y ~ X1, family = "binomial", phy = phy, data = sim.dat)
+
+# Compare with `binaryPGLMM`
+ape::binaryPGLMM(Y ~ X1, phy = phy, data = sim.dat)
+
+# Compare with `phyloglm`
+summary(phylolm::phyloglm(Y ~ X1, phy = phy, data = sim.dat))
+
+# Compare with `glm` that does not account for phylogeny
+summary(glm(Y ~ X1, data = sim.dat, family = "binomial"))
+
+# Compare with logistf() that does not account
+# for phylogeny but is less biased than glm()
+logistf::logistf(Y ~ X1, data = sim.dat)
+
+## Fit model with bayes = TRUE
+# pglmm_compare(Y ~ X1, family = "binomial", phy = phy, data = sim.dat, 
+#               bayes = TRUE, calc.DIC = TRUE)
+
+# Compare with `MCMCglmm`
+
+V &lt;- vcv(phy)
+V &lt;- V/max(V)
+detV &lt;- exp(determinant(V)$modulus[1])
+V &lt;- V/detV^(1/n)
+
+invV &lt;- Matrix::Matrix(solve(V),sparse = TRUE)
+sim.dat$species &lt;- phy$tip.label
+rownames(invV) &lt;- sim.dat$species
+
+nitt &lt;- 43000
+thin &lt;- 10
+burnin &lt;- 3000
+
+prior &lt;- list(R=list(V=1, fix=1), G=list(G1=list(V=1, nu=1000, alpha.mu=0, alpha.V=1)))
+# commented out to save time
+# summary(MCMCglmm::MCMCglmm(Y ~ X1, random = ~species, ginvers = list(species = invV),
+#     data = sim.dat, slice = TRUE, nitt = nitt, thin = thin, burnin = burnin,
+#    family = "categorical", prior = prior, verbose = FALSE))
+
+</code></pre>
+
+
+</div>

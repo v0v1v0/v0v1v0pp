@@ -1,0 +1,160 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>interval</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Uncertainty propagation based on interval arithmetics</h2>
+
+<h3>Description</h3>
+
+<p>Calculates the uncertainty of a model by using interval arithmetics based on a "combinatorial sequence grid evaluation" approach, thereby avoiding the classical dependency problem that inflates the result interval.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">interval(df, expr, seq = 10, plot = TRUE)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>df</code></td>
+<td>
+<p>a 2-row dataframe/matrix with lower border values <code class="reqn">A_i</code> in the first row and upper border values <code class="reqn">B_i</code> in the second row. Column names must correspond to the variable names in <code>expr</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>expr</code></td>
+<td>
+<p>an expression, such as <code>expression(x/y)</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seq</code></td>
+<td>
+<p>the sequence length from <code class="reqn">A_i</code> to <code class="reqn">B_i</code> in <code class="reqn">[A_i, B_i]</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>plot</code></td>
+<td>
+<p>logical. If <code>TRUE</code>, plots the evaluations and min/max values as blue border lines.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For two variables <code class="reqn">{\color{red}x}, {\color{blue}y}</code> with intervals <code class="reqn">[{\color{red}x_1}, {\color{red}x_2}]</code> and <code class="reqn">[{\color{blue}y_1}, {\color{blue}y_2}]</code>, the four basic arithmetic operations <code class="reqn">\langle \mathrm{op} \rangle \in \{+, -, \cdot, /\}</code> are
+</p>
+<p style="text-align: center;"><code class="reqn">[{\color{red}x_1}, {\color{red}x_2}] \,\langle\!\mathrm{op}\!\rangle\, [{\color{blue}y_1}, {\color{blue}y_2}] = </code>
+</p>
+
+<p style="text-align: center;"><code class="reqn">\left[ \min({\color{red}x_1} {\langle\!\mathrm{op}\!\rangle} {\color{blue}y_1}, {\color{red}x_1} \langle\!\mathrm{op}\!\rangle {\color{blue}y_2}, {\color{red}x_2} \langle\!\mathrm{op}\!\rangle {\color{blue}y_1}, {\color{red}x_2} \langle\!\mathrm{op}\!\rangle {\color{blue}y_2}),  \max({\color{red}x_1} {\langle\!\mathrm{op}\!\rangle} {\color{blue}y_1}, {\color{red}x_1} {\langle\!\mathrm{op}\!\rangle} {\color{blue}y_2}, {\color{red}x_2} {\langle\!\mathrm{op}\!\rangle} {\color{blue}y_1}, {\color{red}x_2} {\langle\!\mathrm{op}\!\rangle} {\color{blue}y_2})\right]
+</code>
+</p>
+
+<p>So for a function <code class="reqn">f([{\color{red}x_1}, {\color{red}x_2}], [{\color{blue}y_1}, {\color{blue}y_2}], [{\color{green}z_1}, {\color{green}z_2}], ...)</code> with <code class="reqn">k</code> variables, we have to create all combinations <code class="reqn">C_i = {\{\{{\color{red}x_1}, {\color{red}x_2}\}, \{{\color{blue}y_1}, {\color{blue}y2}\}, \{{\color{green}z_1}, {\color{green}z_2}\}, ...\} \choose k}</code>, evaluate their function values <code class="reqn">R_i = f(C_i)</code> and select <code class="reqn">R = [\min R_i, \max R_i]</code>.<br> 
+The so-called <em>dependency problem</em> is a major obstacle to the application of interval arithmetic and arises when the same variable exists in several terms of a complicated and often nonlinear function. In these cases, over-estimation can cover a range that is significantly larger, i.e. <code class="reqn">\min R_i \ll \min f(x, y, z, ...) , \max R_i \gg \max f(x, y, z, ...)</code>. For an example, see <a href="http://en.wikipedia.org/w/index.php?title=Interval_arithmetic">http://en.wikipedia.org/w/index.php?title=Interval_arithmetic</a> under "Dependency problem". A partial solution to this problem is to refine <code class="reqn">R_i</code> by dividing <code class="reqn">[{\color{red}x_1}, {\color{red}x_2}]</code> into <code class="reqn">i</code> smaller subranges to obtain sequence <code class="reqn">({\color{red}x_1}, x_{1.1}, x_{1.2}, x_{1.i}, {\color{red}x_2})</code>. Again, all combinations are evaluated as described above, resulting in a larger number of <code class="reqn">R_i</code> in which <code class="reqn">\min R_i</code> and <code class="reqn">\max R_i</code> may be closer to <code class="reqn">\min f(x, y, z, ...)</code> and <code class="reqn">\max f(x, y, z, ...)</code>, respectively. This is the "combinatorial sequence grid evaluation" approach which works quite well in scenarios where monotonicity changes direction (see 'Examples'), obviating the need to create multivariate derivatives (Hessians) or use some multivariate minimization algorithm.<br>
+If intervals are of type <code class="reqn">[{\color{red}x_1} &lt; 0, {\color{red}x_2} &gt; 0]</code>, a zero is included into the middle of the sequence to avoid wrong results in case of even powers, i.e. <code class="reqn">[-1, 1]^2 = [-1, 1][-1, 1] = [-1, 1]</code> when actually the right interval is <code class="reqn">[0, 1]</code>, see <code>curve(x^2, -1, 1)</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A 2-element vector with the resulting interval and an (optional) plot of all evaluations.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Andrej-Nikolai Spiess
+</p>
+
+
+<h3>References</h3>
+
+<p><b>Wikipedia entry is quite good, especially the section
+on the 'dependency problem':</b><br><a href="http://en.wikipedia.org/wiki/Interval_arithmetic">http://en.wikipedia.org/wiki/Interval_arithmetic</a>
+</p>
+<p><b>Comparison to Monte Carlo and error propagation:</b><br>
+Interval Arithmetic in Power Flow Analysis.<br>
+Wang Z &amp; Alvarado FL.<br>
+Power Industry Computer Application Conference (1991): 156-162.
+</p>
+<p><b>Computer implementation</b><br>
+Interval arithmetic: From principles to implementation.<br>
+Hickey T, Ju Q, Van Emden MH.<br><em>JACM</em> (2001), <b>48</b>: 1038-1068.
+</p>
+<p>Complete Interval Arithmetic and its Implementation on the Computer.<br>
+Kulisch UW.<br>
+In: Numerical Validation in Current Hardware Architectures.
+Lecture Notes in Computer Science <b>5492</b> (2009): 7-26. 
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Example 1: even squaring of negative interval.
+EXPR1 &lt;- expression(x^2)
+DAT1 &lt;- data.frame(x = c(-1, 1))
+interval(DAT1, EXPR1)
+
+## Example 2: A complicated nonlinear model.
+## Reduce sequence length to 2 =&gt; original interval
+## for quicker evaluation.
+EXPR2 &lt;- expression(C * sqrt((520 * H * P)/(M *(t + 460))))
+H &lt;- c(64, 65)
+M &lt;- c(16, 16.2)
+P &lt;- c(361, 365)
+t &lt;- c(165, 170)
+C &lt;- c(38.4, 38.5)
+DAT2 &lt;- makeDat(EXPR2)
+interval(DAT2, EXPR2, seq = 2)
+
+## Example 3: Body Mass Index taken from
+## http://en.wikipedia.org/w/index.php?title=Interval_arithmetic
+EXPR3 &lt;- expression(m/h^2)
+m &lt;- c(79.5, 80.5)
+h &lt;- c(1.795, 1.805)
+DAT3 &lt;- makeDat(EXPR3)
+interval(DAT3, EXPR3)
+
+## Example 4: Linear model.
+EXPR4 &lt;- expression(a * x + b)
+a &lt;- c(1, 2)
+b &lt;- c(5, 7)
+x &lt;- c(2, 3)
+DAT4 &lt;- makeDat(EXPR4)
+interval(DAT4, EXPR4)
+
+## Example 5: Overestimation from dependency problem.
+# Original interval with seq = 2 =&gt; [1, 7]
+EXPR5 &lt;- expression(x^2 - x + 1)
+x &lt;- c(-2, 1)
+DAT5 &lt;- makeDat(EXPR5)
+interval(DAT5, EXPR5, seq = 2)
+
+# Refine with large sequence =&gt; [0.75, 7]
+interval(DAT5, EXPR5, seq = 100)
+# Tallies with curve function.
+curve(x^2 - x + 1, -2, 1)
+
+## Example 6: Underestimation from dependency problem.
+# Original interval with seq = 2 =&gt; [0, 0]
+EXPR6 &lt;- expression(x - x^2)
+x &lt;- c(0, 1)
+DAT6 &lt;- makeDat(EXPR6)
+interval(DAT6, EXPR6, seq = 2)
+
+# Refine with large sequence =&gt; [0, 0.25]
+interval(DAT6, EXPR6, seq = 100)
+# Tallies with curve function.
+curve(x - x^2, 0, 1)
+</code></pre>
+
+
+</div>

@@ -1,0 +1,220 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>atefit</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Doubly robust estimator of and inference for the average treatment effect for count, survival and continuous data</h2>
+
+<h3>Description</h3>
+
+<p>Doubly robust estimator of the average treatment effect between two treatments, which is the rate ratio
+for count outcomes, the restricted mean time lost ratio for survival outcomes and the mean difference for continuous outcome. Bootstrap is used for
+inference.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">atefit(
+  response,
+  data,
+  cate.model,
+  ps.model,
+  ps.method = "glm",
+  ipcw.model = NULL,
+  ipcw.method = "breslow",
+  minPS = 0.01,
+  maxPS = 0.99,
+  followup.time = NULL,
+  tau0 = NULL,
+  surv.min = 0.025,
+  interactions = TRUE,
+  n.boot = 500,
+  seed = NULL,
+  verbose = 0
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>response</code></td>
+<td>
+<p>A string describing the type of outcome in the data. Allowed values include
+"count" (see <code>catecvcount()</code>), "survival" (see
+<code>catecvsurv()</code>) and "continuous" (see <code>catecvmean()</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A data frame containing the variables in the outcome, propensity score, and inverse
+probability of censoring models (if specified); a data frame with <code>n</code> rows (1 row per observation).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cate.model</code></td>
+<td>
+<p>A formula describing the outcome model to be fitted.
+The outcome must appear on the left-hand side. For survival outcomes,
+a <code>Surv</code> object must be used to describe the outcome.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ps.model</code></td>
+<td>
+<p>A formula describing the propensity score (PS) model to be fitted. The treatment must
+appear on the left-hand side. The treatment must be a numeric vector coded as 0/1.
+If data are from a randomized controlled trial, specify <code>ps.model = ~1</code> as an intercept-only model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ps.method</code></td>
+<td>
+<p>A character value for the method to estimate the propensity score.
+Allowed values include one of:
+<code>'glm'</code> for logistic regression with main effects only (default), or
+<code>'lasso'</code> for a logistic regression with main effects and LASSO penalization on
+two-way interactions (added to the model if interactions are not specified in <code>ps.model</code>).
+Relevant only when <code>ps.model</code> has more than one variable.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ipcw.model</code></td>
+<td>
+<p>A formula describing the inverse probability of censoring weighting (IPCW)
+model to be fitted. The left-hand side must be empty. Only applies for survival outcomes.
+Default is <code>NULL</code>, which corresponds to specifying the IPCW with the same covariates
+as the outcome model <code>cate.model</code>, plus the treatment.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ipcw.method</code></td>
+<td>
+<p>A character value for the censoring model. Only applies for survival
+outcomes. Allowed values are: <code>'breslow'</code> (Cox regression with Breslow estimator of t
+he baseline survivor function), <code>'aft (exponential)'</code>, <code>'aft (weibull)'</code>,
+<code>'aft (lognormal)'</code> or <code>'aft (loglogistic)'</code> (accelerated failure time model
+with different distributions for y variable). Default is <code>'breslow'</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>minPS</code></td>
+<td>
+<p>A numerical value (in '[0, 1]') below which estimated propensity scores should be
+truncated. Default is <code>0.01</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>maxPS</code></td>
+<td>
+<p>A numerical value (in '(0, 1]') above which estimated propensity scores should be
+truncated. Must be strictly greater than <code>minPS</code>. Default is <code>0.99</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>followup.time</code></td>
+<td>
+<p>A column name in <code>data</code> specifying the maximum follow-up time,
+interpreted as the potential censoring time. Only applies for survival outcomes.
+Default is <code>NULL</code>, which corresponds to unknown potential censoring time.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tau0</code></td>
+<td>
+<p>The truncation time for defining restricted mean time lost. Only applies for
+survival outcomes. Default is <code>NULL</code>, which corresponds to setting the truncation time as the
+maximum survival time in the data.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>surv.min</code></td>
+<td>
+<p>Lower truncation limit for the probability of being censored.
+It must be a positive value and should be chosen close to 0. Only applies for survival
+outcomes. Default is <code>0.025</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>interactions</code></td>
+<td>
+<p>A logical value indicating whether the outcome model should assume interactions
+between <code>x</code> and <code>trt</code>. Applies only to count outcomes. If <code>TRUE</code>, interactions will
+be assumed only if at least 10 patients received each treatment option. Default is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>n.boot</code></td>
+<td>
+<p>A numeric value indicating the number of bootstrap samples used. Default is <code>500</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>seed</code></td>
+<td>
+<p>An optional integer specifying an initial randomization seed for reproducibility.
+Default is <code>NULL</code>, corresponding to no seed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>An integer value indicating whether intermediate progress messages and histograms should
+be printed. <code>1</code> indicates messages are printed and <code>0</code> otherwise. Default is <code>0</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>For count response, see details in <code>atefitcount()</code>.
+For survival response, see details in <code>atefitsurv()</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For count response, see description of outputs in <code>atefitcount()</code>.
+For survival response, see description of outputs in <code>atefitsurv()</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Count outcome
+output &lt;- atefit(response = "count",
+                 data = countExample,
+                 cate.model = y ~ age + female + previous_treatment +
+                              previous_cost + previous_number_relapses +
+                              offset(log(years)),
+                 ps.model = trt ~ age + previous_treatment,
+                 n.boot = 50,
+                 seed = 999)
+output
+plot(output)
+
+
+
+# Survival outcome
+tau0 &lt;- with(survivalExample,
+                 min(quantile(y[trt == "drug1"], 0.95), quantile(y[trt == "drug0"], 0.95)))
+
+output2 &lt;- atefit(response = "survival",
+                  data = survivalExample,
+                  cate.model = survival::Surv(y, d) ~ age + female +
+                        previous_cost + previous_number_relapses,
+                        ps.model = trt ~ age + previous_treatment,
+                  tau0 = tau0,
+                  seed = 999)
+output2
+plot(output2)
+
+
+</code></pre>
+
+
+</div>

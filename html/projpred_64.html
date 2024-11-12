@@ -1,0 +1,209 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>suggest_size</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Suggest submodel size</h2>
+
+<h3>Description</h3>
+
+<p>This function can suggest an appropriate submodel size based on a decision
+rule described in section "Details" below. Note that this decision is quite
+heuristic and should be interpreted with caution. It is recommended to
+examine the results via <code>plot.vsel()</code>, <code>cv_proportions()</code>,
+<code>plot.cv_proportions()</code>, and/or <code>summary.vsel()</code> and to make the final
+decision based on what is most appropriate for the problem at hand.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">suggest_size(object, ...)
+
+## S3 method for class 'vsel'
+suggest_size(
+  object,
+  stat = "elpd",
+  pct = 0,
+  type = "upper",
+  thres_elpd = NA,
+  warnings = TRUE,
+  ...
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>object</code></td>
+<td>
+<p>An object of class <code>vsel</code> (returned by <code>varsel()</code> or
+<code>cv_varsel()</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Arguments passed to <code>summary.vsel()</code>, except for <code>object</code>, <code>stats</code>
+(which is set to <code>stat</code>), <code>type</code>, and <code>deltas</code> (which is set to <code>TRUE</code>).
+See section "Details" below for some important arguments which may be
+passed here.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>stat</code></td>
+<td>
+<p>Performance statistic (i.e., utility or loss) used for the
+decision. See argument <code>stats</code> of <code>summary.vsel()</code> for possible choices.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pct</code></td>
+<td>
+<p>A number giving the proportion (<em>not</em> percents) of the <em>relative</em>
+null model utility one is willing to sacrifice. See section "Details" below
+for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>Either <code>"upper"</code> or <code>"lower"</code> determining whether the decision is
+based on the upper or lower confidence interval bound, respectively. See
+section "Details" below for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>thres_elpd</code></td>
+<td>
+<p>Only relevant if <code style="white-space: pre;">⁠stat %in% c("elpd", "mlpd", "gmpd"))⁠</code>.
+The threshold for the ELPD difference (taking the submodel's ELPD minus the
+baseline model's ELPD) above which the submodel's ELPD is considered to be
+close enough to the baseline model's ELPD. An equivalent rule is applied in
+case of the MLPD and the GMPD. See section "Details" for a formalization.
+Supplying <code>NA</code> deactivates this.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>warnings</code></td>
+<td>
+<p>Mainly for internal use. A single logical value indicating
+whether to throw warnings if automatic suggestion fails. Usually there is
+no reason to set this to <code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>In general (beware of special cases below), the suggested model
+size is the smallest model size <code class="reqn">j \in \{0, 1, ...,
+  \texttt{nterms\_max}\}</code> for which either the
+lower or upper bound (depending on argument <code>type</code>) of the
+normal-approximation (or bootstrap or exponentiated normal-approximation;
+see argument <code>stat</code>) confidence interval (with nominal coverage <code>1 - alpha</code>; see argument <code>alpha</code> of <code>summary.vsel()</code>) for <code class="reqn">U_j -
+  U_{\mathrm{base}}</code> (with <code class="reqn">U_j</code> denoting the <code class="reqn">j</code>-th
+submodel's true utility and <code class="reqn">U_{\mathrm{base}}</code> denoting the
+baseline model's true utility)
+falls above (or is equal to) </p>
+<p style="text-align: center;"><code class="reqn">\texttt{pct} \cdot (u_0 -
+  u_{\mathrm{base}})</code>
+</p>
+<p> where <code class="reqn">u_0</code> denotes the null
+model's estimated utility and <code class="reqn">u_{\mathrm{base}}</code> the baseline
+model's estimated utility. The baseline model is either the reference model
+or the best submodel found (see argument <code>baseline</code> of <code>summary.vsel()</code>).
+</p>
+<p>In doing so, loss statistics like the root mean squared error (RMSE) and
+the mean squared error (MSE) are converted to utilities by multiplying them
+by <code>-1</code>, so a call such as <code>suggest_size(object, stat = "rmse", type = "upper")</code> finds the smallest model size whose upper confidence interval
+bound for the <em>negative</em> RMSE or MSE exceeds (or is equal to) the cutoff
+(or, equivalently, has the lower confidence interval bound for the RMSE or
+MSE below—or equal to—the cutoff). This is done to make the
+interpretation of argument <code>type</code> the same regardless of argument <code>stat</code>.
+</p>
+<p>For the geometric mean predictive density (GMPD), the decision rule above
+is applied on <code>log()</code> scale. In other words, if the true GMPD is denoted by
+<code class="reqn">U^\ast_j</code> for the <code class="reqn">j</code>-th submodel and
+<code class="reqn">U^\ast_{\mathrm{base}}</code> for the baseline model (so that
+<code class="reqn">U_j</code> and <code class="reqn">U_{\mathrm{base}}</code> from above are given by
+<code class="reqn">U_j = \log(U^\ast_j)</code> and
+<code class="reqn">U_{\mathrm{base}} = \log(U^\ast_{\mathrm{base}})</code>), then <code>suggest_size()</code> yields the smallest model size whose
+lower or upper (depending on argument <code>type</code>) confidence interval bound for
+<code class="reqn">\frac{U^\ast_j}{U^\ast_{\mathrm{base}}}</code> exceeds (or
+is equal to)
+</p>
+<p style="text-align: center;"><code class="reqn">(\frac{u^\ast_0}{u^\ast_{\mathrm{base}}})^{\texttt{pct}}</code>
+</p>
+<p> where <code class="reqn">u^\ast_0</code> denotes the null
+model's estimated GMPD and <code class="reqn">u^\ast_{\mathrm{base}}</code> the
+baseline model's estimated GMPD.
+</p>
+<p>If <code>!is.na(thres_elpd)</code> and <code>stat = "elpd"</code>, the decision rule above is
+extended: The suggested model size is then the smallest model size <code class="reqn">j</code>
+fulfilling the rule above <em>or</em> <code class="reqn">u_j - u_{\mathrm{base}} &gt;
+  \texttt{thres\_elpd}</code>. Correspondingly, in case
+of <code>stat = "mlpd"</code> (and <code>!is.na(thres_elpd)</code>), the suggested model size is
+the smallest model size <code class="reqn">j</code> fulfilling the rule above <em>or</em> <code class="reqn">u_j -
+  u_{\mathrm{base}} &gt; \frac{\texttt{thres\_elpd}}{N}</code> with <code class="reqn">N</code> denoting the number of observations.
+Correspondingly, in case of <code>stat = "gmpd"</code> (and <code>!is.na(thres_elpd)</code>), the
+suggested model size is the smallest model size <code class="reqn">j</code> fulfilling the rule
+above <em>or</em> <code class="reqn">\frac{u^\ast_j}{u^\ast_{\mathrm{base}}} &gt;
+  \exp(\frac{\texttt{thres\_elpd}}{N})</code>.
+</p>
+<p>For example (disregarding the special extensions in case of
+<code>!is.na(thres_elpd)</code> with <code>stat %in% c("elpd", "mlpd", "gmpd")</code>), <code>alpha = 2 * pnorm(-1)</code>, <code>pct = 0</code>, and <code>type = "upper"</code> means that we select the
+smallest model size for which the upper bound of the <code>1 - 2 * pnorm(-1)</code>
+(approximately 68.3%) confidence interval for <code class="reqn">U_j -
+  U_{\mathrm{base}}</code>
+(<code class="reqn">\frac{U^\ast_j}{U^\ast_{\mathrm{base}}}</code> in case of
+the GMPD) exceeds (or is equal to) zero (one in case of the GMPD), that is
+(if <code>stat</code> is a performance statistic for which the normal approximation is
+used, not the bootstrap and not the exponentiated normal approximation),
+for which the submodel's utility estimate is at most one standard error
+smaller than the baseline model's utility estimate (with that standard
+error referring to the utility <em>difference</em>).
+</p>
+<p>Apart from the two <code>summary.vsel()</code> arguments mentioned above (<code>alpha</code> and
+<code>baseline</code>), <code>resp_oscale</code> is another important <code>summary.vsel()</code> argument
+that may be passed via <code>...</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A single numeric value, giving the suggested submodel size (or <code>NA</code>
+if the suggestion failed).
+</p>
+<p>The intercept is not counted by <code>suggest_size()</code>, so a suggested size of
+zero stands for the intercept-only model.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# Data:
+dat_gauss &lt;- data.frame(y = df_gaussian$y, df_gaussian$x)
+
+# The `stanreg` fit which will be used as the reference model (with small
+# values for `chains` and `iter`, but only for technical reasons in this
+# example; this is not recommended in general):
+fit &lt;- rstanarm::stan_glm(
+  y ~ X1 + X2 + X3 + X4 + X5, family = gaussian(), data = dat_gauss,
+  QR = TRUE, chains = 2, iter = 500, refresh = 0, seed = 9876
+)
+
+# Run varsel() (here without cross-validation, with L1 search, and with small
+# values for `nterms_max` and `nclusters_pred`, but only for the sake of
+# speed in this example; this is not recommended in general):
+vs &lt;- varsel(fit, method = "L1", nterms_max = 3, nclusters_pred = 10,
+             seed = 5555)
+print(suggest_size(vs))
+
+</code></pre>
+
+
+</div>

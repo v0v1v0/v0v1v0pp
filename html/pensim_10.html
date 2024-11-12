@@ -1,0 +1,253 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>scan.l1l2</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>
+Function calculate cross-validated likelihood on a regular grid of L1/L2 penalties
+</h2>
+
+<h3>Description</h3>
+
+<p>This function generates a grid of values of L1/L2 penalties,
+then calculated cross-validated likelihood at each point on the grid.
+The grid can be regular (linear progression of the penalty values), or
+polynomial (finer grid for small penalty values, and coarser grid for
+larger penalty values).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">scan.l1l2(L1range = c(0.1, 100.1),
+          L2range = c(0.1, 100.1),
+          L1.ngrid = 50,
+          L2.ngrid = 50,
+          nprocessors = 1,
+          polydegree = 1,
+          cl = NULL,
+          ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>L1range</code></td>
+<td>
+
+<p>numeric vector of length two, giving minimum and maximum constraints
+on the L1 penalty
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L2range</code></td>
+<td>
+
+<p>numeric vector of length two, giving minimum and maximum constraints
+on the L2 penalty
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L1.ngrid</code></td>
+<td>
+
+<p>Number of values of the L1 penalty in the regular grid of L1/L2 penalties
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L2.ngrid</code></td>
+<td>
+
+<p>Number of values of the L2 penalty in the regular grid of L1/L2 penalties
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nprocessors</code></td>
+<td>
+
+<p>An integer number of processors to use.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>polydegree</code></td>
+<td>
+
+<p>power of the polynomial on which the L1/L2 penalty values are fit.
+ie if polydegree=2, penalty values could be y=x^2, x=1,2,3,..., so y=1,4,9,...
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>cl</code></td>
+<td>
+
+<p>Optional cluster object created with the makeCluster() function of
+the parallel package.  If this is not set, pensim calls
+makeCluster(nprocessors, type="SOCK").   Setting this parameter
+can enable parallelization in more diverse scenarios than multi-core
+desktops; see the documentation for the parallel package.  Note that if
+cl is user-defined, this function will not automatically run
+parallel::stopCluster() to shut down the cluster.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+
+<p>arguments passed on to cvl function of the penalized R package
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function sets up a SNOW (Simple Network of Workstations) "sock"
+cluster to parallelize the task of scanning a grid of penalty values
+to search for suitable starting values for two-dimensional
+optimization of the Elastic Net.
+</p>
+
+
+<h3>Value</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>cvl</code></td>
+<td>
+<p>matrix of cvl values along the grid</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L1range</code></td>
+<td>
+<p>range of L1 penalties to scan</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>L2range</code></td>
+<td>
+<p>range of L2 penalties to scan</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>xlab</code></td>
+<td>
+<p>A text string indicating the range of L1 penalties</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ylab</code></td>
+<td>
+<p>A text string giving the range of L2 penalties</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>zlab</code></td>
+<td>
+<p>A text string giving the range of cvl values</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>note</code></td>
+<td>
+<p>A note to the user that rows of cvl correspond to values of lambda1, columns to lambda2</p>
+</td>
+</tr>
+</table>
+<h3>Note</h3>
+
+<p>Depends on the R packages: penalized, parallel, rlecuyer
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Levi Waldron et al.
+</p>
+
+
+<h3>References</h3>
+
+<p>Waldron L, Pintilie M, Tsao M-S, Shepherd FA, Huttenhower C*, Jurisica
+I*: Optimized application of penalized regression methods to diverse
+genomic data. Bioinformatics 2011, 27:3399-3406.  (*equal contribution)
+</p>
+
+
+<h3>See Also</h3>
+
+<p>cvl
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">data(beer.exprs)
+data(beer.survival)
+
+##select just 250 genes to speed computation:
+set.seed(1)
+beer.exprs.sample &lt;- beer.exprs[sample(1:nrow(beer.exprs), 250), ]
+
+gene.quant &lt;- apply(beer.exprs.sample, 1, quantile, probs = 0.75)
+dat.filt &lt;- beer.exprs.sample[gene.quant &gt; log2(150), ]
+gene.iqr &lt;- apply(dat.filt, 1, IQR)
+dat.filt &lt;- as.matrix(dat.filt[gene.iqr &gt; 1, ])
+dat.filt &lt;- t(dat.filt)
+
+## Define training and test sets
+set.seed(9)
+trainingset &lt;- sample(rownames(dat.filt), round(nrow(dat.filt) / 2))
+testset &lt;- rownames(dat.filt)[!rownames(dat.filt) %in% trainingset]
+
+dat.training &lt;- data.frame(dat.filt[trainingset, ])
+pheno.training &lt;- beer.survival[trainingset, ]
+
+library(survival)
+surv.training &lt;- Surv(pheno.training$os, pheno.training$status)
+
+dat.test &lt;- data.frame(dat.filt[testset, ])
+all.equal(colnames(dat.training), colnames(dat.test))
+pheno.test &lt;- beer.survival[testset, ]
+surv.test &lt;- Surv(pheno.test$os, pheno.test$status)
+
+set.seed(9)
+system.time(
+  output &lt;- scan.l1l2(
+    L1range = c(0.2, 3.2),
+    L2range = c(2, 30),
+    L1.ngrid = 10,
+    L2.ngrid = 10,
+    polydegree = 1,
+    nprocessors = 1,
+    response = surv.training,
+    penalized = dat.training,
+    fold = 4,
+    positive = FALSE,
+    standardize = TRUE
+  )
+)
+
+##Note that the cvl surface is not smooth because a different folding of
+##the data was used for each cvl calculation
+image(
+  x = seq(output$L1range[1], output$L1range[2], length.out = nrow(output$cvl)),
+  y = seq(output$L2range[1], output$L2range[2], length.out = ncol(output$cvl)),
+  z = output$cvl,
+  xlab = "lambda1",
+  ylab = "lambda2",
+  main = "red is higher cross-validated likelihood"
+)
+</code></pre>
+
+
+</div>

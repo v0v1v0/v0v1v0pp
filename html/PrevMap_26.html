@@ -1,0 +1,211 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>linear.model.MLE</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Maximum Likelihood estimation for the geostatistical linear Gaussian model</h2>
+
+<h3>Description</h3>
+
+<p>This function performs maximum likelihood estimation for the geostatistical linear Gaussian Model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">linear.model.MLE(
+  formula,
+  coords = NULL,
+  data,
+  ID.coords = NULL,
+  kappa,
+  fixed.rel.nugget = NULL,
+  start.cov.pars,
+  method = "BFGS",
+  low.rank = FALSE,
+  knots = NULL,
+  messages = TRUE,
+  profile.llik = FALSE,
+  SPDE = FALSE,
+  mesh = NULL,
+  SPDE.analytic.hessian = FALSE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>formula</code></td>
+<td>
+<p>an object of class "<code>formula</code>" (or one that can be coerced to that class): a symbolic description of the model to be fitted.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>coords</code></td>
+<td>
+<p>an object of class <code>formula</code> indicating the geographic coordinates.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>a data frame containing the variables in the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>ID.coords</code></td>
+<td>
+<p>vector of ID values for the unique set of spatial coordinates obtained from <code>create.ID.coords</code>. These must be provided in order to define a geostatistical model where locations have multiple observations. Default is <code>ID.coords=NULL</code>. See the <b>Details</b> section for more information.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>kappa</code></td>
+<td>
+<p>shape parameter of the Matern covariance function.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>fixed.rel.nugget</code></td>
+<td>
+<p>fixed value for the relative variance of the nugget effect; default is <code>fixed.rel.nugget=NULL</code> if this should be included in the estimation.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>start.cov.pars</code></td>
+<td>
+<p>if <code>ID.coords=NULL</code>, a vector of length two with elements corresponding to the starting values of <code>phi</code> and the relative variance of the nugget effect <code>nu2</code>, respectively, that are used in the optimization algorithm; if <code>ID.coords</code> is provided, a third starting value for the relative variance of the individual unexplained variation <code>nu2.star = omega2/sigma2</code> must be provided. If <code>nu2</code> is fixed through <code>fixed.rel.nugget</code>, then start.cov.pars represents the starting value for <code>phi</code> only, if <code>ID.coords=NULL</code>, or for <code>phi</code> and <code>nu2.star</code>, otherwise.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>method of optimization. If <code>method="BFGS"</code> then the <code>maxBFGS</code> function is used; otherwise <code>method="nlminb"</code> to use the <code>nlminb</code> function. Default is <code>method="BFGS"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>low.rank</code></td>
+<td>
+<p>logical; if <code>low.rank=TRUE</code> a low-rank approximation of the Gaussian spatial process is used when fitting the model. Default is <code>low.rank=FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>knots</code></td>
+<td>
+<p>if <code>low.rank=TRUE</code>, <code>knots</code> is a matrix of spatial knots that are used in the low-rank approximation. Default is <code>knots=NULL</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>messages</code></td>
+<td>
+<p>logical; if <code>messages=TRUE</code> then status messages are printed on the screen (or output device) while the function is running. Default is <code>messages=TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>profile.llik</code></td>
+<td>
+<p>logical; if <code>profile.llik=TRUE</code> the maximization of the profile likelihood is carried out. If <code>profile.llik=FALSE</code> the full-likelihood is used. Default is <code>profile.llik=FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SPDE</code></td>
+<td>
+<p>logical; if <code>SPDE=TRUE</code> the SPDE approximation for the Gaussian spatial model is used. Default is <code>SPDE=FALSE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mesh</code></td>
+<td>
+<p>an object obtained as result of a call to the function <code>inla.mesh.2d</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SPDE.analytic.hessian</code></td>
+<td>
+<p>logical; if <code>SPDE.analytic.hessian=TRUE</code> computation of the hessian matrix using the SPDE approximation is carried out using analytical expressions, otherwise a numerical approximation is used. Defauls is <code>SPDE.analytic.hessian=FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This function estimates the parameters of a geostatistical linear Gaussian model, specified as
+</p>
+<p style="text-align: center;"><code class="reqn">Y = d'\beta + S(x) + Z,</code>
+</p>
+
+<p>where <code class="reqn">Y</code> is the measured outcome, <code class="reqn">d</code> is a vector of coavariates, <code class="reqn">\beta</code> is a vector of regression coefficients, <code class="reqn">S(x)</code> is a stationary Gaussian spatial process and <code class="reqn">Z</code> are independent zero-mean Gaussian variables with variance <code>tau2</code>. More specifically, <code class="reqn">S(x)</code> has an isotropic Matern covariance function with variance <code>sigma2</code>, scale parameter <code>phi</code> and shape parameter <code>kappa</code>. In the estimation, the shape parameter <code>kappa</code> is treated as fixed. The relative variance of the nugget effect, <code>nu2=tau2/sigma2</code>, can be fixed though the argument <code>fixed.rel.nugget</code>; if <code>fixed.rel.nugget=NULL</code>, then the variance of the nugget effect is also included in the estimation.
+</p>
+<p><b>Locations with multiple observations.</b>
+If multiple observations are available at any of the sampled locations the above model is modified as follows. Let <code class="reqn">Y_{ij}</code> denote the random variable associated to the measured outcome for the j-th individual at location <code class="reqn">x_{i}</code>. The linear geostatistical model assumes the form </p>
+<p style="text-align: center;"><code class="reqn">Y_{ij} = d_{ij}'\beta + S(x_{i}) + Z{i} + U_{ij},</code>
+</p>
+<p> where <code class="reqn">S(x_{i})</code> and <code class="reqn">Z_{i}</code> are specified as mentioned above, and <code class="reqn">U_{ij}</code> are i.i.d. zer0-mean Gaussian variable with variance <code class="reqn">\omega^2</code>. his model can be fitted by specifing a vector of ID for the unique set locations thourgh the argument <code>ID.coords</code> (see also <code>create.ID.coords</code>).
+</p>
+<p><b>Low-rank approximation.</b>
+In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process <code class="reqn">S(x)</code> can be computationally beneficial. Let <code class="reqn">(x_{1},\dots,x_{m})</code> and <code class="reqn">(t_{1},\dots,t_{m})</code> denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then <code class="reqn">S(x)</code> is approximated as <code class="reqn">\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}</code>, where <code class="reqn">U_{i}</code> are zero-mean mutually independent Gaussian variables with variance <code>sigma2</code> and <code class="reqn">K(.;\phi, \kappa)</code> is the isotropic Matern kernel (see <code>matern.kernel</code>). Since the resulting approximation is no longer a stationary process, the parameter <code>sigma2</code> is adjusted by a factor<code>constant.sigma2</code>. See <code>adjust.sigma2</code> for more details on the the computation of the adjustment factor <code>constant.sigma2</code> in the low-rank approximation.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class "PrevMap".
+The function <code>summary.PrevMap</code> is used to print a summary of the fitted model.
+The object is a list with the following components:
+</p>
+<p><code>estimate</code>: estimates of the model parameters; use the function <code>coef.PrevMap</code> to obtain estimates of covariance parameters on the original scale.
+</p>
+<p><code>covariance</code>: covariance matrix of the ML estimates.
+</p>
+<p><code>log.lik</code>: maximum value of the log-likelihood.
+</p>
+<p><code>y</code>: response variable.
+</p>
+<p><code>D</code>: matrix of covariates.
+</p>
+<p><code>coords</code>: matrix of the observed sampling locations.
+</p>
+<p><code>ID.coords</code>: set of ID values defined through the argument <code>ID.coords</code>.
+</p>
+<p><code>method</code>: method of optimization used.
+</p>
+<p><code>kappa</code>: fixed value of the shape parameter of the Matern function.
+</p>
+<p><code>knots</code>: matrix of the spatial knots used in the low-rank approximation.
+</p>
+<p><code>const.sigma2</code>: adjustment factor for <code>sigma2</code> in the low-rank approximation.
+</p>
+<p><code>fixed.rel.nugget</code>: fixed value for the relative variance of the nugget effect.
+</p>
+<p><code>mesh</code>: the mesh used in the SPDE approximation.
+</p>
+<p><code>call</code>: the matched call.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Emanuele Giorgi <a href="mailto:e.giorgi@lancaster.ac.uk">e.giorgi@lancaster.ac.uk</a>
+</p>
+<p>Peter J. Diggle <a href="mailto:p.diggle@lancaster.ac.uk">p.diggle@lancaster.ac.uk</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>Diggle, P.J., Giorgi, E. (2019). <em>Model-based Geostatistics for Global Public Health.</em> CRC/Chapman &amp; Hall.
+</p>
+<p>Giorgi, E., Diggle, P.J. (2017). <em>PrevMap: an R package for prevalence mapping.</em> Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
+</p>
+<p>Higdon, D. (1998). <em>A process-convolution approach to modeling temperatures in the North Atlantic Ocean.</em> Environmental and Ecological Statistics 5, 173-190.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>shape.matern</code>, <code>summary.PrevMap</code>, <code>coef.PrevMap</code>, <code>matern</code>, <code>matern.kernel</code>, <code>maxBFGS</code>, <code>nlminb</code>.
+</p>
+
+
+</div>

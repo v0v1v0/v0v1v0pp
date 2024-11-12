@@ -1,0 +1,241 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>PSObject</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Create a Principal Stratification Object</h2>
+
+<h3>Description</h3>
+
+<p>Create an object containing essential information to create the Stan file and 
+data for Stan to draw posterior samples. Such information includes the specified
+model for principal stratum and outcome, the type of outcome, assumptions,
+and prior specification, etc.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">PSObject(
+  S.formula,
+  Y.formula,
+  Y.family,
+  data = NULL,
+  strata = NULL,
+  ER = NULL,
+  prior_intercept = prior_flat(),
+  prior_coefficient = prior_normal(),
+  prior_sigma = prior_inv_gamma(),
+  prior_alpha = prior_inv_gamma(),
+  prior_lambda = prior_inv_gamma(),
+  prior_theta = prior_normal(),
+  survival.time.points = 50
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>S.formula, Y.formula</code></td>
+<td>
+<p>an object of class "<code>PSFormula</code>" (or an
+object of class "<code>formula</code>" that can be coerced to
+that class with <code>data</code> provided) specifying the model for principal
+stratum and outcome respectively. See <code>PSFormula</code> for details.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y.family</code></td>
+<td>
+<p>an object of class "<code>family</code>": specifying the parametric
+family of the model for the response and the link function. See the documentation
+for <code>glm</code> for details on how such model fitting takes place.
+Supported families and corresponding link functions are presented in 'Details' below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>(optional) a data frame object. This is required when either 
+<code>S.formula</code> or <code>Y.formula</code> is a <code>formula</code> object, to coerce
+it into a <code>PSFormula</code> object. When this happens, the data frame should 
+contain all of the variables with names given in <code>S.formula</code> or <code>Y.formula</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>strata, ER</code></td>
+<td>
+<p>arguments to define the principal strata. See <code>PStrataInfo</code> for details.
+</p>
+<p>Alternatively, one can pass an object of class <code>PStrataInfo</code> to <code>strata</code>,
+and <code>ER</code> will be ignored.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior_intercept, prior_coefficient, prior_sigma, prior_alpha, prior_lambda, prior_theta</code></td>
+<td>
+<p>prior distribution for corresponding parameters in the model.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>survival.time.points</code></td>
+<td>
+<p>a vector of time points at which the estimated survival probability is evaluated 
+(only used when the type of outcome is survival), or an integer specifying the number of time points to be
+chosen. By default, the time points are chosen with equal distance from 0 to the 90% quantile of the observed
+outcome.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The supported <code>family</code> objects include two types: native families for ordinary outcome and 
+<code>survival</code> family for survival outcome.
+</p>
+<p>For ordinary outcome, the below families and links are supported. See <code>family</code> for more details.
+</p>
+
+<table>
+<tr>
+<td style="text-align: left;">
+ <b>family</b> </td>
+<td style="text-align: left;"> <b>link</b> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>binomial</code> </td>
+<td style="text-align: left;"> <code>logit</code>, <code>probit</code>, <code>cauchit</code>, <code>log</code>, <code>cloglog</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>gaussian</code> </td>
+<td style="text-align: left;"> <code>identity</code>, <code>log</code>, <code>inverse</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>Gamma</code> </td>
+<td style="text-align: left;"> <code>inverse</code>, <code>identity</code>, <code>log</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>poisson</code> </td>
+<td style="text-align: left;"> <code>log</code>, <code>identity</code>, <code>log</code> </td>
+</tr>
+<tr>
+<td style="text-align: left;">
+ <code>inverse.gamma</code> </td>
+<td style="text-align: left;"> <code>1/mu^2</code>, <code>inverse</code>, <code>identity</code>, <code>log</code> 
+</td>
+</tr>
+</table>
+<p>The <code>quasi</code> family is not supported for the current version of the package.
+</p>
+<p>For survival outcome, the <code>family</code> object is created by 
+<code>survival(method = "Cox", link = "identity")</code>, where <code>method</code> can be
+either <code>"Cox"</code> for Weibull-Cox model or <code>"AFT"</code> for accelerated 
+failure time model. See <code>survival</code> for more details. For the current
+version, only <code>"identity"</code> is used as the link function.
+</p>
+<p>The <code>gaussian</code> family and the <code>survival</code> family with <code>method = "AFT"</code>
+introduce an additional parameter <code>sigma</code> for the standard deviation, whose 
+prior distribution is specified by <code>prior_sigma</code>. Similarly, <code>prior_alpha</code>
+specifies the prior distribution of <code>alpha</code> for <code>Gamma</code> family, 
+<code>prior_lambda</code> specifies the prior distribution of <code>theta</code> for <code>inverse.gaussian</code> family, 
+and <code>prior_theta</code>
+specifies the prior distribution of <code>theta</code> for <code>survival</code> family with <code>method = "Cox"</code>.
+</p>
+<p>The models for principal stratum <code>S.formula</code> and response <code>Y.formula</code>
+also involve a linear combination of terms, where the prior distribution of
+the intercept and coefficients are specified by <code>prior_intercept</code> and 
+<code>prior_coefficient</code> respectively.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list, containing important information describing the principal stratification model.
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>S.formula, Y.formula</code></td>
+<td>
+<p>A <code>PSFormula</code> object converted from the input <code>S.formula</code> and <code>Y.formula</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Y.family</code></td>
+<td>
+<p>Same as input.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>is.survival</code></td>
+<td>
+<p>A boolean value. <code>TRUE</code> if <code>Y.family</code> is <code>survival_Cox</code> or <code>survival_AFT</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>strata_info</code></td>
+<td>
+<p>A <code>PStrataInfo</code> object converted from the input <code>strata</code> and <code>ER</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>prior_intercept, prior_coefficient, prior_sigma, prior_alpha, prior_lambda, prior_theta</code></td>
+<td>
+<p>Same as input.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>survival.time.points</code></td>
+<td>
+<p>A list of time points at which the estimated survival probability is evaluated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>SZDG_table</code></td>
+<td>
+<p>A matrix. Each row corresponds to a valid (stratum, treatment, confounder, group) combination.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>Z_names</code></td>
+<td>
+<p>A character vector. The names of the levels of the treatment.</p>
+</td>
+</tr>
+</table>
+<h3>Examples</h3>
+
+<pre><code class="language-R">df &lt;- data.frame(
+  Z = rbinom(10, 1, 0.5),
+  D = rbinom(10, 1, 0.5),
+  Y = rnorm(10),
+  X = 1:10
+)
+
+PSObject(
+  S.formula = Z + D ~ X,
+  Y.formula = Y ~ X,
+  Y.family = gaussian("identity"),
+  data = df,
+  strata = c(n = "00*", c = "01", a = "11*")
+)
+
+#------------------------------
+
+PSObject(
+  S.formula = Z + D ~ 1,
+  Y.formula = Y ~ 1,
+  Y.family = gaussian("identity"),
+  data = sim_data_normal,
+  strata = c(n = "00*", c = "01", a = "11*")
+)
+
+</code></pre>
+
+
+</div>

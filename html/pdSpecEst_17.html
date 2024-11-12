@@ -1,0 +1,154 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pdPgram2D</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Multitaper HPD time-varying periodogram matrix</h2>
+
+<h3>Description</h3>
+
+<p>Given a multivariate time series, <code>pdPgram2D</code> computes a multitapered HPD time-varying periodogram matrix based on
+averaging raw Hermitian PSD time-varying periodogram matrices of tapered multivariate time series segments.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pdPgram2D(X, B, tf.grid, method = c("dpss", "hermite"), nw = 3,
+  bias.corr = F)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>X</code></td>
+<td>
+<p>an (<code class="reqn">n,d</code>)-dimensional matrix corresponding to a multivariate time series,
+with the <code>d</code> columns corresponding to the components of the time series.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>B</code></td>
+<td>
+<p>depending on the argument <code>method</code>, either the number of orthogonal DPSS or Hermite tapering functions.
+By default, <code>B = d</code>, such that the multitaper periodogram is guaranteed to be positive definite.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tf.grid</code></td>
+<td>
+<p>a list with two components <code>tf.grid$time</code> and <code>tf.grid$frequency</code> specifying the
+rectangular grid of time-frequency points at which the multitaper periodogram is evaluated. <code>tf.grid$time</code>
+should be a numeric vector of rescaled time points in the range <code>(0,1)</code>. <code>tf.grid$frequency</code> should be a numeric
+vector of frequency points in the range <code>(0,0.5)</code>, with 0.5 corresponding to the Nyquist frequency.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>the tapering method, either <code>"dpss"</code> or <code>"hermite"</code> explained in the Details
+section below. Defaults to <code>method = "dpss"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>nw</code></td>
+<td>
+<p>a positive numeric value corresponding to the time-bandwidth parameter of the tapering functions,
+see also <code>dpss</code>, defaults to <code>nw = 3</code>. Both the DPSS and Hermite tapers are
+rescaled with the same time-bandwidth parameter.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>bias.corr</code></td>
+<td>
+<p>should an asymptotic bias-correction under the affine-invariant Riemannian metric be applied to
+the HPD periodogram matrix? Defaults to <code>FALSE</code>.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>If <code>method = "dpss"</code>, <code>pdPgram2D</code> calculates a <code class="reqn">(d,d)</code>-dimensional multitaper time-varying
+periodogram matrix based on sliding <code class="reqn">B</code> DPSS (Discrete Prolate Spheroidal Sequence or Slepian) orthogonal tapering functions
+as in <code>dpss</code> applied to the <code class="reqn">d</code>-dimensional time series <code>X</code>. If <code class="reqn">B \ge d</code>, the
+multitaper time-varying periodogram matrix is guaranteed to be positive definite at each time-frequency point in the
+grid <code>expand.grid(tf.grid$time, tf.grid$frequency)</code>. In short, the function <code>pdPgram2D</code> computes a multitaper
+periodogram matrix (as in <code>pdPgram</code>) in each of a number of non-overlapping time series
+segments of <code>X</code>, with the time series segments centered around the (rescaled) time points in <code>tf.grid$time</code>.
+If <code>method = "hermite"</code>, the function calculates a multitaper time-varying periodogram matrix replacing the DPSS
+tapers by orthogonal Hermite tapering functions as in e.g., (Bayram and Baraniuk 1996). <br>
+In the case of subsequent periodogram matrix denoising in the space of HPD matrices equipped with the
+affine-invariant Riemannian metric, one should set <code>bias.corr = T</code>, thereby correcting for the asymptotic
+bias of the periodogram matrix in the manifold of HPD matrices equipped with the affine-invariant metric as explained in
+(Chau and von
+Sachs 2019) and Chapter 3 and 5 of (Chau 2018). The pre-smoothed HPD periodogram matrix
+(i.e., an initial noisy HPD spectral estimator) can be given as input to the function <code>pdSpecEst2D</code> to perform
+intrinsic wavelet-based time-varying spectral matrix estimation. In this case, set <code>bias.corr = F</code> (the default) as the
+appropriate bias-corrections are applied internally by the function <code>pdSpecEst2D</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing two components:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td>
+<code>tf.grid</code> </td>
+<td>
+<p> a list with two components corresponding to the rectangular grid of time-frequency points
+at which the multitaper periodogram is evaluated.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td>
+<code>P</code> </td>
+<td>
+<p> a <code class="reqn">(d,d,m_1,m_2)</code>-dimensional array with <code>m_1 = length(tf.grid$time)</code> and
+<code>m_2 = length(tf.grid$frequency)</code> corresponding to the (<code class="reqn">d,d</code>)-dimensional tapered periodogram matrices
+evaluated at the time-frequency points in <code>tf.grid</code>.</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Bayram M, Baraniuk R (1996).
+“Multiple window time-frequency analysis.”
+In <em>Proceedings of the IEEE-SP International Symposium on Time-Frequency and Time-Scale Analysis</em>, 173–176.<br><br> Chau J (2018).
+<em>Advances in Spectral Analysis for Multivariate, Nonstationary and Replicated Time Series</em>.
+phdthesis, Universite catholique de Louvain.<br><br> Chau J, von
+Sachs R (2019).
+“Intrinsic wavelet regression for curves of Hermitian positive definite matrices.”
+<em>Journal of the American Statistical Association</em>.
+doi: <a href="https://doi.org/10.1080/01621459.2019.1700129">10.1080/01621459.2019.1700129</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pdPgram</code>, <code>dpss</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Coefficient matrices
+Phi1 &lt;- array(c(0.4, 0, 0, 0.8, rep(0, 4)), dim = c(2, 2, 2))
+Phi2 &lt;- array(c(0.8, 0, 0, 0.4, rep(0, 4)), dim = c(2, 2, 2))
+Theta &lt;- array(c(0.5, -0.7, 0.6, 0.8, rep(0, 4)), dim = c(2, 2, 2))
+Sigma &lt;- matrix(c(1, 0.71, 0.71, 2), nrow = 2)
+
+## Generate piecewise stationary time series
+ts.Phi &lt;- function(Phi) rARMA(2^9, 2, Phi, Theta, Sigma)$X
+ts &lt;- rbind(ts.Phi(Phi1), ts.Phi(Phi2))
+
+pgram &lt;- pdPgram2D(ts)
+
+</code></pre>
+
+
+</div>

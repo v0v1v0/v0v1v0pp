@@ -1,0 +1,364 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>ida</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Estimate Multiset of Possible Joint Total Causal Effects</h2>
+
+<h3>Description</h3>
+
+<p><code>ida()</code> estimates the multiset of possible joint total causal effects
+of variables (<code>X</code>) onto variables (<code>Y</code>)
+from observational data via adjustment.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">ida(x.pos, y.pos, mcov, graphEst, method = c("local","optimal","global"),
+    y.notparent = FALSE, verbose = FALSE, all.dags = NA, type = c("cpdag", "pdag"))
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x.pos, x</code></td>
+<td>
+<p>Positions of variables <code>X</code> in the covariance matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y.pos, y</code></td>
+<td>
+<p>Positions of variables <code>Y</code> in the covariance matrix.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>mcov</code></td>
+<td>
+<p>Covariance matrix that was used to estimate <code>graphEst</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>graphEst</code></td>
+<td>
+<p>Estimated CPDAG or PDAG. The CPDAG is typically from <code>pc()</code>: If
+the result of <code>pc</code> is <code>pc.fit</code>, the estimated CPDAG
+can be obtained by <code>pc.fit@graph</code>. A PDAG can be obtained from the CPDAG by adding background knowledge using <code>addBgKnowledge()</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>method</code></td>
+<td>
+<p>Character string specifying the method with default <code>"local"</code>.
+</p>
+
+<dl>
+<dt>
+<code>"global"</code>:</dt>
+<dd>
+<p>The algorithm considers all undirected edges 
+in the CPDAG or PDAG, using the possible parents as adjustment sets 
+to estimate <em>all</em> possible causal effects. It is hence <em>slow</em>
+and can only be applied to singleton <code>X</code>.</p>
+</dd> 
+<dt>
+<code>"local"</code>:</dt>
+<dd>
+<p>The algorithm only considers edges in the
+neighborhood of <code>X</code> in the CPDAG or PDAG, 
+using the possible parents as adjustment sets 
+to estimate the <em>unique</em> possible causal effects. 
+It is hence much <em>faster</em> than <code>"global"</code> 
+and can only be applied to singleton <code>X</code>.</p>
+</dd>
+<dt>
+<code>"optimal"</code>:</dt>
+<dd>
+<p>The algorithm considers only those edges necessary to compute
+the possible optimal valid adjustment sets, using these as adjustment sets to estimate 
+the <em>unique</em> possible causal effects. It is
+hence <em>faster</em> than the <code>"global"</code> option but also slower than <code>"local"</code>. 
+It provides more efficient estimates than both alternatives but is also more sensitive to faulty graph estimates. 
+Can be applied to sets <code>X</code>.</p>
+</dd>
+</dl>
+<p>See details below.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>y.notparent</code></td>
+<td>
+<p>Logical; for singleton <code>X</code> and <code>Y</code>. 
+If true, any edge between <code>X</code> and
+<code>Y</code> is assumed to be of the form <code>X-&gt;Y</code>. Not implemented for the <code>method="optimal"</code></p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>If TRUE, details on the regressions are printed.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>all.dags</code></td>
+<td>
+<p>All DAGs in the equivalence class represented by the CPDAG or PDAG 
+can be precomputed by <code>pdag2allDags()</code> and passed via
+this argument.  In that case, <code>pdag2allDags(..)</code> is not called
+internally.
+This option is only relevant when using <code>method="global"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>type</code></td>
+<td>
+<p>Type of graph <code>"graphEst"</code>; can be of type <code>"cpdag"</code> or <code>"pdag"</code> (e.g. a CPDAG with background knowledge from Meek, 1995)</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>It is assumed that we have observational data from a multivariate Gaussian distribution
+faithful to the true (but unknown) underlying causal DAG (without hidden variables). 
+Under these assumptions, this function estimates the multiset of possible total joint effects of <code>X</code> on <code>Y</code>. 
+Here the total joint effect of <code>X</code> <code class="reqn">= (X_1,X_2)</code> on <code>Y</code> is defined via Pearl's do-calculus as the vector 
+<code class="reqn">(E[Y|do(X_1=x_1+1,X_2=x_2)]-E[Y|do(X_1=x_1,X_2=x_2)], E[Y|do(X_1=x_1,X_2=x_2+1)]-E[Y|do(X_1=x_1,X_2=x_2)])</code>, 
+with a similar definition for more than two variables. These values are equal to the partial derivatives 
+(evaluated at <code class="reqn">x_1,x_2</code>) of <code class="reqn">E[Y|do(X=x_1',X_2=x_2')]</code> with respect to <code class="reqn">x_1</code>' and <code class="reqn">x_2</code>'. 
+Moreover, under the Gaussian assumption, these partial derivatives do not depend on the values at which they are evaluated.
+</p>
+<p>We estimate a <em>set</em> of possible joint total causal effects instead of
+the unique joint total causal effect, since it is typically impossible to
+identify the latter when the true underlying causal DAG is unknown
+(even with an infinite amount of data).  Conceptually, the method
+works as follows.  First, we estimate the equivalence class of DAGs
+that describe the conditional independence relationships in the data,
+using the function <code>pc</code> (see the help file of this
+function). For each DAG G in the equivalence class, we apply Pearl's
+do-calculus to estimate the total causal effect of <code>X</code> on
+<code>Y</code>.  This can be done via a simple linear regression
+adjusting for a valid adjustment set. 
+</p>
+<p>For example, if <code>X</code> and <code>Y</code> are singleton and <code>Y</code> 
+is not a parent of <code>X</code>, we can take the regression coefficient of
+<code>X</code> in the regression <code>lm(Y ~ X + pa(X,G))</code>, where
+<code>pa(X,G)</code> denotes the parents of <code>X</code> in the DAG G; if <code>Y</code>
+is a parent of <code>X</code> in G, we can set the estimated causal effect to
+zero. 
+</p>
+<p>If the equivalence class contains <code>k</code> DAGs, this will yield
+<code>k</code> estimated total causal effects.  Since we do not know which DAG
+is the true causal DAG, we do not know which estimated possible total joint causal
+effect of <code>X</code> on <code>Y</code> is the correct one.  Therefore, we return
+the entire multiset of <code>k</code> estimated effects (it is a multiset
+rather than a set because it can contain duplicate values).
+</p>
+<p>One can take summary measures of the multiset.  For example, the
+minimum absolute value provides a lower bound on the size of the true
+causal effect: If the minimum absolute value of all values in the
+multiset is larger than one, then we know that the size of the true
+causal effect (up to sampling error) must be larger than one.
+</p>
+<p>If <code>method="global"</code>, the method as described above is carried
+out, where all DAGs in the equivalene class of the estimated CPDAG or PDAG
+<code>graphEst</code> are computed using the function <code>pdag2allDags</code>.
+The parent set for each DAG is then used to estimate the corresponding possible
+total causal effect. This method is suitable for small graphs (say, up to 10 nodes) and can
+only be used for singleton <code>X</code>.
+</p>
+<p>If <code>method="local"</code>, we only consider all valid possible directions of undirected edges 
+that have <code>X</code> as an endpoint.
+</p>
+<p>In the case of a CPDAG, we consider all
+possible directions of undirected edges that have <code>X</code> as an
+endpoint, such that no new v-structure is created. 
+Maathuis, Kalisch and Buehlmann (2009) showed that there is at least one DAG in
+the equivalence class for each such local configuration. Hence, the 
+procedure is truly local in this setting.
+</p>
+<p>In the case of a PDAG, we need to verify for all possible directions whether they lead to an 
+amenable max. PDAG if we apply Meek's orientation rules. 
+In this setting the complexity of the <code>"local"</code> method is similar to the <code>"optimal"</code> one and it is not truly local.
+For details see Section 4.2 in Perkovic, Kalisch and Maathuis (2017).  
+</p>
+<p>We estimate the total causal effect of <code>X</code> on <code>Y</code> for each
+valid configuration as above, using linear regression adjusting for the correspoding possible parents.
+As we adjust for the same sets as in the <code>"global"</code> method, it follows that the multisets of total causal effects of
+the two methods have the same unique values. They may, however, have different multiplicities.
+</p>
+<p>Since the parents of <code>X</code> are usually an inefficient valid adjustment set we provide a third method, that uses 
+different adjustment sets.  
+</p>
+<p>If <code>method="optimal"</code>, we do not determine all DAGs in the
+equivalence class of the CPDAG or PDAG.  Instead, we only direct edges until
+obtaining an amenable PDAG, which is sufficient for computing the optimal 
+valid adjustment set. Each amenable PDAG can be obtained by 
+orienting the neighborhood of <code>X</code> and then applying Meek's orientation rules, similar to the <code>"local"</code> method 
+for PDAGs. This can be done faster than the <code>"global"</code> method but is slower than the <code>"local"</code> method, especially for    CPDAGs. For details see Witte, Henckel, Maathuis and Didelez (2019).
+</p>
+<p>For each amenable PDAG the corresponding optimal valid adjustment set is computed. 
+The optimal set is a valid adjustment set irrespectively of whether <code>X</code> is a singleton.
+Hence, as opposed to the other two, this method can be applied to sets <code>X</code>. Sometimes, however, 
+a joint total causal effect cannot be estimated via adjustment. In these cases we recommend use of the pcalg function <code>jointIda</code>.
+</p>
+<p>We then estimate the joint total causal effect of <code>X</code> on <code>Y</code> for each
+valid configuration with linear regression, adjusting for the possible optimal sets. 
+If the estimated graph is correct, each of these regressions is guaranteed 
+to be more efficient than the corresponding linear regression with any other valid adjustment set
+(see Henckel, Perkovic and Maathuis (2019) for more details). The estimates are, however, more sensitive to graph estimation errors than the ones obtained with the other two methods. 
+If <code>X</code> is a singleton, the output of this method is a multiset of the same size as the output of the <code>"local"</code> method. 
+</p>
+<p>For example, a CPDAG may represent eight DAGs, and the <code>"global"</code> method
+may produce an estimate of the multiset of possible total effects
+{1.3, -0.5, 0.7, 1.3, 1.3, -0.5, 0.7, 0.7}.
+The unique values in this set are -0.5, 0.7 and 1.3, and the
+multiplicities are 2, 3 and 3.  The <code>"local"</code> and <code>"optimal"</code> methods, on the other hand,
+may prodcue estimates of the set {1.3, -0.5, -0.5, 0.7}.  The unique values are again -0.5,
+0.7 and 1.3, but the multiplicities are now 2, 1 and 1.  The fact that
+the unique values of the multisets for all three methods
+are identical implies that summary measures of the multiset that only
+depend on the unique values (such as the minimum absolute value) can
+be estimated with all three.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list of length |<code>Y</code>| of matrices, each containing the possible joint total causal effect of <code>X</code> on one node in <code>Y</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Markus Kalisch (<a href="mailto:kalisch@stat.math.ethz.ch">kalisch@stat.math.ethz.ch</a>), Emilija Perkovic and Leonard Henckel</p>
+
+
+<h3>References</h3>
+
+<p>M.H. Maathuis, M. Kalisch, P. Buehlmann (2009).
+Estimating high-dimensional intervention effects from observational data.
+<em>Annals of Statistics</em> <b>37</b>, 3133–3164.
+</p>
+<p>M.H. Maathuis, D. Colombo, M. Kalisch, P. Bühlmann (2010).
+Predicting causal effects in large-scale systems from observational data.
+<em>Nature Methods</em> <b>7</b>, 247–248.
+</p>
+<p>C. Meek (1995). Causal inference and causal explanation with background knowledge,
+In <em>Proceedings of UAI 1995</em>, 403-410.
+</p>
+<p>Markus Kalisch, Martin Maechler, Diego Colombo, Marloes H. Maathuis,
+Peter Buehlmann (2012).
+Causal inference using graphical models with the R-package pcalg.
+<em>Journal of Statistical Software</em> <b>47</b>(11) 1–26,
+<a href="https://doi.org/10.18637/jss.v047.i11">doi:10.18637/jss.v047.i11</a>.
+</p>
+<p>Pearl (2005). <em>Causality. Models, reasoning and inference</em>.
+Cambridge University Press, New York.
+</p>
+<p>E. Perkovic, M. Kalisch and M.H. Maathuis (2017). Interpreting and using 
+CPDAGs with background knowledge. In <em>Proceedings of UAI 2017.</em>
+</p>
+<p>L. Henckel, E. Perkovic and M.H. Maathuis (2019). Graphical criteria for efficient total 
+effect estimation via adjustment in causal linear models.
+<em>Working Paper.</em>
+</p>
+<p>J. Witte, L. Henckel, M.H Maathuis and V. Didelez (2019). On efficient adjustment in causal graphs. 
+<em>Working Paper.</em>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>jointIda</code> for estimating the multiset of possible total
+<em>joint</em> effects; <code>idaFast</code> for faster estimation of the multiset of
+possible total causal effects for several target variables. 
+</p>
+<p><code>pc</code> for estimating a CPDAG. <code>addBgKnowledge</code> for obtaining a PDAG from CPDAG and background knowledge.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Simulate the true DAG
+suppressWarnings(RNGversion("3.5.0"))
+set.seed(123)
+p &lt;- 10
+myDAG &lt;- randomDAG(p, prob = 0.2) ## true DAG
+myCPDAG &lt;- dag2cpdag(myDAG) ## true CPDAG
+myPDAG &lt;- addBgKnowledge(myCPDAG,2,3) ## true PDAG with background knowledge 2 -&gt; 3
+covTrue &lt;- trueCov(myDAG) ## true covariance matrix
+
+## simulate Gaussian data from the true DAG
+n &lt;- 10000
+dat &lt;- rmvDAG(n, myDAG)
+
+## estimate CPDAG and PDAG -- see  help(pc)
+suffStat &lt;- list(C = cor(dat), n = n)
+pc.fit &lt;- pc(suffStat, indepTest = gaussCItest, p=p, alpha = 0.01)
+pc.fit.pdag &lt;- addBgKnowledge(pc.fit@graph,2,3)
+
+if (require(Rgraphviz)) {
+  ## plot the true and estimated graphs
+  par(mfrow = c(1,3))
+  plot(myDAG, main = "True DAG")
+  plot(pc.fit, main = "Estimated CPDAG")
+  plot(pc.fit.pdag, main = "Max. PDAG")
+}
+
+## Supppose that we know the true CPDAG and covariance matrix
+(l.ida.cpdag &lt;- ida(3,10, covTrue, myCPDAG, method = "local", type = "cpdag"))
+(o.ida.cpdag &lt;- ida(3,10, covTrue, myCPDAG, method = "optimal", type = "cpdag"))
+## Not run: (g.ida.cpdag &lt;- ida(3,10, covTrue, myCPDAG, method = "global", type = "cpdag"))
+## All three methods produce the same unique values. 
+
+## Supppose that we know the true PDAG and covariance matrix
+(l.ida.pdag &lt;- ida(3,10, covTrue, myPDAG, method = "local", type = "pdag"))
+(o.ida.pdag &lt;- ida(3,10, covTrue, myPDAG, method = "optimal", type = "pdag"))
+## Not run: (g.ida.pdag &lt;- ida(3,10, covTrue, myPDAG, method = "global", type = "pdag"))
+## All three methods produce the same unique values.
+
+## From the true DAG, we can compute the true causal effect of 3 on 10
+(ce.3.10 &lt;- causalEffect(myDAG, 10, 3))
+## Indeed, this value is contained in the values found by all methods
+
+## When working with data we have to use the estimated CPDAG and
+## the sample covariance matrix
+(l.ida.est.cpdag &lt;- ida(3,10, cov(dat), pc.fit@graph, method = "local", type = "cpdag"))
+(o.ida.est.cpdag &lt;- ida(3,10, cov(dat), pc.fit@graph, method = "optimal", type = "cpdag"))
+## Not run: (g.ida.est.cpdag &lt;- ida(3,10, cov(dat), pc.fit@graph,
+method = "global", type = "cpdag"))
+## End(Not run)
+## The unique values of the local and the global method are still identical.
+## While not identical, the values of the optimal method are very similar.
+## The true causal effect is contained in all three sets, up to a small
+## estimation error (0.118 vs. 0.112 with true value 0.114) 
+
+## Similarly, when working with data and background knowledge we have to use the estimated PDAG and
+## the sample covariance matrix
+(l.ida.est.pdag &lt;- ida(3,10, cov(dat), pc.fit.pdag, method = "local", type = "pdag"))
+(o.ida.est.pdag &lt;- ida(3,10, cov(dat), pc.fit.pdag, method = "optimal", type = "pdag"))
+## Not run: (g.ida.est.pdag &lt;- ida(3,10, cov(dat), pc.fit.pdag, method = "global", type = "pdag"))
+## The unique values of the local and the global method are still identical.
+## While not necessarily identical, the values of the optimal method will be similar.
+
+## The true causal effect is contained in both sets, up to a small estimation error
+
+## All three can also be applied to sets y.
+(l.ida.cpdag.2 &lt;- ida(3,c(6,10), cov(dat), pc.fit@graph, method = "local", type = "cpdag"))
+(o.ida.cpdag.2 &lt;- ida(3,c(6,10), cov(dat), pc.fit@graph, method = "optimal", type = "cpdag"))
+## Not run: (g.ida.cpdag.2 &lt;- ida(3,c(6,10), cov(dat), pc.fit@graph,
+method = "global", type = "cpdag"))
+## End(Not run)
+## For the methods local and global we recommend use of idaFast in this case for better performance.
+
+## Note that only the optimal method can be appplied to sets x.
+(o.ida.cpdag.2 &lt;- ida(c(2,3),10, cov(dat), pc.fit@graph, method = "optimal", type = "cpdag"))
+
+</code></pre>
+
+
+</div>

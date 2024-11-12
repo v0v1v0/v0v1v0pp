@@ -1,0 +1,214 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>phenotPPE</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Simple paternity exclusion for phenotype allele data</h2>
+
+<h3>Description</h3>
+
+<p>Conduct a paternity exclusion analysis on a phenotype dataset.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">phenotPPE(adata)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table><tr style="vertical-align: top;">
+<td><code>adata</code></td>
+<td>
+<p>data frame: the preprocessed allele data set
+returned by either <code>inputData</code> or
+<code>preprocessData</code>.</p>
+</td>
+</tr></table>
+<h3>Details</h3>
+
+<p><code>phenotPPE</code> conducts a basic paternity exclusion analysis on
+a ‘phenotype’ dataset.
+</p>
+<p>For the purposes of the PolyPatEx package, the term
+‘phenotype’ refers to forms of marker data where the allele
+dosages (or multiplicities) are not known - hence for a polyploid
+species of ploidy <em>p</em>, a valid allele set may contain between
+one and <em>p</em> alleles, which should all be distinct.  Any cases
+of allele sets having duplicated alleles will have previously been
+caught by <code>preprocessData</code> (automatically called by
+<code>inputData</code>) and will have produced an error message,
+requiring the user to remove any duplicated alleles (within allele
+sets) in the original data file.
+</p>
+<p>For the above and other reasons, <code>phenotPPE</code> should
+<b>NOT</b> be applied to a dataset that has not been preprocessed
+by <code>preprocessData</code> (either by calling
+<code>preprocessData</code> on the allele data frame directly, or
+by loading the allele data into R using <code>inputData</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list whose components are described below.  The
+components that are probably of primary interest to the user are
+<code>adultTables$FLCount</code> and <code>adultTables$VLTotal</code>.  These
+are likely to be large tables, so note that the functions
+<code>potentialFatherCounts</code> and
+<code>potentialFatherIDs</code> are available to usefully
+summarise their content.
+</p>
+<p>The list returned by <code>phenotPPE</code> contains two elements,
+<code>progenyTables</code> and <code>adultTables</code>, each of which are
+themselves lists.
+</p>
+<p><code>adultTables</code> contains the following components:
+</p>
+
+<dl>
+<dt><code>FLCount</code></dt>
+<dd>
+<p>Father Loci Count - a matrix, showing for
+each progeny-candidate combination, the number of loci at which
+the candidate matches (i.e., could have fathered) the progeny</p>
+</dd>
+<dt><code>VLTotal</code></dt>
+<dd>
+<p>Valid Loci Total - a matrix, showing for
+each progeny-candidate combination, the total number of loci at
+which a valid comparison between progeny and candidate could be
+made.  (Missing allele sets, whether in the original data, or due
+to progeny-mother mismatches found by <code>preprocessData</code>
+can result in fewer loci at which progeny-candidate (father)
+comparisons are possible.)</p>
+</dd>
+<dt><code>fatherSummaryTable</code></dt>
+<dd>
+<p>A matrix, combining the results
+of <code>FLCount</code> and <code>VLTotal</code> (see above) for each
+progeny-candidate combination in one table.  This is purely for
+ease of viewing purposes, but note also the functions
+<code>potentialFatherCounts</code> and
+<code>potentialFatherIDs</code> which may provide more useful
+summary output.</p>
+</dd>
+<dt><code>CPNotM.alleleArray</code></dt>
+<dd>
+<p>A 3D array containing the
+alleles present in both candidate (father) and progeny, but not in
+the progeny's mother (for each progeny/candidate/locus
+combination)</p>
+</dd>
+<dt><code>CMP.alleleArray</code></dt>
+<dd>
+<p>A 3D array containing the alleles
+present in candidate, progeny and progeny's mother (for each
+progeny/candidate/locus combination)</p>
+</dd>
+<dt><code>simpleFatherArray</code></dt>
+<dd>
+<p>A 3D array indicating whether each
+candidate is compatible with each progeny, for each locus</p>
+</dd>
+</dl>
+<p><code>progenyTables</code> contains the following components:
+</p>
+
+<dl>
+<dt><code>progenyStatusTable</code></dt>
+<dd>
+<p>A data frame, indicating the
+status of the progeny / mother allele set comparison (for each
+progeny, at each locus).</p>
+</dd>
+<dt><code>MP.alleleTable</code></dt>
+<dd>
+<p>A data frame containing the alleles
+that are found in both mother's and progeny's allele sets (for
+each progeny, at each locus)</p>
+</dd>
+<dt><code>PNotM.alleleTable</code></dt>
+<dd>
+<p>A data frame, containing the
+alleles in the progeny's allele set, that are <em>not</em> present
+in the mother's allele set(for each progeny, at each locus)</p>
+</dd>
+</dl>
+<p>The status codes in <code>progenyTables$progenyStatusTable</code> are:
+</p>
+
+<dl>
+<dt><code>"MAO"</code></dt>
+<dd>
+<p>Mother Alleles Only - the progeny contains
+only alleles found also in the mother</p>
+</dd>
+<dt><code>"NMA"</code></dt>
+<dd>
+<p>Non-Mother Alleles - the progeny contains
+alleles that are not found in the mother</p>
+</dd>
+<dt><code>"P.missing"</code></dt>
+<dd>
+<p>No comparison was possible at this locus
+because the progeny's allele set was missing</p>
+</dd>
+<dt><code>"P.missing"</code></dt>
+<dd>
+<p>No comparison was possible at this locus
+because the mother's allele set was missing</p>
+</dd>
+<dt><code>"PM.missing"</code></dt>
+<dd>
+<p>No comparison was possible at this
+locus because both progeny's and mother's allele sets were
+missing</p>
+</dd>
+</dl>
+<p>Note that some of the <code>"P.missing"</code> or <code>"PM.missing"</code>
+codes may have arisen due to progeny / mother mismatches found
+(and corresponding progeny allele sets removed) by
+<code>preprocessData</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Alexander Zwart (alec.zwart at csiro.au)
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>genotPPE</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">## Using the example dataset 'GF_Phenotype':
+data(GF_Phenotype)
+
+## Since we did not load this dataset using inputData(), we must
+## first process it with preprocessData() before doing anything
+## else:
+pData &lt;- preprocessData(GF_Phenotype,
+                        numLoci=7,
+                        ploidy=6,
+                        dataType="phenotype",
+                        dioecious=FALSE,
+                        selfCompatible=FALSE)
+
+pPPE &lt;- phenotPPE(pData)
+
+## pPPE is a large (and rather ugly!) data structure - see
+## functions potentialFatherCounts() and potentialFatherIDs() for
+## more useful output from the gPPE object.
+</code></pre>
+
+
+</div>

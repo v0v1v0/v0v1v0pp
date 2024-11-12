@@ -1,0 +1,188 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>lag.plm</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>lag, lead, and diff for panel data</h2>
+
+<h3>Description</h3>
+
+<p>lag, lead, and diff functions for class pseries.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">lead(x, k = 1L, ...)
+
+## S3 method for class 'pseries'
+lag(x, k = 1L, shift = c("time", "row"), ...)
+
+## S3 method for class 'pseries'
+lead(x, k = 1L, shift = c("time", "row"), ...)
+
+## S3 method for class 'pseries'
+diff(x, lag = 1L, shift = c("time", "row"), ...)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>x</code></td>
+<td>
+<p>a <code>pseries</code> object,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>k</code></td>
+<td>
+<p>an integer, the number of lags for the <code>lag</code> and <code>lead</code>
+methods (can also be negative).  For the <code>lag</code> method, a
+positive (negative) <code>k</code> gives lagged (leading) values.  For the
+<code>lead</code> method, a positive (negative) <code>k</code> gives leading (lagged)
+values, thus, <code>lag(x, k = -1L)</code> yields the same as <code>lead(x, k = 1L)</code>.
+If <code>k</code> is an integer with length &gt; 1 (<code>k = c(k1, k2, ...)</code>), a
+<code>matrix</code> with multiple lagged <code>pseries</code> is returned,</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>further arguments (currently none evaluated).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>shift</code></td>
+<td>
+<p>character, either <code>"time"</code> (default) or <code>"row"</code>
+determining how the shifting in the <code>lag</code>/<code>lead</code>/<code>diff</code>
+functions is performed (see Details and Examples).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>lag</code></td>
+<td>
+<p>integer, the number of lags for the <code>diff</code> method, can also be of
+length &gt; 1 (see argument <code>k</code>) (only non–negative values in
+argument <code>lag</code> are allowed for <code>diff</code>),</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>This set of functions perform lagging, leading (lagging in the
+opposite direction), and differencing operations on <code>pseries</code>
+objects, i. e., they take the panel structure of the data into
+account by performing the operations per individual.
+</p>
+<p>Argument <code>shift</code> controls the shifting of observations to be used
+by methods <code>lag</code>, <code>lead</code>, and <code>diff</code>:
+</p>
+
+<ul>
+<li> <p><code>shift = "time"</code> (default): Methods respect the
+numerical value in the time dimension of the index. The time
+dimension needs to be interpretable as a sequence t, t+1, t+2,
+... where t is an integer (from a technical viewpoint,
+<code>as.numeric(as.character(index(your_pdata.frame)[[2]]))</code> needs to
+result in a meaningful integer).
+</p>
+</li>
+<li> <p><code style="white-space: pre;">⁠shift = "row": ⁠</code>Methods perform the shifting operation based
+solely on the "physical position" of the observations,
+i.e., neighbouring rows are shifted per individual. The value in the
+time index is not relevant in this case.
+</p>
+</li>
+</ul>
+<p>For consecutive time periods per individual, a switch of shifting
+behaviour results in no difference. Different return values will
+occur for non-consecutive time periods per individual
+("holes in time"), see also Examples.
+</p>
+
+
+<h3>Value</h3>
+
+
+<ul>
+<li>
+<p> An object of class <code>pseries</code>, if the argument specifying the lag
+has length 1 (argument <code>k</code> in functions <code>lag</code> and <code>lead</code>,
+argument <code>lag</code> in function <code>diff</code>).
+</p>
+</li>
+<li>
+<p> A matrix containing the various series in its columns, if the
+argument specifying the lag has length &gt; 1.
+</p>
+</li>
+</ul>
+<h3>Note</h3>
+
+<p>The sign of <code>k</code> in <code>lag.pseries</code> results in inverse behaviour
+compared to <code>stats::lag()</code> and <code>zoo::lag.zoo()</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Yves Croissant and Kevin Tappe
+</p>
+
+
+<h3>See Also</h3>
+
+<p>To check if the time periods are consecutive per
+individual, see <code>is.pconsecutive()</code>.
+</p>
+<p>For further function for 'pseries' objects: <code>between()</code>,
+Between(), <code>Within()</code>, <code>summary.pseries()</code>,
+<code>print.summary.pseries()</code>, <code>as.matrix.pseries()</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">
+# First, create a pdata.frame
+data("EmplUK", package = "plm")
+Em &lt;- pdata.frame(EmplUK)
+
+# Then extract a series, which becomes additionally a pseries
+z &lt;- Em$output
+class(z)
+
+# compute the first and third lag, and the difference lagged twice
+lag(z)
+lag(z, 3L)
+diff(z, 2L)
+
+# compute negative lags (= leading values)
+lag(z, -1L)
+lead(z, 1L) # same as line above
+identical(lead(z, 1L), lag(z, -1L)) # TRUE
+ 
+# compute more than one lag and diff at once (matrix returned)
+lag(z, c(1L,2L))
+diff(z, c(1L,2L))
+
+## demonstrate behaviour of shift = "time" vs. shift = "row"
+# delete 2nd time period for first individual (1978 is missing (not NA)):
+Em_hole &lt;- Em[-2L, ]
+is.pconsecutive(Em_hole) # check: non-consecutive for 1st individual now
+
+# original non-consecutive data:
+head(Em_hole$emp, 10) 
+# for shift = "time", 1-1979 contains the value of former 1-1977 (2 periods lagged):
+head(lag(Em_hole$emp, k = 2L, shift = "time"), 10L)
+# for shift = "row", 1-1979 contains NA (2 rows lagged (and no entry for 1976):
+head(lag(Em_hole$emp, k = 2L, shift = "row"), 10L)
+
+</code></pre>
+
+
+</div>

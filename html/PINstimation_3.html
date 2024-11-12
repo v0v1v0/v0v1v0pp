@@ -1,0 +1,234 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>trade_classification</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Classification and aggregation of high-frequency data</h2>
+
+<h3>Description</h3>
+
+<p><code>classify_trades()</code> classifies high-frequency trading data into
+buyer-initiated and seller-initiated trades using different algorithms, and
+different time lags.
+<br><code>aggregate_trades()</code> aggregates high-frequency trading data into aggregated
+data for provided frequency of aggregation. The aggregation is preceded by
+a trade classification step which classifies trades using different trade
+classification algorithms and time lags.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">classify_trades(data, algorithm = "Tick", timelag = 0, ..., verbose = TRUE)
+
+aggregate_trades(
+  data,
+  algorithm = "Tick",
+  timelag = 0,
+  frequency = "day",
+  unit = 1,
+  ...,
+  verbose = TRUE
+)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>data</code></td>
+<td>
+<p>A dataframe with 4 variables in the following
+order (<code>timestamp</code>, <code>price</code>, <code>bid</code>, <code>ask</code>).</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>algorithm</code></td>
+<td>
+<p>A character string refers to the algorithm used
+to determine the trade initiator, a buyer or a seller. It takes one of four
+values (<code>"Tick"</code>, <code>"Quote"</code>, <code>"LR"</code>, <code>"EMO"</code>). The default value is
+<code>"Tick"</code>. For more information about the different algorithms, check the
+details section.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>timelag</code></td>
+<td>
+<p>A number referring to the time lag in milliseconds
+used to calculate the lagged midquote, bid and ask for the algorithms
+<code>"Quote"</code>, <code>"EMO"</code> and <code>"LR"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>...</code></td>
+<td>
+<p>Additional arguments passed on to the functions <code>classify_trades()</code>
+<code>aggregate_trades()</code>. The recognized arguments are <code>fullreport</code>,
+and <code>is_parallel</code>. Other arguments will be ignored.
+</p>
+
+<ul>
+<li> <p><code>fullreport</code> is binary variable passed to <code>aggregate_trades()</code> that
+specifies whether the variable <code>freq</code> is returned. The default value is
+<code>FALSE</code>.
+</p>
+</li>
+<li> <p><code>is_parallel</code> is a logical variable passed to <code>classify_trades()</code> that
+specifies whether the computation is performed using parallel or sequential
+processing. #' The default value is <code>TRUE</code>. For more details, please refer to the
+vignette 'Parallel processing' in the package, or
+<a href="https://pinstimation.com/articles/parallel_processing.html">online</a>.
+</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>verbose</code></td>
+<td>
+<p>A binary variable that determines whether detailed
+information about the progress of the trade classification is displayed.
+No output is produced when <code>verbose</code> is set to <code>FALSE</code>. The default
+value is <code>TRUE</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>frequency</code></td>
+<td>
+<p>The frequency used to aggregate intraday data. It takes one
+of the following values: <code>"sec"</code>, <code>"min"</code>, <code>"hour"</code>, <code>"day"</code>, <code>"week"</code>,
+<code>"month"</code>. The default value is <code>"day"</code>.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>unit</code></td>
+<td>
+<p>An integer referring to the size of the aggregation window
+used to aggregate intraday data. The default value is <code>1</code>. For example, when
+the parameter <code>frequency</code> is set to <code>"min"</code>, and the parameter <code>unit</code> is set
+to 15, then the intraday data is aggregated every 15 minutes.</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The argument <code>algorithm</code> takes one of four values:
+</p>
+
+<ul>
+<li> <p><code>"Tick"</code> refers to the tick algorithm: Trade is classified as a
+buy (sell) if the price of the trade to be classified
+is above (below) the closest different price of a previous trade.
+</p>
+</li>
+<li> <p><code>"Quote"</code> refers to the quote algorithm: it classifies a
+trade as a buy (sell) if the trade price of the trade to be
+classified is above (below) the mid-point of the bid and ask spread.
+Trades executed at the mid-spread are not classified.
+</p>
+</li>
+<li> <p><code>"LR"</code>  refers to <code>LR</code> algorithm as in
+Lee and Ready (1991). It classifies a trade
+as a buy (sell) if its price is above (below) the mid-spread (quote
+algorithm), and  uses the tick algorithm if the trade price is at
+the mid-spread.
+</p>
+</li>
+<li> <p><code>"EMO"</code> refers to <code>EMO</code> algorithm as in
+Ellis et al. (2000).
+It classifies trades at the bid (ask) as sells (buys) and uses the tick
+algorithm to classify trades within the then prevailing bid-ask spread.
+</p>
+</li>
+</ul>
+<p><code>LR</code> recommend the use of mid-spread five-seconds earlier ('5-second'
+rule) mitigating trade misclassifications for many of the <code>150</code>
+NYSE stocks they analyze. On the other hand, in more recent studies such
+as Piwowar and Wei (2006) and
+Aktas and Kryzanowski (2014), the use of
+1-second lagged midquotes are shown to yield lower rates of
+misclassifications. The default value is set to <code>0</code> seconds (no time-lag).
+Considering the ultra-fast nature of today’s financial markets, time-lag
+is in the unit of milliseconds. Shorter than 1-second lags can also be
+implemented by entering values such as  <code>100</code> or <code>500</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function classify_trades() returns a dataframe of five variables. The
+first four variables are obtained from the argument <code>data</code>: <code>timestamp</code>,
+<code>price</code>, <code>bid</code>, <code>ask</code>. The fifth variable is <code>isbuy</code>, which takes the value
+<code>TRUE</code>, when the trade is classified as a buyer-initiated trade, and <code>FALSE</code>
+when the trade is classified as a seller-initiated trade.
+</p>
+<p>The function aggregate_trades() returns a dataframe of two
+(or three) variables. If <code>fullreport</code> is set to <code>TRUE</code>, then
+the returned dataframe has three variables <code style="white-space: pre;">⁠{freq, b, s}⁠</code>. If
+<code>fullreport</code> is set to <code>FALSE</code>, then the returned dataframe has
+two variables <code style="white-space: pre;">⁠{b, s}⁠</code>, and, therefore, can be #'directly used for the
+estimation of the <code>PIN</code> and <code>MPIN</code> models.
+</p>
+
+
+<h3>References</h3>
+
+<p>Aktas OU, Kryzanowski L (2014).
+“Trade classification accuracy for the BIST.”
+<em>Journal of International Financial Markets, Institutions and Money</em>, <b>33</b>, 259-282.
+ISSN 1042-4431.<br><br> Ellis K, Michaely R, Ohara M (2000).
+“The Accuracy of Trade Classification Rules: Evidence from Nasdaq.”
+<em>The Journal of Financial and Quantitative Analysis</em>, <b>35</b>(4), 529–551.<br><br> Lee CMC, Ready MJ (1991).
+“Inferring Trade Direction from Intraday Data.”
+<em>The Journal of Finance</em>, <b>46</b>(2), 733–746.
+ISSN 00221082, 15406261.<br><br> Piwowar MS, Wei L (2006).
+“The Sensitivity of Effective Spread Estimates to Trade-Quote Matching Algorithms.”
+<em>Electronic Markets</em>, <b>16</b>(2), 112-129.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R"># There is a preloaded dataset called 'hfdata' contained in the package.
+# It is an artificially created high-frequency trading data. The dataset
+# contains  100 000 trades and five variables 'timestamp', 'price',
+# 'volume', 'bid', and 'ask'. For more information, type ?hfdata.
+
+xdata &lt;- hfdata
+xdata$volume &lt;- NULL
+
+# Use the EMO algorithm with a timelag of 500 milliseconds to classify
+# high-frequency trades in the dataset 'xdata'
+
+ctrades &lt;- classify_trades(xdata, algorithm = "EMO", timelag = 500, verbose = FALSE)
+
+# Use the LR algorithm with a timelag of 1 second to aggregate intraday data
+# in the dataset 'xdata' at a frequency of 15 minutes.
+
+
+lrtrades &lt;- aggregate_trades(xdata, algorithm = "LR", timelag = 1000,
+frequency = "min", unit = 15, verbose = FALSE)
+
+# Use the Quote algorithm with a timelag of 1 second to aggregate intraday data
+# in the dataset 'xdata' at a daily frequency.
+
+qtrades &lt;- aggregate_trades(xdata, algorithm = "Quote", timelag = 1000,
+frequency = "day", unit = 1, verbose = FALSE)
+
+# Since the argument 'fullreport' is set to FALSE by default, then the
+# output 'qtrades' can be used directly for the estimation of the PIN
+# model, namely using pin_ea().
+
+estimate &lt;- pin_ea(qtrades, verbose = FALSE)
+
+# Show the estimate
+
+show(estimate)
+
+</code></pre>
+
+
+</div>

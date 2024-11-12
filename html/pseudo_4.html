@@ -1,0 +1,117 @@
+<div class="container">
+
+<table style="width: 100%;"><tr>
+<td>pseudoyl</td>
+<td style="text-align: right;">R Documentation</td>
+</tr></table>
+<h2>Pseudo-observations for the expected  number of years lost</h2>
+
+<h3>Description</h3>
+
+<p>Computes pseudo-observations for modeling using the number of years lost.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre><code class="language-R">pseudoyl(time,event, tmax)
+</code></pre>
+
+
+<h3>Arguments</h3>
+
+<table>
+<tr style="vertical-align: top;">
+<td><code>time</code></td>
+<td>
+<p>the follow up time.
+</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>event</code></td>
+<td>
+
+<p>the cause indicator, use 0 as censoring code and integers to name the other causes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>tmax</code></td>
+<td>
+
+<p>the maximum cut-off point time = the upper limit of the integral of the cumulative incidence function. If missing or larger than the maximum follow up time, it is
+replaced by the maximum follow up time. 
+</p>
+</td>
+</tr>
+</table>
+<h3>Details</h3>
+
+<p>The function calculates the pseudo-observations for the expected number of years lost for each individual.
+The pseudo-observations can be used for fitting a regression model with a generalized estimating equation.
+No missing values in either <code>time</code> or <code>event</code>
+vector are allowed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing the following objects:
+</p>
+<table>
+<tr style="vertical-align: top;">
+<td><code>cause</code></td>
+<td>
+<p>The ordered codes for different causes.</p>
+</td>
+</tr>
+<tr style="vertical-align: top;">
+<td><code>pseudo</code></td>
+<td>
+<p>A list of vectors- a vector for each of the causes, ordered by codes. Each value of a vector belongs to one individual (ordered as in the original data set).</p>
+</td>
+</tr>
+</table>
+<h3>References</h3>
+
+<p>Andersen P.K.: "A note on the decomposition of number of life years lost according to causes of death." <em>Research report, Department of Biostatistics, University of Copenhagen</em>, 2012 (2)
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>pseudoci</code>,
+<code>pseudomean</code>,
+<code>pseudosurv</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre><code class="language-R">library(KMsurv)
+data(bmt)
+bmt$icr &lt;- bmt$d1 +  bmt$d3
+
+
+#compute the pseudo-observations:
+pseudo = pseudoyl(time=bmt$t2, event=bmt$icr,tmax=2000)
+
+#arrange the data - use pseudo observations for cause 2
+a &lt;- cbind(bmt,pseudo = pseudo$pseudo[[2]],id=1:nrow(bmt))
+
+#fit a regression model for cause 2
+
+library(geepack)
+summary(fit &lt;- geese(pseudo ~ z1 + as.factor(z8) + as.factor(group),
+	data = a, id=id, jack = TRUE, family=gaussian, 
+	corstr="independence", scale.fix=FALSE))
+
+
+#rearrange the output
+round(cbind(mean = fit$beta,SD = sqrt(diag(fit$vbeta.ajs)),
+	Z = fit$beta/sqrt(diag(fit$vbeta.ajs)),	PVal =
+	2-2*pnorm(abs(fit$beta/sqrt(diag(fit$vbeta.ajs))))),4)
+</code></pre>
+
+
+</div>
